@@ -14,24 +14,9 @@
   --shadow: rgba(15,23,42,.06);
 }
 
-:root[data-theme='dark'] {
-  color: #e5e7eb;
-  background: #020617;
-  --bg: #020617;
-  --card: #0f172a;
-  --card-soft: #111827;
-  --text: #f8fafc;
-  --muted: #94a3b8;
-  --border: #334155;
-  --accent: #e5e7eb;
-  --accent-text: #020617;
-  --input: #111827;
-  --shadow: rgba(0,0,0,.28);
-}
-
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); }
-button, input, textarea, select { font: inherit; }
+button, input, textarea, select { font-family: inherit; font-size: inherit; line-height: inherit; }
 button { cursor: pointer; border: 0; }
 .app { min-height: 100vh; }
 .hero { display: flex; justify-content: space-between; gap: 24px; align-items: center; padding: 36px 6vw; background: var(--card); border-bottom: 1px solid var(--border); }
@@ -39,7 +24,6 @@ button { cursor: pointer; border: 0; }
 .hero-text { max-width: 780px; color: var(--muted); font-size: 17px; }
 .eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px; background: var(--card-soft); color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
 .status-box { min-width: 290px; padding: 20px; border-radius: 24px; background: #0f172a; color: white; box-shadow: 0 18px 40px rgba(15, 23, 42, .16); }
-:root[data-theme='dark'] .status-box { background: #1e293b; }
 .status-box h3 { margin: 6px 0; }
 .status-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
 main { width: min(1440px, 92vw); margin: 0 auto; padding: 28px 0 56px; }
@@ -56,7 +40,6 @@ main { width: min(1440px, 92vw); margin: 0 auto; padding: 28px 0 56px; }
 .tabs button.active { background: var(--accent); color: var(--accent-text); }
 .tab-badge { min-width: 22px; height: 22px; display: inline-grid; place-items: center; border-radius: 999px; background: #ef4444; color: white; font-size: 12px; padding: 0 6px; }
 .message { margin-bottom: 18px; padding: 14px 18px; border-radius: 18px; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-weight: 700; }
-:root[data-theme='dark'] .message { background: #172554; color: #bfdbfe; border-color: #1d4ed8; }
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 22px; }
 .card { background: var(--card); border: 1px solid var(--border); border-radius: 26px; padding: 24px; box-shadow: 0 1px 2px var(--shadow); }
 .stat-card { display: flex; justify-content: space-between; align-items: flex-start; }
@@ -93,11 +76,12 @@ main { width: min(1440px, 92vw); margin: 0 auto; padding: 28px 0 56px; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .form-grid.compact { grid-template-columns: 1.5fr 1fr 1fr .8fr; }
 .field { display: grid; gap: 8px; font-weight: 800; color: var(--text); }
-input, textarea, select { width: 100%; border: 1px solid var(--border); border-radius: 18px; padding: 12px 14px; background: var(--input); color: var(--text); outline: none; }
+input, textarea, select { width: 100%; border: 1px solid var(--border); border-radius: 18px; padding: 12px 14px; background: var(--input); color: var(--text); outline: none; font-weight: 400; }
 textarea { min-height: 120px; resize: vertical; }
 input:focus, textarea:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(15,23,42,.08); }
 .input-icon { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 18px; background: var(--input); padding-left: 12px; }
-.input-icon input { border: 0; border-radius: 18px; box-shadow: none; }
+.input-icon input { border: 0; border-radius: 18px; box-shadow: none; font-weight: 400; }
+input::placeholder, textarea::placeholder { font-weight: 400; color: var(--muted); opacity: .75; }
 .primary, .success, .warning, .danger, .secondary, .ghost-button, .ghost-dark, .action-row button, .mini-card button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 16px; border-radius: 16px; font-weight: 900; margin-top: 16px; }
 .primary { background: var(--accent); color: var(--accent-text); }
 .secondary { background: var(--card-soft); color: var(--text); border: 1px solid var(--border); }

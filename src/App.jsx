@@ -14,11 +14,9 @@ import {
   Lock,
   LogOut,
   MessageSquareText,
-  Moon,
   Printer,
   Search,
   ShieldCheck,
-  Sun,
   Upload,
   UserCog,
   Users,
@@ -91,6 +89,56 @@ function saveCurrentUser(user) {
   else localStorage.setItem('pharmatrack-current-user', JSON.stringify(user))
 }
 
+function normalizeText(value) {
+  return String(value || '').trim().toLowerCase()
+}
+
+function getProjectStudents(project) {
+  if (Array.isArray(project?.students)) return project.students
+  if (typeof project?.students === 'string') return project.students.split(',').map((name) => name.trim()).filter(Boolean)
+  return []
+}
+
+function isOwnStudentProject(project, user) {
+  if (!project || !user) return false
+  const userName = normalizeText(user.full_name)
+  const userEmail = normalizeText(user.email)
+  const groupName = normalizeText(project.group_name)
+  const createdBy = normalizeText(project.created_by || project.student_name || project.submitted_by)
+  const studentId = normalizeText(project.student_id || project.user_id || project.owner_id)
+  const students = getProjectStudents(project).map(normalizeText)
+
+  return (
+    (!!userName && (groupName.includes(userName) || createdBy === userName || students.some((student) => student.includes(userName) || userName.includes(student)))) ||
+    (!!userEmail && (createdBy === userEmail || students.includes(userEmail))) ||
+    (!!user.id && studentId === normalizeText(user.id))
+  )
+}
+
+function isAssignedSupervisorProject(project, user) {
+  if (!project || !user) return false
+  const supervisorName = normalizeText(project.supervisor_name || project.supervisor || project.assigned_supervisor)
+  const supervisorEmail = normalizeText(project.supervisor_email)
+  return (
+    (!!user.full_name && supervisorName === normalizeText(user.full_name)) ||
+    (!!user.email && supervisorEmail === normalizeText(user.email))
+  )
+}
+
+function getVisibleProjects(projects, role, user) {
+  if (role === 'admin' || role === 'committee') return projects
+  if (role === 'supervisor') return projects.filter((project) => isAssignedSupervisorProject(project, user))
+  return projects.filter((project) => isOwnStudentProject(project, user))
+}
+
+function getVisibleReports(reports, visibleProjects, role) {
+  const projectIds = new Set(visibleProjects.map((project) => project.id))
+  if (role === 'admin' || role === 'committee' || role === 'supervisor' || role === 'student') {
+    return reports.filter((report) => projectIds.has(report.project_id))
+  }
+  return []
+}
+
 function Pill({ children, tone = 'slate' }) {
   return <span className={`pill ${tone}`}>{children}</span>
 }
@@ -147,7 +195,7 @@ function EmptyState({ title, text, icon: Icon = FileText }) {
   )
 }
 
-function LoginPage({ onLogin, onForgotPassword, theme, toggleTheme, message, loading }) {
+function LoginPage({ onLogin, onForgotPassword, message, loading }) {
   const [mode, setMode] = useState('login')
   const [form, setForm] = useState({
     full_name: '',
@@ -169,7 +217,6 @@ function LoginPage({ onLogin, onForgotPassword, theme, toggleTheme, message, loa
             <h1>PharmaTrack Research Platform</h1>
             <p className="hero-text">Login securely with email and password to manage final-year pharmacy research projects, weekly reports, evaluations, files, and reminders.</p>
           </div>
-          <button className="ghost-button" onClick={toggleTheme}>{theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />} {theme === 'dark' ? 'Light' : 'Dark'} mode</button>
         </div>
 
         <div className="auth-switch three">
@@ -225,7 +272,7 @@ function LoginPage({ onLogin, onForgotPassword, theme, toggleTheme, message, loa
   )
 }
 
-function ResetPasswordPage({ onUpdatePassword, onBackToLogin, theme, toggleTheme, message, loading }) {
+function ResetPasswordPage({ onUpdatePassword, onBackToLogin, message, loading }) {
   const [form, setForm] = useState({ password: '', confirm_password: '' })
   return (
     <div className="login-page">
@@ -236,7 +283,6 @@ function ResetPasswordPage({ onUpdatePassword, onBackToLogin, theme, toggleTheme
             <h1>Set a New Password</h1>
             <p className="hero-text">Enter a new password for your PharmaTrack account. After updating, return to the login page and sign in again.</p>
           </div>
-          <button className="ghost-button" onClick={toggleTheme}>{theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />} {theme === 'dark' ? 'Light' : 'Dark'} mode</button>
         </div>
         <div className="login-form">
           <label className="field">
@@ -267,16 +313,15 @@ export default function App() {
   const [loginLoading, setLoginLoading] = useState(false)
   const [passwordRecoveryMode, setPasswordRecoveryMode] = useState(false)
   const [passwordResetLoading, setPasswordResetLoading] = useState(false)
-  const [theme, setTheme] = useState(localStorage.getItem('pharmatrack-theme') || 'light')
   const [filters, setFilters] = useState({ search: '', area: 'All', status: 'All' })
 
   const databaseMode = isSupabaseConfigured ? 'Supabase connected' : 'Local database mode'
   const allowedRole = currentUser?.role || 'student'
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-    localStorage.setItem('pharmatrack-theme', theme)
-  }, [theme])
+    document.documentElement.setAttribute('data-theme', 'light')
+    localStorage.removeItem('pharmatrack-theme')
+  }, [])
 
   useEffect(() => {
     if (!isSupabaseConfigured) return
@@ -313,6 +358,12 @@ export default function App() {
     }
   }, [role, currentUser])
 
+  useEffect(() => {
+    if (allowedRole !== 'admin' && ['database', 'audit'].includes(tab)) {
+      setTab('dashboard')
+    }
+  }, [allowedRole, tab])
+
   async function loadFromSupabase() {
     if (!isSupabaseConfigured) return
     try {
@@ -336,7 +387,6 @@ export default function App() {
         evaluations: evaluations.data || [],
         auditLogs: auditLogs.data || [],
       }))
-      setMessage('Database loaded successfully.')
     } catch (error) {
       setMessage(`Database error: ${error.message}`)
     }
@@ -526,8 +576,8 @@ export default function App() {
 
           if (loginUser.status !== 'Active') {
             await supabase.auth.signOut()
-            setMessage('Account created successfully. Your account is pending Admin approval. You cannot access the dashboard until an Admin approves your account.')
             await loadFromSupabase()
+            setMessage('Registration submitted successfully. Please check your email for confirmation and wait for an admin to approve your account.')
             return
           }
         } else {
@@ -569,7 +619,7 @@ export default function App() {
           }
           setLocal((current) => ({ ...current, profiles: [loginUser, ...current.profiles] }))
           if (loginUser.status !== 'Active') {
-            setMessage('Account created successfully. Your account is pending Admin approval. You cannot access the dashboard until an Admin approves your account.')
+            setMessage('Registration submitted successfully. Please check your email for confirmation and wait for an admin to approve your account.')
             return
           }
         } else {
@@ -825,33 +875,82 @@ export default function App() {
     addAudit(currentUser.full_name, 'printed', 'PDF report')
   }
 
+  const visibleProjects = useMemo(() => getVisibleProjects(data.projects, allowedRole, currentUser), [data.projects, allowedRole, currentUser])
+
   const filteredProjects = useMemo(() => {
     const q = filters.search.trim().toLowerCase()
-    return data.projects.filter((p) => {
+    return visibleProjects.filter((p) => {
       const matchesSearch = !q || [p.title, p.group_name, p.area, p.supervisor_name, p.approval, p.status].some((value) => String(value || '').toLowerCase().includes(q))
       const matchesArea = filters.area === 'All' || p.area === filters.area
       const matchesStatus = filters.status === 'All' || p.status === filters.status || p.approval === filters.status
       return matchesSearch && matchesArea && matchesStatus
     })
-  }, [data.projects, filters])
+  }, [visibleProjects, filters])
+
+  const visibleReports = useMemo(() => getVisibleReports(data.reports, visibleProjects, allowedRole), [data.reports, visibleProjects, allowedRole])
+
+  const visibleData = useMemo(() => ({
+    ...data,
+    profiles: allowedRole === 'admin' ? data.profiles : [],
+    projects: visibleProjects,
+    reports: visibleReports,
+    evaluations: allowedRole === 'student' ? [] : data.evaluations,
+    auditLogs: allowedRole === 'admin' ? data.auditLogs : [],
+  }), [data, allowedRole, visibleProjects, visibleReports])
 
   const stats = useMemo(() => {
-    const approved = data.projects.filter((p) => p.approval === 'Approved').length
-    const pendingReports = data.reports.filter((r) => ['Submitted', 'Revision Required'].includes(r.status)).length
-    const averageProgress = data.projects.length ? Math.round(data.projects.reduce((sum, p) => sum + Number(p.progress || 0), 0) / data.projects.length) : 0
+    const approved = visibleProjects.filter((p) => p.approval === 'Approved').length
+    const pendingReports = visibleReports.filter((r) => ['Submitted', 'Revision Required'].includes(r.status)).length
+    const averageProgress = visibleProjects.length ? Math.round(visibleProjects.reduce((sum, p) => sum + Number(p.progress || 0), 0) / visibleProjects.length) : 0
     const unread = data.notifications.filter((n) => !n.is_read && (n.target_role === 'all' || n.target_role === allowedRole)).length
-    const activeUsers = data.profiles.filter((u) => u.status === 'Active').length
-    const pendingUsers = data.profiles.filter((u) => u.status === 'Pending').length
-    const rejectedUsers = data.profiles.filter((u) => u.status === 'Rejected').length
+    const activeUsers = allowedRole === 'admin' ? data.profiles.filter((u) => u.status === 'Active').length : 0
+    const pendingUsers = allowedRole === 'admin' ? data.profiles.filter((u) => u.status === 'Pending').length : 0
+    const rejectedUsers = allowedRole === 'admin' ? data.profiles.filter((u) => u.status === 'Rejected').length : 0
     return { approved, pendingReports, averageProgress, unread, activeUsers, pendingUsers, rejectedUsers }
-  }, [data, allowedRole])
+  }, [data.notifications, data.profiles, allowedRole, visibleProjects, visibleReports])
+
+  const statCards = useMemo(() => {
+    if (allowedRole === 'admin') {
+      return [
+        { icon: Users, title: 'Registered users', value: data.profiles.length, detail: `${stats.activeUsers} active, ${stats.pendingUsers} pending` },
+        { icon: BookOpen, title: 'Research projects', value: data.projects.length, detail: `${data.projects.filter((p) => p.approval === 'Approved').length} approved topics` },
+        { icon: MessageSquareText, title: 'Reports needing review', value: data.reports.filter((r) => ['Submitted', 'Revision Required'].includes(r.status)).length, detail: 'Submitted or revision-required' },
+        { icon: CheckCircle2, title: 'Average progress', value: `${data.projects.length ? Math.round(data.projects.reduce((sum, p) => sum + Number(p.progress || 0), 0) / data.projects.length) : 0}%`, detail: 'Across active projects' },
+      ]
+    }
+
+    if (allowedRole === 'supervisor') {
+      return [
+        { icon: BookOpen, title: 'My assigned projects', value: visibleProjects.length, detail: 'Only projects assigned to you' },
+        { icon: MessageSquareText, title: 'My reports to review', value: stats.pendingReports, detail: 'Submitted or revision-required' },
+        { icon: Users, title: 'My student groups', value: visibleProjects.length, detail: 'Visible through assigned projects' },
+        { icon: CheckCircle2, title: 'Average progress', value: `${stats.averageProgress}%`, detail: 'Across your assigned projects' },
+      ]
+    }
+
+    if (allowedRole === 'committee') {
+      return [
+        { icon: BookOpen, title: 'Projects for review', value: visibleProjects.length, detail: `${visibleProjects.filter((p) => p.approval === 'Pending Committee Review' || p.approval === 'Revision Required').length} awaiting decision` },
+        { icon: CheckCircle2, title: 'Approved topics', value: stats.approved, detail: 'Committee-approved research topics' },
+        { icon: MessageSquareText, title: 'Weekly reports', value: visibleReports.length, detail: 'Visible project reports' },
+        { icon: CalendarDays, title: 'Active deadlines', value: data.deadlines.length, detail: 'Academic milestones' },
+      ]
+    }
+
+    return [
+      { icon: BookOpen, title: 'My research projects', value: visibleProjects.length, detail: 'Only your submitted project records' },
+      { icon: MessageSquareText, title: 'My weekly reports', value: visibleReports.length, detail: 'Only reports from your project' },
+      { icon: CheckCircle2, title: 'My progress', value: `${stats.averageProgress}%`, detail: 'Based on your project progress' },
+      { icon: CalendarDays, title: 'Deadlines', value: data.deadlines.length, detail: 'Upcoming course milestones' },
+    ]
+  }, [allowedRole, data, stats, visibleProjects, visibleReports])
 
   if (passwordRecoveryMode) {
-    return <ResetPasswordPage onUpdatePassword={handleUpdatePassword} onBackToLogin={() => { setPasswordRecoveryMode(false); window.history.replaceState({}, document.title, window.location.pathname); setMessage('') }} theme={theme} toggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')} message={message} loading={passwordResetLoading} />
+    return <ResetPasswordPage onUpdatePassword={handleUpdatePassword} onBackToLogin={() => { setPasswordRecoveryMode(false); window.history.replaceState({}, document.title, window.location.pathname); setMessage('') }} message={message} loading={passwordResetLoading} />
   }
 
   if (!currentUser) {
-    return <LoginPage onLogin={handleLogin} onForgotPassword={handleForgotPassword} theme={theme} toggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')} message={message} loading={loginLoading} />
+    return <LoginPage onLogin={handleLogin} onForgotPassword={handleForgotPassword} message={message} loading={loginLoading} />
   }
 
   return (
@@ -868,7 +967,6 @@ export default function App() {
           <p className="small">Role: {roleButtons.find((r) => r.id === allowedRole)?.label}</p>
           <p className="small">Database: {databaseMode}</p>
           <div className="status-actions">
-            <button className="ghost-dark" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />} {theme === 'dark' ? 'Light' : 'Dark'}</button>
             <button className="ghost-dark" onClick={logout}><LogOut size={16} /> Logout</button>
           </div>
         </div>
@@ -881,7 +979,7 @@ export default function App() {
           <button onClick={() => setTab('notifications')} className={tab === 'notifications' ? 'active' : ''}><Bell size={16} /> Notifications {stats.unread > 0 && <span className="tab-badge">{stats.unread}</span>}</button>
           <button onClick={() => setTab('reports')} className={tab === 'reports' ? 'active' : ''}><Printer size={16} /> Print/PDF Reports</button>
           {allowedRole === 'admin' && <button onClick={() => setTab('database')} className={tab === 'database' ? 'active' : ''}><Database size={16} /> Database</button>}
-          <button onClick={() => setTab('audit')} className={tab === 'audit' ? 'active' : ''}><ShieldCheck size={16} /> Audit Log</button>
+          {allowedRole === 'admin' && <button onClick={() => setTab('audit')} className={tab === 'audit' ? 'active' : ''}><ShieldCheck size={16} /> Audit Log</button>}
         </div>
 
         {message && <div className="message no-print">{message}</div>}
@@ -889,26 +987,23 @@ export default function App() {
         {tab === 'dashboard' && (
           <>
             <section className="stats no-print">
-              <StatCard icon={Users} title="Registered users" value={data.profiles.length} detail={`${stats.activeUsers} active, ${stats.pendingUsers} pending`} />
-              <StatCard icon={BookOpen} title="Research projects" value={data.projects.length} detail={`${stats.approved} approved topics`} />
-              <StatCard icon={MessageSquareText} title="Reports needing review" value={stats.pendingReports} detail="Submitted or revision-required" />
-              <StatCard icon={CheckCircle2} title="Average progress" value={`${stats.averageProgress}%`} detail="Across active projects" />
+              {statCards.map((card) => <StatCard key={card.title} {...card} />)}
             </section>
 
-            <FilterBar filters={filters} setFilters={setFilters} projects={data.projects} />
+            <FilterBar filters={filters} setFilters={setFilters} projects={visibleProjects} />
 
-            {allowedRole === 'student' && <StudentDashboard data={data} projects={filteredProjects} currentUser={currentUser} createProject={createProject} createWeeklyReport={createWeeklyReport} />}
-            {allowedRole === 'supervisor' && <SupervisorDashboard data={data} projects={filteredProjects} currentUser={currentUser} reviewReport={reviewReport} />}
-            {allowedRole === 'committee' && <CommitteeDashboard data={data} projects={filteredProjects} updateProject={updateProject} saveEvaluation={saveEvaluation} />}
-            {allowedRole === 'admin' && <AdminDashboard data={data} projects={filteredProjects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} exportCsv={exportCsv} />}
+            {allowedRole === 'student' && <StudentDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} createProject={createProject} createWeeklyReport={createWeeklyReport} />}
+            {allowedRole === 'supervisor' && <SupervisorDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} reviewReport={reviewReport} />}
+            {allowedRole === 'committee' && <CommitteeDashboard data={visibleData} projects={filteredProjects} updateProject={updateProject} saveEvaluation={saveEvaluation} />}
+            {allowedRole === 'admin' && <AdminDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} exportCsv={exportCsv} />}
           </>
         )}
 
         {tab === 'notifications' && <NotificationsTab data={data} role={allowedRole} createNotification={createNotification} markNotificationRead={markNotificationRead} />}
-        {tab === 'reports' && <ReportsTab data={data} projects={filteredProjects} currentUser={currentUser} printPdfReport={printPdfReport} exportCsv={exportCsv} />}
+        {tab === 'reports' && <ReportsTab data={visibleData} projects={filteredProjects} currentUser={currentUser} role={allowedRole} printPdfReport={printPdfReport} exportCsv={exportCsv} />}
         {tab === 'database' && allowedRole === 'admin' && <DatabaseTab databaseMode={databaseMode} />}
         {tab === 'database' && allowedRole !== 'admin' && <div className="card"><SectionHeader icon={Lock} title="Database Access Locked" subtitle="Only Admin accounts can view database status" /><p className="muted">Please use your role dashboard, notifications, or reports page.</p></div>}
-        {tab === 'audit' && <AuditTab logs={data.auditLogs} />}
+        {tab === 'audit' && allowedRole === 'admin' && <AuditTab logs={visibleData.auditLogs} />}
       </main>
     </div>
   )
@@ -940,8 +1035,8 @@ function FilterBar({ filters, setFilters, projects }) {
 }
 
 function StudentDashboard({ data, projects, currentUser, createProject, createWeeklyReport }) {
-  const ownProjects = projects.filter((p) => (p.students || []).includes(currentUser.full_name) || p.group_name?.includes(currentUser.full_name))
-  const selectedProject = ownProjects[0] || data.projects.find((p) => (p.students || []).includes(currentUser.full_name))
+  const ownProjects = projects.filter((p) => isOwnStudentProject(p, currentUser))
+  const selectedProject = ownProjects[0] || data.projects.find((p) => isOwnStudentProject(p, currentUser))
   const reports = data.reports.filter((r) => r.project_id === selectedProject?.id)
   const [titleForm, setTitleForm] = useState({ title: '', area: 'Clinical Pharmacy', group_name: `${currentUser.full_name} Research Group`, final_due: '2026-06-20' })
   const [reportForm, setReportForm] = useState({ completed_work: '', challenges: '', next_week_plan: '', attendance: 'Attended' })
@@ -1016,7 +1111,7 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
 
 function SupervisorDashboard({ data, projects, currentUser, reviewReport }) {
   const [feedback, setFeedback] = useState({})
-  const assignedProjects = projects.filter((p) => p.supervisor_name === currentUser.full_name)
+  const assignedProjects = projects.filter((p) => isAssignedSupervisorProject(p, currentUser))
   const reports = data.reports.filter((r) => assignedProjects.some((p) => p.id === r.project_id))
 
   return (
@@ -1196,7 +1291,7 @@ function NotificationsTab({ data, role, createNotification, markNotificationRead
   )
 }
 
-function ReportsTab({ data, projects, currentUser, printPdfReport, exportCsv }) {
+function ReportsTab({ data, projects, currentUser, role, printPdfReport, exportCsv }) {
   const today = new Date().toISOString().slice(0, 10)
   return (
     <div className="stack">
@@ -1210,7 +1305,7 @@ function ReportsTab({ data, projects, currentUser, printPdfReport, exportCsv }) 
           <h1>Pharmacy Research Project Management Report</h1>
           <p>Generated by: {currentUser.full_name} • Date: {today}</p>
         </div>
-        <section className="report-section"><h3>Summary</h3><div className="report-grid"><p><b>Total users:</b> {data.profiles.length}</p><p><b>Total projects:</b> {data.projects.length}</p><p><b>Filtered projects:</b> {projects.length}</p><p><b>Weekly reports:</b> {data.reports.length}</p></div></section>
+        <section className="report-section"><h3>Summary</h3><div className="report-grid">{role === 'admin' && <p><b>Total users:</b> {data.profiles.length}</p>}<p><b>Visible projects:</b> {data.projects.length}</p><p><b>Filtered projects:</b> {projects.length}</p><p><b>Weekly reports:</b> {data.reports.length}</p></div></section>
         <section className="report-section"><h3>Project List</h3>{projects.length ? <div className="table-wrap"><table><thead><tr><th>Group</th><th>Title</th><th>Area</th><th>Supervisor</th><th>Status</th><th>Progress</th></tr></thead><tbody>{projects.map((p) => <tr key={p.id}><td>{p.group_name}</td><td>{p.title}</td><td>{p.area}</td><td>{p.supervisor_name}</td><td>{p.approval}</td><td>{p.progress}%</td></tr>)}</tbody></table></div> : <p>No projects match the current filter.</p>}</section>
         <section className="report-section"><h3>Deadlines</h3>{data.deadlines.map((d) => <p key={d.id}><b>{d.title}</b> — {d.deadline_type}, due {d.due_date}</p>)}</section>
       </div>
