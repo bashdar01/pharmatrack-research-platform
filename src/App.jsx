@@ -1003,11 +1003,15 @@ export default function App() {
     <div className="app">
       <header className="hero no-print">
         <div className="status-box">
-          <p className="muted small">Logged in as</p>
-          <h3>{currentUser.full_name}</h3>
-          <p className="small">Role: {roleButtons.find((r) => r.id === allowedRole)?.label}</p>
+          <div className="status-main">
+            <div className="status-avatar">{String(currentUser.full_name || 'U').trim().charAt(0).toUpperCase()}</div>
+            <div>
+              <h3>{currentUser.full_name}</h3>
+              <p className="small">{roleButtons.find((r) => r.id === allowedRole)?.label}</p>
+            </div>
+          </div>
           <div className="status-actions">
-            <button className="ghost-dark" onClick={logout}><LogOut size={16} /> Logout</button>
+            <button className="ghost-dark" onClick={logout}><LogOut size={15} /> Logout</button>
           </div>
         </div>
       </header>
