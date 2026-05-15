@@ -211,6 +211,7 @@ function LoginPage({ onLogin, onForgotPassword, message, loading }) {
   return (
     <div className="login-page">
       <div className="login-card">
+        <img className="login-hero-image" src="/hero-page.png" alt="Pharmacy Research Project hero banner" />
         <div className="login-header">
           <div>
             <p className="eyebrow"><ShieldCheck size={16} /> Secure access</p>
@@ -277,6 +278,7 @@ function ResetPasswordPage({ onUpdatePassword, onBackToLogin, message, loading }
   return (
     <div className="login-page">
       <div className="login-card">
+        <img className="login-hero-image" src="/hero-page.png" alt="Pharmacy Research Project hero banner" />
         <div className="login-header">
           <div>
             <p className="eyebrow"><ShieldCheck size={16} /> Password recovery</p>
@@ -850,6 +852,50 @@ export default function App() {
     setMessage('Notification created.')
   }
 
+  async function createDeadline(form) {
+    if (!['admin', 'supervisor'].includes(allowedRole)) return setMessage('Only supervisors and admins can add deadlines.')
+    if (!form.title?.trim() || !form.due_date) return setMessage('Please write the deadline title and due date.')
+
+    const deadline = {
+      id: crypto.randomUUID(),
+      title: form.title.trim(),
+      deadline_type: form.deadline_type || 'Supervisor Deadline',
+      due_date: form.due_date,
+      academic_year: form.academic_year || '2026-2027',
+      status: form.status || 'Active',
+      created_at: new Date().toISOString(),
+    }
+
+    if (isSupabaseConfigured) {
+      const { id, created_at, ...deadlineForDb } = deadline
+      const { error } = await supabase.from('deadlines').insert(deadlineForDb)
+      if (error) return setMessage(error.message)
+      await addAudit(currentUser.full_name, 'created', `deadline: ${deadline.title}`)
+      await loadFromSupabase()
+    } else {
+      const log = makeAudit(currentUser.full_name, 'created', `deadline: ${deadline.title}`)
+      setLocal((current) => ({ ...current, deadlines: [deadline, ...current.deadlines], auditLogs: [log, ...current.auditLogs] }))
+    }
+    setMessage('Deadline added successfully.')
+  }
+
+  async function removeDeadline(deadlineId) {
+    if (!['admin', 'supervisor'].includes(allowedRole)) return setMessage('Only supervisors and admins can remove deadlines.')
+    const target = data.deadlines.find((d) => d.id === deadlineId)
+    if (!target) return setMessage('Deadline not found.')
+
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.from('deadlines').delete().eq('id', deadlineId)
+      if (error) return setMessage(`${error.message}. If deletion is blocked, run supabase/supervisor_deadlines_add_remove.sql in Supabase SQL Editor.`)
+      await addAudit(currentUser.full_name, 'removed', `deadline: ${target.title}`)
+      await loadFromSupabase()
+    } else {
+      const log = makeAudit(currentUser.full_name, 'removed', `deadline: ${target.title}`)
+      setLocal((current) => ({ ...current, deadlines: current.deadlines.filter((d) => d.id !== deadlineId), auditLogs: [log, ...current.auditLogs] }))
+    }
+    setMessage('Deadline removed successfully.')
+  }
+
   function markNotificationRead(id) {
     setLocal((current) => ({
       ...current,
@@ -956,10 +1002,8 @@ export default function App() {
   return (
     <div className="app">
       <header className="hero no-print">
-        <div>
-          <p className="eyebrow"><ShieldCheck size={16} /> Secure role-based research platform</p>
-          <h1>PharmaTrack Research Platform</h1>
-          <p className="hero-text">A web-based Pharmacy Research Project Management System for 5th-year students at Hawler Medical University, College of Pharmacy.</p>
+        <div className="hero-art">
+          <img src="/hero-page.png" alt="Pharmacy Research Project hero banner" />
         </div>
         <div className="status-box">
           <p className="muted small">Logged in as</p>
@@ -993,7 +1037,7 @@ export default function App() {
             <FilterBar filters={filters} setFilters={setFilters} projects={visibleProjects} />
 
             {allowedRole === 'student' && <StudentDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} createProject={createProject} createWeeklyReport={createWeeklyReport} />}
-            {allowedRole === 'supervisor' && <SupervisorDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} reviewReport={reviewReport} />}
+            {allowedRole === 'supervisor' && <SupervisorDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} reviewReport={reviewReport} createDeadline={createDeadline} removeDeadline={removeDeadline} />}
             {allowedRole === 'committee' && <CommitteeDashboard data={visibleData} projects={filteredProjects} updateProject={updateProject} saveEvaluation={saveEvaluation} />}
             {allowedRole === 'admin' && <AdminDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} exportCsv={exportCsv} />}
           </>
@@ -1109,7 +1153,7 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
   )
 }
 
-function SupervisorDashboard({ data, projects, currentUser, reviewReport }) {
+function SupervisorDashboard({ data, projects, currentUser, reviewReport, createDeadline, removeDeadline }) {
   const [feedback, setFeedback] = useState({})
   const assignedProjects = projects.filter((p) => isAssignedSupervisorProject(p, currentUser))
   const reports = data.reports.filter((r) => assignedProjects.some((p) => p.id === r.project_id))
@@ -1117,6 +1161,7 @@ function SupervisorDashboard({ data, projects, currentUser, reviewReport }) {
   return (
     <div className="stack">
       {assignedProjects.length ? <div className="project-grid">{assignedProjects.map((p) => <ProjectCard key={p.id} project={p} />)}</div> : <div className="card"><EmptyState title="No assigned projects" text="Ask the admin to assign projects to your exact login name, or assign yourself from the Admin view for testing." icon={Users} /></div>}
+      <DeadlineManager deadlines={data.deadlines} createDeadline={createDeadline} removeDeadline={removeDeadline} />
       <div className="card">
         <SectionHeader icon={ClipboardCheck} title="Review Weekly Reports" subtitle="Approve or request revision" />
         {reports.length ? reports.map((r) => {
@@ -1129,6 +1174,46 @@ function SupervisorDashboard({ data, projects, currentUser, reviewReport }) {
             </div>
           )
         }) : <EmptyState title="No reports to review" text="Weekly reports from assigned projects will appear here." icon={ClipboardCheck} />}
+      </div>
+    </div>
+  )
+}
+
+function DeadlineManager({ deadlines, createDeadline, removeDeadline }) {
+  const [form, setForm] = useState({
+    title: '',
+    deadline_type: 'Weekly Report',
+    due_date: '',
+    academic_year: '2026-2027',
+    status: 'Active',
+  })
+
+  function resetForm() {
+    setForm({ title: '', deadline_type: 'Weekly Report', due_date: '', academic_year: '2026-2027', status: 'Active' })
+  }
+
+  return (
+    <div className="card">
+      <SectionHeader icon={CalendarDays} title="Set and Manage Deadlines" subtitle="Supervisors can add new deadlines or remove old ones" />
+      <div className="deadline-form-grid">
+        <label className="field"><span>Deadline title</span><input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Example: Submit weekly report 3" /></label>
+        <label className="field"><span>Deadline type</span><select value={form.deadline_type} onChange={(e) => setForm({ ...form, deadline_type: e.target.value })}><option>Weekly Report</option><option>Proposal</option><option>Data Collection</option><option>Draft Thesis</option><option>Final Thesis</option><option>Poster</option><option>Presentation</option><option>Supervisor Deadline</option></select></label>
+        <label className="field"><span>Due date</span><input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></label>
+        <label className="field"><span>Academic year</span><input value={form.academic_year} onChange={(e) => setForm({ ...form, academic_year: e.target.value })} placeholder="2026-2027" /></label>
+        <label className="field"><span>Status</span><select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}><option>Active</option><option>Inactive</option><option>Completed</option></select></label>
+        <div className="deadline-actions"><button className="primary" type="button" onClick={() => { createDeadline(form); resetForm() }}><CalendarDays size={16} /> Add Deadline</button></div>
+      </div>
+      <div className="deadline-list">
+        {deadlines.length ? deadlines.map((d) => (
+          <div className="mini-card deadline-item" key={d.id}>
+            <div>
+              <b>{d.title}</b>
+              <p>{d.deadline_type} • {d.due_date} • {d.academic_year || 'Academic year not set'}</p>
+              <Pill tone={d.status === 'Active' ? 'green' : d.status === 'Completed' ? 'blue' : 'slate'}>{d.status || 'Active'}</Pill>
+            </div>
+            <button className="danger compact-button" type="button" onClick={() => removeDeadline(d.id)}>Remove</button>
+          </div>
+        )) : <EmptyState title="No deadlines" text="Add the first supervisor deadline using the form above." icon={CalendarDays} />}
       </div>
     </div>
   )

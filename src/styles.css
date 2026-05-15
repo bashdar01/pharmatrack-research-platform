@@ -309,3 +309,69 @@ button:disabled {
 .login-message {
   grid-column: 1 / -1;
 }
+
+/* Pharmacy Research Project hero banner */
+.hero-art {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.hero-art img,
+.login-hero-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 28px;
+  border: 1px solid var(--border);
+  box-shadow: 0 22px 60px rgba(15, 23, 42, 0.14);
+  object-fit: cover;
+}
+.login-hero-image {
+  margin-bottom: 24px;
+}
+.deadline-form-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr .9fr .9fr .8fr auto;
+  gap: 14px;
+  align-items: end;
+  margin-bottom: 18px;
+}
+.deadline-actions {
+  display: flex;
+  align-items: end;
+}
+.deadline-actions .primary {
+  margin-top: 0;
+  white-space: nowrap;
+}
+.deadline-list {
+  display: grid;
+  gap: 12px;
+}
+.deadline-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 0;
+}
+.deadline-item p {
+  margin: 6px 0 10px;
+  color: var(--muted);
+}
+@media (max-width: 1180px) {
+  .deadline-form-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .deadline-actions {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 760px) {
+  .deadline-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .deadline-item {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
