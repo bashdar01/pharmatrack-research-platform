@@ -1002,14 +1002,10 @@ export default function App() {
   return (
     <div className="app">
       <header className="hero no-print">
-        <div className="hero-art">
-          <img src="/hero-page.png" alt="Pharmacy Research Project hero banner" />
-        </div>
         <div className="status-box">
           <p className="muted small">Logged in as</p>
           <h3>{currentUser.full_name}</h3>
           <p className="small">Role: {roleButtons.find((r) => r.id === allowedRole)?.label}</p>
-          <p className="small">Database: {databaseMode}</p>
           <div className="status-actions">
             <button className="ghost-dark" onClick={logout}><LogOut size={16} /> Logout</button>
           </div>

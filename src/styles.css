@@ -19,7 +19,7 @@ body { margin: 0; background: var(--bg); color: var(--text); }
 button, input, textarea, select { font-family: inherit; font-size: inherit; line-height: inherit; }
 button { cursor: pointer; border: 0; }
 .app { min-height: 100vh; }
-.hero { display: flex; justify-content: space-between; gap: 24px; align-items: center; padding: 36px 6vw; background: var(--card); border-bottom: 1px solid var(--border); }
+.hero { position: relative; display: flex; justify-content: flex-end; gap: 24px; align-items: flex-end; min-height: clamp(320px, 36vw, 520px); padding: 36px 6vw; background-image: url('/hero-page.png'); background-size: cover; background-position: center; background-repeat: no-repeat; border-bottom: 1px solid var(--border); }
 .hero h1, .login-card h1 { margin: 12px 0 8px; font-size: clamp(32px, 5vw, 54px); line-height: 1; letter-spacing: -0.04em; color: var(--text); }
 .hero-text { max-width: 780px; color: var(--muted); font-size: 17px; }
 .eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px; background: var(--card-soft); color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
@@ -119,12 +119,13 @@ code { background: var(--card-soft); padding: 4px 8px; border-radius: 8px; }
 @media (max-width: 1180px) {
   .role-grid, .stats, .project-grid { grid-template-columns: repeat(2, 1fr); }
   .two-one, .half { grid-template-columns: 1fr; }
-  .hero, .login-header { align-items: stretch; flex-direction: column; }
+  .login-header { align-items: stretch; flex-direction: column; }
+  .hero { min-height: 300px; align-items: flex-end; }
   .login-form, .filter-grid, .form-grid.compact { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 760px) {
   .role-grid, .stats, .project-grid, .form-grid, .form-grid.compact, .three-cols, .action-row, .rubric-grid, .login-form, .filter-grid, .report-grid { grid-template-columns: 1fr; }
-  .hero { padding: 28px 4vw; }
+  .hero { min-height: 260px; padding: 24px 4vw; background-position: center; }
   main { width: 94vw; }
   .login-card { padding: 22px; }
 }
@@ -312,21 +313,18 @@ button:disabled {
 
 /* Pharmacy Research Project hero banner */
 .hero-art {
-  flex: 1 1 auto;
-  min-width: 0;
+  display: none;
 }
-.hero-art img,
 .login-hero-image {
   display: block;
   width: 100%;
-  height: auto;
-  border-radius: 28px;
+  max-height: 190px;
+  margin-bottom: 20px;
+  border-radius: 22px;
   border: 1px solid var(--border);
-  box-shadow: 0 22px 60px rgba(15, 23, 42, 0.14);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.12);
   object-fit: cover;
-}
-.login-hero-image {
-  margin-bottom: 24px;
+  object-position: center;
 }
 .deadline-form-grid {
   display: grid;
