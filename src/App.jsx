@@ -1575,6 +1575,9 @@ function StudentProfileMenu({ currentUser, roleLabel, onLogout }) {
   const [open, setOpen] = useState(false)
   const [photo, setPhoto] = useState(() => localStorage.getItem(storageKey) || '')
   const initial = String(currentUser?.full_name || currentUser?.email || 'S').trim().charAt(0).toUpperCase()
+  const displayName = currentUser?.full_name || 'Student'
+  const displayEmail = currentUser?.email || 'No email available'
+  const accountStatus = currentUser?.status || 'Active'
 
   function handlePhotoUpload(event) {
     const file = event.target.files?.[0]
@@ -1587,6 +1590,7 @@ function StudentProfileMenu({ currentUser, roleLabel, onLogout }) {
       localStorage.setItem(storageKey, result)
     }
     reader.readAsDataURL(file)
+    event.target.value = ''
   }
 
   function removePhoto() {
@@ -1596,26 +1600,49 @@ function StudentProfileMenu({ currentUser, roleLabel, onLogout }) {
 
   return (
     <div className={`student-profile-menu ${open ? 'open' : ''}`}>
-      <button className="student-profile-trigger" type="button" onClick={() => setOpen((value) => !value)} aria-label="Open student profile menu">
+      <button className="student-profile-trigger redesigned" type="button" onClick={() => setOpen((value) => !value)} aria-label="Open student profile menu">
         {photo ? <img src={photo} alt="Student profile" /> : <span>{initial}</span>}
+        <span className="profile-online-dot" aria-hidden="true" />
       </button>
       {open && (
-        <div className="student-profile-dropdown">
-          <div className="student-profile-head">
-            <div className="student-profile-large">
-              {photo ? <img src={photo} alt="Student profile" /> : <span>{initial}</span>}
+        <div className="student-profile-dropdown redesigned-profile-card">
+          <div className="profile-cover" />
+          <div className="profile-card-body">
+            <div className="profile-avatar-shell">
+              <div className="student-profile-large redesigned">
+                {photo ? <img src={photo} alt="Student profile" /> : <span>{initial}</span>}
+              </div>
             </div>
-            <div>
-              <h3>{currentUser?.full_name || 'Student'}</h3>
-              <p>{roleLabel}</p>
+
+            <div className="profile-identity">
+              <h3>{displayName}</h3>
+              <p>{displayEmail}</p>
+              <div className="profile-badges">
+                <span className="role-chip">{roleLabel}</span>
+                <span className="status-chip"><CheckCircle2 size={13} /> {accountStatus}</span>
+              </div>
+            </div>
+
+            <div className="profile-info-grid">
+              <div>
+                <span>Dashboard</span>
+                <b>Student</b>
+              </div>
+              <div>
+                <span>Access</span>
+                <b>{accountStatus}</b>
+              </div>
+            </div>
+
+            <label className="profile-upload-button redesigned">
+              <Upload size={15} /> {photo ? 'Change photo' : 'Add photo'}
+              <input type="file" accept="image/*" onChange={handlePhotoUpload} />
+            </label>
+            <div className="profile-menu-actions">
+              {photo && <button className="profile-menu-button subtle" type="button" onClick={removePhoto}>Remove</button>}
+              <button className="profile-menu-button logout" type="button" onClick={onLogout}><LogOut size={15} /> Logout</button>
             </div>
           </div>
-          <label className="profile-upload-button">
-            <Upload size={15} /> {photo ? 'Change profile picture' : 'Add profile picture'}
-            <input type="file" accept="image/*" onChange={handlePhotoUpload} />
-          </label>
-          {photo && <button className="profile-menu-button subtle" type="button" onClick={removePhoto}>Remove picture</button>}
-          <button className="profile-menu-button logout" type="button" onClick={onLogout}><LogOut size={15} /> Logout</button>
         </div>
       )}
     </div>
