@@ -9,6 +9,7 @@ import {
   Download,
   FileText,
   Filter,
+  Image as ImageIcon,
   GraduationCap,
   LayoutDashboard,
   Lock,
@@ -16,8 +17,18 @@ import {
   MessageSquareText,
   Printer,
   Search,
+  Save,
+  Settings,
   ShieldCheck,
   Upload,
+  SlidersHorizontal,
+  Mail,
+  Send,
+  Eye,
+  RefreshCw,
+  XCircle,
+  Copy,
+  Clock,
   UserCog,
   Users,
 } from 'lucide-react'
@@ -29,6 +40,106 @@ const roleButtons = [
   { id: 'committee', label: 'Research Committee', icon: ShieldCheck },
   { id: 'admin', label: 'Admin', icon: UserCog },
 ]
+
+const invitationRoles = [
+  { id: 'student', label: 'Student' },
+  { id: 'supervisor', label: 'Supervisor' },
+  { id: 'committee', label: 'Research Committee Member' },
+  { id: 'admin', label: 'Admin / Editor' },
+]
+
+const invitationTemplates = {
+  student: {
+    subject: 'Invitation to join PharmaTrack as a Student',
+    body: 'Dear [Name], you are invited to join our platform as a Student. Please click the link below to create your account and access your dashboard.',
+  },
+  supervisor: {
+    subject: 'Invitation to join PharmaTrack as a Supervisor',
+    body: 'Dear [Name], you are invited to join our platform as a Supervisor. Please click the link below to create your account and manage assigned students or projects.',
+  },
+  committee: {
+    subject: 'Invitation to join PharmaTrack as a Research Committee Member',
+    body: 'Dear [Name], you are invited to join our platform as a Research Committee Member. Please click the link below to create your account and review submitted research projects.',
+  },
+  admin: {
+    subject: 'Invitation to join PharmaTrack as an Admin / Editor',
+    body: 'Dear [Name], you are invited to join our platform as an Admin/Editor. Please click the link below to create your account and manage website settings, users, and system content.',
+  },
+}
+
+function getRoleLabel(role) {
+  return invitationRoles.find((item) => item.id === role)?.label || roleButtons.find((item) => item.id === role)?.label || role || 'User'
+}
+
+function addDays(date, days) {
+  const next = new Date(date)
+  next.setDate(next.getDate() + days)
+  return next
+}
+
+function makeInvitationToken() {
+  const bytes = new Uint8Array(32)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+function getInvitationDisplayStatus(invitation) {
+  if (!invitation) return 'Pending'
+  if (invitation.status === 'Pending' && invitation.expires_at && new Date(invitation.expires_at) < new Date()) return 'Expired'
+  return invitation.status || 'Pending'
+}
+
+function makeInvitationLink(token) {
+  if (typeof window === 'undefined') return `/?invite=${token}`
+  return `${window.location.origin}/?invite=${encodeURIComponent(token)}`
+}
+
+function buildInvitationEmail(invitation, settings = defaultWebsiteSettings) {
+  const link = invitation.invitation_link || makeInvitationLink(invitation.token)
+  const expiry = invitation.expires_at ? new Date(invitation.expires_at).toLocaleDateString() : '7 days from today'
+  const bodyText = String(invitation.body || '')
+    .replaceAll('[Name]', invitation.full_name || 'Colleague')
+    .replaceAll('[Role]', getRoleLabel(invitation.role))
+    .replaceAll('[Link]', link)
+    .replaceAll('[Expiration Date]', expiry)
+    .replaceAll('[Website Name]', settings.siteName || 'PharmaTrack Research Platform')
+  return `${bodyText}\n\nAssigned role: ${getRoleLabel(invitation.role)}\nSecure invitation link: ${link}\nExpiration date: ${expiry}\n\n${settings.siteName || 'PharmaTrack Research Platform'}\nContact: College of Pharmacy, Hawler Medical University`
+}
+
+const defaultWebsiteSettings = {
+  siteName: 'PharmaTrack Research Platform',
+  adminPanelName: 'PharmaTrack Control Center',
+  homepageHeadline: 'A web-based Pharmacy Research Project Management System',
+  homepageSubtitle: 'For 5th-year students at Hawler Medical University, College of Pharmacy.',
+  heroImage: '/hero-page.png',
+  loginHeroImage: '/hero-page.png',
+  adminWelcome: 'Manage website content, user access, deadlines, projects, database status, and audit activity from one admin control panel.',
+  maintenanceNotice: '',
+}
+
+function normalizeSettings(settings) {
+  return { ...defaultWebsiteSettings, ...(settings || {}) }
+}
+
+function loadWebsiteSettings() {
+  try {
+    const saved = localStorage.getItem('pharmatrack-website-settings')
+    return saved ? normalizeSettings(JSON.parse(saved)) : defaultWebsiteSettings
+  } catch {
+    return defaultWebsiteSettings
+  }
+}
+
+function saveWebsiteSettingsLocal(settings) {
+  localStorage.setItem('pharmatrack-website-settings', JSON.stringify(normalizeSettings(settings)))
+}
+
+function isAdminPortalRequest() {
+  if (typeof window === 'undefined') return false
+  const host = window.location.hostname.toLowerCase()
+  const params = new URLSearchParams(window.location.search)
+  return host.startsWith('admin.') || window.location.pathname.startsWith('/admin') || params.get('admin') === 'true'
+}
 
 const emptyData = {
   profiles: [],
@@ -43,6 +154,7 @@ const emptyData = {
   notifications: [],
   evaluations: [],
   auditLogs: [],
+  invitations: [],
 }
 
 const sampleNames = ['Aveen Mohammed', 'Hemn Karim', 'Dr. Lara Ahmed', 'Dr. Rebaz Hassan', 'College Admin']
@@ -59,6 +171,7 @@ function cleanData(data) {
   cleaned.notifications = cleaned.notifications || []
   cleaned.evaluations = cleaned.evaluations || []
   cleaned.auditLogs = cleaned.auditLogs || []
+  cleaned.invitations = cleaned.invitations || []
   return cleaned
 }
 
@@ -195,7 +308,7 @@ function EmptyState({ title, text, icon: Icon = FileText }) {
   )
 }
 
-function LoginPage({ onLogin, onForgotPassword, message, loading }) {
+function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = false, settings = defaultWebsiteSettings, invitation = null }) {
   const [mode, setMode] = useState('login')
   const [form, setForm] = useState({
     full_name: '',
@@ -205,25 +318,47 @@ function LoginPage({ onLogin, onForgotPassword, message, loading }) {
     role: 'student',
   })
 
+  useEffect(() => {
+    if (!invitation) return
+    setMode('register')
+    setForm((current) => ({
+      ...current,
+      full_name: invitation.full_name || current.full_name,
+      email: invitation.email || current.email,
+      role: invitation.role || current.role,
+    }))
+  }, [invitation])
+
   const isRegister = mode === 'register'
   const isForgotPassword = mode === 'forgot'
+  const portalTitle = adminOnly ? settings.adminPanelName : settings.siteName
+  const portalText = adminOnly
+    ? 'Website management access for approved administrators only. Manage content, users, deadlines, and system settings.'
+    : 'Login securely with email and password to manage final-year pharmacy research projects, weekly reports, evaluations, files, and reminders.'
+  const heroSrc = settings.loginHeroImage || settings.heroImage || '/hero-page.png'
 
   return (
     <div className="login-page">
       <div className="login-card">
-        <img className="login-hero-image" src="/hero-page.png" alt="Pharmacy Research Project hero banner" />
+        <img className="login-hero-image" src={heroSrc} alt="Pharmacy Research Project hero banner" />
         <div className="login-header">
           <div>
-            <p className="eyebrow"><ShieldCheck size={16} /> Secure access</p>
-            <h1>PharmaTrack Research Platform</h1>
-            <p className="hero-text">Login securely with email and password to manage final-year pharmacy research projects, weekly reports, evaluations, files, and reminders.</p>
+            <p className="eyebrow">{adminOnly ? <UserCog size={16} /> : <ShieldCheck size={16} />} {adminOnly ? 'Admin access' : 'Secure access'}</p>
+            <h1>{portalTitle}</h1>
+            <p className="hero-text">{portalText}</p>
           </div>
         </div>
 
-        <div className="auth-switch three">
-          <button type="button" className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')}>Login</button>
-          <button type="button" className={mode === 'register' ? 'active' : ''} onClick={() => setMode('register')}>Create account</button>
-          <button type="button" className={mode === 'forgot' ? 'active' : ''} onClick={() => setMode('forgot')}>Forgot password?</button>
+        <div className={`auth-switch ${invitation ? 'one' : adminOnly ? 'two' : 'three'}`}>
+          {invitation ? (
+            <button type="button" className="active">Invitation Registration</button>
+          ) : (
+            <>
+              <button type="button" className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')}>{adminOnly ? 'Admin login' : 'Login'}</button>
+              {!adminOnly && <button type="button" className={mode === 'register' ? 'active' : ''} onClick={() => setMode('register')}>Create account</button>}
+              <button type="button" className={mode === 'forgot' ? 'active' : ''} onClick={() => setMode('forgot')}>Forgot password?</button>
+            </>
+          )}
         </div>
 
         <div className="login-form">
@@ -235,7 +370,7 @@ function LoginPage({ onLogin, onForgotPassword, message, loading }) {
           )}
           <label className={isForgotPassword ? "field wide" : "field"}>
             <span>University email</span>
-            <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="name@hmu.edu.krd" />
+            <input value={form.email} disabled={Boolean(invitation)} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="name@hmu.edu.krd" />
           </label>
           {!isForgotPassword && (
             <label className="field">
@@ -251,11 +386,17 @@ function LoginPage({ onLogin, onForgotPassword, message, loading }) {
               </label>
               <label className="field">
                 <span>User role</span>
-                <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+                <select value={form.role} disabled={Boolean(invitation)} onChange={(e) => setForm({ ...form, role: e.target.value })}>
                   {roleButtons.map((role) => <option key={role.id} value={role.id}>{role.label}</option>)}
                 </select>
               </label>
             </>
+          )}
+          {invitation && (
+            <div className="invitation-lock-note">
+              <b>Invitation accepted for registration</b>
+              <p>Your email and assigned role are locked for security. Role: {getRoleLabel(invitation.role)}. Expires: {new Date(invitation.expires_at).toLocaleDateString()}.</p>
+            </div>
           )}
           {message && <div className="message login-message">{message}</div>}
           {isForgotPassword ? (
@@ -263,7 +404,7 @@ function LoginPage({ onLogin, onForgotPassword, message, loading }) {
               <Lock size={16} /> {loading ? 'Sending reset link...' : 'Send Password Reset Link'}
             </button>
           ) : (
-            <button className="primary wide" disabled={loading} onClick={() => onLogin({ ...form, mode })}>
+            <button className="primary wide" disabled={loading} onClick={() => onLogin({ ...form, mode, adminPortal: adminOnly })}>
               <Lock size={16} /> {loading ? 'Please wait...' : isRegister ? 'Create Account' : 'Login'}
             </button>
           )}
@@ -273,12 +414,13 @@ function LoginPage({ onLogin, onForgotPassword, message, loading }) {
   )
 }
 
-function ResetPasswordPage({ onUpdatePassword, onBackToLogin, message, loading }) {
+function ResetPasswordPage({ onUpdatePassword, onBackToLogin, message, loading, settings = defaultWebsiteSettings }) {
   const [form, setForm] = useState({ password: '', confirm_password: '' })
+  const heroSrc = settings.loginHeroImage || settings.heroImage || '/hero-page.png'
   return (
     <div className="login-page">
       <div className="login-card">
-        <img className="login-hero-image" src="/hero-page.png" alt="Pharmacy Research Project hero banner" />
+        <img className="login-hero-image" src={heroSrc} alt="Pharmacy Research Project hero banner" />
         <div className="login-header">
           <div>
             <p className="eyebrow"><ShieldCheck size={16} /> Password recovery</p>
@@ -310,12 +452,16 @@ export default function App() {
   const [role, setRole] = useState('student')
   const [tab, setTab] = useState('dashboard')
   const [data, setData] = useState(loadLocalData)
+  const [websiteSettings, setWebsiteSettings] = useState(loadWebsiteSettings)
+  const [adminPanelTab, setAdminPanelTab] = useState('overview')
   const [currentUser, setCurrentUser] = useState(loadCurrentUser)
   const [message, setMessage] = useState('')
   const [loginLoading, setLoginLoading] = useState(false)
   const [passwordRecoveryMode, setPasswordRecoveryMode] = useState(false)
   const [passwordResetLoading, setPasswordResetLoading] = useState(false)
+  const [acceptedInvitation, setAcceptedInvitation] = useState(null)
   const [filters, setFilters] = useState({ search: '', area: 'All', status: 'All' })
+  const isAdminPortal = useMemo(() => isAdminPortalRequest(), [])
 
   const databaseMode = isSupabaseConfigured ? 'Supabase connected' : 'Local database mode'
   const allowedRole = currentUser?.role || 'student'
@@ -323,6 +469,14 @@ export default function App() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', 'light')
     localStorage.removeItem('pharmatrack-theme')
+  }, [])
+
+  useEffect(() => {
+    loadWebsiteSettingsFromSupabase()
+  }, [])
+
+  useEffect(() => {
+    loadInvitationFromUrl()
   }, [])
 
   useEffect(() => {
@@ -380,6 +534,15 @@ export default function App() {
       ])
       const error = [profiles, projects, reports, deadlines, notifications, evaluations, auditLogs].find((x) => x.error)?.error
       if (error) throw error
+
+      let invitationsData = []
+      try {
+        const invitations = await supabase.from('invitations').select('*').order('created_at', { ascending: false })
+        if (!invitations.error) invitationsData = invitations.data || []
+      } catch {
+        invitationsData = []
+      }
+
       setData(cleanData({
         profiles: profiles.data || [],
         projects: projects.data || [],
@@ -388,9 +551,43 @@ export default function App() {
         notifications: notifications.data || [],
         evaluations: evaluations.data || [],
         auditLogs: auditLogs.data || [],
+        invitations: invitationsData,
       }))
     } catch (error) {
       setMessage(`Database error: ${error.message}`)
+    }
+  }
+
+  async function loadInvitationFromUrl() {
+    if (typeof window === 'undefined') return
+    const token = new URLSearchParams(window.location.search).get('invite')
+    if (!token) return
+    try {
+      let invitation = null
+      if (isSupabaseConfigured) {
+        const { data: found, error } = await supabase.from('invitations').select('*').eq('token', token).maybeSingle()
+        if (error) throw error
+        invitation = found
+      } else {
+        const localData = loadLocalData()
+        invitation = localData.invitations.find((item) => item.token === token)
+      }
+
+      if (!invitation) {
+        setMessage('Invitation link not found. Please ask the admin to resend the invitation.')
+        return
+      }
+
+      const displayStatus = getInvitationDisplayStatus(invitation)
+      if (displayStatus !== 'Pending') {
+        setMessage(`This invitation is ${displayStatus.toLowerCase()} and cannot be used for registration.`)
+        return
+      }
+
+      setAcceptedInvitation(invitation)
+      setMessage(`Invitation loaded for ${invitation.email}. Please create your account.`)
+    } catch (error) {
+      setMessage(`Could not load invitation: ${error.message}`)
     }
   }
 
@@ -400,6 +597,58 @@ export default function App() {
       saveLocalData(next)
       return next
     })
+  }
+
+  async function loadWebsiteSettingsFromSupabase() {
+    if (!isSupabaseConfigured) return
+    try {
+      const { data: row, error } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'website')
+        .maybeSingle()
+      if (error) return
+      if (row?.value) {
+        const settings = normalizeSettings(row.value)
+        setWebsiteSettings(settings)
+        saveWebsiteSettingsLocal(settings)
+      }
+    } catch {
+      // The website can still run without the optional app_settings table.
+    }
+  }
+
+  async function updateWebsiteSettings(nextValues, options = {}) {
+    const nextSettings = normalizeSettings({ ...websiteSettings, ...nextValues })
+    setWebsiteSettings(nextSettings)
+    saveWebsiteSettingsLocal(nextSettings)
+
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase
+          .from('app_settings')
+          .upsert({
+            key: 'website',
+            value: nextSettings,
+            updated_by: currentUser?.email || currentUser?.full_name || 'admin',
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'key' })
+        if (error) throw error
+        if (!options.silent) {
+          await addAudit(currentUser.full_name, 'updated', 'website settings')
+          setMessage('Website settings saved. The public website will use the new settings after refresh.')
+        }
+      } catch (error) {
+        setMessage(`Settings saved locally. To save globally for all users, run supabase/website_settings.sql in Supabase SQL Editor. Details: ${error.message}`)
+      }
+    } else if (!options.silent) {
+      setMessage('Website settings saved locally for preview. Connect Supabase and run supabase/website_settings.sql to make settings global.')
+    }
+  }
+
+  async function resetWebsiteSettings() {
+    await updateWebsiteSettings(defaultWebsiteSettings)
+    setMessage('Website settings reset to default values.')
   }
 
   function makeAudit(actor, action, entity) {
@@ -494,11 +743,28 @@ export default function App() {
     setMessage('')
     const mode = form.mode || 'login'
     const isRegister = mode === 'register'
+    const adminPortal = Boolean(form.adminPortal)
     const fullName = form.full_name.trim()
     const email = form.email.trim().toLowerCase()
     const password = form.password || ''
     const confirmPassword = form.confirm_password || ''
+    const invitationRole = acceptedInvitation?.role || form.role
 
+    if (acceptedInvitation && isRegister) {
+      if (email !== String(acceptedInvitation.email || '').toLowerCase()) {
+        setMessage('This invitation is locked to a different email address.')
+        return
+      }
+      if (getInvitationDisplayStatus(acceptedInvitation) !== 'Pending') {
+        setMessage('This invitation is no longer active. Please ask the admin to resend it.')
+        return
+      }
+    }
+
+    if (adminPortal && isRegister) {
+      setMessage('Admin accounts cannot be created from the admin portal. Please login with an approved Admin account.')
+      return
+    }
     if (!email || !password) {
       setMessage('Please write your university email and password.')
       return
@@ -529,7 +795,7 @@ export default function App() {
           const countResult = await supabase.from('profiles').select('id', { count: 'exact', head: true })
           if (countResult.error) throw new Error(`Could not check profile count: ${countResult.error.message}`)
           const isFirstProfile = Number(countResult.count || 0) === 0
-          const registrationStatus = isFirstProfile && form.role === 'admin' ? 'Active' : 'Pending'
+          const registrationStatus = acceptedInvitation ? 'Active' : isFirstProfile && invitationRole === 'admin' ? 'Active' : 'Pending'
 
           const signUpResult = await supabase.auth.signUp({
             email,
@@ -537,7 +803,7 @@ export default function App() {
             options: {
               data: {
                 full_name: fullName,
-                role: form.role,
+                role: invitationRole,
                 status: registrationStatus,
               },
             },
@@ -559,7 +825,7 @@ export default function App() {
           } else {
             const insertResult = await supabase
               .from('profiles')
-              .insert({ full_name: fullName, email, role: form.role, status: registrationStatus })
+              .insert({ full_name: fullName, email, role: invitationRole, status: registrationStatus })
               .select()
               .single()
 
@@ -581,6 +847,10 @@ export default function App() {
             await loadFromSupabase()
             setMessage('Registration submitted successfully. Please check your email for confirmation and wait for an admin to approve your account.')
             return
+          }
+
+          if (acceptedInvitation) {
+            await markInvitationAccepted(acceptedInvitation.id)
           }
         } else {
           const signInResult = await supabase.auth.signInWithPassword({ email, password })
@@ -609,12 +879,12 @@ export default function App() {
         if (isRegister) {
           if (existingLocal) throw new Error('This email already has an account. Please use Login with your password.')
           const isFirstLocalProfile = data.profiles.length === 0
-          const registrationStatus = isFirstLocalProfile && form.role === 'admin' ? 'Active' : 'Pending'
+          const registrationStatus = acceptedInvitation ? 'Active' : isFirstLocalProfile && invitationRole === 'admin' ? 'Active' : 'Pending'
           loginUser = {
             id: crypto.randomUUID(),
             full_name: fullName,
             email,
-            role: form.role,
+            role: invitationRole,
             status: registrationStatus,
             password_hash: localPasswordKey(password),
             created_at: new Date().toISOString(),
@@ -623,6 +893,10 @@ export default function App() {
           if (loginUser.status !== 'Active') {
             setMessage('Registration submitted successfully. Please check your email for confirmation and wait for an admin to approve your account.')
             return
+          }
+
+          if (acceptedInvitation) {
+            await markInvitationAccepted(acceptedInvitation.id)
           }
         } else {
           if (!existingLocal) throw new Error('No local account was found for this email. Please create an account first.')
@@ -637,6 +911,11 @@ export default function App() {
             throw new Error('Your account is pending Admin approval. You cannot access the dashboard yet.')
           }
         }
+      }
+
+      if (adminPortal && loginUser.role !== 'admin') {
+        if (isSupabaseConfigured) await supabase.auth.signOut()
+        throw new Error('Access denied. This admin portal is available only for approved Admin accounts.')
       }
 
       saveCurrentUser(loginUser)
@@ -660,6 +939,10 @@ export default function App() {
 
   async function createProject(form) {
     if (!form.title?.trim()) return setMessage('Please write a research title first.')
+    const studentAlreadySubmittedTitle = currentUser?.role === 'student' && data.projects.some((project) => isOwnStudentProject(project, currentUser))
+    if (studentAlreadySubmittedTitle) {
+      return setMessage('You already submitted a research title. New research title submission is closed for your account.')
+    }
     const project = {
       id: crypto.randomUUID(),
       group_name: form.group_name || `${currentUser?.full_name || 'Student'} Project`,
@@ -836,6 +1119,198 @@ export default function App() {
     setMessage('Evaluation saved.')
   }
 
+
+  async function markInvitationAccepted(invitationId) {
+    if (!invitationId) return
+    const updates = { status: 'Accepted', accepted_at: new Date().toISOString() }
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.from('invitations').update(updates).eq('id', invitationId)
+      if (error) return setMessage(`Account created, but invitation status could not be updated: ${error.message}`)
+      await loadFromSupabase()
+    } else {
+      setLocal((current) => ({
+        ...current,
+        invitations: current.invitations.map((item) => item.id === invitationId ? { ...item, ...updates } : item),
+      }))
+    }
+    setAcceptedInvitation(null)
+    if (typeof window !== 'undefined') window.history.replaceState({}, document.title, window.location.pathname)
+  }
+
+  function openInvitationEmail(invitation) {
+    const emailBody = buildInvitationEmail(invitation, websiteSettings)
+    const mailto = `mailto:${encodeURIComponent(invitation.email)}?subject=${encodeURIComponent(invitation.subject || '')}&body=${encodeURIComponent(emailBody)}`
+    window.location.href = mailto
+  }
+
+  async function sendInvitationWithResend(invitation) {
+    if (!isSupabaseConfigured || !supabase?.functions?.invoke) {
+      throw new Error('Supabase Edge Functions are not configured. Add your Supabase environment variables and deploy send-invitation-email.')
+    }
+
+    const { data: emailResult, error } = await supabase.functions.invoke('send-invitation-email', {
+      body: {
+        invitationId: invitation.id,
+        to: invitation.email,
+        fullName: invitation.full_name,
+        role: invitation.role,
+        roleLabel: getRoleLabel(invitation.role),
+        subject: invitation.subject,
+        body: invitation.body,
+        token: invitation.token,
+        invitationLink: invitation.invitation_link || makeInvitationLink(invitation.token),
+        expiresAt: invitation.expires_at,
+        websiteName: websiteSettings.siteName || defaultWebsiteSettings.siteName,
+        contactInfo: 'College of Pharmacy, Hawler Medical University',
+      },
+    })
+
+    if (error) throw new Error(error.message || 'Invitation email could not be sent.')
+    if (emailResult?.error) throw new Error(emailResult.error)
+    return emailResult
+  }
+
+  async function createInvitation(form, options = {}) {
+    if (allowedRole !== 'admin') return setMessage('Only admin users can create invitations.')
+    const fullName = String(form.full_name || '').trim()
+    const email = String(form.email || '').trim().toLowerCase()
+    const roleValue = form.role || 'student'
+    if (!fullName || !email || !email.includes('@') || !email.includes('.')) return setMessage('Please write a valid full name and email address.')
+
+    const now = new Date()
+    const activeDuplicate = data.invitations.some((item) =>
+      String(item.email || '').toLowerCase() === email &&
+      item.role === roleValue &&
+      getInvitationDisplayStatus(item) === 'Pending'
+    )
+    if (activeDuplicate) return setMessage('A pending active invitation already exists for this email and role. Cancel it or wait until it expires before creating another.')
+
+    const token = makeInvitationToken()
+    const expiresAt = form.expires_at || addDays(now, Number(form.expires_in_days || 7)).toISOString()
+    const invitation = {
+      id: crypto.randomUUID(),
+      full_name: fullName,
+      email,
+      role: roleValue,
+      subject: form.subject || invitationTemplates[roleValue]?.subject || 'Invitation to join PharmaTrack',
+      body: form.body || invitationTemplates[roleValue]?.body || 'Dear [Name], you are invited to join our platform.',
+      token,
+      invitation_link: makeInvitationLink(token),
+      expires_at: expiresAt,
+      status: 'Pending',
+      created_by: currentUser?.email || currentUser?.full_name || 'admin',
+      created_at: now.toISOString(),
+      sent_at: isSupabaseConfigured ? null : new Date().toISOString(),
+    }
+
+    if (isSupabaseConfigured) {
+      const duplicateCheck = await supabase
+        .from('invitations')
+        .select('id,email,role,status,expires_at')
+        .eq('email', email)
+        .eq('role', roleValue)
+        .eq('status', 'Pending')
+        .gt('expires_at', new Date().toISOString())
+        .limit(1)
+      if (duplicateCheck.error) {
+        return setMessage(`Could not validate invitation duplicates. Run supabase/invitations.sql first. Details: ${duplicateCheck.error.message}`)
+      }
+      if (duplicateCheck.data?.length) return setMessage('A pending active invitation already exists for this email and role.')
+
+      const { error } = await supabase.from('invitations').insert(invitation)
+      if (error) return setMessage(`Invitation could not be saved. Run supabase/invitations.sql first. Details: ${error.message}`)
+
+      try {
+        await sendInvitationWithResend(invitation)
+        await supabase.from('invitations').update({ sent_at: new Date().toISOString() }).eq('id', invitation.id)
+        await addAudit(currentUser.full_name, 'created and emailed invitation to', `${fullName} (${getRoleLabel(roleValue)})`)
+        await loadFromSupabase()
+        setMessage('Invitation saved and email sent successfully through Resend.')
+        return invitation
+      } catch (emailError) {
+        await addAudit(currentUser.full_name, 'created invitation but email failed for', `${fullName} (${getRoleLabel(roleValue)})`)
+        await loadFromSupabase()
+        setMessage(`Invitation was saved, but the email could not be sent: ${emailError.message}. Check Supabase Edge Function logs, RESEND_API_KEY, and INVITE_FROM_EMAIL.`)
+        return invitation
+      }
+    } else {
+      const log = makeAudit(currentUser.full_name, 'created invitation for', `${fullName} (${getRoleLabel(roleValue)})`)
+      setLocal((current) => ({ ...current, invitations: [invitation, ...current.invitations], auditLogs: [log, ...current.auditLogs] }))
+    }
+
+    if (options.openEmail !== false) openInvitationEmail(invitation)
+    setMessage('Invitation created locally. Your email app should open with the prepared invitation email. For automatic email delivery, connect Supabase Edge Function + Resend.')
+    return invitation
+  }
+
+  async function resendInvitation(invitationId) {
+    const target = data.invitations.find((item) => item.id === invitationId)
+    if (!target) return setMessage('Invitation not found.')
+    if (target.status === 'Cancelled') return setMessage('Cancelled invitations cannot be resent. Create a new invitation instead.')
+    const token = makeInvitationToken()
+    const updates = {
+      token,
+      invitation_link: makeInvitationLink(token),
+      expires_at: addDays(new Date(), 7).toISOString(),
+      status: 'Pending',
+      sent_at: isSupabaseConfigured ? null : new Date().toISOString(),
+    }
+    const updatedInvitation = { ...target, ...updates }
+
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.from('invitations').update(updates).eq('id', invitationId)
+      if (error) return setMessage(error.message)
+      try {
+        await sendInvitationWithResend(updatedInvitation)
+        await supabase.from('invitations').update({ sent_at: new Date().toISOString() }).eq('id', invitationId)
+        await addAudit(currentUser.full_name, 'resent invitation email to', target.email)
+        await loadFromSupabase()
+        setMessage('Invitation resent successfully through Resend with a new secure token and 7-day expiry.')
+        return
+      } catch (emailError) {
+        await addAudit(currentUser.full_name, 'updated invitation but resend email failed for', target.email)
+        await loadFromSupabase()
+        setMessage(`Invitation token was updated, but the email could not be resent: ${emailError.message}. Check Supabase Edge Function logs and Resend secrets.`)
+        return
+      }
+    } else {
+      const log = makeAudit(currentUser.full_name, 'resent invitation to', target.email)
+      setLocal((current) => ({
+        ...current,
+        invitations: current.invitations.map((item) => item.id === invitationId ? updatedInvitation : item),
+        auditLogs: [log, ...current.auditLogs],
+      }))
+      openInvitationEmail(updatedInvitation)
+      setMessage('Invitation resent locally with a new secure token and 7-day expiry. Your email app should open for manual sending.')
+    }
+  }
+
+  async function cancelInvitation(invitationId) {
+    const target = data.invitations.find((item) => item.id === invitationId)
+    if (!target) return setMessage('Invitation not found.')
+    const updates = { status: 'Cancelled', cancelled_at: new Date().toISOString() }
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.from('invitations').update(updates).eq('id', invitationId)
+      if (error) return setMessage(error.message)
+      await addAudit(currentUser.full_name, 'cancelled invitation for', target.email)
+      await loadFromSupabase()
+    } else {
+      const log = makeAudit(currentUser.full_name, 'cancelled invitation for', target.email)
+      setLocal((current) => ({
+        ...current,
+        invitations: current.invitations.map((item) => item.id === invitationId ? { ...item, ...updates } : item),
+        auditLogs: [log, ...current.auditLogs],
+      }))
+    }
+    setMessage('Invitation cancelled.')
+  }
+
+  function copyInvitationLink(invitation) {
+    const link = invitation.invitation_link || makeInvitationLink(invitation.token)
+    navigator.clipboard?.writeText(link)
+    setMessage('Invitation link copied to clipboard.')
+  }
+
   async function createNotification(form) {
     if (!form.title.trim() || !form.message.trim()) return setMessage('Please write notification title and message.')
     const note = { id: crypto.randomUUID(), title: form.title, message: form.message, type: form.type, target_role: form.target_role, is_read: false, created_at: new Date().toISOString() }
@@ -942,6 +1417,7 @@ export default function App() {
     reports: visibleReports,
     evaluations: allowedRole === 'student' ? [] : data.evaluations,
     auditLogs: allowedRole === 'admin' ? data.auditLogs : [],
+    invitations: allowedRole === 'admin' ? data.invitations : [],
   }), [data, allowedRole, visibleProjects, visibleReports])
 
   const stats = useMemo(() => {
@@ -992,16 +1468,49 @@ export default function App() {
   }, [allowedRole, data, stats, visibleProjects, visibleReports])
 
   if (passwordRecoveryMode) {
-    return <ResetPasswordPage onUpdatePassword={handleUpdatePassword} onBackToLogin={() => { setPasswordRecoveryMode(false); window.history.replaceState({}, document.title, window.location.pathname); setMessage('') }} message={message} loading={passwordResetLoading} />
+    return <ResetPasswordPage onUpdatePassword={handleUpdatePassword} onBackToLogin={() => { setPasswordRecoveryMode(false); window.history.replaceState({}, document.title, window.location.pathname); setMessage('') }} message={message} loading={passwordResetLoading} settings={websiteSettings} />
   }
 
   if (!currentUser) {
-    return <LoginPage onLogin={handleLogin} onForgotPassword={handleForgotPassword} message={message} loading={loginLoading} />
+    return <LoginPage onLogin={handleLogin} onForgotPassword={handleForgotPassword} message={message} loading={loginLoading} adminOnly={isAdminPortal} settings={websiteSettings} invitation={acceptedInvitation} />
+  }
+
+  if (isAdminPortal && allowedRole !== 'admin') {
+    return <AdminAccessDenied currentUser={currentUser} onLogout={logout} />
+  }
+
+  if (isAdminPortal && allowedRole === 'admin') {
+    return (
+      <AdminControlPanel
+        settings={websiteSettings}
+        adminPanelTab={adminPanelTab}
+        setAdminPanelTab={setAdminPanelTab}
+        updateSettings={updateWebsiteSettings}
+        resetSettings={resetWebsiteSettings}
+        data={data}
+        projects={filteredProjects}
+        currentUser={currentUser}
+        updateProject={updateProject}
+        updateUserRole={updateUserRole}
+        updateUserStatus={updateUserStatus}
+        exportCsv={exportCsv}
+        createDeadline={createDeadline}
+        removeDeadline={removeDeadline}
+        createInvitation={createInvitation}
+        resendInvitation={resendInvitation}
+        cancelInvitation={cancelInvitation}
+        copyInvitationLink={copyInvitationLink}
+        databaseMode={databaseMode}
+        auditLogs={visibleData.auditLogs}
+        onLogout={logout}
+        message={message}
+      />
+    )
   }
 
   return (
     <div className="app">
-      <header className="hero no-print">
+      <header className="hero no-print" style={{ backgroundImage: `url(${websiteSettings.heroImage || '/hero-page.png'})` }}>
         <div className="status-box">
           <div className="status-main">
             <div className="status-avatar">{String(currentUser.full_name || 'U').trim().charAt(0).toUpperCase()}</div>
@@ -1019,7 +1528,7 @@ export default function App() {
       <main>
 
         <div className="tabs no-print">
-          <button onClick={() => setTab('dashboard')} className={tab === 'dashboard' ? 'active' : ''}><LayoutDashboard size={16} /> Dashboard</button>
+          <button onClick={() => setTab('dashboard')} className={tab === 'dashboard' ? 'active' : ''}><LayoutDashboard size={16} /> {isAdminPortal ? 'Admin Dashboard' : 'Dashboard'}</button>
           <button onClick={() => setTab('notifications')} className={tab === 'notifications' ? 'active' : ''}><Bell size={16} /> Notifications {stats.unread > 0 && <span className="tab-badge">{stats.unread}</span>}</button>
           <button onClick={() => setTab('reports')} className={tab === 'reports' ? 'active' : ''}><Printer size={16} /> Print/PDF Reports</button>
           {allowedRole === 'admin' && <button onClick={() => setTab('database')} className={tab === 'database' ? 'active' : ''}><Database size={16} /> Database</button>}
@@ -1053,6 +1562,358 @@ export default function App() {
   )
 }
 
+
+function AdminControlPanel({
+  settings,
+  adminPanelTab,
+  setAdminPanelTab,
+  updateSettings,
+  resetSettings,
+  data,
+  projects,
+  currentUser,
+  updateProject,
+  updateUserRole,
+  updateUserStatus,
+  exportCsv,
+  createDeadline,
+  removeDeadline,
+  createInvitation,
+  resendInvitation,
+  cancelInvitation,
+  copyInvitationLink,
+  databaseMode,
+  auditLogs,
+  onLogout,
+  message,
+}) {
+  const [draft, setDraft] = useState(settings)
+
+  useEffect(() => {
+    setDraft(settings)
+  }, [settings])
+
+  const navItems = [
+    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'branding', label: 'Website Settings', icon: SlidersHorizontal },
+    { id: 'users', label: 'Users & Roles', icon: Users },
+    { id: 'invitations', label: 'Invite Users', icon: Mail },
+    { id: 'deadlines', label: 'Deadlines', icon: CalendarDays },
+    { id: 'database', label: 'Database', icon: Database },
+    { id: 'audit', label: 'Audit Log', icon: ShieldCheck },
+  ]
+
+  function updateDraft(key, value) {
+    setDraft((current) => ({ ...current, [key]: value }))
+  }
+
+  function handleImageUpload(key, file) {
+    if (!file) return
+    if (!file.type?.startsWith('image/')) return
+    const reader = new FileReader()
+    reader.onload = () => updateDraft(key, String(reader.result || ''))
+    reader.readAsDataURL(file)
+  }
+
+  const pendingUsers = data.profiles.filter((u) => (u.status || 'Pending') === 'Pending').length
+  const activeUsers = data.profiles.filter((u) => (u.status || 'Pending') === 'Active').length
+  const activeDeadlines = data.deadlines.filter((d) => (d.status || 'Active') === 'Active').length
+
+  return (
+    <div className="admin-panel-shell">
+      <aside className="admin-sidebar no-print">
+        <div className="admin-brand-block">
+          <div className="admin-logo-mark"><Settings size={22} /></div>
+          <div>
+            <h2>{settings.adminPanelName || 'PharmaTrack Control Center'}</h2>
+            <p>Website management panel</p>
+          </div>
+        </div>
+        <div className="admin-profile-mini">
+          <div className="status-avatar">{String(currentUser.full_name || 'A').trim().charAt(0).toUpperCase()}</div>
+          <div>
+            <b>{currentUser.full_name}</b>
+            <p>Administrator</p>
+          </div>
+        </div>
+        <nav className="admin-side-nav">
+          {navItems.map((item) => {
+            const Icon = item.icon
+            return (
+              <button key={item.id} className={adminPanelTab === item.id ? 'active' : ''} onClick={() => setAdminPanelTab(item.id)}>
+                <Icon size={17} /> {item.label}
+              </button>
+            )
+          })}
+        </nav>
+        <button className="admin-logout" onClick={onLogout}><LogOut size={16} /> Logout</button>
+      </aside>
+
+      <main className="admin-panel-main">
+        <header className="admin-panel-topbar no-print">
+          <div>
+            <p className="eyebrow"><UserCog size={16} /> Admin subdomain</p>
+            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : 'Control Center'}</h1>
+            <p>{settings.adminWelcome}</p>
+          </div>
+          <a className="admin-preview-link" href="/" target="_blank" rel="noreferrer">Open main website</a>
+        </header>
+
+        {message && <div className="message no-print">{message}</div>}
+
+        {adminPanelTab === 'overview' && (
+          <div className="admin-panel-stack">
+            <section className="admin-management-grid">
+              <div className="admin-management-card">
+                <div className="icon-box dark"><Users size={22} /></div>
+                <p>Users</p>
+                <h2>{data.profiles.length}</h2>
+                <span>{activeUsers} active • {pendingUsers} pending</span>
+              </div>
+              <div className="admin-management-card">
+                <div className="icon-box dark"><Mail size={22} /></div>
+                <p>Invitations</p>
+                <h2>{data.invitations.length}</h2>
+                <span>{data.invitations.filter((i) => getInvitationDisplayStatus(i) === 'Pending').length} pending invites</span>
+              </div>
+              <div className="admin-management-card">
+                <div className="icon-box dark"><BookOpen size={22} /></div>
+                <p>Projects</p>
+                <h2>{data.projects.length}</h2>
+                <span>Research records in the system</span>
+              </div>
+              <div className="admin-management-card">
+                <div className="icon-box dark"><CalendarDays size={22} /></div>
+                <p>Deadlines</p>
+                <h2>{activeDeadlines}</h2>
+                <span>Active academic milestones</span>
+              </div>
+              <div className="admin-management-card">
+                <div className="icon-box dark"><ImageIcon size={22} /></div>
+                <p>Hero image</p>
+                <h2>{settings.heroImage ? 'Set' : 'None'}</h2>
+                <span>Homepage visual background</span>
+              </div>
+            </section>
+
+            <section className="admin-split-layout">
+              <div className="card admin-preview-card">
+                <SectionHeader icon={ImageIcon} title="Website Preview" subtitle="Current public homepage visual and text settings" />
+                <div className="admin-hero-preview" style={{ backgroundImage: `url(${settings.heroImage || '/hero-page.png'})` }}>
+                  <div>
+                    <h3>{settings.homepageHeadline}</h3>
+                    <p>{settings.homepageSubtitle}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="card admin-quick-actions">
+                <SectionHeader icon={Settings} title="Quick Management" subtitle="Common website management actions" />
+                <button className="secondary wide" onClick={() => setAdminPanelTab('branding')}><SlidersHorizontal size={16} /> Change hero image and texts</button>
+                <button className="secondary wide" onClick={() => setAdminPanelTab('users')}><Users size={16} /> Manage users and approvals</button>
+                <button className="secondary wide" onClick={() => setAdminPanelTab('invitations')}><Mail size={16} /> Invite users by role</button>
+                <button className="secondary wide" onClick={() => setAdminPanelTab('deadlines')}><CalendarDays size={16} /> Add or remove deadlines</button>
+                <button className="secondary wide" onClick={exportCsv}><Download size={16} /> Export project CSV</button>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {adminPanelTab === 'branding' && (
+          <div className="admin-split-layout">
+            <div className="card">
+              <SectionHeader icon={SlidersHorizontal} title="Website Content Settings" subtitle="Change homepage text, hero image, login image, and admin panel labels" />
+              <div className="form-grid">
+                <label className="field"><span>Main website name</span><input value={draft.siteName || ''} onChange={(e) => updateDraft('siteName', e.target.value)} placeholder="PharmaTrack Research Platform" /></label>
+                <label className="field"><span>Admin panel name</span><input value={draft.adminPanelName || ''} onChange={(e) => updateDraft('adminPanelName', e.target.value)} placeholder="PharmaTrack Control Center" /></label>
+                <label className="field wide-field"><span>Homepage headline</span><input value={draft.homepageHeadline || ''} onChange={(e) => updateDraft('homepageHeadline', e.target.value)} placeholder="A web-based Pharmacy Research Project Management System" /></label>
+                <label className="field wide-field"><span>Homepage subtitle</span><textarea value={draft.homepageSubtitle || ''} onChange={(e) => updateDraft('homepageSubtitle', e.target.value)} placeholder="Write the subtitle shown on the public website" /></label>
+                <label className="field wide-field"><span>Admin welcome message</span><textarea value={draft.adminWelcome || ''} onChange={(e) => updateDraft('adminWelcome', e.target.value)} placeholder="Write the admin panel welcome text" /></label>
+                <label className="field wide-field"><span>Maintenance notice / announcement</span><input value={draft.maintenanceNotice || ''} onChange={(e) => updateDraft('maintenanceNotice', e.target.value)} placeholder="Optional notice shown to admins" /></label>
+              </div>
+
+              <div className="settings-actions">
+                <button className="primary" onClick={() => updateSettings(draft)}><Save size={16} /> Save Website Settings</button>
+                <button className="secondary" onClick={resetSettings}>Reset Defaults</button>
+              </div>
+            </div>
+
+            <div className="card">
+              <SectionHeader icon={ImageIcon} title="Hero Image Manager" subtitle="Upload a preview image or paste a hosted image URL" />
+              <label className="field"><span>Homepage hero image URL</span><input value={draft.heroImage || ''} onChange={(e) => updateDraft('heroImage', e.target.value)} placeholder="/hero-page.png or image URL" /></label>
+              <label className="field"><span>Upload homepage hero image</span><input type="file" accept="image/*" onChange={(e) => handleImageUpload('heroImage', e.target.files?.[0])} /></label>
+              <div className="admin-image-preview" style={{ backgroundImage: `url(${draft.heroImage || '/hero-page.png'})` }} />
+
+              <label className="field"><span>Login page hero image URL</span><input value={draft.loginHeroImage || ''} onChange={(e) => updateDraft('loginHeroImage', e.target.value)} placeholder="/hero-page.png or image URL" /></label>
+              <label className="field"><span>Upload login hero image</span><input type="file" accept="image/*" onChange={(e) => handleImageUpload('loginHeroImage', e.target.files?.[0])} /></label>
+              <div className="admin-image-preview small" style={{ backgroundImage: `url(${draft.loginHeroImage || draft.heroImage || '/hero-page.png'})` }} />
+
+              <div className="soft-box settings-note">
+                <b>Important</b>
+                <p>For a permanent public change, use a hosted image URL or save settings to Supabase. Local uploaded images are useful for preview and testing.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {adminPanelTab === 'invitations' && <InvitationManager invitations={data.invitations} settings={settings} createInvitation={createInvitation} resendInvitation={resendInvitation} cancelInvitation={cancelInvitation} copyInvitationLink={copyInvitationLink} />}
+        {adminPanelTab === 'users' && <AdminDashboard data={data} projects={projects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} exportCsv={exportCsv} />}
+        {adminPanelTab === 'deadlines' && <DeadlineManager deadlines={data.deadlines} createDeadline={createDeadline} removeDeadline={removeDeadline} />}
+        {adminPanelTab === 'database' && <DatabaseTab databaseMode={databaseMode} />}
+        {adminPanelTab === 'audit' && <AuditTab logs={auditLogs} />}
+      </main>
+    </div>
+  )
+}
+
+
+function InvitationManager({ invitations, settings, createInvitation, resendInvitation, cancelInvitation, copyInvitationLink }) {
+  const defaultRole = 'student'
+  const [form, setForm] = useState({
+    full_name: '',
+    email: '',
+    role: defaultRole,
+    subject: invitationTemplates[defaultRole].subject,
+    body: invitationTemplates[defaultRole].body,
+    expires_in_days: 7,
+  })
+  const [filters, setFilters] = useState({ search: '', role: 'all', status: 'all' })
+  const [previewOpen, setPreviewOpen] = useState(true)
+
+  function updateRole(role) {
+    setForm((current) => ({
+      ...current,
+      role,
+      subject: invitationTemplates[role]?.subject || current.subject,
+      body: invitationTemplates[role]?.body || current.body,
+    }))
+  }
+
+  function resetForm() {
+    setForm({
+      full_name: '',
+      email: '',
+      role: defaultRole,
+      subject: invitationTemplates[defaultRole].subject,
+      body: invitationTemplates[defaultRole].body,
+      expires_in_days: 7,
+    })
+  }
+
+  const draftToken = useMemo(() => 'secure-token-generated-on-send', [])
+  const previewInvitation = {
+    ...form,
+    token: draftToken,
+    invitation_link: `${typeof window !== 'undefined' ? window.location.origin : ''}/?invite=${draftToken}`,
+    expires_at: addDays(new Date(), Number(form.expires_in_days || 7)).toISOString(),
+    status: 'Pending',
+  }
+
+  const filteredInvitations = invitations.filter((item) => {
+    const q = filters.search.trim().toLowerCase()
+    const displayStatus = getInvitationDisplayStatus(item)
+    const matchesSearch = !q || [item.full_name, item.email, item.subject, item.role].some((value) => String(value || '').toLowerCase().includes(q))
+    const matchesRole = filters.role === 'all' || item.role === filters.role
+    const matchesStatus = filters.status === 'all' || displayStatus === filters.status
+    return matchesSearch && matchesRole && matchesStatus
+  })
+
+  async function handleSendInvitation() {
+    const created = await createInvitation(form, { openEmail: !isSupabaseConfigured })
+    if (created) resetForm()
+  }
+
+  return (
+    <div className="invitation-panel">
+      <div className="admin-split-layout invitation-layout">
+        <div className="card invitation-compose-card">
+          <SectionHeader icon={Mail} title="Invite Users" subtitle="Create secure role-based invitations with editable email templates" />
+          <div className="form-grid">
+            <label className="field"><span>Full name</span><input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} placeholder="Recipient full name" /></label>
+            <label className="field"><span>Email address</span><input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="recipient@hmu.edu.krd" /></label>
+            <label className="field"><span>Assigned role</span><select value={form.role} onChange={(e) => updateRole(e.target.value)}>{invitationRoles.map((role) => <option key={role.id} value={role.id}>{role.label}</option>)}</select></label>
+            <label className="field"><span>Expires after</span><select value={form.expires_in_days} onChange={(e) => setForm({ ...form, expires_in_days: e.target.value })}><option value="3">3 days</option><option value="7">7 days</option><option value="14">14 days</option><option value="30">30 days</option></select></label>
+            <label className="field wide-field"><span>Email subject</span><input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="Invitation email subject" /></label>
+            <label className="field wide-field"><span>Email body</span><textarea value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} placeholder="Write the invitation email body" /></label>
+          </div>
+          <div className="invitation-template-help">
+            <b>Available placeholders:</b> [Name], [Role], [Link], [Expiration Date], [Website Name]
+          </div>
+          <div className="settings-actions">
+            <button className="secondary" type="button" onClick={() => setPreviewOpen((current) => !current)}><Eye size={16} /> {previewOpen ? 'Hide Preview' : 'Preview Email'}</button>
+            <button className="primary" type="button" onClick={handleSendInvitation}><Send size={16} /> Send Invitation</button>
+          </div>
+        </div>
+
+        {previewOpen && (
+          <div className="card invitation-preview-card">
+            <SectionHeader icon={Eye} title="Email Preview" subtitle="Review the message before sending" />
+            <div className="email-preview-shell">
+              <p className="small muted">To: {form.email || 'recipient@hmu.edu.krd'}</p>
+              <h3>{form.subject || 'Invitation email subject'}</h3>
+              <pre>{buildInvitationEmail(previewInvitation, settings)}</pre>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="card">
+        <SectionHeader icon={ClipboardCheck} title="Invitation Tracking" subtitle="Search, resend, cancel, and monitor invitation status" />
+        <div className="invitation-filters">
+          <label className="field"><span>Search</span><input value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} placeholder="Search name, email, role, subject" /></label>
+          <label className="field"><span>Role</span><select value={filters.role} onChange={(e) => setFilters({ ...filters, role: e.target.value })}><option value="all">All roles</option>{invitationRoles.map((role) => <option key={role.id} value={role.id}>{role.label}</option>)}</select></label>
+          <label className="field"><span>Status</span><select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}><option value="all">All statuses</option><option>Pending</option><option>Accepted</option><option>Expired</option><option>Cancelled</option></select></label>
+        </div>
+
+        <div className="invitation-table-wrap">
+          <table className="invitation-table">
+            <thead><tr><th>Recipient</th><th>Role</th><th>Status</th><th>Sent</th><th>Expires</th><th>Actions</th></tr></thead>
+            <tbody>
+              {filteredInvitations.length ? filteredInvitations.map((item) => {
+                const status = getInvitationDisplayStatus(item)
+                return (
+                  <tr key={item.id}>
+                    <td><b>{item.full_name}</b><p>{item.email}</p></td>
+                    <td>{getRoleLabel(item.role)}</td>
+                    <td><Pill tone={status === 'Pending' ? 'amber' : status === 'Accepted' ? 'green' : status === 'Expired' ? 'red' : 'slate'}>{status}</Pill></td>
+                    <td>{item.sent_at ? new Date(item.sent_at).toLocaleDateString() : String(item.created_at || '').slice(0, 10)}</td>
+                    <td>{item.expires_at ? new Date(item.expires_at).toLocaleDateString() : 'Not set'}</td>
+                    <td>
+                      <div className="invitation-row-actions">
+                        <button className="secondary compact-button" onClick={() => copyInvitationLink(item)}><Copy size={14} /> Copy</button>
+                        <button className="secondary compact-button" onClick={() => resendInvitation(item.id)}><RefreshCw size={14} /> Resend</button>
+                        {status === 'Pending' && <button className="danger compact-button" onClick={() => cancelInvitation(item.id)}><XCircle size={14} /> Cancel</button>}
+                      </div>
+                    </td>
+                  </tr>
+                )
+              }) : (
+                <tr><td colSpan="6"><EmptyState title="No invitations found" text="Create the first invitation using the form above, or adjust your filters." icon={Mail} /></td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="soft-box settings-note">
+          <b><Clock size={15} /> Security note</b>
+          <p>Each invitation uses a unique token and a fixed expiry period. Production email delivery uses a Supabase Edge Function connected to Resend. Keep RESEND_API_KEY and sender settings in Supabase Function Secrets, never in the browser.</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AdminAccessDenied({ currentUser, onLogout }) {
+  return (
+    <div className="login-page admin-denied-page">
+      <div className="card admin-denied-card">
+        <div className="icon-box dark"><Lock size={22} /></div>
+        <h1>Admin Access Only</h1>
+        <p className="muted">You are currently logged in as <b>{currentUser?.full_name || 'a non-admin user'}</b>. The admin subdomain is restricted to approved Admin accounts only.</p>
+        <button className="primary" onClick={onLogout}><LogOut size={16} /> Logout and return to Admin Login</button>
+      </div>
+    </div>
+  )
+}
+
 function FilterBar({ filters, setFilters, projects }) {
   const areas = ['All', ...Array.from(new Set(projects.map((p) => p.area).filter(Boolean)))]
   const statuses = ['All', ...Array.from(new Set(projects.flatMap((p) => [p.status, p.approval]).filter(Boolean)))]
@@ -1081,6 +1942,7 @@ function FilterBar({ filters, setFilters, projects }) {
 function StudentDashboard({ data, projects, currentUser, createProject, createWeeklyReport }) {
   const ownProjects = projects.filter((p) => isOwnStudentProject(p, currentUser))
   const selectedProject = ownProjects[0] || data.projects.find((p) => isOwnStudentProject(p, currentUser))
+  const hasSubmittedResearchTitle = Boolean(selectedProject)
   const reports = data.reports.filter((r) => r.project_id === selectedProject?.id)
   const [titleForm, setTitleForm] = useState({ title: '', area: 'Clinical Pharmacy', group_name: `${currentUser.full_name} Research Group`, final_due: '2026-06-20' })
   const [reportForm, setReportForm] = useState({ completed_work: '', challenges: '', next_week_plan: '', attendance: 'Attended' })
@@ -1128,18 +1990,20 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
           ) : <EmptyState title="Weekly reports locked" text="Create a research project first, then weekly report submission will be available." icon={Lock} />}
         </div>
 
-        <div className="card">
-          <SectionHeader icon={FileText} title="Submit New Research Title" subtitle="Create a new project for committee review" />
-          <div className="form-grid compact">
-            <input value={titleForm.title} onChange={(e) => setTitleForm({ ...titleForm, title: e.target.value })} placeholder="Research title" />
-            <select value={titleForm.area} onChange={(e) => setTitleForm({ ...titleForm, area: e.target.value })}>
-              <option>Clinical Pharmacy</option><option>Pharmacology</option><option>Pharmaceutics</option><option>Pharmacognosy</option><option>Microbiology</option><option>Public Health</option>
-            </select>
-            <input value={titleForm.group_name} onChange={(e) => setTitleForm({ ...titleForm, group_name: e.target.value })} placeholder="Group name" />
-            <input type="date" value={titleForm.final_due} onChange={(e) => setTitleForm({ ...titleForm, final_due: e.target.value })} />
+        {!hasSubmittedResearchTitle && (
+          <div className="card">
+            <SectionHeader icon={FileText} title="Submit New Research Title" subtitle="Create a new project for committee review" />
+            <div className="form-grid compact">
+              <input value={titleForm.title} onChange={(e) => setTitleForm({ ...titleForm, title: e.target.value })} placeholder="Research title" />
+              <select value={titleForm.area} onChange={(e) => setTitleForm({ ...titleForm, area: e.target.value })}>
+                <option>Clinical Pharmacy</option><option>Pharmacology</option><option>Pharmaceutics</option><option>Pharmacognosy</option><option>Microbiology</option><option>Public Health</option>
+              </select>
+              <input value={titleForm.group_name} onChange={(e) => setTitleForm({ ...titleForm, group_name: e.target.value })} placeholder="Group name" />
+              <input type="date" value={titleForm.final_due} onChange={(e) => setTitleForm({ ...titleForm, final_due: e.target.value })} />
+            </div>
+            <button className="primary" onClick={() => createProject(titleForm)}>Submit Title</button>
           </div>
-          <button className="primary" onClick={() => createProject(titleForm)}>Submit Title</button>
-        </div>
+        )}
       </div>
 
       <aside className="stack">
