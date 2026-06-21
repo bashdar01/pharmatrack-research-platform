@@ -121,6 +121,53 @@ function normalizeSettings(settings) {
   return { ...defaultWebsiteSettings, ...(settings || {}) }
 }
 
+
+const websiteSettingsKeyMap = {
+  website_name: 'siteName',
+  admin_panel_name: 'adminPanelName',
+  homepage_headline: 'homepageHeadline',
+  homepage_subtitle: 'homepageSubtitle',
+  hero_image_url: 'heroImage',
+  login_hero_image_url: 'loginHeroImage',
+  admin_welcome: 'adminWelcome',
+  maintenance_notice: 'maintenanceNotice',
+}
+
+const websiteSettingsReverseMap = Object.fromEntries(
+  Object.entries(websiteSettingsKeyMap).map(([settingKey, appKey]) => [appKey, settingKey])
+)
+
+const websiteSettingsDescriptions = {
+  website_name: 'Main public website name',
+  admin_panel_name: 'Admin panel title',
+  homepage_headline: 'Homepage headline text',
+  homepage_subtitle: 'Homepage subtitle text',
+  hero_image_url: 'Homepage hero image URL or data URL',
+  login_hero_image_url: 'Login page hero image URL or data URL',
+  admin_welcome: 'Admin control center welcome message',
+  maintenance_notice: 'Optional admin notice or maintenance message',
+}
+
+function settingsFromWebsiteRows(rows = []) {
+  const next = {}
+  rows.forEach((row) => {
+    const appKey = websiteSettingsKeyMap[row.setting_key]
+    if (appKey) next[appKey] = row.setting_value || ''
+  })
+  return normalizeSettings(next)
+}
+
+function settingsToWebsiteRows(settings = defaultWebsiteSettings) {
+  const normalized = normalizeSettings(settings)
+  return Object.entries(websiteSettingsReverseMap).map(([appKey, settingKey]) => ({
+    setting_key: settingKey,
+    setting_value: normalized[appKey] || '',
+    setting_type: settingKey.includes('image') ? 'image' : 'text',
+    description: websiteSettingsDescriptions[settingKey] || 'Website setting',
+    updated_at: new Date().toISOString(),
+  }))
+}
+
 function loadWebsiteSettings() {
   try {
     const saved = localStorage.getItem('pharmatrack-website-settings')
@@ -602,19 +649,32 @@ export default function App() {
   async function loadWebsiteSettingsFromSupabase() {
     if (!isSupabaseConfigured) return
     try {
+      const { data: rows, error } = await supabase
+        .from('website_settings')
+        .select('setting_key, setting_value')
+      if (!error && rows?.length) {
+        const settings = settingsFromWebsiteRows(rows)
+        setWebsiteSettings(settings)
+        saveWebsiteSettingsLocal(settings)
+        return
+      }
+    } catch {
+      // Continue to the legacy fallback below.
+    }
+
+    try {
       const { data: row, error } = await supabase
         .from('app_settings')
         .select('value')
         .eq('key', 'website')
         .maybeSingle()
-      if (error) return
-      if (row?.value) {
+      if (!error && row?.value) {
         const settings = normalizeSettings(row.value)
         setWebsiteSettings(settings)
         saveWebsiteSettingsLocal(settings)
       }
     } catch {
-      // The website can still run without the optional app_settings table.
+      // The website can still run using local/default settings.
     }
   }
 
@@ -626,20 +686,33 @@ export default function App() {
     if (isSupabaseConfigured) {
       try {
         const { error } = await supabase
-          .from('app_settings')
-          .upsert({
-            key: 'website',
-            value: nextSettings,
-            updated_by: currentUser?.email || currentUser?.full_name || 'admin',
-            updated_at: new Date().toISOString(),
-          }, { onConflict: 'key' })
+          .from('website_settings')
+          .upsert(settingsToWebsiteRows(nextSettings), { onConflict: 'setting_key' })
         if (error) throw error
         if (!options.silent) {
           await addAudit(currentUser.full_name, 'updated', 'website settings')
-          setMessage('Website settings saved. The public website will use the new settings after refresh.')
+          setMessage('Website settings saved. Refresh the main website to see the updated content and images.')
         }
-      } catch (error) {
-        setMessage(`Settings saved locally. To save globally for all users, run supabase/website_settings.sql in Supabase SQL Editor. Details: ${error.message}`)
+        return
+      } catch (websiteSettingsError) {
+        try {
+          const { error } = await supabase
+            .from('app_settings')
+            .upsert({
+              key: 'website',
+              value: nextSettings,
+              updated_by: currentUser?.email || currentUser?.full_name || 'admin',
+              updated_at: new Date().toISOString(),
+            }, { onConflict: 'key' })
+          if (error) throw error
+          if (!options.silent) {
+            await addAudit(currentUser.full_name, 'updated', 'website settings')
+            setMessage('Website settings saved using legacy settings storage. Refresh the main website to see the changes.')
+          }
+          return
+        } catch (legacyError) {
+          setMessage(`Settings saved locally only. Run supabase/website_settings.sql in Supabase SQL Editor, then try Save again. Details: ${websiteSettingsError.message || legacyError.message}`)
+        }
       }
     } else if (!options.silent) {
       setMessage('Website settings saved locally for preview. Connect Supabase and run supabase/website_settings.sql to make settings global.')
