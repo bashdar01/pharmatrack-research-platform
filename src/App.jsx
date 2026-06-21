@@ -121,53 +121,6 @@ function normalizeSettings(settings) {
   return { ...defaultWebsiteSettings, ...(settings || {}) }
 }
 
-
-const websiteSettingsKeyMap = {
-  website_name: 'siteName',
-  admin_panel_name: 'adminPanelName',
-  homepage_headline: 'homepageHeadline',
-  homepage_subtitle: 'homepageSubtitle',
-  hero_image_url: 'heroImage',
-  login_hero_image_url: 'loginHeroImage',
-  admin_welcome: 'adminWelcome',
-  maintenance_notice: 'maintenanceNotice',
-}
-
-const websiteSettingsReverseMap = Object.fromEntries(
-  Object.entries(websiteSettingsKeyMap).map(([settingKey, appKey]) => [appKey, settingKey])
-)
-
-const websiteSettingsDescriptions = {
-  website_name: 'Main public website name',
-  admin_panel_name: 'Admin panel title',
-  homepage_headline: 'Homepage headline text',
-  homepage_subtitle: 'Homepage subtitle text',
-  hero_image_url: 'Homepage hero image URL or data URL',
-  login_hero_image_url: 'Login page hero image URL or data URL',
-  admin_welcome: 'Admin control center welcome message',
-  maintenance_notice: 'Optional admin notice or maintenance message',
-}
-
-function settingsFromWebsiteRows(rows = []) {
-  const next = {}
-  rows.forEach((row) => {
-    const appKey = websiteSettingsKeyMap[row.setting_key]
-    if (appKey) next[appKey] = row.setting_value || ''
-  })
-  return normalizeSettings(next)
-}
-
-function settingsToWebsiteRows(settings = defaultWebsiteSettings) {
-  const normalized = normalizeSettings(settings)
-  return Object.entries(websiteSettingsReverseMap).map(([appKey, settingKey]) => ({
-    setting_key: settingKey,
-    setting_value: normalized[appKey] || '',
-    setting_type: settingKey.includes('image') ? 'image' : 'text',
-    description: websiteSettingsDescriptions[settingKey] || 'Website setting',
-    updated_at: new Date().toISOString(),
-  }))
-}
-
 function loadWebsiteSettings() {
   try {
     const saved = localStorage.getItem('pharmatrack-website-settings')
@@ -649,32 +602,19 @@ export default function App() {
   async function loadWebsiteSettingsFromSupabase() {
     if (!isSupabaseConfigured) return
     try {
-      const { data: rows, error } = await supabase
-        .from('website_settings')
-        .select('setting_key, setting_value')
-      if (!error && rows?.length) {
-        const settings = settingsFromWebsiteRows(rows)
-        setWebsiteSettings(settings)
-        saveWebsiteSettingsLocal(settings)
-        return
-      }
-    } catch {
-      // Continue to the legacy fallback below.
-    }
-
-    try {
       const { data: row, error } = await supabase
         .from('app_settings')
         .select('value')
         .eq('key', 'website')
         .maybeSingle()
-      if (!error && row?.value) {
+      if (error) return
+      if (row?.value) {
         const settings = normalizeSettings(row.value)
         setWebsiteSettings(settings)
         saveWebsiteSettingsLocal(settings)
       }
     } catch {
-      // The website can still run using local/default settings.
+      // The website can still run without the optional app_settings table.
     }
   }
 
@@ -686,33 +626,20 @@ export default function App() {
     if (isSupabaseConfigured) {
       try {
         const { error } = await supabase
-          .from('website_settings')
-          .upsert(settingsToWebsiteRows(nextSettings), { onConflict: 'setting_key' })
+          .from('app_settings')
+          .upsert({
+            key: 'website',
+            value: nextSettings,
+            updated_by: currentUser?.email || currentUser?.full_name || 'admin',
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'key' })
         if (error) throw error
         if (!options.silent) {
           await addAudit(currentUser.full_name, 'updated', 'website settings')
-          setMessage('Website settings saved. Refresh the main website to see the updated content and images.')
+          setMessage('Website settings saved. The public website will use the new settings after refresh.')
         }
-        return
-      } catch (websiteSettingsError) {
-        try {
-          const { error } = await supabase
-            .from('app_settings')
-            .upsert({
-              key: 'website',
-              value: nextSettings,
-              updated_by: currentUser?.email || currentUser?.full_name || 'admin',
-              updated_at: new Date().toISOString(),
-            }, { onConflict: 'key' })
-          if (error) throw error
-          if (!options.silent) {
-            await addAudit(currentUser.full_name, 'updated', 'website settings')
-            setMessage('Website settings saved using legacy settings storage. Refresh the main website to see the changes.')
-          }
-          return
-        } catch (legacyError) {
-          setMessage(`Settings saved locally only. Run supabase/website_settings.sql in Supabase SQL Editor, then try Save again. Details: ${websiteSettingsError.message || legacyError.message}`)
-        }
+      } catch (error) {
+        setMessage(`Settings saved locally. To save globally for all users, run supabase/website_settings.sql in Supabase SQL Editor. Details: ${error.message}`)
       }
     } else if (!options.silent) {
       setMessage('Website settings saved locally for preview. Connect Supabase and run supabase/website_settings.sql to make settings global.')
@@ -1584,18 +1511,26 @@ export default function App() {
   return (
     <div className="app">
       <header className="hero no-print" style={{ backgroundImage: `url(${websiteSettings.heroImage || '/hero-page.png'})` }}>
-        <div className="status-box">
-          <div className="status-main">
-            <div className="status-avatar">{String(currentUser.full_name || 'U').trim().charAt(0).toUpperCase()}</div>
-            <div>
-              <h3>{currentUser.full_name}</h3>
-              <p className="small">{roleButtons.find((r) => r.id === allowedRole)?.label}</p>
+        {allowedRole === 'student' ? (
+          <StudentProfileMenu
+            currentUser={currentUser}
+            roleLabel={roleButtons.find((r) => r.id === allowedRole)?.label || 'Student'}
+            onLogout={logout}
+          />
+        ) : (
+          <div className="status-box">
+            <div className="status-main">
+              <div className="status-avatar">{String(currentUser.full_name || 'U').trim().charAt(0).toUpperCase()}</div>
+              <div>
+                <h3>{currentUser.full_name}</h3>
+                <p className="small">{roleButtons.find((r) => r.id === allowedRole)?.label}</p>
+              </div>
+            </div>
+            <div className="status-actions">
+              <button className="ghost-dark" onClick={logout}><LogOut size={15} /> Logout</button>
             </div>
           </div>
-          <div className="status-actions">
-            <button className="ghost-dark" onClick={logout}><LogOut size={15} /> Logout</button>
-          </div>
-        </div>
+        )}
       </header>
 
       <main>
@@ -1616,9 +1551,9 @@ export default function App() {
               {statCards.map((card) => <StatCard key={card.title} {...card} />)}
             </section>
 
-            <FilterBar filters={filters} setFilters={setFilters} projects={visibleProjects} />
+            {allowedRole !== 'student' && <FilterBar filters={filters} setFilters={setFilters} projects={visibleProjects} />}
 
-            {allowedRole === 'student' && <StudentDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} createProject={createProject} createWeeklyReport={createWeeklyReport} />}
+            {allowedRole === 'student' && <StudentDashboard data={visibleData} projects={visibleProjects} currentUser={currentUser} createProject={createProject} createWeeklyReport={createWeeklyReport} />}
             {allowedRole === 'supervisor' && <SupervisorDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} reviewReport={reviewReport} createDeadline={createDeadline} removeDeadline={removeDeadline} />}
             {allowedRole === 'committee' && <CommitteeDashboard data={visibleData} projects={filteredProjects} updateProject={updateProject} saveEvaluation={saveEvaluation} />}
             {allowedRole === 'admin' && <AdminDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} exportCsv={exportCsv} />}
@@ -1635,6 +1570,57 @@ export default function App() {
   )
 }
 
+function StudentProfileMenu({ currentUser, roleLabel, onLogout }) {
+  const storageKey = `pharmatrack-profile-photo-${currentUser?.email || currentUser?.id || 'student'}`
+  const [open, setOpen] = useState(false)
+  const [photo, setPhoto] = useState(() => localStorage.getItem(storageKey) || '')
+  const initial = String(currentUser?.full_name || currentUser?.email || 'S').trim().charAt(0).toUpperCase()
+
+  function handlePhotoUpload(event) {
+    const file = event.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = String(reader.result || '')
+      setPhoto(result)
+      localStorage.setItem(storageKey, result)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  function removePhoto() {
+    setPhoto('')
+    localStorage.removeItem(storageKey)
+  }
+
+  return (
+    <div className={`student-profile-menu ${open ? 'open' : ''}`}>
+      <button className="student-profile-trigger" type="button" onClick={() => setOpen((value) => !value)} aria-label="Open student profile menu">
+        {photo ? <img src={photo} alt="Student profile" /> : <span>{initial}</span>}
+      </button>
+      {open && (
+        <div className="student-profile-dropdown">
+          <div className="student-profile-head">
+            <div className="student-profile-large">
+              {photo ? <img src={photo} alt="Student profile" /> : <span>{initial}</span>}
+            </div>
+            <div>
+              <h3>{currentUser?.full_name || 'Student'}</h3>
+              <p>{roleLabel}</p>
+            </div>
+          </div>
+          <label className="profile-upload-button">
+            <Upload size={15} /> {photo ? 'Change profile picture' : 'Add profile picture'}
+            <input type="file" accept="image/*" onChange={handlePhotoUpload} />
+          </label>
+          {photo && <button className="profile-menu-button subtle" type="button" onClick={removePhoto}>Remove picture</button>}
+          <button className="profile-menu-button logout" type="button" onClick={onLogout}><LogOut size={15} /> Logout</button>
+        </div>
+      )}
+    </div>
+  )
+}
 
 function AdminControlPanel({
   settings,
