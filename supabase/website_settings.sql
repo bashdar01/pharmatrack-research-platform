@@ -1,98 +1,124 @@
--- Global website settings for the Admin Control Center.
--- Run this once in Supabase SQL Editor.
--- After running it, the Admin Panel can save homepage text, hero image URL, login hero image URL, and admin labels globally.
+-- Optional global website settings table for the admin subdomain control panel.
+-- Run this in Supabase SQL Editor if you want hero image/text settings to save globally for all users.
 
-create extension if not exists pgcrypto;
-
-create table if not exists public.website_settings (
-  id uuid primary key default gen_random_uuid(),
-  setting_key text not null unique,
-  setting_value text,
-  setting_type text default 'text',
-  description text,
-  created_at timestamptz default now(),
+create table if not exists public.app_settings (
+  key text primary key,
+  value jsonb not null default '{}'::jsonb,
+  updated_by text,
   updated_at timestamptz default now()
 );
 
-alter table public.website_settings enable row level security;
+alter table public.app_settings enable row level security;
 
--- Public website and authenticated users can read website settings.
-drop policy if exists "Anyone can read website settings" on public.website_settings;
-create policy "Anyone can read website settings"
-on public.website_settings
-for select
-using (true);
+-- Public login/home pages must be able to read website settings before the user signs in.
+-- This allows both anonymous visitors and signed-in users to read the public branding/login settings.
+drop policy if exists "Authenticated users can read app settings" on public.app_settings;
+drop policy if exists "Public can read app settings" on public.app_settings;
+create policy "Public can read app settings"
+  on public.app_settings
+  for select
+  to anon, authenticated
+  using (true);
 
--- Approved Admin/Editor users can insert settings.
-drop policy if exists "Admins can insert website settings" on public.website_settings;
-create policy "Admins can insert website settings"
-on public.website_settings
-for insert
-to authenticated
-with check (
-  exists (
-    select 1
-    from public.profiles p
-    where (p.id = auth.uid() or lower(p.email) = lower(auth.jwt() ->> 'email'))
-      and lower(coalesce(p.role, '')) in ('admin', 'editor')
-      and lower(coalesce(p.status, 'pending')) = 'active'
+-- Approved Admin accounts can insert/update/delete website settings.
+drop policy if exists "Approved admins can insert app settings" on public.app_settings;
+create policy "Approved admins can insert app settings"
+  on public.app_settings
+  for insert
+  to authenticated
+  with check (
+    exists (
+      select 1
+      from public.profiles p
+      where lower(p.email) = lower(auth.jwt() ->> 'email')
+        and p.role = 'admin'
+        and coalesce(p.status, 'Pending') = 'Active'
+    )
+  );
+
+drop policy if exists "Approved admins can update app settings" on public.app_settings;
+create policy "Approved admins can update app settings"
+  on public.app_settings
+  for update
+  to authenticated
+  using (
+    exists (
+      select 1
+      from public.profiles p
+      where lower(p.email) = lower(auth.jwt() ->> 'email')
+        and p.role = 'admin'
+        and coalesce(p.status, 'Pending') = 'Active'
+    )
   )
-);
+  with check (
+    exists (
+      select 1
+      from public.profiles p
+      where lower(p.email) = lower(auth.jwt() ->> 'email')
+        and p.role = 'admin'
+        and coalesce(p.status, 'Pending') = 'Active'
+    )
+  );
 
--- Approved Admin/Editor users can update settings.
-drop policy if exists "Admins can update website settings" on public.website_settings;
-create policy "Admins can update website settings"
-on public.website_settings
-for update
-to authenticated
-using (
-  exists (
-    select 1
-    from public.profiles p
-    where (p.id = auth.uid() or lower(p.email) = lower(auth.jwt() ->> 'email'))
-      and lower(coalesce(p.role, '')) in ('admin', 'editor')
-      and lower(coalesce(p.status, 'pending')) = 'active'
-  )
+drop policy if exists "Approved admins can delete app settings" on public.app_settings;
+create policy "Approved admins can delete app settings"
+  on public.app_settings
+  for delete
+  to authenticated
+  using (
+    exists (
+      select 1
+      from public.profiles p
+      where lower(p.email) = lower(auth.jwt() ->> 'email')
+        and p.role = 'admin'
+        and coalesce(p.status, 'Pending') = 'Active'
+    )
+  );
+
+insert into public.app_settings (key, value, updated_by)
+values (
+  'website',
+  jsonb_build_object(
+    'siteName', 'PharmaTrack Research Platform',
+    'adminPanelName', 'PharmaTrack Control Center',
+    'homepageHeadline', 'A web-based Pharmacy Research Project Management System',
+    'homepageSubtitle', 'For 5th-year students at Hawler Medical University, College of Pharmacy.',
+    'heroImage', '/hero-page.png',
+    'loginHeroImage', '/hero-page.png',
+    'loginBackgroundImage', '/hero-page.png',
+    'loginLogoImage', '',
+    'loginWelcomeTitle', 'Welcome to Research Platform',
+    'loginWelcomeSubtitle', 'Publish your groundbreaking research and connect with scholars worldwide.',
+    'loginFeatureOne', 'Open Access Publishing',
+    'loginFeatureTwo', 'Peer Review Excellence',
+    'loginFeatureThree', 'Global Research Community',
+    'loginWelcomeTitleFontSize', 70,
+    'loginWelcomeTitleColor', '#ffffff',
+    'loginWelcomeTitleFontFamily', '''Inter'', system-ui, -apple-system, BlinkMacSystemFont, ''Segoe UI'', sans-serif',
+    'loginWelcomeTitleBold', true,
+    'loginWelcomeTitleItalic', false,
+    'loginDescriptionFontSize', 19,
+    'loginDescriptionColor', '#ffffff',
+    'loginDescriptionFontFamily', '''Inter'', system-ui, -apple-system, BlinkMacSystemFont, ''Segoe UI'', sans-serif',
+    'loginDescriptionBold', false,
+    'loginDescriptionItalic', false,
+    'loginFeatureFontSize', 18,
+    'loginFeatureColor', '#ffffff',
+    'loginFeatureFontFamily', '''Inter'', system-ui, -apple-system, BlinkMacSystemFont, ''Segoe UI'', sans-serif',
+    'loginFeatureBold', true,
+    'loginFeatureItalic', false,
+    'loginGradientStart', '#0d9488',
+    'loginGradientEnd', '#2563eb',
+    'loginCircleColor', '#ffffff',
+    'loginShowGradientOverlay', true,
+    'loginShowCircles', true,
+    'adminWelcome', 'Manage website content, user access, deadlines, projects, database status, and audit activity from one admin control panel.',
+    'maintenanceNotice', ''
+  ),
+  'system'
 )
-with check (
-  exists (
-    select 1
-    from public.profiles p
-    where (p.id = auth.uid() or lower(p.email) = lower(auth.jwt() ->> 'email'))
-      and lower(coalesce(p.role, '')) in ('admin', 'editor')
-      and lower(coalesce(p.status, 'pending')) = 'active'
-  )
-);
-
--- Approved Admin/Editor users can delete settings if needed.
-drop policy if exists "Admins can delete website settings" on public.website_settings;
-create policy "Admins can delete website settings"
-on public.website_settings
-for delete
-to authenticated
-using (
-  exists (
-    select 1
-    from public.profiles p
-    where (p.id = auth.uid() or lower(p.email) = lower(auth.jwt() ->> 'email'))
-      and lower(coalesce(p.role, '')) in ('admin', 'editor')
-      and lower(coalesce(p.status, 'pending')) = 'active'
-  )
-);
-
-insert into public.website_settings (setting_key, setting_value, setting_type, description)
-values
-  ('website_name', 'PharmaTrack Research Platform', 'text', 'Main public website name'),
-  ('admin_panel_name', 'PharmaTrack Control Center', 'text', 'Admin panel title'),
-  ('homepage_headline', 'A web-based Pharmacy Research Project Management System', 'text', 'Homepage headline text'),
-  ('homepage_subtitle', 'For 5th-year students at Hawler Medical University, College of Pharmacy.', 'text', 'Homepage subtitle text'),
-  ('hero_image_url', '/hero-page.png', 'image', 'Homepage hero image URL or data URL'),
-  ('login_hero_image_url', '/hero-page.png', 'image', 'Login page hero image URL or data URL'),
-  ('admin_welcome', 'Manage website content, user access, invitations, deadlines, database tools, and audit activity from one clean admin panel.', 'text', 'Admin welcome text'),
-  ('maintenance_notice', '', 'text', 'Optional maintenance or announcement text')
-on conflict (setting_key) do update
-set
-  setting_value = excluded.setting_value,
-  setting_type = excluded.setting_type,
-  description = excluded.description,
+on conflict (key) do update set
+  value = excluded.value || public.app_settings.value,
   updated_at = now();
+
+notify pgrst, 'reload schema';
