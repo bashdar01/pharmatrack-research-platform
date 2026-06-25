@@ -168,6 +168,132 @@ code { background: var(--card-soft); padding: 4px 8px; border-radius: 8px; }
   }
 }
 
+
+
+/* Global interactive hover effects across all roles */
+:where(.card, .stat-card, .soft-box, .mini-card, .review-card, .empty-state, .project-card, .filter-card, .reminder, .total-box, .report-grid p, .three-cols div, .login-card, .message, .table-wrap, .invitation-table-wrap, .invitation-preview-card, .admin-panel-topbar, .admin-management-card, .admin-denied-card, .admin-hero-preview, .admin-image-preview, .settings-note, .status-box, .admin-profile-mini) {
+  transition:
+    transform .75s cubic-bezier(.22, 1, .36, 1),
+    box-shadow .75s cubic-bezier(.22, 1, .36, 1),
+    border-color .75s ease,
+    background-color .75s ease,
+    opacity .75s ease;
+}
+
+:where(.primary, .success, .warning, .danger, .secondary, .ghost-button, .ghost-dark, .compact-button, .role-button, .tabs button, .admin-side-nav button, .admin-logout, .admin-preview-link, .profile-upload-button, .profile-menu-button, .action-row button, .mini-card button, .invitation-row-actions button, .auth-switch button) {
+  transition:
+    transform .75s cubic-bezier(.22, 1, .36, 1),
+    box-shadow .75s cubic-bezier(.22, 1, .36, 1),
+    background-color .75s ease,
+    color .75s ease,
+    border-color .75s ease,
+    filter .75s ease;
+}
+
+:where(input, textarea, select, .input-icon) {
+  transition:
+    border-color .75s ease,
+    box-shadow .75s cubic-bezier(.22, 1, .36, 1),
+    background-color .75s ease,
+    transform .75s cubic-bezier(.22, 1, .36, 1);
+}
+
+:where(.icon-box, .pill, .tab-badge, .status-avatar, .admin-logo-mark, .profile-online-dot) {
+  transition:
+    transform .75s cubic-bezier(.22, 1, .36, 1),
+    box-shadow .75s cubic-bezier(.22, 1, .36, 1),
+    background-color .75s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :where(.card, .stat-card, .soft-box, .mini-card, .review-card, .empty-state, .project-card, .filter-card, .reminder, .admin-management-card, .admin-panel-topbar, .invitation-preview-card, .table-wrap, .invitation-table-wrap):hover {
+    transform: translateY(-2.5px);
+    box-shadow: 0 18px 44px rgba(15,23,42,.10);
+    border-color: rgba(15,23,42,.16);
+  }
+
+  :where(.login-card, .status-box, .admin-profile-mini):hover {
+    transform: translateY(-1.5px);
+    box-shadow: 0 22px 58px rgba(15,23,42,.14);
+  }
+
+  :where(.admin-hero-preview, .admin-image-preview):hover {
+    transform: translateY(-3px) scale(1.003);
+    box-shadow: 0 20px 52px rgba(15,23,42,.14);
+  }
+
+  :where(.primary, .success, .warning, .danger, .secondary, .ghost-button, .ghost-dark, .compact-button, .role-button, .tabs button, .admin-side-nav button, .admin-logout, .admin-preview-link, .profile-upload-button, .profile-menu-button, .action-row button, .mini-card button, .invitation-row-actions button, .auth-switch button):not(:disabled):hover {
+    transform: translateY(-1.5px);
+    box-shadow: 0 14px 30px rgba(15,23,42,.14);
+    filter: saturate(1.04);
+  }
+
+  .role-button:not(.active):hover,
+  .tabs button:not(.active):hover,
+  .admin-side-nav button:not(.active):hover,
+  .secondary:hover,
+  .ghost-button:hover,
+  .profile-menu-button.subtle:hover {
+    background: #f8fafc;
+    border-color: rgba(15,23,42,.18);
+  }
+
+  :where(input, textarea, select):hover,
+  .input-icon:hover {
+    border-color: rgba(15,23,42,.24);
+    box-shadow: 0 8px 24px rgba(15,23,42,.06);
+  }
+
+  tbody tr {
+    transition:
+    background-color .75s ease,
+    transform .75s cubic-bezier(.22, 1, .36, 1);
+  }
+
+  tbody tr:hover {
+    background: rgba(15,23,42,.035);
+  }
+
+  :where(.icon-box, .pill, .tab-badge, .status-avatar, .admin-logo-mark):hover {
+    transform: translateY(-2px) scale(1.018);
+    box-shadow: 0 10px 22px rgba(15,23,42,.10);
+  }
+
+  .profile-info-grid > div,
+  .admin-management-card,
+  .three-cols div,
+  .report-grid p {
+    transition:
+    transform .75s cubic-bezier(.22, 1, .36, 1),
+    box-shadow .75s cubic-bezier(.22, 1, .36, 1),
+    border-color .75s ease,
+    background-color .75s ease;
+  }
+
+  .profile-info-grid > div:hover,
+  .three-cols div:hover,
+  .report-grid p:hover {
+    transform: translateY(-2.5px);
+    box-shadow: 0 12px 28px rgba(15,23,42,.09);
+    border-color: rgba(15,23,42,.14);
+  }
+}
+
+button:disabled {
+  transform: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 @media print {
   :root { --bg: #ffffff; --card: #ffffff; --card-soft: #ffffff; --text: #000000; --muted: #333333; --border: #bbbbbb; --accent: #000000; --accent-text: #ffffff; }
   body { background: white !important; color: black !important; }
@@ -876,10 +1002,12 @@ button:disabled {
   border: 2px solid rgba(255,255,255,.92);
   background: linear-gradient(135deg, rgba(255,255,255,.94), rgba(241,245,249,.72));
   box-shadow: 0 20px 48px rgba(15,23,42,.20), inset 0 1px 0 rgba(255,255,255,.9);
-  transition: transform .18s ease, box-shadow .18s ease;
+  transition:
+    transform .75s cubic-bezier(.22, 1, .36, 1),
+    box-shadow .75s cubic-bezier(.22, 1, .36, 1);
 }
 .student-profile-trigger.redesigned:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1.5px);
   box-shadow: 0 26px 64px rgba(15,23,42,.24), inset 0 1px 0 rgba(255,255,255,.9);
 }
 .profile-online-dot {
@@ -1031,5 +1159,1351 @@ button:disabled {
   .profile-info-grid,
   .profile-menu-actions {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Slower universal interaction timing across all roles */
+:where(.card, .stat-card, .soft-box, .mini-card, .review-card, .empty-state, .project-card, .filter-card, .reminder, .total-box, .report-grid p, .three-cols div, .login-card, .message, .table-wrap, .invitation-table-wrap, .invitation-preview-card, .admin-panel-topbar, .admin-management-card, .admin-denied-card, .admin-hero-preview, .admin-image-preview, .settings-note, .status-box, .admin-profile-mini, .student-profile-trigger, .student-profile-dropdown, .profile-info-grid > div, .student-profile-trigger.redesigned) {
+  transition-duration: .75s !important;
+  transition-timing-function: cubic-bezier(.16, 1, .3, 1) !important;
+}
+
+:where(button, .primary, .success, .warning, .danger, .secondary, .ghost-button, .ghost-dark, .compact-button, .role-button, .tabs button, .admin-side-nav button, .admin-logout, .admin-preview-link, .profile-upload-button, .profile-menu-button, .action-row button, .mini-card button, .invitation-row-actions button, .auth-switch button, input, textarea, select, .input-icon, .icon-box, .pill, .tab-badge, .status-avatar, .admin-logo-mark, .profile-online-dot, tbody tr) {
+  transition-duration: .75s !important;
+  transition-timing-function: cubic-bezier(.16, 1, .3, 1) !important;
+}
+
+/* Modern two-column authentication experience */
+.modern-login-page {
+  min-height: 100vh;
+  padding: 24px;
+  background: #f4f7fb;
+}
+
+.auth-shell {
+  width: min(1240px, 100%);
+  min-height: min(860px, calc(100vh - 48px));
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(360px, 1.05fr) minmax(360px, .95fr);
+  border-radius: 36px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 30px 90px rgba(15, 23, 42, 0.14);
+}
+
+.auth-brand-panel {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  min-height: 100%;
+  overflow: hidden;
+  background-image:
+    linear-gradient(180deg, rgba(8, 145, 178, 0.80), rgba(29, 78, 216, 0.92)),
+    var(--auth-bg-image);
+  background-size: cover;
+  background-position: center;
+  color: #ffffff;
+}
+
+.auth-brand-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, rgba(14, 165, 233, 0.28), rgba(30, 64, 175, 0.16));
+}
+
+.auth-circle {
+  position: absolute;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(2px);
+}
+.auth-circle-one { width: 240px; height: 240px; top: 86px; left: 82px; }
+.auth-circle-two { width: 360px; height: 360px; top: 56px; right: 56px; }
+.auth-circle-three { width: 280px; height: 280px; bottom: 52px; left: 138px; }
+
+.auth-brand-content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding: 56px 56px 58px;
+}
+
+.auth-brand-logo {
+  width: 74px;
+  height: 74px;
+  border-radius: 22px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.14);
+  color: #ffffff;
+}
+.auth-brand-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 22px;
+}
+
+.auth-brand-copy { margin-top: 34px; max-width: 520px; }
+.auth-brand-copy h1 {
+  margin: 0;
+  color: #ffffff;
+  font-size: clamp(40px, 4.4vw, 70px);
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+}
+.auth-brand-copy p {
+  margin: 24px 0 0;
+  max-width: 470px;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 19px;
+  line-height: 1.65;
+}
+
+.auth-feature-list {
+  list-style: none;
+  margin: 42px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 18px;
+  max-width: 420px;
+}
+.auth-feature-list li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.96);
+}
+.auth-feature-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.auth-form-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  padding: 52px 50px;
+}
+.auth-form-inner {
+  width: min(100%, 560px);
+}
+.admin-auth-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.04);
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 13px;
+}
+.auth-heading-block h2 {
+  margin: 0;
+  font-size: clamp(34px, 3vw, 52px);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  color: #0f172a;
+}
+.auth-heading-block p {
+  margin: 14px 0 0;
+  color: #475569;
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.auth-form-stack {
+  margin-top: 34px;
+  display: grid;
+  gap: 18px;
+}
+.modern-login-page .field.wide-field,
+.modern-login-page .field.wide-field input,
+.modern-login-page .field.wide-field textarea,
+.modern-login-page .field.wide-field select {
+  width: 100%;
+}
+.modern-login-page .field span {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+.modern-login-page .field input,
+.modern-login-page .field textarea,
+.modern-login-page .field select {
+  border-radius: 18px;
+  border: 1px solid #d4dce7;
+  background: #ffffff;
+  min-height: 58px;
+  padding: 0 18px;
+  color: #0f172a;
+  font-size: 17px;
+  font-weight: 500;
+  box-shadow: 0 10px 24px rgba(148, 163, 184, 0.10);
+}
+.modern-login-page .field textarea {
+  min-height: 110px;
+  padding-top: 16px;
+}
+.modern-login-page .field input:focus,
+.modern-login-page .field textarea:focus,
+.modern-login-page .field select:focus {
+  outline: none;
+  border-color: #0ea5a6;
+  box-shadow: 0 0 0 4px rgba(14, 165, 166, 0.14), 0 12px 28px rgba(15, 23, 42, 0.08);
+}
+
+.auth-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.auth-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #475569;
+  font-size: 15px;
+  font-weight: 600;
+}
+.auth-checkbox input {
+  width: 18px;
+  height: 18px;
+  accent-color: #0ea5a6;
+}
+.auth-text-link {
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: #0ea5a6;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+}
+.auth-text-link.inline { display: inline; }
+.auth-submit-button {
+  min-height: 58px;
+  border-radius: 18px;
+  font-size: 18px;
+  font-weight: 800;
+  box-shadow: 0 18px 35px rgba(14, 165, 166, 0.22);
+}
+.auth-bottom-row {
+  text-align: center;
+  color: #64748b;
+  font-size: 15px;
+}
+.auth-bottom-row p { margin: 0; }
+.auth-note-box {
+  border-radius: 18px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.admin-logo-preview-shell {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+.admin-logo-preview {
+  width: 76px;
+  height: 76px;
+  border-radius: 20px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, rgba(14,165,166,0.14), rgba(29,78,216,0.16));
+  color: #0f172a;
+  flex: 0 0 auto;
+}
+.admin-logo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (max-width: 1080px) {
+  .auth-shell {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+  .auth-brand-panel {
+    min-height: 460px;
+  }
+  .auth-form-panel {
+    padding: 42px 32px 46px;
+  }
+}
+
+@media (max-width: 720px) {
+  .modern-login-page {
+    padding: 14px;
+  }
+  .auth-shell {
+    border-radius: 26px;
+  }
+  .auth-brand-content,
+  .auth-form-panel {
+    padding: 28px 24px;
+  }
+  .auth-brand-copy h1 {
+    font-size: clamp(34px, 10vw, 50px);
+  }
+  .auth-brand-copy p,
+  .auth-feature-list li,
+  .auth-heading-block p {
+    font-size: 16px;
+  }
+  .auth-circle-one { width: 180px; height: 180px; top: 82px; left: 28px; }
+  .auth-circle-two { width: 240px; height: 240px; top: 32px; right: 24px; }
+  .auth-circle-three { width: 220px; height: 220px; bottom: 30px; left: 72px; }
+  .auth-meta-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* Modern two-column login page */
+.modern-login-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: stretch;
+  padding: 0;
+  background: #f8fafc;
+}
+
+.auth-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(420px, 1.05fr) minmax(440px, .95fr);
+  background: #ffffff;
+}
+
+.auth-brand-panel {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  padding: clamp(34px, 5vw, 76px);
+  color: #ffffff;
+  background-image: linear-gradient(135deg, rgba(13, 148, 136, .90), rgba(37, 99, 235, .92)), var(--auth-bg-image);
+  background-size: cover;
+  background-position: center;
+  isolation: isolate;
+}
+
+.auth-brand-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(15, 118, 110, .90), rgba(2, 132, 199, .76) 52%, rgba(37, 99, 235, .94));
+  z-index: -2;
+}
+
+.auth-circle {
+  position: absolute;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .12);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.auth-circle-one { width: 320px; height: 320px; left: 10%; top: 14%; }
+.auth-circle-two { width: 390px; height: 390px; right: 6%; top: 12%; }
+.auth-circle-three { width: 380px; height: 380px; left: 20%; bottom: -8%; }
+
+.auth-brand-content {
+  width: min(680px, 100%);
+  position: relative;
+  z-index: 1;
+}
+
+.auth-brand-logo {
+  width: 76px;
+  height: 76px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: rgba(255, 255, 255, .18);
+  border: 1px solid rgba(255, 255, 255, .20);
+  box-shadow: 0 20px 60px rgba(15, 23, 42, .18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  margin-bottom: 34px;
+}
+
+.auth-brand-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.auth-brand-copy h1 {
+  margin: 0 0 18px;
+  font-size: clamp(40px, 5.3vw, 66px);
+  line-height: 1.1;
+  letter-spacing: -0.045em;
+  color: #ffffff;
+  max-width: 680px;
+}
+
+.auth-brand-copy p {
+  margin: 0 0 34px;
+  font-size: clamp(18px, 2vw, 25px);
+  line-height: 1.65;
+  color: rgba(255, 255, 255, .93);
+  max-width: 760px;
+}
+
+.auth-feature-list {
+  list-style: none;
+  display: grid;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+}
+
+.auth-feature-list li {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: clamp(16px, 1.8vw, 22px);
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.auth-feature-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, .18);
+  color: #ffffff;
+  border: 1px solid rgba(255,255,255,.16);
+  flex: none;
+}
+
+.auth-form-panel {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: clamp(28px, 5vw, 72px);
+  background: #f8fafc;
+}
+
+.auth-form-inner {
+  width: min(560px, 100%);
+}
+
+.admin-auth-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, .06);
+  color: #0f172a;
+  font-weight: 900;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.auth-heading-block h2 {
+  margin: 0 0 10px;
+  color: #0f172a;
+  font-size: clamp(34px, 4vw, 44px);
+  line-height: 1.12;
+  letter-spacing: -0.04em;
+}
+
+.auth-heading-block p {
+  margin: 0 0 34px;
+  color: #475569;
+  font-size: 17px;
+}
+
+.auth-form-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.auth-form-stack .field {
+  display: grid;
+  gap: 10px;
+  font-weight: 800;
+}
+
+.auth-form-stack .field span {
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.auth-form-stack input,
+.auth-form-stack select,
+.auth-form-stack textarea {
+  border-radius: 18px;
+  min-height: 58px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, .02);
+  font-size: 16px;
+}
+
+.auth-form-stack input:focus,
+.auth-form-stack select:focus,
+.auth-form-stack textarea:focus {
+  border-color: #0f766e;
+  box-shadow: 0 0 0 4px rgba(20, 184, 166, .16);
+}
+
+.auth-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.auth-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #475569;
+  font-size: 14px;
+}
+
+.auth-checkbox input {
+  width: 20px;
+  height: 20px;
+  min-height: auto;
+  border-radius: 6px;
+  accent-color: #0f766e;
+}
+
+.auth-text-link {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  color: #0f766e;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.auth-text-link:hover {
+  color: #0f9f95;
+  transform: translateY(-1px);
+}
+
+.auth-submit-button {
+  min-height: 60px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #0f9f95, #0891b2);
+  color: #ffffff;
+  box-shadow: 0 16px 35px rgba(8, 145, 178, .22);
+  font-size: 17px;
+}
+
+.auth-submit-button:hover:not(:disabled) {
+  box-shadow: 0 22px 46px rgba(8, 145, 178, .28);
+}
+
+.auth-bottom-row {
+  padding-top: 16px;
+  text-align: center;
+}
+
+.auth-bottom-row p {
+  margin: 0;
+  color: #475569;
+}
+
+.auth-note-box {
+  border-radius: 18px;
+  background: #ecfeff;
+  border: 1px solid #a5f3fc;
+  padding: 14px 16px;
+}
+
+@media (max-width: 980px) {
+  .auth-shell { grid-template-columns: 1fr; }
+  .auth-brand-panel { min-height: 420px; padding: 34px; }
+  .auth-form-panel { min-height: auto; padding: 40px 24px 52px; }
+  .auth-brand-copy h1 { font-size: clamp(34px, 10vw, 48px); }
+  .auth-brand-copy p { font-size: 17px; }
+}
+
+@media (max-width: 620px) {
+  .auth-brand-panel { min-height: 380px; padding: 28px 22px; }
+  .auth-brand-logo { width: 64px; height: 64px; margin-bottom: 24px; }
+  .auth-feature-list { gap: 12px; }
+  .auth-feature-icon { width: 42px; height: 42px; }
+  .auth-meta-row { align-items: flex-start; flex-direction: column; gap: 10px; }
+}
+
+/* Login page settings admin preview */
+.login-settings-preview {
+  position: relative;
+  min-height: 520px;
+  overflow: hidden;
+  border-radius: 28px;
+  padding: 28px;
+  color: #ffffff;
+  background-image: linear-gradient(135deg, rgba(13, 148, 136, .88), rgba(37, 99, 235, .92)), var(--auth-bg-image);
+  background-size: cover;
+  background-position: center;
+  isolation: isolate;
+}
+
+.login-settings-preview::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(15, 118, 110, .86), rgba(2, 132, 199, .76) 52%, rgba(37, 99, 235, .92));
+  z-index: -2;
+}
+
+.login-settings-preview-content {
+  position: relative;
+  z-index: 1;
+  max-width: 460px;
+}
+
+.login-settings-preview h3 {
+  margin: 18px 0 12px;
+  font-size: 34px;
+  line-height: 1.12;
+  letter-spacing: -.035em;
+  color: #fff;
+}
+
+.login-settings-preview p {
+  margin: 0 0 18px;
+  color: rgba(255,255,255,.9);
+  line-height: 1.6;
+}
+
+.login-settings-preview ul {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.login-settings-preview li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+}
+
+.preview-logo { width: 58px; height: 58px; margin-bottom: 0; }
+
+.admin-logo-preview-shell {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--card-soft);
+}
+
+.admin-logo-preview {
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #0f766e;
+  color: #ffffff;
+  flex: none;
+}
+
+.admin-logo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.admin-image-preview.small span {
+  display: grid;
+  place-items: center;
+  min-height: 120px;
+  color: var(--muted);
+  font-weight: 800;
+  text-align: center;
+}
+
+/* Full-screen login page and reliable image preview fixes */
+.modern-login-page {
+  width: 100vw;
+  min-height: 100vh;
+  padding: 0 !important;
+  display: block !important;
+  place-items: initial !important;
+  overflow: hidden;
+  background: #f8fafc;
+}
+.modern-login-page .auth-shell {
+  width: 100vw !important;
+  max-width: none !important;
+  min-height: 100vh !important;
+  height: 100vh;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+.modern-login-page .auth-brand-panel,
+.modern-login-page .auth-form-panel {
+  min-height: 100vh;
+}
+.modern-login-page .auth-form-panel {
+  overflow-y: auto;
+}
+.admin-image-preview {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.admin-logo-preview img,
+.auth-brand-logo img {
+  display: block;
+}
+@media (max-width: 1080px) {
+  .modern-login-page {
+    overflow: auto;
+  }
+  .modern-login-page .auth-shell {
+    height: auto;
+    min-height: 100vh !important;
+  }
+  .modern-login-page .auth-brand-panel,
+  .modern-login-page .auth-form-panel {
+    min-height: auto;
+  }
+  .modern-login-page .auth-brand-panel {
+    min-height: 430px;
+  }
+}
+
+/* Final login branding color controls */
+.auth-brand-panel,
+.login-settings-preview {
+  background-image: var(--auth-bg-image) !important;
+  background-color: var(--login-bg-start, #0d9488) !important;
+}
+.auth-brand-overlay,
+.login-settings-preview::before {
+  background: linear-gradient(135deg, var(--login-bg-start, #0d9488), var(--login-bg-end, #2563eb)) !important;
+  opacity: var(--login-overlay-opacity, .86);
+}
+.auth-circle,
+.login-settings-preview .auth-circle {
+  background: var(--login-circle-color, #ffffff) !important;
+  opacity: var(--login-circle-opacity, .16);
+}
+.login-settings-preview {
+  isolation: isolate;
+}
+.login-settings-preview::before {
+  z-index: -2;
+}
+.field input[type="color"] {
+  padding: 6px;
+  min-height: 52px;
+  cursor: pointer;
+}
+
+/* Same simplified profile card for all roles */
+.user-profile-menu .profile-badges,
+.user-profile-menu .profile-info-grid,
+.user-profile-menu .role-chip,
+.user-profile-menu .status-chip {
+  display: none !important;
+}
+.simplified-profile-card {
+  padding-top: 58px;
+}
+.simplified-profile-identity {
+  margin-bottom: 18px;
+}
+.user-profile-menu .student-profile-trigger.redesigned,
+.user-profile-menu .student-profile-dropdown.redesigned-profile-card,
+.user-profile-menu .profile-upload-button.redesigned,
+.user-profile-menu .profile-menu-button {
+  transition-duration: .75s !important;
+  transition-timing-function: cubic-bezier(.16, 1, .3, 1) !important;
+}
+
+
+/* Login background visibility toggles */
+.settings-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all .75s cubic-bezier(.16, 1, .3, 1);
+}
+.settings-toggle:hover {
+  transform: translateY(-2px);
+  border-color: #99f6e4;
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.08);
+}
+.settings-toggle input {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  accent-color: #0ea5a6;
+  flex: 0 0 auto;
+}
+.settings-toggle span {
+  display: grid;
+  gap: 4px;
+}
+.settings-toggle b {
+  color: #0f172a;
+  font-size: 14px;
+}
+.settings-toggle small {
+  color: #64748b;
+  line-height: 1.45;
+  font-size: 12px;
+}
+
+/* Login page text style controls */
+.auth-brand-copy h1,
+.login-settings-preview-content h3 {
+  font-size: clamp(28px, 4.4vw, var(--login-title-font-size, 70px)) !important;
+  color: var(--login-title-color, #ffffff) !important;
+  font-family: var(--login-title-font-family, 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif) !important;
+  font-weight: var(--login-title-font-weight, 800) !important;
+  font-style: var(--login-title-font-style, normal) !important;
+}
+
+.auth-brand-copy p,
+.login-settings-preview-content p {
+  font-size: var(--login-description-font-size, 19px) !important;
+  color: var(--login-description-color, #ffffff) !important;
+  font-family: var(--login-description-font-family, 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif) !important;
+  font-weight: var(--login-description-font-weight, 500) !important;
+  font-style: var(--login-description-font-style, normal) !important;
+}
+
+.auth-feature-list li,
+.login-settings-preview-content li {
+  font-size: var(--login-feature-font-size, 18px) !important;
+  color: var(--login-feature-color, #ffffff) !important;
+  font-family: var(--login-feature-font-family, 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif) !important;
+  font-weight: var(--login-feature-font-weight, 800) !important;
+  font-style: var(--login-feature-font-style, normal) !important;
+}
+
+.auth-feature-icon {
+  color: var(--login-feature-color, #ffffff) !important;
+}
+
+.settings-subsection {
+  padding: 18px 20px;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+}
+.settings-subsection h3 {
+  margin: 0 0 6px;
+  color: #0f172a;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+.settings-subsection p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Live moving circles for login branding when circles are visible */
+.auth-brand-panel.circles-live .auth-circle,
+.login-settings-preview.circles-live .auth-circle {
+  will-change: transform;
+  animation-duration: 11s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+.auth-brand-panel.circles-live .auth-circle-one,
+.login-settings-preview.circles-live .auth-circle-one {
+  animation-name: loginCircleFloatOne;
+}
+
+.auth-brand-panel.circles-live .auth-circle-two,
+.login-settings-preview.circles-live .auth-circle-two {
+  animation-name: loginCircleFloatTwo;
+  animation-duration: 13s;
+}
+
+.auth-brand-panel.circles-live .auth-circle-three,
+.login-settings-preview.circles-live .auth-circle-three {
+  animation-name: loginCircleFloatThree;
+  animation-duration: 15s;
+}
+
+.auth-brand-panel.circles-hidden .auth-circle,
+.login-settings-preview.circles-hidden .auth-circle {
+  animation: none !important;
+  opacity: 0 !important;
+}
+
+@keyframes loginCircleFloatOne {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(18px, -14px, 0) scale(1.035); }
+  100% { transform: translate3d(-10px, 16px, 0) scale(.985); }
+}
+
+@keyframes loginCircleFloatTwo {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-22px, 16px, 0) scale(1.025); }
+  100% { transform: translate3d(14px, -18px, 0) scale(1.045); }
+}
+
+@keyframes loginCircleFloatThree {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(16px, 18px, 0) scale(1.03); }
+  100% { transform: translate3d(-18px, -10px, 0) scale(.99); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-brand-panel.circles-live .auth-circle,
+  .login-settings-preview.circles-live .auth-circle {
+    animation: none !important;
+  }
+}
+
+/* Weekly report feedback and attachment fixes */
+.feedback-scroll-box {
+  max-height: 150px;
+  overflow-y: auto;
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #f8fafc;
+  margin: 10px 0;
+  line-height: 1.55;
+}
+.feedback-scroll-box p {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.report-detail-box {
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  background: #f8fafc;
+}
+.report-detail-box h4 {
+  margin: 0 0 12px;
+  color: #0f172a;
+  font-size: 14px;
+  letter-spacing: .02em;
+}
+.report-attachment {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+}
+.report-attachment.empty {
+  display: block;
+  color: #64748b;
+  background: #f8fafc;
+  border-style: dashed;
+}
+.attachment-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.compact-link {
+  min-height: 38px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+}
+@media (max-width: 720px) {
+  .report-attachment {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .attachment-actions a {
+    flex: 1;
+  }
+}
+
+/* Fixed scrollable supervisor feedback boxes in student and supervisor report views */
+.supervisor-feedback-scroll-box,
+.feedback-scroll-box {
+  display: block;
+  width: 100%;
+  height: 150px;
+  max-height: 150px;
+  min-height: 150px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 14px;
+  border: 1px solid #dbe4ef;
+  border-radius: 16px;
+  background: #f8fafc;
+  color: #0f172a;
+  line-height: 1.55;
+  box-sizing: border-box;
+}
+.supervisor-feedback-scroll-box p,
+.feedback-scroll-box p {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.student-feedback-box {
+  margin: 10px 0;
+}
+.supervisor-feedback-review-box {
+  overflow: hidden;
+}
+.supervisor-feedback-textarea {
+  resize: vertical;
+  font: inherit;
+  min-height: 150px !important;
+  height: 150px !important;
+  max-height: 150px !important;
+  margin-top: 4px;
+}
+.supervisor-feedback-textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, .12);
+}
+.supervisor-feedback-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+.supervisor-feedback-actions button {
+  margin-top: 0;
+}
+@media (max-width: 640px) {
+  .supervisor-feedback-scroll-box,
+  .feedback-scroll-box,
+  .supervisor-feedback-textarea {
+    height: 140px !important;
+    max-height: 140px !important;
+    min-height: 140px !important;
+  }
+  .supervisor-feedback-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Final fixed-height form containers for Supervisor Feedback in both student and supervisor views */
+.supervisor-feedback-card-fixed {
+  max-height: 560px;
+  overflow: hidden;
+}
+.feedback-form-scroll-container {
+  width: 100%;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  border: 1px solid #dbe4ef;
+  border-radius: 18px;
+  background: #f8fafc;
+  box-sizing: border-box;
+}
+.student-supervisor-feedback-container {
+  height: 410px;
+  max-height: 410px;
+  min-height: 220px;
+  padding: 12px;
+  margin-top: 12px;
+}
+.student-supervisor-feedback-container .mini-card {
+  background: #ffffff;
+  margin-bottom: 12px;
+}
+.student-supervisor-feedback-container .mini-card:last-child {
+  margin-bottom: 0;
+}
+.supervisor-supervisor-feedback-container {
+  height: 260px !important;
+  max-height: 260px !important;
+  min-height: 260px !important;
+  padding: 16px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+.supervisor-supervisor-feedback-container h4 {
+  margin-top: 0;
+}
+.supervisor-supervisor-feedback-container .supervisor-feedback-textarea {
+  display: block;
+  width: 100%;
+  height: 160px !important;
+  min-height: 160px !important;
+  max-height: 160px !important;
+  resize: none !important;
+  overflow-y: auto !important;
+  box-sizing: border-box;
+}
+.supervisor-feedback-review-box {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+@media (max-width: 720px) {
+  .supervisor-feedback-card-fixed {
+    max-height: 480px;
+  }
+  .student-supervisor-feedback-container {
+    height: 340px;
+    max-height: 340px;
+  }
+  .supervisor-supervisor-feedback-container {
+    height: 240px !important;
+    max-height: 240px !important;
+    min-height: 240px !important;
+  }
+  .supervisor-supervisor-feedback-container .supervisor-feedback-textarea {
+    height: 145px !important;
+    min-height: 145px !important;
+    max-height: 145px !important;
+  }
+}
+
+/* Supervisor Review Weekly Reports: scroll the whole reports area, not the feedback form */
+.supervisor-review-reports-card {
+  max-height: 720px;
+  overflow: hidden;
+}
+.supervisor-review-reports-scroll-container {
+  height: 580px;
+  max-height: 580px;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  border: 1px solid #dbe4ef;
+  border-radius: 18px;
+  background: #f8fafc;
+  padding: 12px;
+  margin-top: 12px;
+  box-sizing: border-box;
+}
+.supervisor-review-reports-scroll-container .review-card {
+  background: #ffffff;
+  margin-bottom: 14px;
+}
+.supervisor-review-reports-scroll-container .review-card:last-child {
+  margin-bottom: 0;
+}
+.supervisor-review-reports-card .supervisor-feedback-review-box {
+  overflow: visible !important;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 0 !important;
+  padding: 16px !important;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+.supervisor-review-reports-card .supervisor-feedback-textarea {
+  display: block;
+  width: 100%;
+  min-height: 140px !important;
+  height: 140px !important;
+  max-height: 240px !important;
+  resize: vertical !important;
+  overflow-y: auto !important;
+  box-sizing: border-box;
+  margin-top: 8px;
+}
+@media (max-width: 720px) {
+  .supervisor-review-reports-card {
+    max-height: 620px;
+  }
+  .supervisor-review-reports-scroll-container {
+    height: 480px;
+    max-height: 480px;
+  }
+}
+
+/* Student view: align Supervisor Feedback panel height with the other report boxes */
+.student-supervisor-feedback-container {
+  height: 260px !important;
+  max-height: 260px !important;
+  min-height: 260px !important;
+  padding: 12px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+.student-supervisor-feedback-container .feedback-scroll-box,
+.student-supervisor-feedback-container .supervisor-feedback-scroll-box {
+  height: 150px !important;
+  min-height: 150px !important;
+  max-height: 150px !important;
+}
+@media (max-width: 720px) {
+  .student-supervisor-feedback-container {
+    height: 240px !important;
+    max-height: 240px !important;
+    min-height: 240px !important;
+  }
+}
+
+
+/* Student dashboard: equalize the right-side boxes after feedback scroll fix */
+.student-dashboard-side > .card {
+  min-height: 430px;
+}
+.student-dashboard-side > .supervisor-feedback-card-fixed {
+  height: 430px;
+  max-height: 430px;
+  min-height: 430px;
+  display: flex;
+  flex-direction: column;
+}
+.student-dashboard-side > .supervisor-feedback-card-fixed .section-header,
+.student-dashboard-side > .supervisor-feedback-card-fixed > .section-header {
+  flex: 0 0 auto;
+}
+.student-dashboard-side .student-supervisor-feedback-container {
+  flex: 1 1 auto;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+.student-dashboard-side .student-supervisor-feedback-container .mini-card {
+  min-height: 0;
+}
+@media (max-width: 720px) {
+  .student-dashboard-side > .card,
+  .student-dashboard-side > .supervisor-feedback-card-fixed {
+    height: auto;
+    max-height: none;
+    min-height: 0;
+  }
+  .student-dashboard-side .student-supervisor-feedback-container {
+    height: 300px !important;
+    max-height: 300px !important;
+    min-height: 300px !important;
+  }
+}
+
+/* Student dashboard alignment: place Submit Weekly Report and Supervisor Feedback on the same row */
+.student-dashboard-layout {
+  gap: 18px;
+}
+.student-dashboard-row {
+  align-items: stretch;
+}
+.student-dashboard-top-row > .card,
+.student-dashboard-top-row .student-dashboard-side-top,
+.student-dashboard-top-row .student-dashboard-side-top > .card {
+  height: 100%;
+}
+.student-report-feedback-row > .card {
+  height: 560px;
+  max-height: 560px;
+  min-height: 560px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.student-weekly-report-card .form-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+.student-weekly-report-card > button {
+  flex: 0 0 auto;
+  margin-top: 14px;
+}
+.student-feedback-aligned-card .student-supervisor-feedback-container {
+  flex: 1 1 auto;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+.student-feedback-aligned-card .empty-state {
+  flex: 1 1 auto;
+  display: grid;
+  place-items: center;
+}
+@media (max-width: 900px) {
+  .student-report-feedback-row > .card {
+    height: auto;
+    max-height: none;
+    min-height: 0;
+  }
+  .student-weekly-report-card .form-grid {
+    overflow: visible;
+  }
+  .student-feedback-aligned-card .student-supervisor-feedback-container {
+    height: 320px !important;
+    max-height: 320px !important;
+    min-height: 320px !important;
   }
 }

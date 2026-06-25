@@ -21,6 +21,7 @@ import {
   Settings,
   ShieldCheck,
   Upload,
+  UserPlus,
   SlidersHorizontal,
   Mail,
   Send,
@@ -46,6 +47,16 @@ const invitationRoles = [
   { id: 'supervisor', label: 'Supervisor' },
   { id: 'committee', label: 'Research Committee Member' },
   { id: 'admin', label: 'Admin / Editor' },
+]
+
+const loginFontOptions = [
+  { value: "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", label: 'Default / Inter' },
+  { value: "Arial, Helvetica, sans-serif", label: 'Arial' },
+  { value: "Georgia, 'Times New Roman', serif", label: 'Georgia' },
+  { value: "'Times New Roman', Times, serif", label: 'Times New Roman' },
+  { value: "Verdana, Geneva, sans-serif", label: 'Verdana' },
+  { value: "Tahoma, Geneva, sans-serif", label: 'Tahoma' },
+  { value: "'Courier New', Courier, monospace", label: 'Courier New' },
 ]
 
 const invitationTemplates = {
@@ -83,6 +94,99 @@ function makeInvitationToken() {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
+const REPORT_PROGRESS_INCREMENT = 6.25
+
+function clampProgress(value) {
+  const numeric = Number(value || 0)
+  return Math.max(0, Math.min(100, Number(numeric.toFixed(2))))
+}
+
+function calculateProjectProgressFromReports(reports, projectId) {
+  const acceptedCount = (reports || []).filter(
+    (report) => String(report.project_id) === String(projectId) && report.status === 'Accepted'
+  ).length
+  return clampProgress(acceptedCount * REPORT_PROGRESS_INCREMENT)
+}
+
+function formatProgress(value) {
+  const numeric = clampProgress(value)
+  return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(2)
+}
+
+function getProjectProgress(project, reports = []) {
+  if (!project) return 0
+  return calculateProjectProgressFromReports(reports, project.id)
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result || ''))
+    reader.onerror = () => reject(new Error('Could not read the selected file.'))
+    reader.readAsDataURL(file)
+  })
+}
+
+function sanitizeFileName(name) {
+  return String(name || 'attachment')
+    .replace(/[^a-zA-Z0-9._-]+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 140)
+}
+
+async function makeLocalReportAttachment(file, projectId, reportId) {
+  if (!file) return null
+  const dataUrl = await readFileAsDataUrl(file)
+  return {
+    id: crypto.randomUUID(),
+    project_id: projectId,
+    report_id: reportId,
+    file_type: 'Weekly Report Evidence',
+    file_name: file.name,
+    file_path: '',
+    file_url: dataUrl,
+    file_mime_type: file.type || 'application/octet-stream',
+    created_at: new Date().toISOString(),
+  }
+}
+
+function getReportAttachment(report, uploadedFiles = []) {
+  if (!report) return null
+  const linkedFile = (uploadedFiles || []).find((file) => String(file.report_id) === String(report.id))
+  return linkedFile || report.attachment || null
+}
+
+function getAttachmentUrl(attachment) {
+  if (!attachment) return ''
+  if (attachment.file_url) return attachment.file_url
+  if (attachment.file_data_url) return attachment.file_data_url
+  if (attachment.dataUrl) return attachment.dataUrl
+  if (attachment.file_path && isSupabaseConfigured) {
+    const { data } = supabase.storage.from('project-files').getPublicUrl(attachment.file_path)
+    return data?.publicUrl || ''
+  }
+  return ''
+}
+
+function ReportAttachmentBox({ attachment }) {
+  const url = getAttachmentUrl(attachment)
+  if (!attachment) return <div className="report-attachment empty">No attachment uploaded.</div>
+  return (
+    <div className="report-attachment">
+      <div>
+        <b>{attachment.file_name || 'Attached file'}</b>
+        <p className="muted small">Weekly report attachment</p>
+      </div>
+      {url ? (
+        <div className="attachment-actions">
+          <a className="secondary compact-link" href={url} target="_blank" rel="noreferrer">View</a>
+          <a className="primary compact-link" href={url} download={attachment.file_name || true}>Download</a>
+        </div>
+      ) : <span className="muted small">File link unavailable</span>}
+    </div>
+  )
+}
+
 function getInvitationDisplayStatus(invitation) {
   if (!invitation) return 'Pending'
   if (invitation.status === 'Pending' && invitation.expires_at && new Date(invitation.expires_at) < new Date()) return 'Expired'
@@ -113,6 +217,33 @@ const defaultWebsiteSettings = {
   homepageSubtitle: 'For 5th-year students at Hawler Medical University, College of Pharmacy.',
   heroImage: '/hero-page.png',
   loginHeroImage: '/hero-page.png',
+  loginBackgroundImage: '/hero-page.png',
+  loginLogoImage: '',
+  loginWelcomeTitle: 'Welcome to Research Platform',
+  loginWelcomeSubtitle: 'Publish your groundbreaking research and connect with scholars worldwide.',
+  loginFeatureOne: 'Open Access Publishing',
+  loginFeatureTwo: 'Peer Review Excellence',
+  loginFeatureThree: 'Global Research Community',
+  loginWelcomeTitleFontSize: 70,
+  loginWelcomeTitleColor: '#ffffff',
+  loginWelcomeTitleFontFamily: "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  loginWelcomeTitleBold: true,
+  loginWelcomeTitleItalic: false,
+  loginDescriptionFontSize: 19,
+  loginDescriptionColor: '#ffffff',
+  loginDescriptionFontFamily: "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  loginDescriptionBold: false,
+  loginDescriptionItalic: false,
+  loginFeatureFontSize: 18,
+  loginFeatureColor: '#ffffff',
+  loginFeatureFontFamily: "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  loginFeatureBold: true,
+  loginFeatureItalic: false,
+  loginGradientStart: '#0d9488',
+  loginGradientEnd: '#2563eb',
+  loginCircleColor: '#ffffff',
+  loginShowGradientOverlay: true,
+  loginShowCircles: true,
   adminWelcome: 'Manage website content, user access, deadlines, projects, database status, and audit activity from one admin control panel.',
   maintenanceNotice: '',
 }
@@ -134,6 +265,60 @@ function saveWebsiteSettingsLocal(settings) {
   localStorage.setItem('pharmatrack-website-settings', JSON.stringify(normalizeSettings(settings)))
 }
 
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result || ''))
+    reader.onerror = () => reject(new Error('Could not read the selected image.'))
+    reader.readAsDataURL(file)
+  })
+}
+
+function optimizeImageFile(file, options = {}) {
+  const maxWidth = options.maxWidth || 1800
+  const maxHeight = options.maxHeight || 1200
+  const quality = options.quality || 0.82
+  const outputType = options.outputType || 'image/jpeg'
+
+  return new Promise((resolve, reject) => {
+    if (!file?.type?.startsWith('image/')) {
+      reject(new Error('Please choose a valid image file.'))
+      return
+    }
+
+    const img = new Image()
+    const objectUrl = URL.createObjectURL(file)
+    img.onload = () => {
+      try {
+        let { width, height } = img
+        const scale = Math.min(1, maxWidth / width, maxHeight / height)
+        width = Math.max(1, Math.round(width * scale))
+        height = Math.max(1, Math.round(height * scale))
+
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        if (!ctx) throw new Error('Could not prepare the image preview.')
+        ctx.drawImage(img, 0, 0, width, height)
+        URL.revokeObjectURL(objectUrl)
+
+        const optimized = canvas.toDataURL(outputType, quality)
+        resolve(optimized)
+      } catch (error) {
+        URL.revokeObjectURL(objectUrl)
+        reject(error)
+      }
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      reject(new Error('Could not load the selected image. Try another JPG or PNG file.'))
+    }
+    img.src = objectUrl
+  })
+}
+
 function isAdminPortalRequest() {
   if (typeof window === 'undefined') return false
   const host = window.location.hostname.toLowerCase()
@@ -145,6 +330,7 @@ const emptyData = {
   profiles: [],
   projects: [],
   reports: [],
+  uploadedFiles: [],
   deadlines: [
     { id: 'd1', title: 'Weekly Research Report', deadline_type: 'Weekly Report', due_date: '2026-05-11', status: 'Active' },
     { id: 'd2', title: 'Proposal Final Version', deadline_type: 'Proposal', due_date: '2026-05-18', status: 'Active' },
@@ -165,8 +351,12 @@ function cleanData(data) {
   cleaned.profiles = (cleaned.profiles || []).filter(
     (u) => !sampleNames.includes(u.full_name) && !sampleEmails.includes(u.email)
   )
-  cleaned.projects = cleaned.projects || []
   cleaned.reports = cleaned.reports || []
+  cleaned.projects = (cleaned.projects || []).map((project) => ({
+    ...project,
+    progress: getProjectProgress(project, cleaned.reports),
+  }))
+  cleaned.uploadedFiles = cleaned.uploadedFiles || []
   cleaned.deadlines = cleaned.deadlines?.length ? cleaned.deadlines : emptyData.deadlines
   cleaned.notifications = cleaned.notifications || []
   cleaned.evaluations = cleaned.evaluations || []
@@ -190,16 +380,32 @@ function saveLocalData(data) {
 
 function loadCurrentUser() {
   try {
+    const sessionSaved = sessionStorage.getItem('pharmatrack-current-user-session')
+    if (sessionSaved) return JSON.parse(sessionSaved)
+
     const saved = localStorage.getItem('pharmatrack-current-user')
-    return saved ? JSON.parse(saved) : null
+    if (!saved) return null
+    const parsed = JSON.parse(saved)
+    if (parsed?.expires_at && new Date(parsed.expires_at) < new Date()) {
+      localStorage.removeItem('pharmatrack-current-user')
+      return null
+    }
+    return parsed?.user || parsed || null
   } catch {
     return null
   }
 }
 
-function saveCurrentUser(user) {
-  if (!user) localStorage.removeItem('pharmatrack-current-user')
-  else localStorage.setItem('pharmatrack-current-user', JSON.stringify(user))
+function saveCurrentUser(user, rememberFor30Days = false) {
+  localStorage.removeItem('pharmatrack-current-user')
+  sessionStorage.removeItem('pharmatrack-current-user-session')
+  if (!user) return
+  if (rememberFor30Days) {
+    const expiresAt = addDays(new Date(), 30).toISOString()
+    localStorage.setItem('pharmatrack-current-user', JSON.stringify({ user, expires_at: expiresAt }))
+  } else {
+    sessionStorage.setItem('pharmatrack-current-user-session', JSON.stringify(user))
+  }
 }
 
 function normalizeText(value) {
@@ -316,6 +522,7 @@ function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = fa
     password: '',
     confirm_password: '',
     role: 'student',
+    remember_me: false,
   })
 
   useEffect(() => {
@@ -331,84 +538,167 @@ function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = fa
 
   const isRegister = mode === 'register'
   const isForgotPassword = mode === 'forgot'
-  const portalTitle = adminOnly ? settings.adminPanelName : settings.siteName
-  const portalText = adminOnly
-    ? 'Website management access for approved administrators only. Manage content, users, deadlines, and system settings.'
-    : 'Login securely with email and password to manage final-year pharmacy research projects, weekly reports, evaluations, files, and reminders.'
-  const heroSrc = settings.loginHeroImage || settings.heroImage || '/hero-page.png'
+  const heroSrc = settings.loginBackgroundImage || settings.loginHeroImage || settings.heroImage || '/hero-page.png'
+  const logoSrc = settings.loginLogoImage || ''
+  const welcomeTitle = settings.loginWelcomeTitle || 'Welcome to Research Platform'
+  const welcomeSubtitle = settings.loginWelcomeSubtitle || 'Publish your groundbreaking research and connect with scholars worldwide.'
+  const featureItems = [
+    settings.loginFeatureOne || 'Open Access Publishing',
+    settings.loginFeatureTwo || 'Peer Review Excellence',
+    settings.loginFeatureThree || 'Global Research Community',
+  ].filter(Boolean)
+
+  const panelTitle = isForgotPassword
+    ? 'Forgot your password?'
+    : isRegister
+      ? invitation ? 'Complete your invitation' : 'Create your account'
+      : 'Sign in to your account'
+
+  const panelSubtitle = isForgotPassword
+    ? 'Enter your email address and we will send you a password reset link.'
+    : isRegister
+      ? invitation ? 'Your invitation details are pre-filled below. Complete registration to continue.' : 'Fill in your details to create your account and access the platform.'
+      : 'Welcome back! Please enter your details.'
 
   return (
-    <div className="login-page">
-      <div className="login-card">
-        <img className="login-hero-image" src={heroSrc} alt="Pharmacy Research Project hero banner" />
-        <div className="login-header">
-          <div>
-            <p className="eyebrow">{adminOnly ? <UserCog size={16} /> : <ShieldCheck size={16} />} {adminOnly ? 'Admin access' : 'Secure access'}</p>
-            <h1>{portalTitle}</h1>
-            <p className="hero-text">{portalText}</p>
-          </div>
-        </div>
-
-        <div className={`auth-switch ${invitation ? 'one' : adminOnly ? 'two' : 'three'}`}>
-          {invitation ? (
-            <button type="button" className="active">Invitation Registration</button>
-          ) : (
-            <>
-              <button type="button" className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')}>{adminOnly ? 'Admin login' : 'Login'}</button>
-              {!adminOnly && <button type="button" className={mode === 'register' ? 'active' : ''} onClick={() => setMode('register')}>Create account</button>}
-              <button type="button" className={mode === 'forgot' ? 'active' : ''} onClick={() => setMode('forgot')}>Forgot password?</button>
-            </>
-          )}
-        </div>
-
-        <div className="login-form">
-          {isRegister && (
-            <label className="field">
-              <span>Full name</span>
-              <input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} placeholder="Write your full name" />
-            </label>
-          )}
-          <label className={isForgotPassword ? "field wide" : "field"}>
-            <span>University email</span>
-            <input value={form.email} disabled={Boolean(invitation)} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="name@hmu.edu.krd" />
-          </label>
-          {!isForgotPassword && (
-            <label className="field">
-              <span>Password</span>
-              <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Enter your password" />
-            </label>
-          )}
-          {isRegister && (
-            <>
-              <label className="field">
-                <span>Confirm password</span>
-                <input type="password" value={form.confirm_password} onChange={(e) => setForm({ ...form, confirm_password: e.target.value })} placeholder="Re-enter your password" />
-              </label>
-              <label className="field">
-                <span>User role</span>
-                <select value={form.role} disabled={Boolean(invitation)} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-                  {roleButtons.map((role) => <option key={role.id} value={role.id}>{role.label}</option>)}
-                </select>
-              </label>
-            </>
-          )}
-          {invitation && (
-            <div className="invitation-lock-note">
-              <b>Invitation accepted for registration</b>
-              <p>Your email and assigned role are locked for security. Role: {getRoleLabel(invitation.role)}. Expires: {new Date(invitation.expires_at).toLocaleDateString()}.</p>
+    <div className="login-page modern-login-page">
+      <div className="auth-shell">
+        <section className={`auth-brand-panel ${settings.loginShowCircles === false ? 'circles-hidden' : 'circles-live'}`} style={{
+          '--auth-bg-image': `url(${heroSrc})`,
+          '--login-bg-start': settings.loginGradientStart || defaultWebsiteSettings.loginGradientStart,
+          '--login-bg-end': settings.loginGradientEnd || defaultWebsiteSettings.loginGradientEnd,
+          '--login-circle-color': settings.loginCircleColor || defaultWebsiteSettings.loginCircleColor,
+          '--login-overlay-opacity': settings.loginShowGradientOverlay === false ? '0' : '.86',
+          '--login-circle-opacity': settings.loginShowCircles === false ? '0' : '.16',
+          '--login-title-font-size': `${settings.loginWelcomeTitleFontSize || defaultWebsiteSettings.loginWelcomeTitleFontSize}px`,
+          '--login-title-color': settings.loginWelcomeTitleColor || defaultWebsiteSettings.loginWelcomeTitleColor,
+          '--login-title-font-family': settings.loginWelcomeTitleFontFamily || defaultWebsiteSettings.loginWelcomeTitleFontFamily,
+          '--login-title-font-weight': settings.loginWelcomeTitleBold === false ? '500' : '800',
+          '--login-title-font-style': settings.loginWelcomeTitleItalic ? 'italic' : 'normal',
+          '--login-description-font-size': `${settings.loginDescriptionFontSize || defaultWebsiteSettings.loginDescriptionFontSize}px`,
+          '--login-description-color': settings.loginDescriptionColor || defaultWebsiteSettings.loginDescriptionColor,
+          '--login-description-font-family': settings.loginDescriptionFontFamily || defaultWebsiteSettings.loginDescriptionFontFamily,
+          '--login-description-font-weight': settings.loginDescriptionBold ? '800' : '500',
+          '--login-description-font-style': settings.loginDescriptionItalic ? 'italic' : 'normal',
+          '--login-feature-font-size': `${settings.loginFeatureFontSize || defaultWebsiteSettings.loginFeatureFontSize}px`,
+          '--login-feature-color': settings.loginFeatureColor || defaultWebsiteSettings.loginFeatureColor,
+          '--login-feature-font-family': settings.loginFeatureFontFamily || defaultWebsiteSettings.loginFeatureFontFamily,
+          '--login-feature-font-weight': settings.loginFeatureBold === false ? '500' : '800',
+          '--login-feature-font-style': settings.loginFeatureItalic ? 'italic' : 'normal',
+        }}>
+          <div className="auth-brand-overlay" />
+          <div className="auth-circle auth-circle-one" />
+          <div className="auth-circle auth-circle-two" />
+          <div className="auth-circle auth-circle-three" />
+          <div className="auth-brand-content">
+            <div className="auth-brand-logo">
+              {logoSrc ? <img src={logoSrc} alt="Login page logo" /> : <BookOpen size={28} />}
             </div>
-          )}
-          {message && <div className="message login-message">{message}</div>}
-          {isForgotPassword ? (
-            <button className="primary wide" disabled={loading} onClick={() => onForgotPassword(form.email)}>
-              <Lock size={16} /> {loading ? 'Sending reset link...' : 'Send Password Reset Link'}
-            </button>
-          ) : (
-            <button className="primary wide" disabled={loading} onClick={() => onLogin({ ...form, mode, adminPortal: adminOnly })}>
-              <Lock size={16} /> {loading ? 'Please wait...' : isRegister ? 'Create Account' : 'Login'}
-            </button>
-          )}
-        </div>
+            <div className="auth-brand-copy">
+              <h1>{welcomeTitle}</h1>
+              <p>{welcomeSubtitle}</p>
+            </div>
+            <ul className="auth-feature-list">
+              {featureItems.map((item, index) => (
+                <li key={`${item}-${index}`}>
+                  <span className="auth-feature-icon"><CheckCircle2 size={18} /></span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        <section className="auth-form-panel">
+          <div className="auth-form-inner">
+            {adminOnly && <div className="admin-auth-badge"><UserCog size={16} /> Admin portal access</div>}
+            <div className="auth-heading-block">
+              <h2>{panelTitle}</h2>
+              <p>{panelSubtitle}</p>
+            </div>
+
+            <div className="auth-form-stack">
+              {isRegister && (
+                <label className="field wide-field">
+                  <span>Full name</span>
+                  <input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} placeholder="Enter your full name" />
+                </label>
+              )}
+
+              <label className="field wide-field">
+                <span>Email</span>
+                <input value={form.email} disabled={Boolean(invitation)} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Enter your email" />
+              </label>
+
+              {!isForgotPassword && (
+                <label className="field wide-field">
+                  <span>Password</span>
+                  <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Enter your password" />
+                </label>
+              )}
+
+              {isRegister && (
+                <>
+                  <label className="field wide-field">
+                    <span>Confirm password</span>
+                    <input type="password" value={form.confirm_password} onChange={(e) => setForm({ ...form, confirm_password: e.target.value })} placeholder="Confirm your password" />
+                  </label>
+                  <label className="field wide-field">
+                    <span>Role</span>
+                    <select value={form.role} disabled={Boolean(invitation)} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+                      {roleButtons.map((role) => <option key={role.id} value={role.id}>{role.label}</option>)}
+                    </select>
+                  </label>
+                </>
+              )}
+
+              {!isRegister && !isForgotPassword && (
+                <div className="auth-meta-row">
+                  <label className="auth-checkbox">
+                    <input type="checkbox" checked={form.remember_me} onChange={(e) => setForm({ ...form, remember_me: e.target.checked })} />
+                    <span>Remember for 30 days</span>
+                  </label>
+                  <button type="button" className="auth-text-link" onClick={() => setMode('forgot')}>Forgot password?</button>
+                </div>
+              )}
+
+              {invitation && (
+                <div className="invitation-lock-note auth-note-box">
+                  <b>Invitation registration</b>
+                  <p>Your email and assigned role are locked for security. Role: {getRoleLabel(invitation.role)}. Expires: {new Date(invitation.expires_at).toLocaleDateString()}.</p>
+                </div>
+              )}
+
+              {message && <div className="message login-message">{message}</div>}
+
+              {isForgotPassword ? (
+                <button className="primary wide auth-submit-button" disabled={loading} onClick={() => onForgotPassword(form.email)}>
+                  <Mail size={18} /> {loading ? 'Sending reset link...' : 'Send password reset email'}
+                </button>
+              ) : (
+                <button className="primary wide auth-submit-button" disabled={loading} onClick={() => onLogin({ ...form, mode, adminPortal: adminOnly })}>
+                  <Lock size={18} /> {loading ? 'Please wait...' : isRegister ? 'Create account' : 'Sign in'}
+                </button>
+              )}
+
+              {!adminOnly && (
+                <div className="auth-bottom-row">
+                  {isRegister ? (
+                    <p>Already have an account? <button type="button" className="auth-text-link inline" onClick={() => setMode('login')}>Sign in</button></p>
+                  ) : (
+                    <p>Don’t have an account? <button type="button" className="auth-text-link inline" onClick={() => setMode('register')}>Sign up for free</button></p>
+                  )}
+                </div>
+              )}
+
+              {isForgotPassword && (
+                <div className="auth-bottom-row">
+                  <p>Remembered your password? <button type="button" className="auth-text-link inline" onClick={() => setMode('login')}>Back to sign in</button></p>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   )
@@ -416,33 +706,90 @@ function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = fa
 
 function ResetPasswordPage({ onUpdatePassword, onBackToLogin, message, loading, settings = defaultWebsiteSettings }) {
   const [form, setForm] = useState({ password: '', confirm_password: '' })
-  const heroSrc = settings.loginHeroImage || settings.heroImage || '/hero-page.png'
+  const heroSrc = settings.loginBackgroundImage || settings.loginHeroImage || settings.heroImage || '/hero-page.png'
+  const logoSrc = settings.loginLogoImage || ''
+  const welcomeTitle = settings.loginWelcomeTitle || 'Welcome to Research Platform'
+  const welcomeSubtitle = settings.loginWelcomeSubtitle || 'Publish your groundbreaking research and connect with scholars worldwide.'
+  const featureItems = [
+    settings.loginFeatureOne || 'Open Access Publishing',
+    settings.loginFeatureTwo || 'Peer Review Excellence',
+    settings.loginFeatureThree || 'Global Research Community',
+  ].filter(Boolean)
+
   return (
-    <div className="login-page">
-      <div className="login-card">
-        <img className="login-hero-image" src={heroSrc} alt="Pharmacy Research Project hero banner" />
-        <div className="login-header">
-          <div>
-            <p className="eyebrow"><ShieldCheck size={16} /> Password recovery</p>
-            <h1>Set a New Password</h1>
-            <p className="hero-text">Enter a new password for your PharmaTrack account. After updating, return to the login page and sign in again.</p>
+    <div className="login-page modern-login-page">
+      <div className="auth-shell">
+        <section className={`auth-brand-panel ${settings.loginShowCircles === false ? 'circles-hidden' : 'circles-live'}`} style={{
+          '--auth-bg-image': `url(${heroSrc})`,
+          '--login-bg-start': settings.loginGradientStart || defaultWebsiteSettings.loginGradientStart,
+          '--login-bg-end': settings.loginGradientEnd || defaultWebsiteSettings.loginGradientEnd,
+          '--login-circle-color': settings.loginCircleColor || defaultWebsiteSettings.loginCircleColor,
+          '--login-overlay-opacity': settings.loginShowGradientOverlay === false ? '0' : '.86',
+          '--login-circle-opacity': settings.loginShowCircles === false ? '0' : '.16',
+          '--login-title-font-size': `${settings.loginWelcomeTitleFontSize || defaultWebsiteSettings.loginWelcomeTitleFontSize}px`,
+          '--login-title-color': settings.loginWelcomeTitleColor || defaultWebsiteSettings.loginWelcomeTitleColor,
+          '--login-title-font-family': settings.loginWelcomeTitleFontFamily || defaultWebsiteSettings.loginWelcomeTitleFontFamily,
+          '--login-title-font-weight': settings.loginWelcomeTitleBold === false ? '500' : '800',
+          '--login-title-font-style': settings.loginWelcomeTitleItalic ? 'italic' : 'normal',
+          '--login-description-font-size': `${settings.loginDescriptionFontSize || defaultWebsiteSettings.loginDescriptionFontSize}px`,
+          '--login-description-color': settings.loginDescriptionColor || defaultWebsiteSettings.loginDescriptionColor,
+          '--login-description-font-family': settings.loginDescriptionFontFamily || defaultWebsiteSettings.loginDescriptionFontFamily,
+          '--login-description-font-weight': settings.loginDescriptionBold ? '800' : '500',
+          '--login-description-font-style': settings.loginDescriptionItalic ? 'italic' : 'normal',
+          '--login-feature-font-size': `${settings.loginFeatureFontSize || defaultWebsiteSettings.loginFeatureFontSize}px`,
+          '--login-feature-color': settings.loginFeatureColor || defaultWebsiteSettings.loginFeatureColor,
+          '--login-feature-font-family': settings.loginFeatureFontFamily || defaultWebsiteSettings.loginFeatureFontFamily,
+          '--login-feature-font-weight': settings.loginFeatureBold === false ? '500' : '800',
+          '--login-feature-font-style': settings.loginFeatureItalic ? 'italic' : 'normal',
+        }}>
+          <div className="auth-brand-overlay" />
+          <div className="auth-circle auth-circle-one" />
+          <div className="auth-circle auth-circle-two" />
+          <div className="auth-circle auth-circle-three" />
+          <div className="auth-brand-content">
+            <div className="auth-brand-logo">
+              {logoSrc ? <img src={logoSrc} alt="Login page logo" /> : <BookOpen size={28} />}
+            </div>
+            <div className="auth-brand-copy">
+              <h1>{welcomeTitle}</h1>
+              <p>{welcomeSubtitle}</p>
+            </div>
+            <ul className="auth-feature-list">
+              {featureItems.map((item, index) => (
+                <li key={`${item}-${index}`}>
+                  <span className="auth-feature-icon"><CheckCircle2 size={18} /></span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
           </div>
-        </div>
-        <div className="login-form">
-          <label className="field">
-            <span>New password</span>
-            <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Enter new password" />
-          </label>
-          <label className="field">
-            <span>Confirm new password</span>
-            <input type="password" value={form.confirm_password} onChange={(e) => setForm({ ...form, confirm_password: e.target.value })} placeholder="Re-enter new password" />
-          </label>
-          {message && <div className="message login-message">{message}</div>}
-          <button className="primary wide" disabled={loading} onClick={() => onUpdatePassword(form.password, form.confirm_password)}>
-            <Lock size={16} /> {loading ? 'Updating password...' : 'Update Password'}
-          </button>
-          <button className="secondary wide" type="button" onClick={onBackToLogin}>Back to Login</button>
-        </div>
+        </section>
+
+        <section className="auth-form-panel">
+          <div className="auth-form-inner">
+            <div className="auth-heading-block">
+              <h2>Set a new password</h2>
+              <p>Create a secure new password for your account, then return to the sign-in page.</p>
+            </div>
+            <div className="auth-form-stack">
+              <label className="field wide-field">
+                <span>New password</span>
+                <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Enter new password" />
+              </label>
+              <label className="field wide-field">
+                <span>Confirm new password</span>
+                <input type="password" value={form.confirm_password} onChange={(e) => setForm({ ...form, confirm_password: e.target.value })} placeholder="Confirm your new password" />
+              </label>
+              {message && <div className="message login-message">{message}</div>}
+              <button className="primary wide auth-submit-button" disabled={loading} onClick={() => onUpdatePassword(form.password, form.confirm_password)}>
+                <Lock size={18} /> {loading ? 'Updating password...' : 'Update password'}
+              </button>
+              <div className="auth-bottom-row">
+                <p>Return to the login page? <button className="auth-text-link inline" type="button" onClick={onBackToLogin}>Back to sign in</button></p>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   )
@@ -523,16 +870,17 @@ export default function App() {
   async function loadFromSupabase() {
     if (!isSupabaseConfigured) return
     try {
-      const [profiles, projects, reports, deadlines, notifications, evaluations, auditLogs] = await Promise.all([
+      const [profiles, projects, reports, uploadedFiles, deadlines, notifications, evaluations, auditLogs] = await Promise.all([
         supabase.from('profiles').select('*').order('created_at', { ascending: true }),
         supabase.from('research_projects').select('*').order('created_at', { ascending: false }),
         supabase.from('weekly_reports').select('*').order('submitted_at', { ascending: false }),
+        supabase.from('uploaded_files').select('*').order('created_at', { ascending: false }),
         supabase.from('deadlines').select('*').order('due_date', { ascending: true }),
         supabase.from('notifications').select('*').order('created_at', { ascending: false }),
         supabase.from('evaluations').select('*').order('created_at', { ascending: false }),
         supabase.from('audit_logs').select('*').order('created_at', { ascending: false }),
       ])
-      const error = [profiles, projects, reports, deadlines, notifications, evaluations, auditLogs].find((x) => x.error)?.error
+      const error = [profiles, projects, reports, uploadedFiles, deadlines, notifications, evaluations, auditLogs].find((x) => x.error)?.error
       if (error) throw error
 
       let invitationsData = []
@@ -543,10 +891,17 @@ export default function App() {
         invitationsData = []
       }
 
+      const reportsData = reports.data || []
+      const projectsData = (projects.data || []).map((project) => ({
+        ...project,
+        progress: getProjectProgress(project, reportsData),
+      }))
+
       setData(cleanData({
         profiles: profiles.data || [],
-        projects: projects.data || [],
-        reports: reports.data || [],
+        projects: projectsData,
+        reports: reportsData,
+        uploadedFiles: uploadedFiles.data || [],
         deadlines: deadlines.data?.length ? deadlines.data : emptyData.deadlines,
         notifications: notifications.data || [],
         evaluations: evaluations.data || [],
@@ -918,7 +1273,7 @@ export default function App() {
         throw new Error('Access denied. This admin portal is available only for approved Admin accounts.')
       }
 
-      saveCurrentUser(loginUser)
+      saveCurrentUser(loginUser, Boolean(form.remember_me))
       setCurrentUser(loginUser)
       setRole(loginUser.role)
       setMessage(`Welcome, ${loginUser.full_name}.`)
@@ -973,7 +1328,7 @@ export default function App() {
   async function createWeeklyReport(form, file) {
     if (!form.project_id) return setMessage('Create or select a research project first.')
     if (!form.completed_work?.trim()) return setMessage('Please write the work completed this week before submitting.')
-    const nextWeek = Math.max(0, ...data.reports.filter((r) => r.project_id === form.project_id).map((r) => Number(r.week_number || 0))) + 1
+    const nextWeek = Math.max(0, ...data.reports.filter((r) => String(r.project_id) === String(form.project_id)).map((r) => Number(r.week_number || 0))) + 1
     const report = {
       id: crypto.randomUUID(),
       project_id: form.project_id,
@@ -993,40 +1348,88 @@ export default function App() {
       const { id, ...reportForDb } = report
       const { data: inserted, error } = await supabase.from('weekly_reports').insert(reportForDb).select().single()
       if (error) return setMessage(error.message)
-      if (file) await uploadProjectFile(file, form.project_id, inserted.id, 'Weekly Report Evidence')
+      try {
+        if (file) await uploadProjectFile(file, form.project_id, inserted.id, 'Weekly Report Evidence')
+      } catch (uploadError) {
+        await loadFromSupabase()
+        return setMessage(`Weekly report saved, but the attachment was not uploaded: ${uploadError.message}`)
+      }
       await addAudit(form.submitted_by, 'submitted', `weekly report ${nextWeek}`)
       await loadFromSupabase()
     } else {
+      const attachment = file ? await makeLocalReportAttachment(file, form.project_id, report.id) : null
+      const reportWithAttachment = attachment ? { ...report, attachment } : report
       const log = makeAudit(form.submitted_by, 'submitted', `weekly report ${nextWeek}`)
-      setLocal((current) => ({ ...current, reports: [report, ...current.reports], auditLogs: [log, ...current.auditLogs] }))
-    }
-    setMessage('Weekly report submitted successfully.')
-  }
-
-  async function uploadProjectFile(file, projectId, reportId, fileType) {
-    if (!isSupabaseConfigured) return
-    const filePath = `${projectId}/${Date.now()}-${file.name}`
-    const upload = await supabase.storage.from('project-files').upload(filePath, file, { upsert: false })
-    if (upload.error) return setMessage(upload.error.message)
-    await supabase.from('uploaded_files').insert({ project_id: projectId, report_id: reportId, file_type: fileType, file_name: file.name, file_path: filePath })
-  }
-
-  async function reviewReport(reportId, status, feedback) {
-    const score = status === 'Accepted' ? 18 : 12
-    if (isSupabaseConfigured) {
-      const { error } = await supabase.from('weekly_reports').update({ status, supervisor_feedback: feedback, score }).eq('id', reportId)
-      if (error) return setMessage(error.message)
-      await addAudit(currentUser.full_name, status === 'Accepted' ? 'approved' : 'requested revision for', `weekly report ${reportId}`)
-      await loadFromSupabase()
-    } else {
-      const log = makeAudit(currentUser.full_name, status === 'Accepted' ? 'approved' : 'requested revision for', `weekly report ${reportId}`)
       setLocal((current) => ({
         ...current,
-        reports: current.reports.map((r) => r.id === reportId ? { ...r, status, supervisor_feedback: feedback, score } : r),
+        reports: [reportWithAttachment, ...current.reports],
+        uploadedFiles: attachment ? [attachment, ...(current.uploadedFiles || [])] : (current.uploadedFiles || []),
         auditLogs: [log, ...current.auditLogs],
       }))
     }
-    setMessage('Supervisor review saved.')
+    setMessage(file ? 'Weekly report and attachment submitted successfully.' : 'Weekly report submitted successfully.')
+  }
+
+  async function uploadProjectFile(file, projectId, reportId, fileType) {
+    if (!isSupabaseConfigured || !file) return null
+    const safeName = sanitizeFileName(file.name)
+    const filePath = `${projectId}/${reportId}/${Date.now()}-${safeName}`
+    const upload = await supabase.storage.from('project-files').upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: false,
+      contentType: file.type || 'application/octet-stream',
+    })
+    if (upload.error) throw upload.error
+    const insert = await supabase.from('uploaded_files').insert({
+      project_id: projectId,
+      report_id: reportId,
+      file_type: fileType,
+      file_name: file.name,
+      file_path: filePath,
+    }).select().single()
+    if (insert.error) throw insert.error
+    return insert.data
+  }
+
+  async function reviewReport(reportId, status, feedback) {
+    const targetReport = data.reports.find((report) => String(report.id) === String(reportId))
+    if (!targetReport) return setMessage('Report not found. Please refresh and try again.')
+
+    const score = status === 'Accepted' ? 18 : 12
+    const updatedReports = data.reports.map((report) =>
+      String(report.id) === String(reportId)
+        ? { ...report, status, supervisor_feedback: feedback, score }
+        : report
+    )
+    const nextProgress = calculateProjectProgressFromReports(updatedReports, targetReport.project_id)
+
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.from('weekly_reports').update({ status, supervisor_feedback: feedback, score }).eq('id', reportId)
+      if (error) return setMessage(error.message)
+
+      const progressUpdate = await supabase.from('research_projects').update({ progress: nextProgress }).eq('id', targetReport.project_id)
+      if (progressUpdate.error) return setMessage(progressUpdate.error.message)
+
+      await addAudit(
+        currentUser.full_name,
+        status === 'Accepted' ? 'approved' : 'requested revision for',
+        `weekly report ${targetReport.week_number || reportId}; project progress is now ${formatProgress(nextProgress)}%`
+      )
+      await loadFromSupabase()
+    } else {
+      const log = makeAudit(
+        currentUser.full_name,
+        status === 'Accepted' ? 'approved' : 'requested revision for',
+        `weekly report ${targetReport.week_number || reportId}; project progress is now ${formatProgress(nextProgress)}%`
+      )
+      setLocal((current) => ({
+        ...current,
+        reports: current.reports.map((r) => r.id === reportId ? { ...r, status, supervisor_feedback: feedback, score } : r),
+        projects: current.projects.map((p) => String(p.id) === String(targetReport.project_id) ? { ...p, progress: nextProgress } : p),
+        auditLogs: [log, ...current.auditLogs],
+      }))
+    }
+    setMessage(`Supervisor review saved. Project progress is now ${formatProgress(nextProgress)}%.`)
   }
 
   async function updateProject(projectId, fields) {
@@ -1380,7 +1783,7 @@ export default function App() {
 
   function exportCsv() {
     const header = 'Group,Title,Area,Supervisor,Approval,Status,Progress,Final Due\n'
-    const rows = filteredProjects.map((p) => `"${p.group_name}","${p.title}","${p.area}","${p.supervisor_name}","${p.approval}","${p.status}","${p.progress}%","${p.final_due}"`).join('\n')
+    const rows = filteredProjects.map((p) => `"${p.group_name}","${p.title}","${p.area}","${p.supervisor_name}","${p.approval}","${p.status}","${formatProgress(p.progress)}%","${p.final_due}"`).join('\n')
     const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -1511,26 +1914,10 @@ export default function App() {
   return (
     <div className="app">
       <header className="hero no-print" style={{ backgroundImage: `url(${websiteSettings.heroImage || '/hero-page.png'})` }}>
-        {allowedRole === 'student' ? (
-          <StudentProfileMenu
-            currentUser={currentUser}
-            roleLabel={roleButtons.find((r) => r.id === allowedRole)?.label || 'Student'}
-            onLogout={logout}
-          />
-        ) : (
-          <div className="status-box">
-            <div className="status-main">
-              <div className="status-avatar">{String(currentUser.full_name || 'U').trim().charAt(0).toUpperCase()}</div>
-              <div>
-                <h3>{currentUser.full_name}</h3>
-                <p className="small">{roleButtons.find((r) => r.id === allowedRole)?.label}</p>
-              </div>
-            </div>
-            <div className="status-actions">
-              <button className="ghost-dark" onClick={logout}><LogOut size={15} /> Logout</button>
-            </div>
-          </div>
-        )}
+        <UserProfileMenu
+          currentUser={currentUser}
+          onLogout={logout}
+        />
       </header>
 
       <main>
@@ -1570,14 +1957,13 @@ export default function App() {
   )
 }
 
-function StudentProfileMenu({ currentUser, roleLabel, onLogout }) {
-  const storageKey = `pharmatrack-profile-photo-${currentUser?.email || currentUser?.id || 'student'}`
+function UserProfileMenu({ currentUser, onLogout }) {
+  const storageKey = `pharmatrack-profile-photo-${currentUser?.email || currentUser?.id || 'user'}`
   const [open, setOpen] = useState(false)
   const [photo, setPhoto] = useState(() => localStorage.getItem(storageKey) || '')
-  const initial = String(currentUser?.full_name || currentUser?.email || 'S').trim().charAt(0).toUpperCase()
-  const displayName = currentUser?.full_name || 'Student'
+  const initial = String(currentUser?.full_name || currentUser?.email || 'U').trim().charAt(0).toUpperCase()
+  const displayName = currentUser?.full_name || 'User'
   const displayEmail = currentUser?.email || 'No email available'
-  const accountStatus = currentUser?.status || 'Active'
 
   function handlePhotoUpload(event) {
     const file = event.target.files?.[0]
@@ -1599,39 +1985,24 @@ function StudentProfileMenu({ currentUser, roleLabel, onLogout }) {
   }
 
   return (
-    <div className={`student-profile-menu ${open ? 'open' : ''}`}>
-      <button className="student-profile-trigger redesigned" type="button" onClick={() => setOpen((value) => !value)} aria-label="Open student profile menu">
-        {photo ? <img src={photo} alt="Student profile" /> : <span>{initial}</span>}
+    <div className={`student-profile-menu user-profile-menu ${open ? 'open' : ''}`}>
+      <button className="student-profile-trigger redesigned" type="button" onClick={() => setOpen((value) => !value)} aria-label="Open profile menu">
+        {photo ? <img src={photo} alt="Profile" /> : <span>{initial}</span>}
         <span className="profile-online-dot" aria-hidden="true" />
       </button>
       {open && (
         <div className="student-profile-dropdown redesigned-profile-card">
           <div className="profile-cover" />
-          <div className="profile-card-body">
+          <div className="profile-card-body simplified-profile-card">
             <div className="profile-avatar-shell">
               <div className="student-profile-large redesigned">
-                {photo ? <img src={photo} alt="Student profile" /> : <span>{initial}</span>}
+                {photo ? <img src={photo} alt="Profile" /> : <span>{initial}</span>}
               </div>
             </div>
 
-            <div className="profile-identity">
+            <div className="profile-identity simplified-profile-identity">
               <h3>{displayName}</h3>
               <p>{displayEmail}</p>
-              <div className="profile-badges">
-                <span className="role-chip">{roleLabel}</span>
-                <span className="status-chip"><CheckCircle2 size={13} /> {accountStatus}</span>
-              </div>
-            </div>
-
-            <div className="profile-info-grid">
-              <div>
-                <span>Dashboard</span>
-                <b>Student</b>
-              </div>
-              <div>
-                <span>Access</span>
-                <b>{accountStatus}</b>
-              </div>
             </div>
 
             <label className="profile-upload-button redesigned">
@@ -1648,6 +2019,7 @@ function StudentProfileMenu({ currentUser, roleLabel, onLogout }) {
     </div>
   )
 }
+
 
 function AdminControlPanel({
   settings,
@@ -1674,7 +2046,7 @@ function AdminControlPanel({
   message,
 }) {
   const [draft, setDraft] = useState(settings)
-
+  const [brandingError, setBrandingError] = useState('')
   useEffect(() => {
     setDraft(settings)
   }, [settings])
@@ -1682,6 +2054,7 @@ function AdminControlPanel({
   const navItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'branding', label: 'Website Settings', icon: SlidersHorizontal },
+    { id: 'login-settings', label: 'Login Page Settings', icon: Lock },
     { id: 'users', label: 'Users & Roles', icon: Users },
     { id: 'invitations', label: 'Invite Users', icon: Mail },
     { id: 'deadlines', label: 'Deadlines', icon: CalendarDays },
@@ -1693,12 +2066,82 @@ function AdminControlPanel({
     setDraft((current) => ({ ...current, [key]: value }))
   }
 
-  function handleImageUpload(key, file) {
+  async function handleImageUpload(key, file) {
     if (!file) return
-    if (!file.type?.startsWith('image/')) return
-    const reader = new FileReader()
-    reader.onload = () => updateDraft(key, String(reader.result || ''))
-    reader.readAsDataURL(file)
+    if (!file.type?.startsWith('image/')) {
+      setBrandingError('Please choose a valid image file.')
+      return
+    }
+
+    try {
+      setBrandingError('Uploading image...')
+      const isLogo = key === 'loginLogoImage'
+      const outputType = isLogo && file.type === 'image/png' ? 'image/png' : 'image/jpeg'
+      const dataUrl = isLogo
+        ? await optimizeImageFile(file, { maxWidth: 600, maxHeight: 600, quality: 0.9, outputType })
+        : await optimizeImageFile(file, { maxWidth: 1920, maxHeight: 1280, quality: 0.86, outputType })
+
+      if (isSupabaseConfigured) {
+        const blob = await fetch(dataUrl).then((response) => response.blob())
+        const extension = outputType === 'image/png' ? 'png' : 'jpg'
+        const safeName = String(file.name || key).replace(/[^a-z0-9._-]/gi, '-').toLowerCase()
+        const filePath = `login-page/${key}-${Date.now()}-${safeName}.${extension}`
+        const upload = await supabase.storage
+          .from('app-assets')
+          .upload(filePath, blob, {
+            contentType: outputType,
+            cacheControl: '3600',
+            upsert: true,
+          })
+
+        if (upload.error) {
+          updateDraft(key, dataUrl)
+          setBrandingError(`Image preview loaded locally, but global upload failed: ${upload.error.message}. Run supabase/login_page_assets.sql in Supabase SQL Editor, then upload again.`)
+          return
+        }
+
+        const { data: publicData } = supabase.storage.from('app-assets').getPublicUrl(filePath)
+        const publicUrl = publicData?.publicUrl
+        if (!publicUrl) throw new Error('Image uploaded, but Supabase did not return a public URL.')
+        updateDraft(key, publicUrl)
+        setBrandingError('Image uploaded successfully. Click Save Login Page Settings to publish it on the login page.')
+        return
+      }
+
+      updateDraft(key, dataUrl)
+      setBrandingError('Image preview loaded locally. Connect Supabase Storage to save it globally for all users.')
+    } catch (error) {
+      try {
+        const fallback = await fileToDataUrl(file)
+        updateDraft(key, fallback)
+        setBrandingError(`Image preview loaded locally, but upload failed: ${error.message || 'Unknown error'}`)
+      } catch {
+        setBrandingError(error.message || 'Could not upload the selected image. Try a smaller JPG or PNG file.')
+      }
+    }
+  }
+
+  function saveLoginPageSettings() {
+    const required = [
+      ['loginWelcomeTitle', 'Welcome title'],
+      ['loginWelcomeSubtitle', 'Subtitle/description'],
+      ['loginFeatureOne', 'Feature point 1'],
+      ['loginFeatureTwo', 'Feature point 2'],
+      ['loginFeatureThree', 'Feature point 3'],
+    ]
+    const missing = required.filter(([key]) => !String(draft[key] || '').trim()).map(([, label]) => label)
+    if (missing.length) {
+      window.alert(`Please complete these required login page settings: ${missing.join(', ')}`)
+      return
+    }
+    const titleSize = Number(draft.loginWelcomeTitleFontSize || defaultWebsiteSettings.loginWelcomeTitleFontSize)
+    const descriptionSize = Number(draft.loginDescriptionFontSize || defaultWebsiteSettings.loginDescriptionFontSize)
+    const featureSize = Number(draft.loginFeatureFontSize || defaultWebsiteSettings.loginFeatureFontSize)
+    if (titleSize < 24 || titleSize > 120 || descriptionSize < 12 || descriptionSize > 60 || featureSize < 12 || featureSize > 60) {
+      window.alert('Please keep title size between 24–120 px, and description/feature text size between 12–60 px.')
+      return
+    }
+    updateSettings(draft)
   }
 
   const pendingUsers = data.profiles.filter((u) => (u.status || 'Pending') === 'Pending').length
@@ -1739,7 +2182,7 @@ function AdminControlPanel({
         <header className="admin-panel-topbar no-print">
           <div>
             <p className="eyebrow"><UserCog size={16} /> Admin subdomain</p>
-            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : 'Control Center'}</h1>
+            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : 'Control Center'}</h1>
             <p>{settings.adminWelcome}</p>
           </div>
           <a className="admin-preview-link" href="/" target="_blank" rel="noreferrer">Open main website</a>
@@ -1794,7 +2237,8 @@ function AdminControlPanel({
               </div>
               <div className="card admin-quick-actions">
                 <SectionHeader icon={Settings} title="Quick Management" subtitle="Common website management actions" />
-                <button className="secondary wide" onClick={() => setAdminPanelTab('branding')}><SlidersHorizontal size={16} /> Change hero image and texts</button>
+                <button className="secondary wide" onClick={() => setAdminPanelTab('branding')}><SlidersHorizontal size={16} /> Change homepage hero and texts</button>
+                <button className="secondary wide" onClick={() => setAdminPanelTab('login-settings')}><Lock size={16} /> Edit login page design</button>
                 <button className="secondary wide" onClick={() => setAdminPanelTab('users')}><Users size={16} /> Manage users and approvals</button>
                 <button className="secondary wide" onClick={() => setAdminPanelTab('invitations')}><Mail size={16} /> Invite users by role</button>
                 <button className="secondary wide" onClick={() => setAdminPanelTab('deadlines')}><CalendarDays size={16} /> Add or remove deadlines</button>
@@ -1807,7 +2251,7 @@ function AdminControlPanel({
         {adminPanelTab === 'branding' && (
           <div className="admin-split-layout">
             <div className="card">
-              <SectionHeader icon={SlidersHorizontal} title="Website Content Settings" subtitle="Change homepage text, hero image, login image, and admin panel labels" />
+              <SectionHeader icon={SlidersHorizontal} title="Website Content Settings" subtitle="Change homepage text, hero image, and admin panel labels" />
               <div className="form-grid">
                 <label className="field"><span>Main website name</span><input value={draft.siteName || ''} onChange={(e) => updateDraft('siteName', e.target.value)} placeholder="PharmaTrack Research Platform" /></label>
                 <label className="field"><span>Admin panel name</span><input value={draft.adminPanelName || ''} onChange={(e) => updateDraft('adminPanelName', e.target.value)} placeholder="PharmaTrack Control Center" /></label>
@@ -1824,18 +2268,152 @@ function AdminControlPanel({
             </div>
 
             <div className="card">
-              <SectionHeader icon={ImageIcon} title="Hero Image Manager" subtitle="Upload a preview image or paste a hosted image URL" />
+              <SectionHeader icon={ImageIcon} title="Homepage Hero Image" subtitle="Upload a preview image or paste a hosted image URL" />
               <label className="field"><span>Homepage hero image URL</span><input value={draft.heroImage || ''} onChange={(e) => updateDraft('heroImage', e.target.value)} placeholder="/hero-page.png or image URL" /></label>
               <label className="field"><span>Upload homepage hero image</span><input type="file" accept="image/*" onChange={(e) => handleImageUpload('heroImage', e.target.files?.[0])} /></label>
               <div className="admin-image-preview" style={{ backgroundImage: `url(${draft.heroImage || '/hero-page.png'})` }} />
 
-              <label className="field"><span>Login page hero image URL</span><input value={draft.loginHeroImage || ''} onChange={(e) => updateDraft('loginHeroImage', e.target.value)} placeholder="/hero-page.png or image URL" /></label>
-              <label className="field"><span>Upload login hero image</span><input type="file" accept="image/*" onChange={(e) => handleImageUpload('loginHeroImage', e.target.files?.[0])} /></label>
-              <div className="admin-image-preview small" style={{ backgroundImage: `url(${draft.loginHeroImage || draft.heroImage || '/hero-page.png'})` }} />
-
               <div className="soft-box settings-note">
                 <b>Important</b>
                 <p>For a permanent public change, use a hosted image URL or save settings to Supabase. Local uploaded images are useful for preview and testing.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {adminPanelTab === 'login-settings' && (
+          <div className="admin-split-layout login-settings-layout">
+            <div className="card">
+              <SectionHeader icon={Lock} title="Login Page Settings" subtitle="Customize only the login page images and text content" />
+              <div className="form-grid">
+                <label className="field wide-field"><span>Background photo/image URL</span><input value={draft.loginBackgroundImage || ''} onChange={(e) => updateDraft('loginBackgroundImage', e.target.value)} placeholder="/hero-page.png or hosted image URL" /></label>
+                <label className="field wide-field"><span>Upload background photo/image</span><input type="file" accept="image/*" onChange={(e) => handleImageUpload('loginBackgroundImage', e.target.files?.[0])} /></label>
+                <label className="field wide-field"><span>Logo/icon image URL</span><input value={draft.loginLogoImage || ''} onChange={(e) => updateDraft('loginLogoImage', e.target.value)} placeholder="Optional logo/icon image URL" /></label>
+                <label className="field wide-field"><span>Upload logo/icon image</span><input type="file" accept="image/*" onChange={(e) => handleImageUpload('loginLogoImage', e.target.files?.[0])} /></label>
+                <label className="field wide-field"><span>Welcome title</span><input value={draft.loginWelcomeTitle || ''} onChange={(e) => updateDraft('loginWelcomeTitle', e.target.value)} placeholder="Welcome to Research Platform" /></label>
+                <label className="field wide-field"><span>Subtitle / description</span><textarea value={draft.loginWelcomeSubtitle || ''} onChange={(e) => updateDraft('loginWelcomeSubtitle', e.target.value)} placeholder="Publish your groundbreaking research and connect with scholars worldwide." /></label>
+                <label className="field"><span>Feature point 1</span><input value={draft.loginFeatureOne || ''} onChange={(e) => updateDraft('loginFeatureOne', e.target.value)} placeholder="Open Access Publishing" /></label>
+                <label className="field"><span>Feature point 2</span><input value={draft.loginFeatureTwo || ''} onChange={(e) => updateDraft('loginFeatureTwo', e.target.value)} placeholder="Peer Review Excellence" /></label>
+                <label className="field"><span>Feature point 3</span><input value={draft.loginFeatureThree || ''} onChange={(e) => updateDraft('loginFeatureThree', e.target.value)} placeholder="Global Research Community" /></label>
+
+                <div className="settings-subsection wide-field"><h3>Welcome title text style</h3><p>Change the title size, color, font, bold, and italic style.</p></div>
+                <label className="field"><span>Title size (px)</span><input type="number" min="24" max="120" value={draft.loginWelcomeTitleFontSize || defaultWebsiteSettings.loginWelcomeTitleFontSize} onChange={(e) => updateDraft('loginWelcomeTitleFontSize', Number(e.target.value))} /></label>
+                <label className="field"><span>Title color</span><input type="color" value={draft.loginWelcomeTitleColor || defaultWebsiteSettings.loginWelcomeTitleColor} onChange={(e) => updateDraft('loginWelcomeTitleColor', e.target.value)} /></label>
+                <label className="field"><span>Title font</span><select value={draft.loginWelcomeTitleFontFamily || defaultWebsiteSettings.loginWelcomeTitleFontFamily} onChange={(e) => updateDraft('loginWelcomeTitleFontFamily', e.target.value)}>{loginFontOptions.map((font) => <option key={font.value} value={font.value}>{font.label}</option>)}</select></label>
+                <label className="settings-toggle"><input type="checkbox" checked={draft.loginWelcomeTitleBold !== false} onChange={(e) => updateDraft('loginWelcomeTitleBold', e.target.checked)} /><span><b>Title bold</b><small>Turn off to use normal title weight.</small></span></label>
+                <label className="settings-toggle"><input type="checkbox" checked={Boolean(draft.loginWelcomeTitleItalic)} onChange={(e) => updateDraft('loginWelcomeTitleItalic', e.target.checked)} /><span><b>Title italic</b><small>Turn on to italicize the welcome title.</small></span></label>
+
+                <div className="settings-subsection wide-field"><h3>Description text style</h3><p>Change the subtitle/description size, color, font, bold, and italic style.</p></div>
+                <label className="field"><span>Description size (px)</span><input type="number" min="12" max="60" value={draft.loginDescriptionFontSize || defaultWebsiteSettings.loginDescriptionFontSize} onChange={(e) => updateDraft('loginDescriptionFontSize', Number(e.target.value))} /></label>
+                <label className="field"><span>Description color</span><input type="color" value={draft.loginDescriptionColor || defaultWebsiteSettings.loginDescriptionColor} onChange={(e) => updateDraft('loginDescriptionColor', e.target.value)} /></label>
+                <label className="field"><span>Description font</span><select value={draft.loginDescriptionFontFamily || defaultWebsiteSettings.loginDescriptionFontFamily} onChange={(e) => updateDraft('loginDescriptionFontFamily', e.target.value)}>{loginFontOptions.map((font) => <option key={font.value} value={font.value}>{font.label}</option>)}</select></label>
+                <label className="settings-toggle"><input type="checkbox" checked={Boolean(draft.loginDescriptionBold)} onChange={(e) => updateDraft('loginDescriptionBold', e.target.checked)} /><span><b>Description bold</b><small>Turn on to bold the subtitle/description.</small></span></label>
+                <label className="settings-toggle"><input type="checkbox" checked={Boolean(draft.loginDescriptionItalic)} onChange={(e) => updateDraft('loginDescriptionItalic', e.target.checked)} /><span><b>Description italic</b><small>Turn on to italicize the subtitle/description.</small></span></label>
+
+                <div className="settings-subsection wide-field"><h3>Feature points text style</h3><p>Change all three feature points together.</p></div>
+                <label className="field"><span>Feature text size (px)</span><input type="number" min="12" max="60" value={draft.loginFeatureFontSize || defaultWebsiteSettings.loginFeatureFontSize} onChange={(e) => updateDraft('loginFeatureFontSize', Number(e.target.value))} /></label>
+                <label className="field"><span>Feature text color</span><input type="color" value={draft.loginFeatureColor || defaultWebsiteSettings.loginFeatureColor} onChange={(e) => updateDraft('loginFeatureColor', e.target.value)} /></label>
+                <label className="field"><span>Feature text font</span><select value={draft.loginFeatureFontFamily || defaultWebsiteSettings.loginFeatureFontFamily} onChange={(e) => updateDraft('loginFeatureFontFamily', e.target.value)}>{loginFontOptions.map((font) => <option key={font.value} value={font.value}>{font.label}</option>)}</select></label>
+                <label className="settings-toggle"><input type="checkbox" checked={draft.loginFeatureBold !== false} onChange={(e) => updateDraft('loginFeatureBold', e.target.checked)} /><span><b>Feature text bold</b><small>Turn off to use normal feature text weight.</small></span></label>
+                <label className="settings-toggle"><input type="checkbox" checked={Boolean(draft.loginFeatureItalic)} onChange={(e) => updateDraft('loginFeatureItalic', e.target.checked)} /><span><b>Feature text italic</b><small>Turn on to italicize feature points.</small></span></label>
+
+                <label className="field"><span>Background color 1</span><input type="color" value={draft.loginGradientStart || defaultWebsiteSettings.loginGradientStart} onChange={(e) => updateDraft('loginGradientStart', e.target.value)} /></label>
+                <label className="field"><span>Background color 2</span><input type="color" value={draft.loginGradientEnd || defaultWebsiteSettings.loginGradientEnd} onChange={(e) => updateDraft('loginGradientEnd', e.target.value)} /></label>
+                <label className="field"><span>Circle color</span><input type="color" value={draft.loginCircleColor || defaultWebsiteSettings.loginCircleColor} onChange={(e) => updateDraft('loginCircleColor', e.target.value)} /></label>
+                <label className="settings-toggle wide-field">
+                  <input type="checkbox" checked={draft.loginShowGradientOverlay !== false} onChange={(e) => updateDraft('loginShowGradientOverlay', e.target.checked)} />
+                  <span><b>Show blue/gradient background overlay</b><small>Turn this off to make the overlay invisible and show only the uploaded background image.</small></span>
+                </label>
+                <label className="settings-toggle wide-field">
+                  <input type="checkbox" checked={draft.loginShowCircles !== false} onChange={(e) => updateDraft('loginShowCircles', e.target.checked)} />
+                  <span><b>Show background circles</b><small>Turn this off to remove/hide the circles from the login page.</small></span>
+                </label>
+              </div>
+              {brandingError && <div className="message">{brandingError}</div>}
+
+              <div className="settings-actions">
+                <button className="primary" onClick={saveLoginPageSettings}><Save size={16} /> Save Login Page Settings</button>
+                <button className="secondary" onClick={() => setDraft((current) => ({
+                  ...current,
+                  loginBackgroundImage: defaultWebsiteSettings.loginBackgroundImage,
+                  loginLogoImage: defaultWebsiteSettings.loginLogoImage,
+                  loginWelcomeTitle: defaultWebsiteSettings.loginWelcomeTitle,
+                  loginWelcomeSubtitle: defaultWebsiteSettings.loginWelcomeSubtitle,
+                  loginFeatureOne: defaultWebsiteSettings.loginFeatureOne,
+                  loginFeatureTwo: defaultWebsiteSettings.loginFeatureTwo,
+                  loginFeatureThree: defaultWebsiteSettings.loginFeatureThree,
+                  loginWelcomeTitleFontSize: defaultWebsiteSettings.loginWelcomeTitleFontSize,
+                  loginWelcomeTitleColor: defaultWebsiteSettings.loginWelcomeTitleColor,
+                  loginWelcomeTitleFontFamily: defaultWebsiteSettings.loginWelcomeTitleFontFamily,
+                  loginWelcomeTitleBold: defaultWebsiteSettings.loginWelcomeTitleBold,
+                  loginWelcomeTitleItalic: defaultWebsiteSettings.loginWelcomeTitleItalic,
+                  loginDescriptionFontSize: defaultWebsiteSettings.loginDescriptionFontSize,
+                  loginDescriptionColor: defaultWebsiteSettings.loginDescriptionColor,
+                  loginDescriptionFontFamily: defaultWebsiteSettings.loginDescriptionFontFamily,
+                  loginDescriptionBold: defaultWebsiteSettings.loginDescriptionBold,
+                  loginDescriptionItalic: defaultWebsiteSettings.loginDescriptionItalic,
+                  loginFeatureFontSize: defaultWebsiteSettings.loginFeatureFontSize,
+                  loginFeatureColor: defaultWebsiteSettings.loginFeatureColor,
+                  loginFeatureFontFamily: defaultWebsiteSettings.loginFeatureFontFamily,
+                  loginFeatureBold: defaultWebsiteSettings.loginFeatureBold,
+                  loginFeatureItalic: defaultWebsiteSettings.loginFeatureItalic,
+                  loginGradientStart: defaultWebsiteSettings.loginGradientStart,
+                  loginGradientEnd: defaultWebsiteSettings.loginGradientEnd,
+                  loginCircleColor: defaultWebsiteSettings.loginCircleColor,
+                  loginShowGradientOverlay: defaultWebsiteSettings.loginShowGradientOverlay,
+                  loginShowCircles: defaultWebsiteSettings.loginShowCircles,
+                }))}>Reset Login Defaults</button>
+              </div>
+
+              <div className="soft-box settings-note">
+                <b>Fixed design style</b>
+                <p>You can edit the background image, logo/icon, welcome title, subtitle, feature points, text styles, background colors, and circle color. You can also hide the blue/gradient overlay and hide the circles completely.</p>
+              </div>
+            </div>
+
+            <div className="card login-admin-preview-card">
+              <SectionHeader icon={Eye} title="Login Page Preview" subtitle="Preview of the current login branding section" />
+              <div className={`login-settings-preview ${draft.loginShowCircles === false ? 'circles-hidden' : 'circles-live'}`} style={{
+                '--auth-bg-image': `url(${draft.loginBackgroundImage || draft.loginHeroImage || draft.heroImage || '/hero-page.png'})`,
+                '--login-bg-start': draft.loginGradientStart || defaultWebsiteSettings.loginGradientStart,
+                '--login-bg-end': draft.loginGradientEnd || defaultWebsiteSettings.loginGradientEnd,
+                '--login-circle-color': draft.loginCircleColor || defaultWebsiteSettings.loginCircleColor,
+                '--login-overlay-opacity': draft.loginShowGradientOverlay === false ? '0' : '.86',
+                '--login-circle-opacity': draft.loginShowCircles === false ? '0' : '.16',
+                '--login-title-font-size': `${draft.loginWelcomeTitleFontSize || defaultWebsiteSettings.loginWelcomeTitleFontSize}px`,
+                '--login-title-color': draft.loginWelcomeTitleColor || defaultWebsiteSettings.loginWelcomeTitleColor,
+                '--login-title-font-family': draft.loginWelcomeTitleFontFamily || defaultWebsiteSettings.loginWelcomeTitleFontFamily,
+                '--login-title-font-weight': draft.loginWelcomeTitleBold === false ? '500' : '800',
+                '--login-title-font-style': draft.loginWelcomeTitleItalic ? 'italic' : 'normal',
+                '--login-description-font-size': `${draft.loginDescriptionFontSize || defaultWebsiteSettings.loginDescriptionFontSize}px`,
+                '--login-description-color': draft.loginDescriptionColor || defaultWebsiteSettings.loginDescriptionColor,
+                '--login-description-font-family': draft.loginDescriptionFontFamily || defaultWebsiteSettings.loginDescriptionFontFamily,
+                '--login-description-font-weight': draft.loginDescriptionBold ? '800' : '500',
+                '--login-description-font-style': draft.loginDescriptionItalic ? 'italic' : 'normal',
+                '--login-feature-font-size': `${draft.loginFeatureFontSize || defaultWebsiteSettings.loginFeatureFontSize}px`,
+                '--login-feature-color': draft.loginFeatureColor || defaultWebsiteSettings.loginFeatureColor,
+                '--login-feature-font-family': draft.loginFeatureFontFamily || defaultWebsiteSettings.loginFeatureFontFamily,
+                '--login-feature-font-weight': draft.loginFeatureBold === false ? '500' : '800',
+                '--login-feature-font-style': draft.loginFeatureItalic ? 'italic' : 'normal',
+              }}>
+                <div className="auth-circle auth-circle-one" />
+                <div className="auth-circle auth-circle-two" />
+                <div className="auth-circle auth-circle-three" />
+                <div className="login-settings-preview-content">
+                  <div className="auth-brand-logo preview-logo">
+                    {draft.loginLogoImage ? <img src={draft.loginLogoImage} alt="Login logo preview" /> : <BookOpen size={26} />}
+                  </div>
+                  <h3>{draft.loginWelcomeTitle || defaultWebsiteSettings.loginWelcomeTitle}</h3>
+                  <p>{draft.loginWelcomeSubtitle || defaultWebsiteSettings.loginWelcomeSubtitle}</p>
+                  <ul>
+                    {[draft.loginFeatureOne, draft.loginFeatureTwo, draft.loginFeatureThree].map((item, index) => (
+                      <li key={index}><CheckCircle2 size={15} /> {item || `Feature point ${index + 1}`}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              <div className="admin-image-preview small" style={{ backgroundImage: `url(${draft.loginLogoImage || ''})` }}>
+                {!draft.loginLogoImage && <span>No logo/icon image selected</span>}
               </div>
             </div>
           </div>
@@ -2029,15 +2607,16 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
   const ownProjects = projects.filter((p) => isOwnStudentProject(p, currentUser))
   const selectedProject = ownProjects[0] || data.projects.find((p) => isOwnStudentProject(p, currentUser))
   const hasSubmittedResearchTitle = Boolean(selectedProject)
-  const reports = data.reports.filter((r) => r.project_id === selectedProject?.id)
+  const reports = data.reports.filter((r) => String(r.project_id) === String(selectedProject?.id))
+  const projectProgress = selectedProject ? getProjectProgress(selectedProject, data.reports) : 0
   const [titleForm, setTitleForm] = useState({ title: '', area: 'Clinical Pharmacy', group_name: `${currentUser.full_name} Research Group`, final_due: '2026-06-20' })
   const [reportForm, setReportForm] = useState({ completed_work: '', challenges: '', next_week_plan: '', attendance: 'Attended' })
   const [file, setFile] = useState(null)
 
   return (
-    <div className="grid two-one">
-      <div className="stack">
-        <div className="card">
+    <div className="stack student-dashboard-layout">
+      <div className="grid two-one student-dashboard-row student-dashboard-top-row">
+        <div className="card student-project-card">
           <SectionHeader icon={BookOpen} title="My Research Project" subtitle="Your submitted project and progress" />
           {selectedProject ? (
             <div className="soft-box">
@@ -2049,13 +2628,19 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
                 </div>
                 <Pill tone={selectedProject.approval === 'Approved' ? 'green' : 'amber'}>{selectedProject.approval}</Pill>
               </div>
-              <div className="progress-row"><span>Progress</span><span>{selectedProject.progress}%</span></div>
-              <ProgressBar value={selectedProject.progress} />
+              <div className="progress-row"><span>Progress</span><span>{formatProgress(projectProgress)}%</span></div>
+              <ProgressBar value={projectProgress} />
             </div>
           ) : <EmptyState title="No project yet" text="Submit a research title below to create your first project." />}
         </div>
 
-        <div className="card">
+        <div className="student-dashboard-side-top">
+          <DeadlinesCard deadlines={data.deadlines} />
+        </div>
+      </div>
+
+      <div className="grid two-one student-dashboard-row student-report-feedback-row">
+        <div className="card student-weekly-report-card">
           <SectionHeader icon={MessageSquareText} title="Submit Weekly Report" subtitle="Submit progress and upload evidence file" />
           {selectedProject ? (
             <>
@@ -2076,29 +2661,37 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
           ) : <EmptyState title="Weekly reports locked" text="Create a research project first, then weekly report submission will be available." icon={Lock} />}
         </div>
 
-        {!hasSubmittedResearchTitle && (
-          <div className="card">
-            <SectionHeader icon={FileText} title="Submit New Research Title" subtitle="Create a new project for committee review" />
-            <div className="form-grid compact">
-              <input value={titleForm.title} onChange={(e) => setTitleForm({ ...titleForm, title: e.target.value })} placeholder="Research title" />
-              <select value={titleForm.area} onChange={(e) => setTitleForm({ ...titleForm, area: e.target.value })}>
-                <option>Clinical Pharmacy</option><option>Pharmacology</option><option>Pharmaceutics</option><option>Pharmacognosy</option><option>Microbiology</option><option>Public Health</option>
-              </select>
-              <input value={titleForm.group_name} onChange={(e) => setTitleForm({ ...titleForm, group_name: e.target.value })} placeholder="Group name" />
-              <input type="date" value={titleForm.final_due} onChange={(e) => setTitleForm({ ...titleForm, final_due: e.target.value })} />
+        <div className="card supervisor-feedback-card-fixed student-feedback-aligned-card">
+          <SectionHeader icon={MessageSquareText} title="Supervisor Feedback" subtitle="Latest comments" />
+          {reports.length ? (
+            <div className="feedback-form-scroll-container student-supervisor-feedback-container">
+              {reports.map((r) => (
+                <div className="mini-card" key={r.id}>
+                  <div className="split"><b>Week {r.week_number}</b><Pill tone={r.status === 'Accepted' ? 'green' : r.status === 'Revision Required' ? 'red' : 'amber'}>{r.status}</Pill></div>
+                  <div className="supervisor-feedback-scroll-box student-feedback-box"><p>{r.supervisor_feedback || 'Waiting for supervisor review.'}</p></div>
+                  <ReportAttachmentBox attachment={getReportAttachment(r, data.uploadedFiles)} />
+                  <p className="muted small">Score: {r.score ?? 'Pending'}/20</p>
+                </div>
+              ))}
             </div>
-            <button className="primary" onClick={() => createProject(titleForm)}>Submit Title</button>
-          </div>
-        )}
+          ) : <EmptyState title="No feedback yet" text="Feedback will appear after your supervisor reviews a weekly report." icon={MessageSquareText} />}
+        </div>
       </div>
 
-      <aside className="stack">
-        <DeadlinesCard deadlines={data.deadlines} />
+      {!hasSubmittedResearchTitle && (
         <div className="card">
-          <SectionHeader icon={MessageSquareText} title="Supervisor Feedback" subtitle="Latest comments" />
-          {reports.length ? reports.map((r) => <div className="mini-card" key={r.id}><div className="split"><b>Week {r.week_number}</b><Pill tone={r.status === 'Accepted' ? 'green' : r.status === 'Revision Required' ? 'red' : 'amber'}>{r.status}</Pill></div><p>{r.supervisor_feedback}</p><p className="muted small">Score: {r.score ?? 'Pending'}/20</p></div>) : <EmptyState title="No feedback yet" text="Feedback will appear after your supervisor reviews a weekly report." icon={MessageSquareText} />}
+          <SectionHeader icon={FileText} title="Submit New Research Title" subtitle="Create a new project for committee review" />
+          <div className="form-grid compact">
+            <input value={titleForm.title} onChange={(e) => setTitleForm({ ...titleForm, title: e.target.value })} placeholder="Research title" />
+            <select value={titleForm.area} onChange={(e) => setTitleForm({ ...titleForm, area: e.target.value })}>
+              <option>Clinical Pharmacy</option><option>Pharmacology</option><option>Pharmaceutics</option><option>Pharmacognosy</option><option>Microbiology</option><option>Public Health</option>
+            </select>
+            <input value={titleForm.group_name} onChange={(e) => setTitleForm({ ...titleForm, group_name: e.target.value })} placeholder="Group name" />
+            <input type="date" value={titleForm.final_due} onChange={(e) => setTitleForm({ ...titleForm, final_due: e.target.value })} />
+          </div>
+          <button className="primary" onClick={() => createProject(titleForm)}>Submit Title</button>
         </div>
-      </aside>
+      )}
     </div>
   )
 }
@@ -2106,24 +2699,58 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
 function SupervisorDashboard({ data, projects, currentUser, reviewReport, createDeadline, removeDeadline }) {
   const [feedback, setFeedback] = useState({})
   const assignedProjects = projects.filter((p) => isAssignedSupervisorProject(p, currentUser))
-  const reports = data.reports.filter((r) => assignedProjects.some((p) => p.id === r.project_id))
+  const reports = data.reports.filter((r) => assignedProjects.some((p) => String(p.id) === String(r.project_id)))
 
   return (
     <div className="stack">
-      {assignedProjects.length ? <div className="project-grid">{assignedProjects.map((p) => <ProjectCard key={p.id} project={p} />)}</div> : <div className="card"><EmptyState title="No assigned projects" text="Ask the admin to assign projects to your exact login name, or assign yourself from the Admin view for testing." icon={Users} /></div>}
+      {assignedProjects.length ? <div className="project-grid">{assignedProjects.map((p) => <ProjectCard key={p.id} project={p} reports={data.reports} />)}</div> : <div className="card"><EmptyState title="No assigned projects" text="Ask the admin to assign projects to your exact login name, or assign yourself from the Admin view for testing." icon={Users} /></div>}
       <DeadlineManager deadlines={data.deadlines} createDeadline={createDeadline} removeDeadline={removeDeadline} />
-      <div className="card">
+      <div className="card supervisor-review-reports-card">
         <SectionHeader icon={ClipboardCheck} title="Review Weekly Reports" subtitle="Approve or request revision" />
-        {reports.length ? reports.map((r) => {
-          const project = data.projects.find((p) => p.id === r.project_id)
-          return (
-            <div className="review-card" key={r.id}>
-              <div className="split"><div><p className="muted small bold">Week {r.week_number} • {project?.group_name}</p><h3>{project?.title}</h3></div><Pill tone={r.status === 'Accepted' ? 'green' : r.status === 'Revision Required' ? 'red' : 'amber'}>{r.status}</Pill></div>
-              <div className="three-cols"><div><b>Completed</b><p>{r.completed_work}</p></div><div><b>Challenges</b><p>{r.challenges}</p></div><div><b>Next plan</b><p>{r.next_week_plan}</p></div></div>
-              <div className="action-row"><input value={feedback[r.id] ?? r.supervisor_feedback ?? ''} onChange={(e) => setFeedback({ ...feedback, [r.id]: e.target.value })} placeholder="Supervisor feedback" /><button onClick={() => reviewReport(r.id, 'Accepted', feedback[r.id] || 'Accepted. Continue with the next milestone.')} className="success">Approve</button><button onClick={() => reviewReport(r.id, 'Revision Required', feedback[r.id] || 'Revision required. Please add more detail.')} className="warning">Request Revision</button></div>
-            </div>
-          )
-        }) : <EmptyState title="No reports to review" text="Weekly reports from assigned projects will appear here." icon={ClipboardCheck} />}
+        {reports.length ? (
+          <div className="supervisor-review-reports-scroll-container">
+            {reports.map((r) => {
+              const project = data.projects.find((p) => p.id === r.project_id)
+              return (
+                <div className="review-card" key={r.id}>
+              <div className="split">
+                <div>
+                  <p className="muted small bold">Student: {r.submitted_by || project?.group_name || 'Unknown student'}</p>
+                  <h3>{project?.title || 'Weekly Report'}</h3>
+                  <p className="muted small">Week {r.week_number} • Submitted {String(r.submitted_at || '').slice(0, 10) || 'date unavailable'}</p>
+                </div>
+                <Pill tone={r.status === 'Accepted' ? 'green' : r.status === 'Revision Required' ? 'red' : 'amber'}>{r.status}</Pill>
+              </div>
+              <div className="report-detail-box">
+                <h4>Submitted report content</h4>
+                <div className="three-cols">
+                  <div><b>Completed</b><p>{r.completed_work || 'No completed work written.'}</p></div>
+                  <div><b>Challenges</b><p>{r.challenges || 'No challenges written.'}</p></div>
+                  <div><b>Next plan</b><p>{r.next_week_plan || 'No next plan written.'}</p></div>
+                </div>
+              </div>
+              <div className="report-detail-box">
+                <h4>Attached file</h4>
+                <ReportAttachmentBox attachment={getReportAttachment(r, data.uploadedFiles)} />
+              </div>
+              <div className="report-detail-box supervisor-feedback-review-box">
+                <h4>Supervisor feedback section</h4>
+                <textarea
+                  className="supervisor-feedback-textarea"
+                  value={feedback[r.id] ?? r.supervisor_feedback ?? ''}
+                  onChange={(e) => setFeedback({ ...feedback, [r.id]: e.target.value })}
+                  placeholder="Supervisor feedback"
+                />
+                <div className="supervisor-feedback-actions">
+                  <button onClick={() => reviewReport(r.id, 'Accepted', feedback[r.id] || 'Accepted. Continue with the next milestone.')} className="success">Approve</button>
+                  <button onClick={() => reviewReport(r.id, 'Revision Required', feedback[r.id] || 'Revision required. Please add more detail.')} className="warning">Request Revision</button>
+                </div>
+              </div>
+                </div>
+              )
+            })}
+          </div>
+        ) : <EmptyState title="No reports to review" text="Weekly reports from assigned projects will appear here." icon={ClipboardCheck} />}
       </div>
     </div>
   )
@@ -2291,7 +2918,7 @@ function AdminDashboard({ data, projects, currentUser, updateProject, updateUser
 
 function ProjectDecisionTable({ projects, updateProject }) {
   return (
-    <div className="table-wrap"><table><thead><tr><th>Project</th><th>Area</th><th>Progress</th><th>Decision</th></tr></thead><tbody>{projects.map((p) => <tr key={p.id}><td><b>{p.group_name}</b><p>{p.title}</p></td><td>{p.area}</td><td><ProgressBar value={p.progress} /><p className="small muted">{p.progress}%</p></td><td><button className="success" onClick={() => updateProject(p.id, { approval: 'Approved', status: 'Ongoing' })}>Approve</button><button className="warning" onClick={() => updateProject(p.id, { approval: 'Revision Required', status: 'Needs Attention' })}>Revise</button><button className="danger" onClick={() => updateProject(p.id, { approval: 'Rejected', status: 'Rejected' })}>Reject</button><br /><Pill tone={p.approval === 'Approved' ? 'green' : p.approval === 'Rejected' ? 'red' : 'amber'}>{p.approval}</Pill></td></tr>)}</tbody></table></div>
+    <div className="table-wrap"><table><thead><tr><th>Project</th><th>Area</th><th>Progress</th><th>Decision</th></tr></thead><tbody>{projects.map((p) => <tr key={p.id}><td><b>{p.group_name}</b><p>{p.title}</p></td><td>{p.area}</td><td><ProgressBar value={p.progress} /><p className="small muted">{formatProgress(p.progress)}%</p></td><td><button className="success" onClick={() => updateProject(p.id, { approval: 'Approved', status: 'Ongoing' })}>Approve</button><button className="warning" onClick={() => updateProject(p.id, { approval: 'Revision Required', status: 'Needs Attention' })}>Revise</button><button className="danger" onClick={() => updateProject(p.id, { approval: 'Rejected', status: 'Rejected' })}>Reject</button><br /><Pill tone={p.approval === 'Approved' ? 'green' : p.approval === 'Rejected' ? 'red' : 'amber'}>{p.approval}</Pill></td></tr>)}</tbody></table></div>
   )
 }
 
@@ -2341,7 +2968,7 @@ function ReportsTab({ data, projects, currentUser, role, printPdfReport, exportC
           <p>Generated by: {currentUser.full_name} • Date: {today}</p>
         </div>
         <section className="report-section"><h3>Summary</h3><div className="report-grid">{role === 'admin' && <p><b>Total users:</b> {data.profiles.length}</p>}<p><b>Visible projects:</b> {data.projects.length}</p><p><b>Filtered projects:</b> {projects.length}</p><p><b>Weekly reports:</b> {data.reports.length}</p></div></section>
-        <section className="report-section"><h3>Project List</h3>{projects.length ? <div className="table-wrap"><table><thead><tr><th>Group</th><th>Title</th><th>Area</th><th>Supervisor</th><th>Status</th><th>Progress</th></tr></thead><tbody>{projects.map((p) => <tr key={p.id}><td>{p.group_name}</td><td>{p.title}</td><td>{p.area}</td><td>{p.supervisor_name}</td><td>{p.approval}</td><td>{p.progress}%</td></tr>)}</tbody></table></div> : <p>No projects match the current filter.</p>}</section>
+        <section className="report-section"><h3>Project List</h3>{projects.length ? <div className="table-wrap"><table><thead><tr><th>Group</th><th>Title</th><th>Area</th><th>Supervisor</th><th>Status</th><th>Progress</th></tr></thead><tbody>{projects.map((p) => <tr key={p.id}><td>{p.group_name}</td><td>{p.title}</td><td>{p.area}</td><td>{p.supervisor_name}</td><td>{p.approval}</td><td>{formatProgress(getProjectProgress(p, data.reports))}%</td></tr>)}</tbody></table></div> : <p>No projects match the current filter.</p>}</section>
         <section className="report-section"><h3>Deadlines</h3>{data.deadlines.map((d) => <p key={d.id}><b>{d.title}</b> — {d.deadline_type}, due {d.due_date}</p>)}</section>
       </div>
     </div>
@@ -2352,14 +2979,15 @@ function DeadlinesCard({ deadlines }) {
   return <div className="card"><SectionHeader icon={CalendarDays} title="Deadlines" subtitle="Upcoming milestones" />{deadlines.map((d) => <div className="mini-card" key={d.id}><b>{d.title}</b><p>{d.deadline_type} • {d.due_date}</p></div>)}</div>
 }
 
-function ProjectCard({ project }) {
+function ProjectCard({ project, reports = [] }) {
+  const progress = getProjectProgress(project, reports)
   return (
     <div className="card project-card">
       <div className="split"><p className="muted small bold">{project.group_name}</p><Pill tone={project.status === 'Needs Attention' ? 'amber' : project.status === 'Rejected' ? 'red' : 'green'}>{project.status}</Pill></div>
       <h3>{project.area}</h3>
       <p>{project.title}</p>
-      <div className="progress-row"><span>Progress</span><span>{project.progress}%</span></div>
-      <ProgressBar value={project.progress} />
+      <div className="progress-row"><span>Progress</span><span>{formatProgress(progress)}%</span></div>
+      <ProgressBar value={progress} />
     </div>
   )
 }
