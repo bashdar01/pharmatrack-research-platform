@@ -2507,3 +2507,176 @@ button:disabled {
     min-height: 320px !important;
   }
 }
+
+/* Role-based delete controls */
+.inline-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.delete-item-button {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.managed-list {
+  display: grid;
+  gap: 12px;
+  max-height: 520px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
+}
+.compact-managed-list {
+  max-height: 360px;
+}
+.managed-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+.managed-item > div {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.managed-item .report-attachment {
+  margin-top: 10px;
+}
+.admin-delete-management-card {
+  overflow: hidden;
+}
+@media (max-width: 720px) {
+  .managed-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .inline-actions {
+    justify-content: flex-start;
+  }
+  .managed-list,
+  .compact-managed-list {
+    max-height: 420px;
+  }
+}
+
+/* Full-width project/progress cards across all role dashboards */
+.project-grid {
+  width: 100% !important;
+  max-width: none !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 18px !important;
+}
+.project-card,
+.project-progress-card-full,
+.student-project-card {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  justify-self: stretch !important;
+  align-self: stretch !important;
+}
+.project-progress-card-surface {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  display: block;
+  padding: 22px;
+  border-radius: 24px;
+}
+.project-progress-header,
+.project-progress-card-surface .split {
+  width: 100%;
+  align-items: flex-start;
+}
+.project-progress-card-surface h3 {
+  margin: 16px 0 10px;
+  font-size: clamp(22px, 2vw, 30px);
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+.project-progress-card-surface p {
+  max-width: none;
+}
+.project-progress-card-surface .progress-row {
+  width: 100%;
+  margin-top: 24px;
+  margin-bottom: 10px;
+  font-size: 15px;
+}
+.project-progress-card-surface .progress {
+  width: 100%;
+  height: 14px;
+}
+.student-dashboard-top-row {
+  width: 100% !important;
+  grid-template-columns: 1fr !important;
+}
+.student-dashboard-top-row > .student-project-card {
+  grid-column: 1 / -1;
+}
+.student-dashboard-top-row .student-dashboard-side-top,
+.student-dashboard-top-row .student-dashboard-side-top > .card {
+  width: 100% !important;
+  max-width: none !important;
+}
+@media (max-width: 900px) {
+  .project-grid,
+  .student-dashboard-top-row {
+    grid-template-columns: 1fr !important;
+  }
+  .project-progress-card-surface {
+    padding: 18px;
+  }
+  .project-progress-card-surface .split,
+  .project-progress-header {
+    gap: 12px;
+  }
+}
+@media (max-width: 560px) {
+  .project-progress-card-surface .split,
+  .project-progress-header {
+    flex-direction: column;
+  }
+  .project-progress-card-surface h3 {
+    font-size: 22px;
+  }
+}
+
+/* Fixed top-right profile menu across all role dashboards */
+.student-profile-menu.user-profile-menu {
+  position: fixed !important;
+  top: 18px !important;
+  right: clamp(16px, 4vw, 54px) !important;
+  z-index: 9999 !important;
+}
+.student-profile-menu.user-profile-menu .student-profile-dropdown {
+  position: absolute !important;
+  top: 64px !important;
+  right: 0 !important;
+  z-index: 10000 !important;
+}
+.student-profile-menu.user-profile-menu.open .student-profile-trigger.redesigned {
+  transform: translateY(-1.5px);
+  box-shadow: 0 26px 64px rgba(15,23,42,.24), inset 0 1px 0 rgba(255,255,255,.9);
+}
+@media (max-width: 720px) {
+  .student-profile-menu.user-profile-menu {
+    top: 12px !important;
+    right: 12px !important;
+  }
+  .student-profile-menu.user-profile-menu .student-profile-trigger.redesigned {
+    width: 48px;
+    height: 48px;
+  }
+  .student-profile-menu.user-profile-menu .student-profile-dropdown {
+    top: 56px !important;
+    width: min(340px, calc(100vw - 24px));
+  }
+}

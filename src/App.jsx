@@ -511,7 +511,7 @@ function reportOwnedByUser(report, user) {
 }
 
 function canDeleteReport(report, user) {
-  return isAdminUser(user) || reportOwnedByUser(report, user)
+  return isAdminUser(user)
 }
 
 function uploadedFileOwnedByUser(file, user, reports = []) {
@@ -528,7 +528,7 @@ function uploadedFileOwnedByUser(file, user, reports = []) {
 }
 
 function canDeleteUploadedFile(file, user, reports = []) {
-  return isAdminUser(user) || uploadedFileOwnedByUser(file, user, reports)
+  return isAdminUser(user)
 }
 
 function findProfileForUser(data, user) {
@@ -582,6 +582,15 @@ function canSendReportToSelf(report, project, user) {
 function getReviewStatusLabel(status) {
   if (status === 'Revision Required') return 'Needs Revision'
   return status || 'Updated'
+}
+
+function makeNotificationFingerprint(...parts) {
+  const text = parts.map((part) => String(part ?? '')).join('|')
+  let hash = 0
+  for (let i = 0; i < text.length; i += 1) {
+    hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0
+  }
+  return Math.abs(hash).toString(36)
 }
 
 function notificationForUser(notification, user, role) {
@@ -1604,8 +1613,10 @@ export default function App() {
 
       if (includeEmail && supabase?.functions?.invoke) {
         await supabase.functions.invoke('email-weekly-report-to-me', {
-          body: { reportId, mode: 'notification', recipientUserId: recipientId },
-        }).catch(() => null)
+          body: { reportId, mode: 'notification', recipientUserId: recipientId, notificationType },
+        }).catch((emailError) => {
+          console.warn('Weekly report email notification could not be sent:', emailError)
+        })
       }
     } else {
       setLocal((current) => ({ ...current, notifications: [notification, ...(current.notifications || [])] }))
@@ -1640,7 +1651,7 @@ export default function App() {
       recipient: student,
       report,
       project,
-      notificationType: `weekly_report_review_${String(statusLabel).toLowerCase().replaceAll(' ', '_')}`,
+      notificationType: `weekly_report_review_${String(statusLabel).toLowerCase().replaceAll(' ', '_')}_${makeNotificationFingerprint(statusLabel, feedback, score)}`,
       title: `Week ${report.week_number} Report ${statusLabel}`,
       message: `Your Week ${report.week_number} report has been ${statusLabel} by your supervisor.${details ? ` ${details}` : ''}`,
       includeEmail: true,
@@ -1722,7 +1733,7 @@ export default function App() {
         sender_user_id: currentUser?.id || null,
         weekly_report_id: targetReport.id,
         project_id: project?.id || targetReport.project_id,
-        notification_type: `weekly_report_review_${String(statusLabel).toLowerCase().replaceAll(' ', '_')}`,
+        notification_type: `weekly_report_review_${String(statusLabel).toLowerCase().replaceAll(' ', '_')}_${makeNotificationFingerprint(statusLabel, feedback, score)}`,
         title: `Week ${targetReport.week_number} Report ${statusLabel}`,
         message: `Your Week ${targetReport.week_number} report has been ${statusLabel} by your supervisor.${feedback ? ` Feedback: ${feedback}` : ''} Score: ${score}/20`,
         type: 'Weekly Report',
@@ -1783,7 +1794,7 @@ export default function App() {
     const targetReport = data.reports.find((report) => String(report.id) === String(reportId))
     if (!targetReport) return setMessage('Report not found. Please refresh and try again.')
     if (!canDeleteReport(targetReport, currentUser)) {
-      return setMessage('You do not have permission to delete this item.')
+      return setMessage('You do not have permission to delete weekly reports.')
     }
     if (!window.confirm('Are you sure you want to delete this item?')) return
 
@@ -1816,7 +1827,7 @@ export default function App() {
       }
       setMessage(`Report deleted successfully. Project progress is now ${formatProgress(nextProgress)}%.`)
     } catch (error) {
-      setMessage(error.message?.toLowerCase?.().includes('permission') || error.message?.toLowerCase?.().includes('row-level security') ? 'You do not have permission to delete this item.' : (error.message || 'Could not delete this item.'))
+      setMessage(error.message?.toLowerCase?.().includes('permission') || error.message?.toLowerCase?.().includes('row-level security') ? 'You do not have permission to delete weekly reports.' : (error.message || 'Could not delete this item.'))
     }
   }
 
@@ -2336,8 +2347,8 @@ export default function App() {
 
             {allowedRole !== 'student' && <FilterBar filters={filters} setFilters={setFilters} projects={visibleProjects} />}
 
-            {allowedRole === 'student' && <StudentDashboard data={visibleData} projects={visibleProjects} currentUser={currentUser} createProject={createProject} createWeeklyReport={createWeeklyReport} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
-            {allowedRole === 'supervisor' && <SupervisorDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} reviewReport={reviewReport} createDeadline={createDeadline} removeDeadline={removeDeadline} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
+            {allowedRole === 'student' && <StudentDashboard data={visibleData} projects={visibleProjects} currentUser={currentUser} createProject={createProject} createWeeklyReport={createWeeklyReport} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
+            {allowedRole === 'supervisor' && <SupervisorDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} reviewReport={reviewReport} createDeadline={createDeadline} removeDeadline={removeDeadline} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
             {allowedRole === 'committee' && <CommitteeDashboard data={visibleData} projects={filteredProjects} updateProject={updateProject} saveEvaluation={saveEvaluation} />}
             {allowedRole === 'admin' && <AdminDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} />}
           </>
@@ -2381,7 +2392,7 @@ function UserProfileMenu({ currentUser, onLogout }) {
   }
 
   return (
-    <div className={`student-profile-menu user-profile-menu ${open ? 'open' : ''}`}>
+    <div className={`student-profile-menu user-profile-menu ${open ? 'open' : ''}`} onMouseLeave={() => setOpen(false)}>
       <button className="student-profile-trigger redesigned" type="button" onClick={() => setOpen((value) => !value)} aria-label="Open profile menu">
         {photo ? <img src={photo} alt="Profile" /> : <span>{initial}</span>}
         <span className="profile-online-dot" aria-hidden="true" />
@@ -3001,7 +3012,7 @@ function FilterBar({ filters, setFilters, projects }) {
   )
 }
 
-function StudentDashboard({ data, projects, currentUser, createProject, createWeeklyReport, deleteWeeklyReport, deleteUploadedFile, sendWeeklyReportToMyEmail, emailSendingReports = {} }) {
+function StudentDashboard({ data, projects, currentUser, createProject, createWeeklyReport, sendWeeklyReportToMyEmail, emailSendingReports = {} }) {
   const ownProjects = projects.filter((p) => isOwnStudentProject(p, currentUser))
   const selectedProject = ownProjects[0] || data.projects.find((p) => isOwnStudentProject(p, currentUser))
   const hasSubmittedResearchTitle = Boolean(selectedProject)
@@ -3066,8 +3077,6 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
             <div className="feedback-form-scroll-container student-supervisor-feedback-container">
               {reports.map((r) => {
                 const attachment = getReportAttachment(r, data.uploadedFiles)
-                const canRemoveReport = canDeleteReport(r, currentUser)
-                const canRemoveFile = attachment && canDeleteUploadedFile(attachment, currentUser, data.reports)
                 return (
                   <div className="mini-card" key={r.id}>
                     <div className="split">
@@ -3075,11 +3084,10 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
                       <div className="inline-actions">
                         <Pill tone={r.status === 'Accepted' ? 'green' : r.status === 'Revision Required' ? 'red' : 'amber'}>{r.status}</Pill>
                         <EmailReportButton loading={Boolean(emailSendingReports[r.id])} onSend={() => sendWeeklyReportToMyEmail(r.id)} />
-                        {canRemoveReport && <DeleteItemButton label="Delete Report" onDelete={() => deleteWeeklyReport(r.id)} />}
                       </div>
                     </div>
                     <div className="supervisor-feedback-scroll-box student-feedback-box"><p>{r.supervisor_feedback || 'Waiting for supervisor review.'}</p></div>
-                    <ReportAttachmentBox attachment={attachment} canDelete={Boolean(canRemoveFile)} onDelete={() => deleteUploadedFile(attachment.id)} />
+                    <ReportAttachmentBox attachment={attachment} />
                     <p className="muted small">Score: {r.score ?? 'Pending'}/20</p>
                   </div>
                 )
@@ -3108,7 +3116,7 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
   )
 }
 
-function SupervisorDashboard({ data, projects, currentUser, reviewReport, createDeadline, removeDeadline, deleteWeeklyReport, deleteUploadedFile, sendWeeklyReportToMyEmail, emailSendingReports = {} }) {
+function SupervisorDashboard({ data, projects, currentUser, reviewReport, createDeadline, removeDeadline, sendWeeklyReportToMyEmail, emailSendingReports = {} }) {
   const [feedback, setFeedback] = useState({})
   const assignedProjects = projects.filter((p) => isAssignedSupervisorProject(p, currentUser))
   const reports = data.reports.filter((r) => assignedProjects.some((p) => String(p.id) === String(r.project_id)))
@@ -3135,7 +3143,6 @@ function SupervisorDashboard({ data, projects, currentUser, reviewReport, create
                     <div className="inline-actions">
                       <Pill tone={r.status === 'Accepted' ? 'green' : r.status === 'Revision Required' ? 'red' : 'amber'}>{r.status}</Pill>
                       <EmailReportButton loading={Boolean(emailSendingReports[r.id])} onSend={() => sendWeeklyReportToMyEmail(r.id)} />
-                      {canDeleteReport(r, currentUser) && <DeleteItemButton label="Delete Report" onDelete={() => deleteWeeklyReport(r.id)} />}
                     </div>
                   </div>
                   <div className="report-detail-box">
@@ -3150,7 +3157,7 @@ function SupervisorDashboard({ data, projects, currentUser, reviewReport, create
                     <h4>Attached file</h4>
                     {(() => {
                       const attachment = getReportAttachment(r, data.uploadedFiles)
-                      return <ReportAttachmentBox attachment={attachment} canDelete={Boolean(attachment && canDeleteUploadedFile(attachment, currentUser, data.reports))} onDelete={() => deleteUploadedFile(attachment.id)} />
+                      return <ReportAttachmentBox attachment={attachment} />
                     })()}
                   </div>
                   <div className="report-detail-box supervisor-feedback-review-box">

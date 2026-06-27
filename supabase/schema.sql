@@ -22,7 +22,7 @@ create table if not exists public.research_projects (
   supervisor_id uuid references public.profiles(id),
   approval text default 'Pending Committee Review',
   status text default 'Pending',
-  progress integer default 0 check (progress >= 0 and progress <= 100),
+  progress numeric(5,2) default 0 check (progress >= 0 and progress <= 100),
   final_due date,
   students text[] default array[]::text[],
   created_at timestamptz default now()
@@ -33,6 +33,8 @@ create table if not exists public.weekly_reports (
   project_id uuid references public.research_projects(id) on delete cascade,
   week_number integer not null,
   submitted_by text not null,
+  submitted_by_id uuid references public.profiles(id) on delete set null,
+  submitted_by_email text,
   submitted_at timestamptz default now(),
   completed_work text not null,
   challenges text,
@@ -48,9 +50,12 @@ create table if not exists public.uploaded_files (
   project_id uuid references public.research_projects(id) on delete cascade,
   report_id uuid references public.weekly_reports(id) on delete set null,
   uploaded_by uuid references public.profiles(id),
+  uploaded_by_email text,
   file_type text not null,
   file_name text not null,
   file_path text not null,
+  file_url text,
+  file_mime_type text,
   version_number integer default 1,
   status text default 'Submitted',
   created_at timestamptz default now()
@@ -87,6 +92,12 @@ create table if not exists public.deadlines (
 create table if not exists public.notifications (
   id uuid primary key default uuid_generate_v4(),
   profile_id uuid references public.profiles(id) on delete cascade,
+  recipient_user_id uuid references public.profiles(id) on delete cascade,
+  recipient_email text,
+  sender_user_id uuid references public.profiles(id) on delete set null,
+  weekly_report_id uuid references public.weekly_reports(id) on delete cascade,
+  project_id uuid references public.research_projects(id) on delete cascade,
+  notification_type text,
   title text not null,
   message text not null,
   type text default 'Reminder',
@@ -115,6 +126,12 @@ alter table public.audit_logs enable row level security;
 -- Safe migration for older PharmaTrack databases that had notification_type but not type/target_role.
 alter table public.notifications add column if not exists type text default 'Reminder';
 alter table public.notifications add column if not exists target_role text default 'all';
+alter table public.notifications add column if not exists recipient_user_id uuid references public.profiles(id) on delete cascade;
+alter table public.notifications add column if not exists recipient_email text;
+alter table public.notifications add column if not exists sender_user_id uuid references public.profiles(id) on delete set null;
+alter table public.notifications add column if not exists weekly_report_id uuid references public.weekly_reports(id) on delete cascade;
+alter table public.notifications add column if not exists project_id uuid references public.research_projects(id) on delete cascade;
+alter table public.notifications add column if not exists notification_type text;
 
 
 -- Development policies for testing with the built-in demo login. Before official university deployment,
@@ -131,11 +148,26 @@ create policy "projects_delete_authenticated" on public.research_projects for de
 create policy "weekly_reports_select_authenticated" on public.weekly_reports for select to anon, authenticated using (true);
 create policy "weekly_reports_insert_authenticated" on public.weekly_reports for insert to anon, authenticated with check (true);
 create policy "weekly_reports_update_authenticated" on public.weekly_reports for update to anon, authenticated using (true);
-create policy "weekly_reports_delete_authenticated" on public.weekly_reports for delete to anon, authenticated using (true);
+create policy "weekly_reports_delete_admin_only" on public.weekly_reports for delete to authenticated using (
+  exists (
+    select 1 from public.profiles p
+    where lower(p.email) = lower(auth.jwt() ->> 'email')
+      and coalesce(p.status, 'Pending') = 'Active'
+      and p.role = 'admin'
+  )
+);
 
 create policy "uploaded_files_select_authenticated" on public.uploaded_files for select to anon, authenticated using (true);
 create policy "uploaded_files_insert_authenticated" on public.uploaded_files for insert to anon, authenticated with check (true);
 create policy "uploaded_files_update_authenticated" on public.uploaded_files for update to anon, authenticated using (true);
+create policy "uploaded_files_delete_admin_only" on public.uploaded_files for delete to authenticated using (
+  exists (
+    select 1 from public.profiles p
+    where lower(p.email) = lower(auth.jwt() ->> 'email')
+      and coalesce(p.status, 'Pending') = 'Active'
+      and p.role = 'admin'
+  )
+);
 
 create policy "evaluations_select_authenticated" on public.evaluations for select to anon, authenticated using (true);
 create policy "evaluations_insert_authenticated" on public.evaluations for insert to anon, authenticated with check (true);
@@ -145,9 +177,43 @@ create policy "deadlines_select_authenticated" on public.deadlines for select to
 create policy "deadlines_insert_authenticated" on public.deadlines for insert to anon, authenticated with check (true);
 create policy "deadlines_update_authenticated" on public.deadlines for update to anon, authenticated using (true);
 
-create policy "notifications_select_authenticated" on public.notifications for select to anon, authenticated using (true);
-create policy "notifications_insert_authenticated" on public.notifications for insert to anon, authenticated with check (true);
-create policy "notifications_update_authenticated" on public.notifications for update to anon, authenticated using (true);
+create policy "notifications_select_own_or_admin" on public.notifications
+for select to authenticated using (
+  exists (
+    select 1 from public.profiles p
+    where lower(p.email) = lower(auth.jwt() ->> 'email')
+      and coalesce(p.status, 'Pending') = 'Active'
+      and (
+        p.role = 'admin'
+        or notifications.profile_id = p.id
+        or notifications.recipient_user_id = p.id
+        or lower(coalesce(notifications.recipient_email, '')) = lower(p.email)
+        or (notifications.profile_id is null and notifications.recipient_user_id is null and notifications.target_role in ('all', p.role))
+      )
+  )
+);
+create policy "notifications_insert_allowed_report_events" on public.notifications
+for insert to authenticated with check (
+  exists (
+    select 1 from public.profiles p
+    where lower(p.email) = lower(auth.jwt() ->> 'email')
+      and coalesce(p.status, 'Pending') = 'Active'
+  )
+);
+create policy "notifications_update_own_read_status" on public.notifications
+for update to authenticated using (
+  exists (
+    select 1 from public.profiles p
+    where lower(p.email) = lower(auth.jwt() ->> 'email')
+      and coalesce(p.status, 'Pending') = 'Active'
+      and (
+        p.role = 'admin'
+        or notifications.profile_id = p.id
+        or notifications.recipient_user_id = p.id
+        or lower(coalesce(notifications.recipient_email, '')) = lower(p.email)
+      )
+  )
+);
 
 create policy "audit_logs_select_authenticated" on public.audit_logs for select to anon, authenticated using (true);
 create policy "audit_logs_insert_authenticated" on public.audit_logs for insert to anon, authenticated with check (true);

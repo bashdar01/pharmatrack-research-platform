@@ -38,6 +38,10 @@ function dateTime(value: unknown) {
   return parsed.toLocaleString('en', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
+function nowDateTime() {
+  return dateTime(new Date().toISOString())
+}
+
 async function restFetch(supabaseUrl: string, serviceRoleKey: string, path: string, options: RequestInit = {}) {
   const response = await fetch(`${supabaseUrl}/rest/v1/${path}`, {
     ...options,
@@ -103,41 +107,96 @@ function attachmentPublicUrl(supabaseUrl: string, attachment: AnyRecord | null) 
   return `${supabaseUrl}/storage/v1/object/public/project-files/${encodeURIComponent(String(attachment.file_path)).replaceAll('%2F', '/')}`
 }
 
+function dashboardLink(req: Request, role: 'student' | 'supervisor' | 'admin', reportId: string) {
+  const origin = req.headers.get('origin') || req.headers.get('referer')?.replace(/\/$/, '') || ''
+  if (!origin) return ''
+  try {
+    const url = new URL(origin)
+    url.searchParams.set('role', role)
+    url.searchParams.set('report', reportId)
+    return url.toString()
+  } catch (_error) {
+    return origin
+  }
+}
+
+function getStudentName(report: AnyRecord, studentProfile: AnyRecord | null) {
+  return studentProfile?.full_name || report.submitted_by || report.submitted_by_email || 'Unknown student'
+}
+
+function getStudentEmail(report: AnyRecord, studentProfile: AnyRecord | null) {
+  return studentProfile?.email || report.submitted_by_email || 'No email available'
+}
+
+function emailKindFor(mode: string, actorProfile: AnyRecord) {
+  if (mode !== 'notification') return 'copy'
+  if (actorProfile.role === 'student') return 'submission'
+  if (actorProfile.role === 'supervisor' || actorProfile.role === 'admin') return 'review'
+  return 'notification'
+}
+
+function subjectFor(kind: string, report: AnyRecord) {
+  if (kind === 'submission') return 'New Weekly Report Submitted'
+  if (kind === 'review') return 'Your Weekly Report Has Been Reviewed'
+  return `Your Weekly Report Copy: Week ${report.week_number || ''}`
+}
+
 function buildReportEmailHtml(args: {
   report: AnyRecord
   project: AnyRecord
   recipient: AnyRecord
+  actor: AnyRecord
+  studentProfile: AnyRecord | null
   attachment: AnyRecord | null
   attachmentUrl: string
-  mode: string
+  kind: string
+  actionLink: string
 }) {
-  const { report, project, recipient, attachment, attachmentUrl, mode } = args
-  const title = mode === 'notification' ? 'Weekly Report Notification' : 'Weekly Report Copy'
+  const { report, project, recipient, actor, studentProfile, attachment, attachmentUrl, kind, actionLink } = args
+  const studentName = getStudentName(report, studentProfile)
+  const studentEmail = getStudentEmail(report, studentProfile)
+  const isSubmission = kind === 'submission'
+  const isReview = kind === 'review'
+  const title = isSubmission ? 'New Weekly Report Submitted' : isReview ? 'Your Weekly Report Has Been Reviewed' : 'Weekly Report Copy'
+  const intro = isSubmission
+    ? `${studentName} submitted a weekly report for supervisor review.`
+    : isReview
+      ? `Your supervisor has reviewed your weekly report.`
+      : `A copy of the selected weekly report was sent to your registered email.`
+  const actionLabel = isSubmission ? 'Review report in supervisor dashboard' : isReview ? 'View response in student dashboard' : 'Open dashboard'
   const attachmentBlock = attachment
     ? `<p><strong>Attached file:</strong> ${escapeHtml(attachment.file_name || 'Attached file')}${attachmentUrl ? ` — <a href="${escapeHtml(attachmentUrl)}">View / Download</a>` : ''}</p>`
     : '<p><strong>Attached file:</strong> No attachment uploaded.</p>'
+  const actionButton = actionLink
+    ? `<p style="margin:22px 0 0;"><a href="${escapeHtml(actionLink)}" style="display:inline-block;background:#0f172a;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:12px;font-weight:700;">${escapeHtml(actionLabel)}</a></p>`
+    : ''
 
   return `
     <div style="font-family:Arial,sans-serif;background:#f8fafc;padding:28px;color:#0f172a;">
       <div style="max-width:760px;margin:0 auto;background:#ffffff;border-radius:18px;padding:28px;border:1px solid #e2e8f0;box-shadow:0 18px 45px rgba(15,23,42,0.08);">
         <h2 style="margin:0 0 8px;font-size:24px;color:#0f172a;">${escapeHtml(title)}</h2>
-        <p style="margin:0 0 22px;color:#64748b;">Sent to ${escapeHtml(recipient.email || 'your registered email')}</p>
-        <div style="padding:18px;border-radius:14px;background:#eef2ff;border:1px solid #c7d2fe;margin-bottom:18px;">
-          <p><strong>Student:</strong> ${escapeHtml(report.submitted_by || report.submitted_by_email || 'Unknown student')}</p>
+        <p style="margin:0 0 22px;color:#64748b;line-height:1.6;">${escapeHtml(intro)}</p>
+        <div style="padding:18px;border-radius:14px;background:#eef2ff;border:1px solid #c7d2fe;margin-bottom:18px;line-height:1.55;">
+          <p><strong>Student name:</strong> ${escapeHtml(studentName)}</p>
+          <p><strong>Student email:</strong> ${escapeHtml(studentEmail)}</p>
           <p><strong>Project:</strong> ${escapeHtml(project.title || 'Weekly Report')}</p>
-          <p><strong>Week:</strong> ${escapeHtml(report.week_number || '')}</p>
+          <p><strong>Week number:</strong> ${escapeHtml(report.week_number || '')}</p>
           <p><strong>Submitted:</strong> ${escapeHtml(dateTime(report.submitted_at))}</p>
+          ${isReview ? `<p><strong>Reviewed:</strong> ${escapeHtml(nowDateTime())}</p>` : ''}
           <p><strong>Status:</strong> ${escapeHtml(report.status || 'Submitted')}</p>
           <p><strong>Score:</strong> ${report.score === null || report.score === undefined ? 'Pending' : `${escapeHtml(report.score)}/20`}</p>
           ${attachmentBlock}
         </div>
         <h3 style="font-size:18px;margin:20px 0 8px;">Weekly report content</h3>
         <div style="line-height:1.65;color:#334155;">
+          <p><strong>Report title/content:</strong><br>${escapeHtml(project.title || report.completed_work || 'Weekly Report')}</p>
           <p><strong>Completed work:</strong><br>${escapeHtml(report.completed_work || 'No completed work written.')}</p>
           <p><strong>Problems / challenges:</strong><br>${escapeHtml(report.challenges || 'No challenges written.')}</p>
           <p><strong>Next week plan:</strong><br>${escapeHtml(report.next_week_plan || 'No next week plan written.')}</p>
           <p><strong>Supervisor feedback:</strong><br>${escapeHtml(report.supervisor_feedback || 'No supervisor feedback yet.')}</p>
+          <p><strong>Sent by:</strong> ${escapeHtml(actor.full_name || actor.email || 'System')}</p>
         </div>
+        ${actionButton}
         <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;" />
         <p style="font-size:13px;color:#64748b;margin:0;">PharmaTrack Research Platform</p>
       </div>
@@ -145,16 +204,24 @@ function buildReportEmailHtml(args: {
   `
 }
 
-function buildReportText(report: AnyRecord, project: AnyRecord, attachment: AnyRecord | null, attachmentUrl: string) {
+function buildReportText(report: AnyRecord, project: AnyRecord, attachment: AnyRecord | null, attachmentUrl: string, kind: string, actionLink: string, studentProfile: AnyRecord | null) {
+  const studentName = getStudentName(report, studentProfile)
+  const studentEmail = getStudentEmail(report, studentProfile)
   return [
-    'Weekly Report',
-    `Student: ${report.submitted_by || report.submitted_by_email || 'Unknown student'}`,
+    kind === 'submission' ? 'New Weekly Report Submitted' : kind === 'review' ? 'Your Weekly Report Has Been Reviewed' : 'Weekly Report Copy',
+    `Student name: ${studentName}`,
+    `Student email: ${studentEmail}`,
     `Project: ${project.title || 'Weekly Report'}`,
-    `Week: ${report.week_number || ''}`,
+    `Week number: ${report.week_number || ''}`,
     `Submitted: ${dateTime(report.submitted_at)}`,
+    kind === 'review' ? `Reviewed: ${nowDateTime()}` : '',
     `Status: ${report.status || 'Submitted'}`,
     `Score: ${report.score === null || report.score === undefined ? 'Pending' : `${report.score}/20`}`,
     `Attachment: ${attachment ? `${attachment.file_name || 'Attached file'} ${attachmentUrl || ''}` : 'No attachment uploaded.'}`,
+    actionLink ? `Dashboard link: ${actionLink}` : '',
+    '',
+    'Report title/content:',
+    project.title || report.completed_work || 'Weekly Report',
     '',
     'Completed work:',
     report.completed_work || 'No completed work written.',
@@ -167,7 +234,7 @@ function buildReportText(report: AnyRecord, project: AnyRecord, attachment: AnyR
     '',
     'Supervisor feedback:',
     report.supervisor_feedback || 'No supervisor feedback yet.',
-  ].join('\n')
+  ].filter(Boolean).join('\n')
 }
 
 Deno.serve(async (req) => {
@@ -237,15 +304,28 @@ Deno.serve(async (req) => {
 
     if (!recipientProfile?.email) return jsonResponse({ error: 'Recipient registered email was not found.' }, 400)
 
+    let studentProfile: AnyRecord | null = null
+    if (report.submitted_by_id) {
+      const students = await restFetch(supabaseUrl, serviceRoleKey, `profiles?select=*&id=eq.${encodeURIComponent(String(report.submitted_by_id))}&limit=1`)
+      studentProfile = Array.isArray(students) ? students[0] : null
+    }
+    if (!studentProfile && report.submitted_by_email) {
+      const students = await restFetch(supabaseUrl, serviceRoleKey, `profiles?select=*&email=eq.${encodeURIComponent(String(report.submitted_by_email))}&limit=1`)
+      studentProfile = Array.isArray(students) ? students[0] : null
+    }
+    if (!studentProfile && reportOwnedByProfile(report, actorProfile) && actorProfile.role === 'student') studentProfile = actorProfile
+    if (!studentProfile && reportOwnedByProfile(report, recipientProfile) && recipientProfile.role === 'student') studentProfile = recipientProfile
+
     const files = await restFetch(supabaseUrl, serviceRoleKey, `uploaded_files?select=*&report_id=eq.${encodeURIComponent(reportId)}&order=created_at.desc&limit=1`)
     const attachment = Array.isArray(files) ? files[0] : null
     const attachmentUrl = attachmentPublicUrl(supabaseUrl, attachment)
+    const kind = emailKindFor(mode, actorProfile)
+    const linkRole: 'student' | 'supervisor' | 'admin' = kind === 'submission' ? 'supervisor' : kind === 'review' ? 'student' : (recipientProfile.role === 'admin' ? 'admin' : recipientProfile.role === 'supervisor' ? 'supervisor' : 'student')
+    const actionLink = dashboardLink(req, linkRole, reportId)
 
-    const subject = mode === 'notification'
-      ? `Weekly Report Update: Week ${report.week_number}`
-      : `Your Weekly Report Copy: Week ${report.week_number}`
-    const html = buildReportEmailHtml({ report, project, recipient: recipientProfile, attachment, attachmentUrl, mode })
-    const text = buildReportText(report, project, attachment, attachmentUrl)
+    const subject = subjectFor(kind, report)
+    const html = buildReportEmailHtml({ report, project, recipient: recipientProfile, actor: actorProfile, studentProfile, attachment, attachmentUrl, kind, actionLink })
+    const text = buildReportText(report, project, attachment, attachmentUrl, kind, actionLink, studentProfile)
 
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -264,11 +344,13 @@ Deno.serve(async (req) => {
 
     const resendResult = await resendResponse.json().catch(() => ({}))
     if (!resendResponse.ok) {
+      console.error('Resend weekly report email error:', resendResult)
       return jsonResponse({ error: resendResult?.message || 'Email provider rejected the weekly report email.', details: resendResult }, 502)
     }
 
     return jsonResponse({ success: true, provider: 'resend', emailId: resendResult?.id || null })
   } catch (error) {
+    console.error('Weekly report email function error:', error)
     return jsonResponse({ error: error?.message || 'Unexpected weekly report email error.' }, 500)
   }
 })
