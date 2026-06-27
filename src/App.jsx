@@ -62,19 +62,19 @@ const loginFontOptions = [
 
 const invitationTemplates = {
   student: {
-    subject: 'Invitation to join Pharmacy Research Platform as a Student',
+    subject: 'Invitation to join PharmaTrack as a Student',
     body: 'Dear [Name], you are invited to join our platform as a Student. Please click the link below to create your account and access your dashboard.',
   },
   supervisor: {
-    subject: 'Invitation to join Pharmacy Research Platform as a Supervisor',
+    subject: 'Invitation to join PharmaTrack as a Supervisor',
     body: 'Dear [Name], you are invited to join our platform as a Supervisor. Please click the link below to create your account and manage assigned students or projects.',
   },
   committee: {
-    subject: 'Invitation to join Pharmacy Research Platform as a Research Committee Member',
+    subject: 'Invitation to join PharmaTrack as a Research Committee Member',
     body: 'Dear [Name], you are invited to join our platform as a Research Committee Member. Please click the link below to create your account and review submitted research projects.',
   },
   admin: {
-    subject: 'Invitation to join Pharmacy Research Platform as an Admin / Editor',
+    subject: 'Invitation to join PharmaTrack as an Admin / Editor',
     body: 'Dear [Name], you are invited to join our platform as an Admin/Editor. Please click the link below to create your account and manage website settings, users, and system content.',
   },
 }
@@ -229,13 +229,13 @@ function buildInvitationEmail(invitation, settings = defaultWebsiteSettings) {
     .replaceAll('[Role]', getRoleLabel(invitation.role))
     .replaceAll('[Link]', link)
     .replaceAll('[Expiration Date]', expiry)
-    .replaceAll('[Website Name]', settings.siteName || 'Pharmacy Research Platform Research Platform')
-  return `${bodyText}\n\nAssigned role: ${getRoleLabel(invitation.role)}\nSecure invitation link: ${link}\nExpiration date: ${expiry}\n\n${settings.siteName || 'Pharmacy Research Platform Research Platform'}\nContact: College of Pharmacy, Hawler Medical University`
+    .replaceAll('[Website Name]', settings.siteName || 'PharmaTrack Research Platform')
+  return `${bodyText}\n\nAssigned role: ${getRoleLabel(invitation.role)}\nSecure invitation link: ${link}\nExpiration date: ${expiry}\n\n${settings.siteName || 'PharmaTrack Research Platform'}\nContact: College of Pharmacy, Hawler Medical University`
 }
 
 const defaultWebsiteSettings = {
-  siteName: 'Pharmacy Research Platform Research Platform',
-  adminPanelName: 'Pharmacy Research Platform Control Center',
+  siteName: 'PharmaTrack Research Platform',
+  adminPanelName: 'PharmaTrack Control Center',
   homepageHeadline: 'A web-based Pharmacy Research Project Management System',
   homepageSubtitle: 'For 5th-year students at Hawler Medical University, College of Pharmacy.',
   heroImage: '/hero-page.png',
@@ -277,7 +277,7 @@ function normalizeSettings(settings) {
 
 function loadWebsiteSettings() {
   try {
-    const saved = localStorage.getItem('pharmacy-research-platform-website-settings')
+    const saved = localStorage.getItem('pharmatrack-website-settings')
     return saved ? normalizeSettings(JSON.parse(saved)) : defaultWebsiteSettings
   } catch {
     return defaultWebsiteSettings
@@ -285,7 +285,7 @@ function loadWebsiteSettings() {
 }
 
 function saveWebsiteSettingsLocal(settings) {
-  localStorage.setItem('pharmacy-research-platform-website-settings', JSON.stringify(normalizeSettings(settings)))
+  localStorage.setItem('pharmatrack-website-settings', JSON.stringify(normalizeSettings(settings)))
 }
 
 
@@ -390,7 +390,7 @@ function cleanData(data) {
 
 function loadLocalData() {
   try {
-    const saved = localStorage.getItem('pharmacy-research-platform-data-v3')
+    const saved = localStorage.getItem('pharmatrack-data-v3')
     return saved ? cleanData(JSON.parse(saved)) : emptyData
   } catch {
     return emptyData
@@ -398,19 +398,19 @@ function loadLocalData() {
 }
 
 function saveLocalData(data) {
-  localStorage.setItem('pharmacy-research-platform-data-v3', JSON.stringify(data))
+  localStorage.setItem('pharmatrack-data-v3', JSON.stringify(data))
 }
 
 function loadCurrentUser() {
   try {
-    const sessionSaved = sessionStorage.getItem('pharmacy-research-platform-current-user-session')
+    const sessionSaved = sessionStorage.getItem('pharmatrack-current-user-session')
     if (sessionSaved) return JSON.parse(sessionSaved)
 
-    const saved = localStorage.getItem('pharmacy-research-platform-current-user')
+    const saved = localStorage.getItem('pharmatrack-current-user')
     if (!saved) return null
     const parsed = JSON.parse(saved)
     if (parsed?.expires_at && new Date(parsed.expires_at) < new Date()) {
-      localStorage.removeItem('pharmacy-research-platform-current-user')
+      localStorage.removeItem('pharmatrack-current-user')
       return null
     }
     return parsed?.user || parsed || null
@@ -420,14 +420,14 @@ function loadCurrentUser() {
 }
 
 function saveCurrentUser(user, rememberFor30Days = false) {
-  localStorage.removeItem('pharmacy-research-platform-current-user')
-  sessionStorage.removeItem('pharmacy-research-platform-current-user-session')
+  localStorage.removeItem('pharmatrack-current-user')
+  sessionStorage.removeItem('pharmatrack-current-user-session')
   if (!user) return
   if (rememberFor30Days) {
     const expiresAt = addDays(new Date(), 30).toISOString()
-    localStorage.setItem('pharmacy-research-platform-current-user', JSON.stringify({ user, expires_at: expiresAt }))
+    localStorage.setItem('pharmatrack-current-user', JSON.stringify({ user, expires_at: expiresAt }))
   } else {
-    sessionStorage.setItem('pharmacy-research-platform-current-user-session', JSON.stringify(user))
+    sessionStorage.setItem('pharmatrack-current-user-session', JSON.stringify(user))
   }
 }
 
@@ -961,7 +961,7 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', 'light')
-    localStorage.removeItem('pharmacy-research-platform-theme')
+    localStorage.removeItem('pharmatrack-theme')
   }, [])
 
   useEffect(() => {
@@ -1994,7 +1994,7 @@ export default function App() {
       full_name: fullName,
       email,
       role: roleValue,
-      subject: form.subject || invitationTemplates[roleValue]?.subject || 'Invitation to join Pharmacy Research Platform',
+      subject: form.subject || invitationTemplates[roleValue]?.subject || 'Invitation to join PharmaTrack',
       body: form.body || invitationTemplates[roleValue]?.body || 'Dear [Name], you are invited to join our platform.',
       token,
       invitation_link: makeInvitationLink(token),
@@ -2193,7 +2193,7 @@ export default function App() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'pharmacy-research-platform_project_summary.csv'
+    a.download = 'pharmatrack_project_summary.csv'
     a.click()
     URL.revokeObjectURL(url)
     addAudit(currentUser.full_name, 'exported', 'project summary CSV')
@@ -2365,7 +2365,7 @@ export default function App() {
 }
 
 function UserProfileMenu({ currentUser, onLogout }) {
-  const storageKey = `pharmacy-research-platform-profile-photo-${currentUser?.email || currentUser?.id || 'user'}`
+  const storageKey = `pharmatrack-profile-photo-${currentUser?.email || currentUser?.id || 'user'}`
   const [open, setOpen] = useState(false)
   const [photo, setPhoto] = useState(() => localStorage.getItem(storageKey) || '')
   const initial = String(currentUser?.full_name || currentUser?.email || 'U').trim().charAt(0).toUpperCase()
@@ -2563,7 +2563,7 @@ function AdminControlPanel({
         <div className="admin-brand-block">
           <div className="admin-logo-mark"><Settings size={22} /></div>
           <div>
-            <h2>{settings.adminPanelName || 'Pharmacy Research Platform Control Center'}</h2>
+            <h2>{settings.adminPanelName || 'PharmaTrack Control Center'}</h2>
             <p>Website management panel</p>
           </div>
         </div>
@@ -2662,8 +2662,8 @@ function AdminControlPanel({
             <div className="card">
               <SectionHeader icon={SlidersHorizontal} title="Website Content Settings" subtitle="Change homepage text, hero image, and admin panel labels" />
               <div className="form-grid">
-                <label className="field"><span>Main website name</span><input value={draft.siteName || ''} onChange={(e) => updateDraft('siteName', e.target.value)} placeholder="Pharmacy Research Platform Research Platform" /></label>
-                <label className="field"><span>Admin panel name</span><input value={draft.adminPanelName || ''} onChange={(e) => updateDraft('adminPanelName', e.target.value)} placeholder="Pharmacy Research Platform Control Center" /></label>
+                <label className="field"><span>Main website name</span><input value={draft.siteName || ''} onChange={(e) => updateDraft('siteName', e.target.value)} placeholder="PharmaTrack Research Platform" /></label>
+                <label className="field"><span>Admin panel name</span><input value={draft.adminPanelName || ''} onChange={(e) => updateDraft('adminPanelName', e.target.value)} placeholder="PharmaTrack Control Center" /></label>
                 <label className="field wide-field"><span>Homepage headline</span><input value={draft.homepageHeadline || ''} onChange={(e) => updateDraft('homepageHeadline', e.target.value)} placeholder="A web-based Pharmacy Research Project Management System" /></label>
                 <label className="field wide-field"><span>Homepage subtitle</span><textarea value={draft.homepageSubtitle || ''} onChange={(e) => updateDraft('homepageSubtitle', e.target.value)} placeholder="Write the subtitle shown on the public website" /></label>
                 <label className="field wide-field"><span>Admin welcome message</span><textarea value={draft.adminWelcome || ''} onChange={(e) => updateDraft('adminWelcome', e.target.value)} placeholder="Write the admin panel welcome text" /></label>
@@ -3277,8 +3277,8 @@ function AdminDashboard({ data, projects, currentUser, updateProject, updateUser
 
   return (
     <div className="grid half">
-      <div className="card">
-        <SectionHeader icon={Users} title="User Approval and Role Management" subtitle="Separate tabs for account approval and role control" />
+      <div className="card admin-user-management-card">
+        <SectionHeader icon={Users} title="Accept New Users" subtitle="Approve new accounts and manage user roles" />
 
         <div className="admin-user-tabs">
           <button className={userTab === 'pending' ? 'active' : ''} onClick={() => setUserTab('pending')}>
@@ -3297,43 +3297,49 @@ function AdminDashboard({ data, projects, currentUser, updateProject, updateUser
           <p>{tabSubtitle}</p>
         </div>
 
-        {usersToShow.length ? usersToShow.map((u) => {
-          const isCurrentAdmin = u.id === currentUser.id
-          const statusTone = u.status === 'Active' ? 'green' : u.status === 'Rejected' ? 'red' : 'amber'
-          return (
-            <div className="mini-card user-role-row" key={u.id}>
-              <div>
-                <b>{u.full_name}</b>
-                <p>{u.email}</p>
-                <p className="small muted">Account status: <b>{u.status || 'Pending'}</b></p>
-                {isCurrentAdmin && <p className="small muted">Current admin account</p>}
+        <div className="admin-user-approval-scroll-container">
+          {usersToShow.length ? usersToShow.map((u) => {
+            const isCurrentAdmin = u.id === currentUser.id
+            const statusTone = u.status === 'Active' ? 'green' : u.status === 'Rejected' ? 'red' : 'amber'
+            const requestedRoleLabel = roleButtons.find((role) => role.id === u.role)?.label || u.role || 'Student'
+            const submittedAt = String(u.created_at || u.submitted_at || u.registered_at || '').slice(0, 16).replace('T', ' ') || 'Date unavailable'
+            return (
+              <div className="mini-card user-role-row admin-pending-user-request" key={u.id}>
+                <div className="admin-pending-user-info">
+                  <b>{u.full_name || 'Unnamed user'}</b>
+                  <p>{u.email || 'No email available'}</p>
+                  <p className="small muted">Requested role: <b>{requestedRoleLabel}</b></p>
+                  <p className="small muted">Submitted: <b>{submittedAt}</b></p>
+                  <p className="small muted">Account status: <b>{u.status || 'Pending'}</b></p>
+                  {isCurrentAdmin && <p className="small muted">Current admin account</p>}
+                </div>
+                <div className="role-management admin-pending-user-actions">
+                  <Pill tone={u.role === 'admin' ? 'blue' : u.role === 'supervisor' ? 'green' : u.role === 'committee' ? 'amber' : 'slate'}>{requestedRoleLabel}</Pill>
+                  <Pill tone={statusTone}>{u.status || 'Pending'}</Pill>
+
+                  {(userTab === 'roles' || userTab === 'pending') && (
+                    <select value={u.role} disabled={isCurrentAdmin} onChange={(e) => updateUserRole(u.id, e.target.value)}>
+                      {roleButtons.map((role) => <option key={role.id} value={role.id}>{role.label}</option>)}
+                    </select>
+                  )}
+
+                  {userTab === 'roles' && (
+                    <select value={u.status || 'Pending'} disabled={isCurrentAdmin} onChange={(e) => updateUserStatus(u.id, e.target.value)}>
+                      <option value="Pending">Pending</option>
+                      <option value="Active">Active / Approved</option>
+                      <option value="Rejected">Rejected</option>
+                    </select>
+                  )}
+
+                  {userTab === 'pending' && !isCurrentAdmin && <button className="success compact-button" onClick={() => updateUserStatus(u.id, 'Active')}>Accept</button>}
+                  {userTab === 'pending' && !isCurrentAdmin && <button className="danger compact-button" onClick={() => updateUserStatus(u.id, 'Rejected')}>Reject</button>}
+                  {userTab === 'rejected' && !isCurrentAdmin && <button className="warning compact-button" onClick={() => updateUserStatus(u.id, 'Pending')}>Move to Pending</button>}
+                  {userTab === 'rejected' && !isCurrentAdmin && <button className="success compact-button" onClick={() => updateUserStatus(u.id, 'Active')}>Accept</button>}
+                </div>
               </div>
-              <div className="role-management">
-                <Pill tone={u.role === 'admin' ? 'blue' : u.role === 'supervisor' ? 'green' : u.role === 'committee' ? 'amber' : 'slate'}>{u.role}</Pill>
-                <Pill tone={statusTone}>{u.status || 'Pending'}</Pill>
-
-                {(userTab === 'roles' || userTab === 'pending') && (
-                  <select value={u.role} disabled={isCurrentAdmin} onChange={(e) => updateUserRole(u.id, e.target.value)}>
-                    {roleButtons.map((role) => <option key={role.id} value={role.id}>{role.label}</option>)}
-                  </select>
-                )}
-
-                {userTab === 'roles' && (
-                  <select value={u.status || 'Pending'} disabled={isCurrentAdmin} onChange={(e) => updateUserStatus(u.id, e.target.value)}>
-                    <option value="Pending">Pending</option>
-                    <option value="Active">Active / Approved</option>
-                    <option value="Rejected">Rejected</option>
-                  </select>
-                )}
-
-                {userTab === 'pending' && !isCurrentAdmin && <button className="success compact-button" onClick={() => updateUserStatus(u.id, 'Active')}>Approve</button>}
-                {userTab === 'pending' && !isCurrentAdmin && <button className="danger compact-button" onClick={() => updateUserStatus(u.id, 'Rejected')}>Reject</button>}
-                {userTab === 'rejected' && !isCurrentAdmin && <button className="warning compact-button" onClick={() => updateUserStatus(u.id, 'Pending')}>Move to Pending</button>}
-                {userTab === 'rejected' && !isCurrentAdmin && <button className="success compact-button" onClick={() => updateUserStatus(u.id, 'Active')}>Approve</button>}
-              </div>
-            </div>
-          )
-        }) : <EmptyState title={`No ${tabTitle.toLowerCase()}`} text="Users will appear here after registration or after profiles are loaded from Supabase." icon={Users} />}
+            )
+          }) : <EmptyState title={`No ${tabTitle.toLowerCase()}`} text="Users will appear here after registration or after profiles are loaded from Supabase." icon={Users} />}
+        </div>
       </div>
 
       <div className="card">
