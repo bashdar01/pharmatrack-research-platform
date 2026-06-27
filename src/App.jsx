@@ -62,19 +62,19 @@ const loginFontOptions = [
 
 const invitationTemplates = {
   student: {
-    subject: 'Invitation to join PharmaTrack as a Student',
+    subject: 'Invitation to join Pharmacy Research Platform as a Student',
     body: 'Dear [Name], you are invited to join our platform as a Student. Please click the link below to create your account and access your dashboard.',
   },
   supervisor: {
-    subject: 'Invitation to join PharmaTrack as a Supervisor',
+    subject: 'Invitation to join Pharmacy Research Platform as a Supervisor',
     body: 'Dear [Name], you are invited to join our platform as a Supervisor. Please click the link below to create your account and manage assigned students or projects.',
   },
   committee: {
-    subject: 'Invitation to join PharmaTrack as a Research Committee Member',
+    subject: 'Invitation to join Pharmacy Research Platform as a Research Committee Member',
     body: 'Dear [Name], you are invited to join our platform as a Research Committee Member. Please click the link below to create your account and review submitted research projects.',
   },
   admin: {
-    subject: 'Invitation to join PharmaTrack as an Admin / Editor',
+    subject: 'Invitation to join Pharmacy Research Platform as an Admin / Editor',
     body: 'Dear [Name], you are invited to join our platform as an Admin/Editor. Please click the link below to create your account and manage website settings, users, and system content.',
   },
 }
@@ -229,13 +229,13 @@ function buildInvitationEmail(invitation, settings = defaultWebsiteSettings) {
     .replaceAll('[Role]', getRoleLabel(invitation.role))
     .replaceAll('[Link]', link)
     .replaceAll('[Expiration Date]', expiry)
-    .replaceAll('[Website Name]', settings.siteName || 'PharmaTrack Research Platform')
-  return `${bodyText}\n\nAssigned role: ${getRoleLabel(invitation.role)}\nSecure invitation link: ${link}\nExpiration date: ${expiry}\n\n${settings.siteName || 'PharmaTrack Research Platform'}\nContact: College of Pharmacy, Hawler Medical University`
+    .replaceAll('[Website Name]', settings.siteName || 'Pharmacy Research Platform Research Platform')
+  return `${bodyText}\n\nAssigned role: ${getRoleLabel(invitation.role)}\nSecure invitation link: ${link}\nExpiration date: ${expiry}\n\n${settings.siteName || 'Pharmacy Research Platform Research Platform'}\nContact: College of Pharmacy, Hawler Medical University`
 }
 
 const defaultWebsiteSettings = {
-  siteName: 'PharmaTrack Research Platform',
-  adminPanelName: 'PharmaTrack Control Center',
+  siteName: 'Pharmacy Research Platform Research Platform',
+  adminPanelName: 'Pharmacy Research Platform Control Center',
   homepageHeadline: 'A web-based Pharmacy Research Project Management System',
   homepageSubtitle: 'For 5th-year students at Hawler Medical University, College of Pharmacy.',
   heroImage: '/hero-page.png',
@@ -277,7 +277,7 @@ function normalizeSettings(settings) {
 
 function loadWebsiteSettings() {
   try {
-    const saved = localStorage.getItem('pharmatrack-website-settings')
+    const saved = localStorage.getItem('pharmacy-research-platform-website-settings')
     return saved ? normalizeSettings(JSON.parse(saved)) : defaultWebsiteSettings
   } catch {
     return defaultWebsiteSettings
@@ -285,7 +285,7 @@ function loadWebsiteSettings() {
 }
 
 function saveWebsiteSettingsLocal(settings) {
-  localStorage.setItem('pharmatrack-website-settings', JSON.stringify(normalizeSettings(settings)))
+  localStorage.setItem('pharmacy-research-platform-website-settings', JSON.stringify(normalizeSettings(settings)))
 }
 
 
@@ -390,7 +390,7 @@ function cleanData(data) {
 
 function loadLocalData() {
   try {
-    const saved = localStorage.getItem('pharmatrack-data-v3')
+    const saved = localStorage.getItem('pharmacy-research-platform-data-v3')
     return saved ? cleanData(JSON.parse(saved)) : emptyData
   } catch {
     return emptyData
@@ -398,19 +398,19 @@ function loadLocalData() {
 }
 
 function saveLocalData(data) {
-  localStorage.setItem('pharmatrack-data-v3', JSON.stringify(data))
+  localStorage.setItem('pharmacy-research-platform-data-v3', JSON.stringify(data))
 }
 
 function loadCurrentUser() {
   try {
-    const sessionSaved = sessionStorage.getItem('pharmatrack-current-user-session')
+    const sessionSaved = sessionStorage.getItem('pharmacy-research-platform-current-user-session')
     if (sessionSaved) return JSON.parse(sessionSaved)
 
-    const saved = localStorage.getItem('pharmatrack-current-user')
+    const saved = localStorage.getItem('pharmacy-research-platform-current-user')
     if (!saved) return null
     const parsed = JSON.parse(saved)
     if (parsed?.expires_at && new Date(parsed.expires_at) < new Date()) {
-      localStorage.removeItem('pharmatrack-current-user')
+      localStorage.removeItem('pharmacy-research-platform-current-user')
       return null
     }
     return parsed?.user || parsed || null
@@ -420,14 +420,14 @@ function loadCurrentUser() {
 }
 
 function saveCurrentUser(user, rememberFor30Days = false) {
-  localStorage.removeItem('pharmatrack-current-user')
-  sessionStorage.removeItem('pharmatrack-current-user-session')
+  localStorage.removeItem('pharmacy-research-platform-current-user')
+  sessionStorage.removeItem('pharmacy-research-platform-current-user-session')
   if (!user) return
   if (rememberFor30Days) {
     const expiresAt = addDays(new Date(), 30).toISOString()
-    localStorage.setItem('pharmatrack-current-user', JSON.stringify({ user, expires_at: expiresAt }))
+    localStorage.setItem('pharmacy-research-platform-current-user', JSON.stringify({ user, expires_at: expiresAt }))
   } else {
-    sessionStorage.setItem('pharmatrack-current-user-session', JSON.stringify(user))
+    sessionStorage.setItem('pharmacy-research-platform-current-user-session', JSON.stringify(user))
   }
 }
 
@@ -961,7 +961,7 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', 'light')
-    localStorage.removeItem('pharmatrack-theme')
+    localStorage.removeItem('pharmacy-research-platform-theme')
   }, [])
 
   useEffect(() => {
@@ -1994,7 +1994,7 @@ export default function App() {
       full_name: fullName,
       email,
       role: roleValue,
-      subject: form.subject || invitationTemplates[roleValue]?.subject || 'Invitation to join PharmaTrack',
+      subject: form.subject || invitationTemplates[roleValue]?.subject || 'Invitation to join Pharmacy Research Platform',
       body: form.body || invitationTemplates[roleValue]?.body || 'Dear [Name], you are invited to join our platform.',
       token,
       invitation_link: makeInvitationLink(token),
@@ -2193,7 +2193,7 @@ export default function App() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'pharmatrack_project_summary.csv'
+    a.download = 'pharmacy-research-platform_project_summary.csv'
     a.click()
     URL.revokeObjectURL(url)
     addAudit(currentUser.full_name, 'exported', 'project summary CSV')
@@ -2365,7 +2365,7 @@ export default function App() {
 }
 
 function UserProfileMenu({ currentUser, onLogout }) {
-  const storageKey = `pharmatrack-profile-photo-${currentUser?.email || currentUser?.id || 'user'}`
+  const storageKey = `pharmacy-research-platform-profile-photo-${currentUser?.email || currentUser?.id || 'user'}`
   const [open, setOpen] = useState(false)
   const [photo, setPhoto] = useState(() => localStorage.getItem(storageKey) || '')
   const initial = String(currentUser?.full_name || currentUser?.email || 'U').trim().charAt(0).toUpperCase()
@@ -2563,7 +2563,7 @@ function AdminControlPanel({
         <div className="admin-brand-block">
           <div className="admin-logo-mark"><Settings size={22} /></div>
           <div>
-            <h2>{settings.adminPanelName || 'PharmaTrack Control Center'}</h2>
+            <h2>{settings.adminPanelName || 'Pharmacy Research Platform Control Center'}</h2>
             <p>Website management panel</p>
           </div>
         </div>
@@ -2662,8 +2662,8 @@ function AdminControlPanel({
             <div className="card">
               <SectionHeader icon={SlidersHorizontal} title="Website Content Settings" subtitle="Change homepage text, hero image, and admin panel labels" />
               <div className="form-grid">
-                <label className="field"><span>Main website name</span><input value={draft.siteName || ''} onChange={(e) => updateDraft('siteName', e.target.value)} placeholder="PharmaTrack Research Platform" /></label>
-                <label className="field"><span>Admin panel name</span><input value={draft.adminPanelName || ''} onChange={(e) => updateDraft('adminPanelName', e.target.value)} placeholder="PharmaTrack Control Center" /></label>
+                <label className="field"><span>Main website name</span><input value={draft.siteName || ''} onChange={(e) => updateDraft('siteName', e.target.value)} placeholder="Pharmacy Research Platform Research Platform" /></label>
+                <label className="field"><span>Admin panel name</span><input value={draft.adminPanelName || ''} onChange={(e) => updateDraft('adminPanelName', e.target.value)} placeholder="Pharmacy Research Platform Control Center" /></label>
                 <label className="field wide-field"><span>Homepage headline</span><input value={draft.homepageHeadline || ''} onChange={(e) => updateDraft('homepageHeadline', e.target.value)} placeholder="A web-based Pharmacy Research Project Management System" /></label>
                 <label className="field wide-field"><span>Homepage subtitle</span><textarea value={draft.homepageSubtitle || ''} onChange={(e) => updateDraft('homepageSubtitle', e.target.value)} placeholder="Write the subtitle shown on the public website" /></label>
                 <label className="field wide-field"><span>Admin welcome message</span><textarea value={draft.adminWelcome || ''} onChange={(e) => updateDraft('adminWelcome', e.target.value)} placeholder="Write the admin panel welcome text" /></label>

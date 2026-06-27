@@ -1,4 +1,4 @@
-# PharmaTrack Research Platform
+# Pharmacy Research Platform Research Platform
 
 A React/Vite web application for managing final-year pharmacy research projects at Hawler Medical University, College of Pharmacy.
 
