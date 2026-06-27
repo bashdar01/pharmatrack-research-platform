@@ -803,6 +803,39 @@ function findStudentProfileForReport(data, report) {
   return null
 }
 
+
+function getAssignedStudentsForProject(data, project) {
+  if (!project) return []
+  return getAssignedSupervisorStudents(data, [project], [])
+}
+
+function reportMatchesAssignedStudent(report = {}, assignedStudents = []) {
+  if (!report || !assignedStudents.length) return false
+  return assignedStudents.some((student) => itemMatchesStudentOption(report, student))
+}
+
+function supervisorCanAccessReport(data, report, supervisorUser) {
+  if (!report || !supervisorUser || supervisorUser.role !== 'supervisor') return false
+  const project = (data.projects || []).find((item) => String(item.id) === String(report.project_id))
+  if (!project || !isAssignedSupervisorProject(project, supervisorUser)) return false
+  const assignedStudents = getAssignedStudentsForProject(data, project)
+  return reportMatchesAssignedStudent(report, assignedStudents)
+}
+
+function getSupervisorAllowedReports(data, assignedProjects = [], supervisorUser) {
+  const assignedProjectMap = new Map((assignedProjects || []).map((project) => [String(project.id), project]))
+  return (data.reports || []).filter((report) => {
+    const project = assignedProjectMap.get(String(report.project_id))
+    if (!project || !isAssignedSupervisorProject(project, supervisorUser)) return false
+    const assignedStudents = getAssignedStudentsForProject(data, project)
+    return reportMatchesAssignedStudent(report, assignedStudents)
+  })
+}
+
+function getSupervisorProgressProjects(data, assignedProjects = []) {
+  return (assignedProjects || []).filter((project) => getAssignedStudentsForProject(data, project).length > 0)
+}
+
 function findSupervisorProfileForProject(data, project) {
   if (!project) return null
   const supervisorId = project.supervisor_id || project.supervisor_user_id
@@ -825,11 +858,11 @@ function findSupervisorProfileForProject(data, project) {
   return null
 }
 
-function canSendReportToSelf(report, project, user) {
+function canSendReportToSelf(report, project, user, data = null) {
   if (!report || !user) return false
   if (isAdminUser(user)) return true
   if (user.role === 'student') return reportOwnedByUser(report, user)
-  if (user.role === 'supervisor') return isAssignedSupervisorProject(project, user)
+  if (user.role === 'supervisor') return data ? supervisorCanAccessReport(data, report, user) : false
   return false
 }
 
@@ -1950,7 +1983,7 @@ export default function App() {
     const targetReport = data.reports.find((report) => String(report.id) === String(reportId))
     if (!targetReport) return setMessage('Report not found. Please refresh and try again.')
     const project = data.projects.find((item) => String(item.id) === String(targetReport.project_id))
-    if (!canSendReportToSelf(targetReport, project, currentUser)) {
+    if (!canSendReportToSelf(targetReport, project, currentUser, data)) {
       return setMessage('You do not have permission to email this report.')
     }
     if (!currentUser?.email) return setMessage('Your account does not have a registered email address.')
@@ -1976,6 +2009,9 @@ export default function App() {
   async function reviewReport(reportId, status, feedback) {
     const targetReport = data.reports.find((report) => String(report.id) === String(reportId))
     if (!targetReport) return setMessage('Report not found. Please refresh and try again.')
+    if (currentUser?.role === 'supervisor' && !supervisorCanAccessReport(data, targetReport, currentUser)) {
+      return setMessage('You do not have permission to view this report.')
+    }
 
     const score = status === 'Accepted' ? 18 : status === 'Rejected' ? 0 : 12
     const updatedReports = data.reports.map((report) =>
@@ -2663,17 +2699,34 @@ export default function App() {
 
   async function removeDeadline(deadlineId) {
     if (!['admin', 'supervisor'].includes(allowedRole)) return setMessage('Only supervisors and admins can remove deadlines.')
-    const target = data.deadlines.find((d) => d.id === deadlineId)
+    const target = data.deadlines.find((d) => String(d.id) === String(deadlineId))
     if (!target) return setMessage('Deadline not found.')
+    if (!window.confirm('Are you sure you want to remove this deadline?')) return
 
     if (isSupabaseConfigured) {
-      const { error } = await supabase.from('deadlines').delete().eq('id', deadlineId)
-      if (error) return setMessage(`${error.message}. If deletion is blocked, run supabase/supervisor_deadlines_add_remove.sql in Supabase SQL Editor.`)
+      const directDelete = await supabase.from('deadlines').delete().eq('id', deadlineId)
+      if (directDelete.error) {
+        const rpcDelete = await supabase.rpc('remove_deadline_safe', { deadline_id_input: deadlineId })
+        if (rpcDelete.error) {
+          const errorMessage = rpcDelete.error.message || directDelete.error.message || 'Deadline could not be removed.'
+          return setMessage(`${errorMessage}. Run supabase/deadline_stuck_remove_fix.sql in Supabase SQL Editor, then try again.`)
+        }
+      }
+      setData((current) => ({
+        ...current,
+        deadlines: (current.deadlines || []).filter((deadline) => String(deadline.id) !== String(deadlineId)),
+        notifications: (current.notifications || []).filter((notification) => String(notification.related_deadline_id) !== String(deadlineId)),
+      }))
       await addAudit(currentUser.full_name, 'removed', `deadline: ${target.title}`)
       await loadFromSupabase()
     } else {
       const log = makeAudit(currentUser.full_name, 'removed', `deadline: ${target.title}`)
-      setLocal((current) => ({ ...current, deadlines: current.deadlines.filter((d) => d.id !== deadlineId), auditLogs: [log, ...current.auditLogs] }))
+      setLocal((current) => ({
+        ...current,
+        deadlines: (current.deadlines || []).filter((d) => String(d.id) !== String(deadlineId)),
+        notifications: (current.notifications || []).filter((notification) => String(notification.related_deadline_id) !== String(deadlineId)),
+        auditLogs: [log, ...current.auditLogs],
+      }))
     }
     setMessage('Deadline removed successfully.')
   }
@@ -3665,11 +3718,10 @@ function SupervisorDashboard({ data, projects, currentUser, reviewReport, create
   const [selectedStudent, setSelectedStudent] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
   const [selectedGroup, setSelectedGroup] = useState('all')
-  const assignedProjects = projects.filter((p) => isAssignedSupervisorProject(p, currentUser))
-  const assignedProjectIds = new Set(assignedProjects.map((p) => String(p.id)))
-  const allowedReports = data.reports.filter((r) => assignedProjectIds.has(String(r.project_id)))
-
-  const studentOptions = useMemo(() => getAssignedSupervisorStudents(data, assignedProjects, allowedReports), [data, assignedProjects, allowedReports])
+  const assignedProjects = useMemo(() => projects.filter((p) => isAssignedSupervisorProject(p, currentUser)), [projects, currentUser])
+  const supervisorProgressProjects = useMemo(() => getSupervisorProgressProjects(data, assignedProjects), [data, assignedProjects])
+  const studentOptions = useMemo(() => getAssignedSupervisorStudents(data, assignedProjects, []), [data, assignedProjects])
+  const allowedReports = useMemo(() => getSupervisorAllowedReports(data, assignedProjects, currentUser), [data, assignedProjects, currentUser])
 
   const groupOptions = useMemo(() => {
     return Array.from(new Set(assignedProjects.map((project) => project.group_name || 'No research group'))).sort((a, b) => a.localeCompare(b))
@@ -3682,15 +3734,10 @@ function SupervisorDashboard({ data, projects, currentUser, reviewReport, create
 
   const reports = allowedReports.filter((report) => {
     const project = assignedProjects.find((item) => String(item.id) === String(report.project_id))
-    const student = findStudentProfileForReport(data, report) || {
-      id: report.student_id || report.submitted_by_id || report.user_id || null,
-      full_name: report.submitted_by || project?.group_name || 'Unknown student',
-      email: report.student_email || report.submitted_by_email || '',
-    }
-    const studentKey = student.id ? `id:${student.id}` : student.email ? `email:${normalizeText(student.email)}` : `name:${normalizeText(student.full_name)}`
+    const selectedStudentOption = selectedStudent === 'all' ? null : studentOptions.find((student) => student.key === selectedStudent)
     const statusMatches = selectedStatus === 'all' || report.status === selectedStatus
     const groupMatches = selectedGroup === 'all' || (project?.group_name || 'No research group') === selectedGroup
-    const studentMatches = selectedStudent === 'all' || studentKey === selectedStudent
+    const studentMatches = selectedStudent === 'all' || itemMatchesStudentOption(report, selectedStudentOption)
     return statusMatches && groupMatches && studentMatches
   })
 
@@ -3698,7 +3745,7 @@ function SupervisorDashboard({ data, projects, currentUser, reviewReport, create
 
   return (
     <div className="stack">
-      {assignedProjects.length ? <ProjectProgressSection projects={assignedProjects} reports={data.reports} students={studentOptions} /> : <div className="card"><EmptyState title="No assigned projects" text="Ask the admin to assign projects to your exact login name, or assign yourself from the Admin view for testing." icon={Users} /></div>}
+      {supervisorProgressProjects.length ? <ProjectProgressSection projects={supervisorProgressProjects} reports={allowedReports} students={studentOptions} /> : <div className="card"><EmptyState title="No assigned projects" text="Ask the admin to assign projects to your exact login name, or assign yourself from the Admin view for testing." icon={Users} /></div>}
       <DeadlineManager deadlines={data.deadlines} createDeadline={createDeadline} removeDeadline={removeDeadline} students={studentOptions} currentUser={currentUser} />
 
       <div className="card supervisor-review-reports-card">
@@ -3707,7 +3754,7 @@ function SupervisorDashboard({ data, projects, currentUser, reviewReport, create
           <label className="field">
             <span>Student</span>
             <select value={selectedStudent} onChange={(e) => setSelectedStudent(e.target.value)}>
-              <option value="all">All Students</option>
+              <option value="all">All Assigned Students</option>
               {studentOptions.map((student) => (
                 <option key={student.key} value={student.key}>
                   {student.name}{student.email ? ` — ${student.email}` : ''}{student.group ? ` (${student.group})` : ''}
@@ -3785,7 +3832,7 @@ function SupervisorDashboard({ data, projects, currentUser, reviewReport, create
               )
             })}
           </div>
-        ) : <EmptyState title={selectedStudentName ? 'No weekly reports found for this student.' : 'No reports to review'} text={selectedStudentName ? `${selectedStudentName} has not submitted weekly reports matching this filter yet.` : 'Weekly reports from assigned projects will appear here.'} icon={ClipboardCheck} />}
+        ) : <EmptyState title={selectedStudentName ? 'No weekly reports found for this student.' : 'No weekly reports found for your assigned students.'} text={selectedStudentName ? `${selectedStudentName} has not submitted weekly reports matching this filter yet.` : 'Only reports from students assigned to you will appear here.'} icon={ClipboardCheck} />}
       </div>
     </div>
   )
@@ -4024,7 +4071,7 @@ function ProjectProgressSection({ projects = [], reports = [], students = [] }) 
   const selectedStudentOption = selectedStudent === 'all' ? null : students.find((student) => student.key === selectedStudent)
   const filteredProjects = selectedStudentOption
     ? projects.filter((project) => projectMatchesStudentOption(project, selectedStudentOption, reports))
-    : projects
+    : projects.filter((project) => students.some((student) => projectMatchesStudentOption(project, student, reports)))
 
   return (
     <div className="card supervisor-project-progress-section">
@@ -4033,7 +4080,7 @@ function ProjectProgressSection({ projects = [], reports = [], students = [] }) 
         <label className="field">
           <span>Student</span>
           <select value={selectedStudent} onChange={(e) => setSelectedStudent(e.target.value)}>
-            <option value="all">All Students</option>
+            <option value="all">All Assigned Students</option>
             {students.map((student) => (
               <option key={student.key} value={student.key}>{student.name}{student.email ? ` — ${student.email}` : ''}{student.group ? ` (${student.group})` : ''}</option>
             ))}
@@ -4068,7 +4115,7 @@ function ProjectProgressSection({ projects = [], reports = [], students = [] }) 
             )
           })}
         </div>
-      ) : <EmptyState title="No project progress found for this student." text="Project progress will appear after this student has an assigned research project or accepted reports." icon={CheckCircle2} />}
+      ) : <EmptyState title={selectedStudentOption ? 'No project progress found for this student.' : 'No project progress found for your assigned students.'} text={selectedStudentOption ? 'Project progress will appear after this student has an assigned research project or accepted reports.' : 'Only progress records from students assigned to you will appear here.'} icon={CheckCircle2} />}
     </div>
   )
 }
