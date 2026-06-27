@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Bell,
   BookOpen,
@@ -599,6 +599,146 @@ function getProjectGroupSummaries(projects = []) {
     grouped.set(groupName, existing)
   })
   return Array.from(grouped.values()).sort((a, b) => a.group_name.localeCompare(b.group_name))
+}
+
+
+function listValue(value) {
+  if (Array.isArray(value)) return value.filter((item) => item !== null && item !== undefined && String(item).trim() !== '')
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) return []
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      return trimmed.slice(1, -1).split(',').map((item) => item.replace(/^"|"$/g, '').trim()).filter(Boolean)
+    }
+    return trimmed.split(',').map((item) => item.trim()).filter(Boolean)
+  }
+  return []
+}
+
+function makeStudentOptionKey(student = {}) {
+  if (student.id) return `id:${student.id}`
+  if (student.email) return `email:${normalizeText(student.email)}`
+  return `name:${normalizeText(student.name || student.full_name || 'unknown-student')}`
+}
+
+function upsertStudentOption(map, student = {}, fallback = {}) {
+  const name = student.name || student.full_name || fallback.name || fallback.group || 'Unknown student'
+  const email = student.email || fallback.email || ''
+  const id = student.id || fallback.id || null
+  const group = fallback.group || student.group || 'No research group'
+  const key = makeStudentOptionKey({ id, email, name })
+  if (!map.has(key)) {
+    map.set(key, { key, id, email, name, group })
+    return
+  }
+  const existing = map.get(key)
+  map.set(key, {
+    ...existing,
+    id: existing.id || id,
+    email: existing.email || email,
+    name: existing.name || name,
+    group: existing.group || group,
+  })
+}
+
+function getAssignedSupervisorStudents(data, assignedProjects = [], reports = []) {
+  const students = new Map()
+  const projectIds = new Set((assignedProjects || []).map((project) => String(project.id)))
+
+  ;(assignedProjects || []).forEach((project) => {
+    const projectStudent = findProfileByIdentity(data, {
+      id: project.student_id || project.created_by,
+      email: project.student_email || project.created_by_email,
+      submitted_by: Array.isArray(project.students) ? project.students[0] : project.group_name,
+    })
+    upsertStudentOption(students, projectStudent || {}, {
+      id: project.student_id || project.created_by || null,
+      email: project.student_email || project.created_by_email || '',
+      name: projectStudent?.full_name || (Array.isArray(project.students) ? project.students[0] : '') || project.group_name,
+      group: project.group_name,
+    })
+  })
+
+  ;(reports || []).filter((report) => projectIds.has(String(report.project_id))).forEach((report) => {
+    const project = (assignedProjects || []).find((item) => String(item.id) === String(report.project_id))
+    const student = findStudentProfileForReport(data, report)
+    upsertStudentOption(students, student || {}, {
+      id: report.student_id || report.submitted_by_id || report.user_id || report.created_by || null,
+      email: report.student_email || report.submitted_by_email || report.created_by_email || '',
+      name: report.submitted_by || project?.group_name || 'Unknown student',
+      group: project?.group_name || 'No research group',
+    })
+  })
+
+  return Array.from(students.values()).sort((a, b) => a.name.localeCompare(b.name))
+}
+
+function itemMatchesStudentOption(item = {}, student = {}) {
+  if (!item || !student) return false
+  const ids = [item.student_id, item.submitted_by_id, item.user_id, item.created_by, item.owner_id, item.uploaded_by]
+    .map(normalizeText)
+    .filter(Boolean)
+  const emails = [item.student_email, item.submitted_by_email, item.created_by_email, item.owner_email, item.uploaded_by_email]
+    .map(normalizeText)
+    .filter(Boolean)
+  const names = [item.submitted_by, item.student_name, item.group_name, item.created_by_name]
+    .map(normalizeText)
+    .filter(Boolean)
+  return (
+    (!!student.id && ids.includes(normalizeText(student.id))) ||
+    (!!student.email && emails.includes(normalizeText(student.email))) ||
+    (!!student.name && names.includes(normalizeText(student.name)))
+  )
+}
+
+function projectMatchesStudentOption(project = {}, student = {}, reports = []) {
+  if (itemMatchesStudentOption(project, student)) return true
+  const projectReports = (reports || []).filter((report) => String(report.project_id) === String(project.id))
+  return projectReports.some((report) => itemMatchesStudentOption(report, student))
+}
+
+function deadlineTargetsStudent(deadline = {}, user = {}) {
+  const targetIds = listValue(deadline.target_student_ids).map(normalizeText)
+  const targetEmails = listValue(deadline.target_student_emails).map(normalizeText)
+  const targetKeys = listValue(deadline.target_student_keys).map(normalizeText)
+  const targetNames = listValue(deadline.target_student_names).map(normalizeText)
+  const userId = normalizeText(user?.id)
+  const userEmail = normalizeText(user?.email)
+  const userName = normalizeText(user?.full_name)
+  return (
+    (!!userId && (targetIds.includes(userId) || targetKeys.includes(`id:${userId}`))) ||
+    (!!userEmail && (targetEmails.includes(userEmail) || targetKeys.includes(`email:${userEmail}`))) ||
+    (!!userName && (targetNames.includes(userName) || targetKeys.includes(`name:${userName}`)))
+  )
+}
+
+function hasDeadlineTargets(deadline = {}) {
+  return [deadline.target_student_ids, deadline.target_student_emails, deadline.target_student_keys, deadline.target_student_names].some((value) => listValue(value).length)
+}
+
+function deadlineVisibleToUser(deadline, role, user) {
+  if (!deadline || !user) return false
+  if (role === 'admin' || role === 'committee') return true
+  if (role === 'student') {
+    if (hasDeadlineTargets(deadline)) return deadlineTargetsStudent(deadline, user)
+    return true
+  }
+  if (role === 'supervisor') {
+    const userId = normalizeText(user.id)
+    const userEmail = normalizeText(user.email)
+    return (
+      (!!userId && normalizeText(deadline.created_by) === userId) ||
+      (!!userId && normalizeText(deadline.supervisor_id) === userId) ||
+      (!!userEmail && normalizeText(deadline.created_by_email) === userEmail) ||
+      (!!userEmail && normalizeText(deadline.supervisor_email) === userEmail) ||
+      !hasDeadlineTargets(deadline)
+    )
+  }
+  return false
+}
+
+function getVisibleDeadlines(deadlines = [], role, user) {
+  return (deadlines || []).filter((deadline) => deadlineVisibleToUser(deadline, role, user))
 }
 
 function findProfileForUser(data, user) {
@@ -2376,27 +2516,83 @@ export default function App() {
     if (!['admin', 'supervisor'].includes(allowedRole)) return setMessage('Only supervisors and admins can add deadlines.')
     if (!form.title?.trim() || !form.due_date) return setMessage('Please write the deadline title and due date.')
 
+    const assignedProjects = allowedRole === 'supervisor'
+      ? getVisibleProjects(data.projects, 'supervisor', currentUser)
+      : data.projects
+    const assignedStudents = getAssignedSupervisorStudents(data, assignedProjects, data.reports)
+    const selectedStudents = form.target_scope === 'all_assigned'
+      ? assignedStudents
+      : Array.isArray(form.selected_students) ? form.selected_students : []
+
+    if (allowedRole === 'supervisor') {
+      if (!assignedStudents.length) return setMessage('No assigned students were found for this supervisor.')
+      if (!selectedStudents.length) return setMessage('Please select at least one assigned student for this deadline.')
+      const allowedKeys = new Set(assignedStudents.map((student) => student.key))
+      const hasInvalidStudent = selectedStudents.some((student) => !allowedKeys.has(student.key))
+      if (hasInvalidStudent) return setMessage('You can only assign deadlines to your own assigned students.')
+    }
+
+    const targetStudentIds = selectedStudents.map((student) => student.id).filter(Boolean)
+    const targetStudentEmails = selectedStudents.map((student) => student.email).filter(Boolean)
+    const targetStudentNames = selectedStudents.map((student) => student.name).filter(Boolean)
+    const targetStudentKeys = selectedStudents.map((student) => student.key).filter(Boolean)
     const deadline = {
       id: crypto.randomUUID(),
       title: form.title.trim(),
+      description: form.description?.trim() || '',
       deadline_type: form.deadline_type || 'Supervisor Deadline',
       due_date: form.due_date,
       academic_year: form.academic_year || '2026-2027',
       status: form.status || 'Active',
+      priority: form.priority || 'Normal',
+      target_scope: form.target_scope || (selectedStudents.length ? 'selected_students' : 'all'),
+      target_student_ids: targetStudentIds,
+      target_student_emails: targetStudentEmails,
+      target_student_names: targetStudentNames,
+      target_student_keys: targetStudentKeys,
+      supervisor_id: currentUser?.id || null,
+      supervisor_email: currentUser?.email || '',
+      created_by: currentUser?.id || null,
+      created_by_email: currentUser?.email || '',
       created_at: new Date().toISOString(),
     }
+
+    const notificationRows = selectedStudents.map((student) => ({
+      id: crypto.randomUUID(),
+      profile_id: student.id || null,
+      recipient_user_id: student.id || null,
+      recipient_email: student.email || '',
+      sender_user_id: currentUser?.id || null,
+      notification_type: 'deadline_assigned',
+      title: 'New Deadline Assigned',
+      message: `${currentUser?.full_name || 'Your supervisor'} assigned a new deadline: ${deadline.title}. Due date: ${deadline.due_date}.${deadline.description ? ` ${deadline.description}` : ''}`,
+      type: 'Deadline',
+      target_role: 'student',
+      is_read: false,
+      created_at: new Date().toISOString(),
+    }))
 
     if (isSupabaseConfigured) {
       const { id, created_at, ...deadlineForDb } = deadline
       const { error } = await supabase.from('deadlines').insert(deadlineForDb)
-      if (error) return setMessage(error.message)
+      if (error) return setMessage(`${error.message}. Run supabase/supervisor_deadline_progress_update.sql in Supabase SQL Editor, then try again.`)
+      if (notificationRows.length) {
+        const notificationForDb = notificationRows.map(({ id: _id, ...note }) => note)
+        const noteResult = await supabase.from('notifications').insert(notificationForDb)
+        if (noteResult.error) console.warn('Deadline notification could not be saved:', noteResult.error)
+      }
       await addAudit(currentUser.full_name, 'created', `deadline: ${deadline.title}`)
       await loadFromSupabase()
     } else {
       const log = makeAudit(currentUser.full_name, 'created', `deadline: ${deadline.title}`)
-      setLocal((current) => ({ ...current, deadlines: [deadline, ...current.deadlines], auditLogs: [log, ...current.auditLogs] }))
+      setLocal((current) => ({
+        ...current,
+        deadlines: [deadline, ...current.deadlines],
+        notifications: [...notificationRows, ...(current.notifications || [])],
+        auditLogs: [log, ...current.auditLogs],
+      }))
     }
-    setMessage('Deadline added successfully.')
+    setMessage(selectedStudents.length ? `Deadline added for ${selectedStudents.length} student${selectedStudents.length === 1 ? '' : 's'}.` : 'Deadline added successfully.')
   }
 
   async function removeDeadline(deadlineId) {
@@ -2461,15 +2657,18 @@ export default function App() {
 
   const visibleReports = useMemo(() => getVisibleReports(data.reports, visibleProjects, allowedRole, currentUser), [data.reports, visibleProjects, allowedRole, currentUser])
 
+  const visibleDeadlines = useMemo(() => getVisibleDeadlines(data.deadlines, allowedRole, currentUser), [data.deadlines, allowedRole, currentUser])
+
   const visibleData = useMemo(() => ({
     ...data,
     profiles: allowedRole === 'admin' ? data.profiles : [],
     projects: visibleProjects,
     reports: visibleReports,
+    deadlines: visibleDeadlines,
     evaluations: allowedRole === 'student' ? [] : data.evaluations,
     auditLogs: allowedRole === 'admin' ? data.auditLogs : [],
     invitations: allowedRole === 'admin' ? data.invitations : [],
-  }), [data, allowedRole, visibleProjects, visibleReports])
+  }), [data, allowedRole, visibleProjects, visibleReports, visibleDeadlines])
 
   const stats = useMemo(() => {
     const approved = visibleProjects.filter((p) => p.approval === 'Approved').length
@@ -3374,52 +3573,7 @@ function SupervisorDashboard({ data, projects, currentUser, reviewReport, create
   const assignedProjectIds = new Set(assignedProjects.map((p) => String(p.id)))
   const allowedReports = data.reports.filter((r) => assignedProjectIds.has(String(r.project_id)))
 
-  const studentOptions = useMemo(() => {
-    const students = new Map()
-    assignedProjects.forEach((project) => {
-      const projectReports = allowedReports.filter((report) => String(report.project_id) === String(project.id))
-      const projectStudent = findProfileByIdentity(data, {
-        id: project.student_id || project.created_by,
-        email: project.student_email || project.created_by_email,
-        submitted_by: Array.isArray(project.students) ? project.students[0] : project.group_name,
-      })
-      const candidates = [
-        projectStudent || null,
-        ...(projectReports.map((report) => findStudentProfileForReport(data, report)).filter(Boolean)),
-      ]
-      candidates.forEach((student) => {
-        const key = student?.id ? `id:${student.id}` : student?.email ? `email:${normalizeText(student.email)}` : `name:${normalizeText(student?.full_name || project.group_name)}`
-        if (!students.has(key)) {
-          students.set(key, {
-            key,
-            id: student?.id || null,
-            name: student?.full_name || project.group_name || 'Unknown student',
-            email: student?.email || project.student_email || '',
-            group: project.group_name || 'No research group',
-          })
-        }
-      })
-    })
-    allowedReports.forEach((report) => {
-      const project = assignedProjects.find((item) => String(item.id) === String(report.project_id))
-      const student = findStudentProfileForReport(data, report) || {
-        id: report.student_id || report.submitted_by_id || report.user_id || null,
-        full_name: report.submitted_by || project?.group_name || 'Unknown student',
-        email: report.student_email || report.submitted_by_email || '',
-      }
-      const key = student.id ? `id:${student.id}` : student.email ? `email:${normalizeText(student.email)}` : `name:${normalizeText(student.full_name)}`
-      if (!students.has(key)) {
-        students.set(key, {
-          key,
-          id: student.id || null,
-          name: student.full_name || 'Unknown student',
-          email: student.email || '',
-          group: project?.group_name || 'No research group',
-        })
-      }
-    })
-    return Array.from(students.values()).sort((a, b) => a.name.localeCompare(b.name))
-  }, [assignedProjects, allowedReports, data])
+  const studentOptions = useMemo(() => getAssignedSupervisorStudents(data, assignedProjects, allowedReports), [data, assignedProjects, allowedReports])
 
   const groupOptions = useMemo(() => {
     return Array.from(new Set(assignedProjects.map((project) => project.group_name || 'No research group'))).sort((a, b) => a.localeCompare(b))
@@ -3448,8 +3602,8 @@ function SupervisorDashboard({ data, projects, currentUser, reviewReport, create
 
   return (
     <div className="stack">
-      {assignedProjects.length ? <div className="project-grid">{assignedProjects.map((p) => <ProjectCard key={p.id} project={p} reports={data.reports} />)}</div> : <div className="card"><EmptyState title="No assigned projects" text="Ask the admin to assign projects to your exact login name, or assign yourself from the Admin view for testing." icon={Users} /></div>}
-      <DeadlineManager deadlines={data.deadlines} createDeadline={createDeadline} removeDeadline={removeDeadline} />
+      {assignedProjects.length ? <ProjectProgressSection projects={assignedProjects} reports={data.reports} students={studentOptions} /> : <div className="card"><EmptyState title="No assigned projects" text="Ask the admin to assign projects to your exact login name, or assign yourself from the Admin view for testing." icon={Users} /></div>}
+      <DeadlineManager deadlines={data.deadlines} createDeadline={createDeadline} removeDeadline={removeDeadline} students={studentOptions} currentUser={currentUser} />
 
       <div className="card supervisor-review-reports-card">
         <SectionHeader icon={ClipboardCheck} title="Review Weekly Reports" subtitle="Choose a student, then review their weekly reports" />
@@ -3543,42 +3697,246 @@ function SupervisorDashboard({ data, projects, currentUser, reviewReport, create
 
 
 
-function DeadlineManager({ deadlines, createDeadline, removeDeadline }) {
+function StudentMultiSelectDropdown({ students = [], targetScope, selectedKeys = [], onChange, error }) {
+  const [open, setOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const dropdownRef = useRef(null)
+
+  useEffect(() => {
+    function handlePointerDown(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handlePointerDown)
+    return () => document.removeEventListener('mousedown', handlePointerDown)
+  }, [])
+
+  const filteredStudents = students.filter((student) => {
+    const haystack = `${student.name || ''} ${student.email || ''} ${student.group || ''}`.toLowerCase()
+    return haystack.includes(searchTerm.trim().toLowerCase())
+  })
+
+  const selectedStudents = targetScope === 'all_assigned'
+    ? students
+    : students.filter((student) => selectedKeys.includes(student.key))
+
+  const summaryText = targetScope === 'all_assigned'
+    ? 'All Students'
+    : selectedStudents.length
+      ? selectedStudents.map((student) => student.name).join(', ')
+      : 'Select student(s)'
+
+  function selectAllStudents() {
+    onChange({ target_scope: 'all_assigned', selected_student_keys: [] })
+    setOpen(false)
+  }
+
+  function toggleStudent(studentKey) {
+    const currentKeys = targetScope === 'all_assigned' ? [] : selectedKeys
+    const nextKeys = currentKeys.includes(studentKey)
+      ? currentKeys.filter((key) => key !== studentKey)
+      : [...currentKeys, studentKey]
+    onChange({ target_scope: 'selected_students', selected_student_keys: nextKeys })
+  }
+
+  function removeStudent(studentKey, event) {
+    event.stopPropagation()
+    const nextKeys = selectedKeys.filter((key) => key !== studentKey)
+    onChange({ target_scope: nextKeys.length ? 'selected_students' : 'selected_students', selected_student_keys: nextKeys })
+  }
+
+  return (
+    <div className="field deadline-student-dropdown-field" ref={dropdownRef}>
+      <span>Send deadline to</span>
+      <button
+        className={`student-multiselect-trigger${open ? ' open' : ''}${error ? ' error' : ''}`}
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+      >
+        <span className={selectedStudents.length ? 'student-multiselect-summary' : 'student-multiselect-placeholder'}>{summaryText}</span>
+        <SlidersHorizontal size={16} />
+      </button>
+      {targetScope === 'selected_students' && selectedStudents.length > 0 && (
+        <div className="selected-student-chips">
+          {selectedStudents.map((student) => (
+            <button key={student.key} type="button" className="selected-student-chip" onClick={(event) => removeStudent(student.key, event)}>
+              {student.name}
+              <XCircle size={13} />
+            </button>
+          ))}
+        </div>
+      )}
+      {error && <small className="form-error-text">{error}</small>}
+      {open && (
+        <div className="student-multiselect-menu">
+          <div className="student-multiselect-search">
+            <Search size={15} />
+            <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search by name or email" autoFocus />
+          </div>
+          <button type="button" className={`student-option-row all-option${targetScope === 'all_assigned' ? ' selected' : ''}`} onClick={selectAllStudents}>
+            <span className="student-option-check">{targetScope === 'all_assigned' ? '✓' : ''}</span>
+            <span><b>All Students</b><small>Send to all assigned students</small></span>
+          </button>
+          <div className="student-options-scroll">
+            {filteredStudents.length ? filteredStudents.map((student) => {
+              const selected = targetScope === 'selected_students' && selectedKeys.includes(student.key)
+              return (
+                <button key={student.key} type="button" className={`student-option-row${selected ? ' selected' : ''}`} onClick={() => toggleStudent(student.key)}>
+                  <span className="student-option-check">{selected ? '✓' : ''}</span>
+                  <span>
+                    <b>{student.name}</b>
+                    <small>{student.email || 'No email'}{student.group ? ` • ${student.group}` : ''}</small>
+                  </span>
+                </button>
+              )
+            }) : <div className="student-option-empty">No assigned students found.</div>}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function DeadlineManager({ deadlines, createDeadline, removeDeadline, students = [], currentUser }) {
   const [form, setForm] = useState({
     title: '',
+    description: '',
     deadline_type: 'Weekly Report',
     due_date: '',
     academic_year: '2026-2027',
     status: 'Active',
+    priority: 'Normal',
+    target_scope: 'all_assigned',
+    selected_student_keys: [],
   })
+  const [studentSelectError, setStudentSelectError] = useState('')
+
+  const selectedStudents = form.target_scope === 'all_assigned'
+    ? students
+    : students.filter((student) => form.selected_student_keys.includes(student.key))
 
   function resetForm() {
-    setForm({ title: '', deadline_type: 'Weekly Report', due_date: '', academic_year: '2026-2027', status: 'Active' })
+    setForm({ title: '', description: '', deadline_type: 'Weekly Report', due_date: '', academic_year: '2026-2027', status: 'Active', priority: 'Normal', target_scope: 'all_assigned', selected_student_keys: [] })
+    setStudentSelectError('')
+  }
+
+  function updateStudentSelection(nextSelection) {
+    setStudentSelectError('')
+    setForm((current) => ({ ...current, ...nextSelection }))
+  }
+
+  function submitDeadline() {
+    if (!selectedStudents.length) {
+      setStudentSelectError('Please select at least one student.')
+      return
+    }
+    createDeadline({
+      ...form,
+      selected_students: selectedStudents,
+      target_scope: form.target_scope,
+    })
+    resetForm()
   }
 
   return (
-    <div className="card">
-      <SectionHeader icon={CalendarDays} title="Set and Manage Deadlines" subtitle="Supervisors can add new deadlines or remove old ones" />
-      <div className="deadline-form-grid">
+    <div className="card supervisor-deadline-card">
+      <SectionHeader icon={CalendarDays} title="Set and Manage Deadlines" subtitle="Choose which assigned student receives each deadline" />
+      <div className="deadline-target-panel deadline-target-panel-dropdown">
+        <StudentMultiSelectDropdown
+          students={students}
+          targetScope={form.target_scope}
+          selectedKeys={form.selected_student_keys}
+          onChange={updateStudentSelection}
+          error={studentSelectError}
+        />
+        <div className="deadline-target-summary">
+          <b>Selected recipients</b>
+          <p>{form.target_scope === 'all_assigned' ? 'All Students' : selectedStudents.length ? selectedStudents.map((student) => student.name).join(', ') : 'No assigned students selected'}</p>
+        </div>
+      </div>
+      <div className="deadline-form-grid deadline-form-grid-updated">
         <label className="field"><span>Deadline title</span><input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Example: Submit weekly report 3" /></label>
         <label className="field"><span>Deadline type</span><select value={form.deadline_type} onChange={(e) => setForm({ ...form, deadline_type: e.target.value })}><option>Weekly Report</option><option>Proposal</option><option>Data Collection</option><option>Draft Thesis</option><option>Final Thesis</option><option>Poster</option><option>Presentation</option><option>Supervisor Deadline</option></select></label>
         <label className="field"><span>Due date</span><input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></label>
         <label className="field"><span>Academic year</span><input value={form.academic_year} onChange={(e) => setForm({ ...form, academic_year: e.target.value })} placeholder="2026-2027" /></label>
         <label className="field"><span>Status</span><select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}><option>Active</option><option>Inactive</option><option>Completed</option></select></label>
-        <div className="deadline-actions"><button className="primary" type="button" onClick={() => { createDeadline(form); resetForm() }}><CalendarDays size={16} /> Add Deadline</button></div>
+        <label className="field"><span>Priority</span><select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}><option>Normal</option><option>High</option><option>Urgent</option><option>Low</option></select></label>
+        <label className="field deadline-description-field"><span>Description</span><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Write deadline details or instructions" /></label>
+        <div className="deadline-actions"><button className="primary" type="button" onClick={submitDeadline}><CalendarDays size={16} /> Add Deadline</button></div>
       </div>
       <div className="deadline-list">
         {deadlines.length ? deadlines.map((d) => (
           <div className="mini-card deadline-item" key={d.id}>
             <div>
               <b>{d.title}</b>
-              <p>{d.deadline_type} • {d.due_date} • {d.academic_year || 'Academic year not set'}</p>
+              <p>{d.deadline_type} • {d.due_date} • {d.academic_year || 'Academic year not set'}{d.priority ? ` • ${d.priority} priority` : ''}</p>
+              {d.description && <p className="small muted">{d.description}</p>}
+              {hasDeadlineTargets(d) && <p className="small muted"><b>Students:</b> {listValue(d.target_student_names).join(', ') || listValue(d.target_student_emails).join(', ') || 'Selected students'}</p>}
               <Pill tone={d.status === 'Active' ? 'green' : d.status === 'Completed' ? 'blue' : 'slate'}>{d.status || 'Active'}</Pill>
             </div>
             <button className="danger compact-button" type="button" onClick={() => removeDeadline(d.id)}>Remove</button>
           </div>
         )) : <EmptyState title="No deadlines" text="Add the first supervisor deadline using the form above." icon={CalendarDays} />}
       </div>
+    </div>
+  )
+}
+
+function ProjectProgressSection({ projects = [], reports = [], students = [] }) {
+  const [selectedStudent, setSelectedStudent] = useState('all')
+
+  useEffect(() => {
+    if (selectedStudent !== 'all' && !students.some((student) => student.key === selectedStudent)) setSelectedStudent('all')
+  }, [students, selectedStudent])
+
+  const selectedStudentOption = selectedStudent === 'all' ? null : students.find((student) => student.key === selectedStudent)
+  const filteredProjects = selectedStudentOption
+    ? projects.filter((project) => projectMatchesStudentOption(project, selectedStudentOption, reports))
+    : projects
+
+  return (
+    <div className="card supervisor-project-progress-section">
+      <SectionHeader icon={CheckCircle2} title="Project Progress" subtitle="Choose which assigned student’s project progress to view" />
+      <div className="progress-filter-panel">
+        <label className="field">
+          <span>Student</span>
+          <select value={selectedStudent} onChange={(e) => setSelectedStudent(e.target.value)}>
+            <option value="all">All Students</option>
+            {students.map((student) => (
+              <option key={student.key} value={student.key}>{student.name}{student.email ? ` — ${student.email}` : ''}{student.group ? ` (${student.group})` : ''}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+      {filteredProjects.length ? (
+        <div className="project-progress-list">
+          {filteredProjects.map((project) => {
+            const student = students.find((item) => projectMatchesStudentOption(project, item, reports))
+            const projectReports = reports.filter((report) => String(report.project_id) === String(project.id))
+            const latestReportDate = projectReports.map((report) => report.submitted_at).filter(Boolean).sort().at(-1)
+            const progress = getProjectProgress(project, reports)
+            return (
+              <div className="project-progress-wide-card" key={project.id}>
+                <div className="split project-progress-header">
+                  <div>
+                    <p className="muted small bold">{student?.name || project.group_name || 'Student'}</p>
+                    {student?.email && <p className="muted small">{student.email}</p>}
+                    <h3>{project.title}</h3>
+                    <p className="muted">Research group: {project.group_name || 'Not specified'}</p>
+                    <p className="muted small">Last update: {latestReportDate ? new Date(latestReportDate).toLocaleString() : project.created_at ? new Date(project.created_at).toLocaleString() : 'No updates yet'}</p>
+                  </div>
+                  <div className="progress-status-column">
+                    <Pill tone={project.status === 'Needs Attention' ? 'amber' : project.status === 'Rejected' ? 'red' : 'green'}>{project.status || project.approval || 'Pending'}</Pill>
+                    <strong>{formatProgress(progress)}%</strong>
+                  </div>
+                </div>
+                <div className="progress-row"><span>Progress</span><span>{formatProgress(progress)}%</span></div>
+                <ProgressBar value={progress} />
+              </div>
+            )
+          })}
+        </div>
+      ) : <EmptyState title="No project progress found for this student." text="Project progress will appear after this student has an assigned research project or accepted reports." icon={CheckCircle2} />}
     </div>
   )
 }

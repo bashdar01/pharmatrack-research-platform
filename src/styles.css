@@ -2800,3 +2800,259 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+/* Supervisor deadline student targeting and combined progress section */
+.supervisor-deadline-card,
+.supervisor-project-progress-section {
+  width: 100%;
+  max-width: none;
+}
+.deadline-target-panel,
+.progress-filter-panel {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.4fr) minmax(240px, .8fr);
+  gap: 14px;
+  align-items: start;
+  margin: 12px 0 16px;
+  padding: 14px;
+  border: 1px solid #dbe4ef;
+  border-radius: 18px;
+  background: #f8fafc;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.75);
+}
+.progress-filter-panel {
+  grid-template-columns: minmax(260px, 1fr);
+  align-items: start;
+}
+.deadline-target-panel .field,
+.progress-filter-panel .field {
+  min-width: 0;
+}
+.deadline-student-picker select[multiple] {
+  min-height: 116px;
+  overflow-y: auto;
+}
+.deadline-student-dropdown-field {
+  position: relative;
+  z-index: 8;
+}
+.student-multiselect-trigger {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #d1dbe8;
+  border-radius: 14px;
+  background: #fff;
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .05);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .25s ease, box-shadow .25s ease, transform .25s ease;
+}
+.student-multiselect-trigger:hover,
+.student-multiselect-trigger.open {
+  border-color: #2563eb;
+  box-shadow: 0 10px 22px rgba(37, 99, 235, .12);
+}
+.student-multiselect-trigger.error {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, .1);
+}
+.student-multiselect-summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}
+.student-multiselect-placeholder {
+  color: var(--muted);
+}
+.student-multiselect-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 80;
+  padding: 10px;
+  border: 1px solid #dbe4ef;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 24px 55px rgba(15, 23, 42, .18);
+}
+.student-multiselect-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+  margin-bottom: 8px;
+}
+.student-multiselect-search input {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  min-height: 24px;
+  box-shadow: none;
+}
+.student-multiselect-search input:focus {
+  outline: none;
+}
+.student-options-scroll {
+  max-height: 230px;
+  overflow-y: auto;
+  padding-right: 3px;
+}
+.student-option-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.student-option-row:hover,
+.student-option-row.selected {
+  background: #eef4ff;
+}
+.student-option-row.all-option {
+  margin-bottom: 6px;
+  border-bottom: 1px solid #eef2f7;
+}
+.student-option-check {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #1d4ed8;
+  font-weight: 900;
+}
+.student-option-row.selected .student-option-check {
+  background: #dbeafe;
+}
+.student-option-row small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+.student-option-empty {
+  padding: 18px 10px;
+  text-align: center;
+  color: var(--muted);
+}
+.selected-student-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 8px;
+}
+.selected-student-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 9px;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.form-error-text {
+  display: block;
+  margin-top: 7px;
+  color: #dc2626;
+  font-weight: 800;
+}
+.deadline-target-summary {
+  padding: 13px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #ffffff;
+  min-height: 74px;
+}
+.deadline-target-summary p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.deadline-form-grid.deadline-form-grid-updated {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+}
+.deadline-description-field,
+.deadline-form-grid-updated .deadline-actions {
+  grid-column: 1 / -1;
+}
+.deadline-description-field textarea {
+  min-height: 92px;
+}
+.project-progress-list {
+  display: grid;
+  gap: 14px;
+}
+.project-progress-wide-card {
+  width: 100%;
+  padding: 20px;
+  border-radius: 22px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  box-shadow: 0 1px 2px rgba(15,23,42,.04);
+}
+.project-progress-wide-card h3 {
+  margin: 10px 0 8px;
+  font-size: clamp(20px, 2vw, 28px);
+  letter-spacing: -0.03em;
+}
+.progress-status-column {
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+  min-width: 120px;
+}
+.progress-status-column strong {
+  font-size: 26px;
+  letter-spacing: -0.04em;
+  color: var(--text);
+}
+@media (max-width: 920px) {
+  .deadline-target-panel,
+  .progress-filter-panel,
+  .deadline-form-grid.deadline-form-grid-updated {
+    grid-template-columns: 1fr;
+  }
+  .student-multiselect-menu {
+    position: static;
+    margin-top: 8px;
+  }
+  .deadline-description-field,
+  .deadline-form-grid-updated .deadline-actions {
+    grid-column: auto;
+  }
+}
+@media (max-width: 640px) {
+  .project-progress-wide-card .split,
+  .progress-status-column {
+    align-items: start;
+    justify-items: start;
+  }
+  .progress-status-column strong {
+    font-size: 22px;
+  }
+}
