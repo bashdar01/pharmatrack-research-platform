@@ -2749,3 +2749,29 @@ button:disabled {
     width: 100%;
   }
 }
+
+/* Admin-only account, group, and research title deletion controls */
+.admin-panel-delete-button {
+  min-width: 120px;
+}
+.admin-panel-delete-button:disabled {
+  opacity: .65;
+  cursor: not-allowed;
+  transform: none !important;
+}
+.admin-delete-management-card .compact-managed-list {
+  border: 1px solid #dbe4ef;
+  border-radius: 18px;
+  background: #f8fafc;
+  padding: 12px;
+  box-sizing: border-box;
+}
+.admin-delete-management-card .managed-item {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+@media (max-width: 720px) {
+  .admin-panel-delete-button {
+    width: 100%;
+  }
+}

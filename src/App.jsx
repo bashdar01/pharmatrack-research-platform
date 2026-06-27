@@ -77,19 +77,19 @@ const loginFontOptions = [
 
 const invitationTemplates = {
   student: {
-    subject: 'Invitation to join PharmaTrack as a Student',
+    subject: 'Invitation to join Pharmacy Research Platform as a Student',
     body: 'Dear [Name], you are invited to join our platform as a Student. Please click the link below to create your account and access your dashboard.',
   },
   supervisor: {
-    subject: 'Invitation to join PharmaTrack as a Supervisor',
+    subject: 'Invitation to join Pharmacy Research Platform as a Supervisor',
     body: 'Dear [Name], you are invited to join our platform as a Supervisor. Please click the link below to create your account and manage assigned students or projects.',
   },
   committee: {
-    subject: 'Invitation to join PharmaTrack as a Research Committee Member',
+    subject: 'Invitation to join Pharmacy Research Platform as a Research Committee Member',
     body: 'Dear [Name], you are invited to join our platform as a Research Committee Member. Please click the link below to create your account and review submitted research projects.',
   },
   admin: {
-    subject: 'Invitation to join PharmaTrack as an Admin / Editor',
+    subject: 'Invitation to join Pharmacy Research Platform as an Admin / Editor',
     body: 'Dear [Name], you are invited to join our platform as an Admin/Editor. Please click the link below to create your account and manage website settings, users, and system content.',
   },
 }
@@ -244,13 +244,13 @@ function buildInvitationEmail(invitation, settings = defaultWebsiteSettings) {
     .replaceAll('[Role]', getRoleLabel(invitation.role))
     .replaceAll('[Link]', link)
     .replaceAll('[Expiration Date]', expiry)
-    .replaceAll('[Website Name]', settings.siteName || 'PharmaTrack Research Platform')
-  return `${bodyText}\n\nAssigned role: ${getRoleLabel(invitation.role)}\nSecure invitation link: ${link}\nExpiration date: ${expiry}\n\n${settings.siteName || 'PharmaTrack Research Platform'}\nContact: College of Pharmacy, Hawler Medical University`
+    .replaceAll('[Website Name]', settings.siteName || 'Pharmacy Research Platform')
+  return `${bodyText}\n\nAssigned role: ${getRoleLabel(invitation.role)}\nSecure invitation link: ${link}\nExpiration date: ${expiry}\n\n${settings.siteName || 'Pharmacy Research Platform'}\nContact: College of Pharmacy, Hawler Medical University`
 }
 
 const defaultWebsiteSettings = {
-  siteName: 'PharmaTrack Research Platform',
-  adminPanelName: 'PharmaTrack Control Center',
+  siteName: 'Pharmacy Research Platform',
+  adminPanelName: 'Pharmacy Research Platform Control Center',
   homepageHeadline: 'A web-based Pharmacy Research Project Management System',
   homepageSubtitle: 'For 5th-year students at Hawler Medical University, College of Pharmacy.',
   heroImage: '/hero-page.png',
@@ -572,6 +572,33 @@ function uploadedFileOwnedByUser(file, user, reports = []) {
 
 function canDeleteUploadedFile(file, user, reports = []) {
   return isAdminUser(user)
+}
+
+function canDeleteUserAccount(targetUser, currentUser) {
+  if (!isAdminUser(currentUser) || !targetUser) return false
+  if (String(targetUser.id) === String(currentUser.id)) return false
+  if (targetUser.role === 'admin') return false
+  return true
+}
+
+function canDeleteResearchProject(project, currentUser) {
+  return isAdminUser(currentUser) && Boolean(project?.id)
+}
+
+function canDeleteResearchGroup(groupName, currentUser) {
+  return isAdminUser(currentUser) && Boolean(String(groupName || '').trim())
+}
+
+function getProjectGroupSummaries(projects = []) {
+  const grouped = new Map()
+  ;(projects || []).forEach((project) => {
+    const groupName = project.group_name || 'Unnamed Research Group'
+    const existing = grouped.get(groupName) || { group_name: groupName, count: 0, projects: [] }
+    existing.count += 1
+    existing.projects.push(project)
+    grouped.set(groupName, existing)
+  })
+  return Array.from(grouped.values()).sort((a, b) => a.group_name.localeCompare(b.group_name))
 }
 
 function findProfileForUser(data, user) {
@@ -1928,6 +1955,125 @@ export default function App() {
     }
   }
 
+  async function deleteUserAccount(userId) {
+    const targetUser = data.profiles.find((user) => String(user.id) === String(userId))
+    if (!targetUser) return setMessage('User not found. Please refresh and try again.')
+    if (!canDeleteUserAccount(targetUser, currentUser)) {
+      return setMessage('You do not have permission to perform this action.')
+    }
+    if (!window.confirm('Are you sure you want to delete this account? This action cannot be undone.')) return
+
+    try {
+      if (isSupabaseConfigured) {
+        const { error } = await supabase.rpc('admin_delete_profile', { target_profile_id: userId })
+        if (error) throw error
+        await addAudit(currentUser.full_name, 'deleted account', `${targetUser.full_name || targetUser.email}`)
+        await loadFromSupabase(loginUser)
+      } else {
+        const log = makeAudit(currentUser.full_name, 'deleted account', `${targetUser.full_name || targetUser.email}`)
+        const targetEmail = String(targetUser.email || '').toLowerCase()
+        setLocal((current) => ({
+          ...current,
+          profiles: current.profiles.filter((user) => String(user.id) !== String(userId)),
+          projects: current.projects.map((project) => {
+            const nextProject = { ...project }
+            if (String(nextProject.student_id || '') === String(userId) || String(nextProject.student_email || '').toLowerCase() === targetEmail) {
+              nextProject.student_id = null
+              nextProject.student_email = ''
+              nextProject.students = (nextProject.students || []).filter((name) => name !== targetUser.full_name)
+            }
+            if (String(nextProject.supervisor_id || '') === String(userId) || String(nextProject.supervisor_email || '').toLowerCase() === targetEmail) {
+              nextProject.supervisor_id = null
+              nextProject.supervisor_email = ''
+              nextProject.supervisor_name = 'Pending Assignment'
+            }
+            return nextProject
+          }),
+          auditLogs: [log, ...current.auditLogs],
+        }))
+      }
+      setMessage('Account deleted successfully.')
+    } catch (error) {
+      setMessage(error.message?.toLowerCase?.().includes('permission') || error.message?.toLowerCase?.().includes('row-level security') ? 'You do not have permission to perform this action.' : (error.message || 'Could not delete this account.'))
+    }
+  }
+
+  async function deleteResearchProject(projectId) {
+    const targetProject = data.projects.find((project) => String(project.id) === String(projectId))
+    if (!targetProject) return setMessage('Research title not found. Please refresh and try again.')
+    if (!canDeleteResearchProject(targetProject, currentUser)) {
+      return setMessage('You do not have permission to perform this action.')
+    }
+    if (!window.confirm('Are you sure you want to delete this research title?')) return
+
+    const linkedReports = data.reports.filter((report) => String(report.project_id) === String(projectId))
+    const linkedReportIds = linkedReports.map((report) => String(report.id))
+    const linkedFiles = data.uploadedFiles.filter((file) => String(file.project_id) === String(projectId) || linkedReportIds.includes(String(file.report_id)))
+
+    try {
+      if (isSupabaseConfigured) {
+        await removeStorageFiles(linkedFiles)
+        const { error } = await supabase.rpc('admin_delete_research_project', { target_project_id: projectId })
+        if (error) throw error
+        await addAudit(currentUser.full_name, 'deleted research title', `${targetProject.title || projectId}`)
+        await loadFromSupabase(loginUser)
+      } else {
+        const log = makeAudit(currentUser.full_name, 'deleted research title', `${targetProject.title || projectId}`)
+        setLocal((current) => ({
+          ...current,
+          projects: current.projects.filter((project) => String(project.id) !== String(projectId)),
+          reports: current.reports.filter((report) => String(report.project_id) !== String(projectId)),
+          uploadedFiles: current.uploadedFiles.filter((file) => String(file.project_id) !== String(projectId) && !linkedReportIds.includes(String(file.report_id))),
+          notifications: current.notifications.filter((notification) => String(notification.project_id) !== String(projectId) && !linkedReportIds.includes(String(notification.weekly_report_id))),
+          evaluations: current.evaluations.filter((evaluation) => String(evaluation.project_id) !== String(projectId)),
+          auditLogs: [log, ...current.auditLogs],
+        }))
+      }
+      setMessage('Research title deleted successfully.')
+    } catch (error) {
+      setMessage(error.message?.toLowerCase?.().includes('permission') || error.message?.toLowerCase?.().includes('row-level security') ? 'You do not have permission to perform this action.' : (error.message || 'Could not delete this research title.'))
+    }
+  }
+
+  async function deleteResearchGroup(groupName) {
+    const normalizedGroup = String(groupName || '').trim()
+    if (!normalizedGroup) return setMessage('Research group not found. Please refresh and try again.')
+    if (!canDeleteResearchGroup(normalizedGroup, currentUser)) {
+      return setMessage('You do not have permission to perform this action.')
+    }
+    if (!window.confirm('Are you sure you want to delete this research group?')) return
+
+    const groupProjects = data.projects.filter((project) => String(project.group_name || '') === normalizedGroup)
+    const groupProjectIds = groupProjects.map((project) => String(project.id))
+    const linkedReports = data.reports.filter((report) => groupProjectIds.includes(String(report.project_id)))
+    const linkedReportIds = linkedReports.map((report) => String(report.id))
+    const linkedFiles = data.uploadedFiles.filter((file) => groupProjectIds.includes(String(file.project_id)) || linkedReportIds.includes(String(file.report_id)))
+
+    try {
+      if (isSupabaseConfigured) {
+        await removeStorageFiles(linkedFiles)
+        const { error } = await supabase.rpc('admin_delete_research_group', { target_group_name: normalizedGroup })
+        if (error) throw error
+        await addAudit(currentUser.full_name, 'deleted research group', normalizedGroup)
+        await loadFromSupabase(loginUser)
+      } else {
+        const log = makeAudit(currentUser.full_name, 'deleted research group', normalizedGroup)
+        setLocal((current) => ({
+          ...current,
+          projects: current.projects.filter((project) => String(project.group_name || '') !== normalizedGroup),
+          reports: current.reports.filter((report) => !groupProjectIds.includes(String(report.project_id))),
+          uploadedFiles: current.uploadedFiles.filter((file) => !groupProjectIds.includes(String(file.project_id)) && !linkedReportIds.includes(String(file.report_id))),
+          notifications: current.notifications.filter((notification) => !groupProjectIds.includes(String(notification.project_id)) && !linkedReportIds.includes(String(notification.weekly_report_id))),
+          evaluations: current.evaluations.filter((evaluation) => !groupProjectIds.includes(String(evaluation.project_id))),
+          auditLogs: [log, ...current.auditLogs],
+        }))
+      }
+      setMessage('Research group deleted successfully.')
+    } catch (error) {
+      setMessage(error.message?.toLowerCase?.().includes('permission') || error.message?.toLowerCase?.().includes('row-level security') ? 'You do not have permission to perform this action.' : (error.message || 'Could not delete this research group.'))
+    }
+  }
+
   async function updateProject(projectId, fields) {
     if (isSupabaseConfigured) {
       const { error } = await supabase.from('research_projects').update(fields).eq('id', projectId)
@@ -2091,7 +2237,7 @@ export default function App() {
       full_name: fullName,
       email,
       role: roleValue,
-      subject: form.subject || invitationTemplates[roleValue]?.subject || 'Invitation to join PharmaTrack',
+      subject: form.subject || invitationTemplates[roleValue]?.subject || 'Invitation to join Pharmacy Research Platform',
       body: form.body || invitationTemplates[roleValue]?.body || 'Dear [Name], you are invited to join our platform.',
       token,
       invitation_link: makeInvitationLink(token),
@@ -2290,7 +2436,7 @@ export default function App() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'pharmatrack_project_summary.csv'
+    a.download = 'pharmacy_research_platform_project_summary.csv'
     a.click()
     URL.revokeObjectURL(url)
     addAudit(currentUser.full_name, 'exported', 'project summary CSV')
@@ -2447,7 +2593,7 @@ export default function App() {
             {allowedRole === 'student' && <StudentDashboard data={visibleData} projects={visibleProjects} currentUser={currentUser} createProject={createProject} createWeeklyReport={createWeeklyReport} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
             {allowedRole === 'supervisor' && <SupervisorDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} reviewReport={reviewReport} createDeadline={createDeadline} removeDeadline={removeDeadline} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
             {allowedRole === 'committee' && <CommitteeDashboard data={visibleData} projects={filteredProjects} updateProject={updateProject} saveEvaluation={saveEvaluation} />}
-            {allowedRole === 'admin' && <AdminDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} />}
+            {allowedRole === 'admin' && <AdminDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} />}
           </>
         )}
 
@@ -2660,7 +2806,7 @@ function AdminControlPanel({
         <div className="admin-brand-block">
           <div className="admin-logo-mark"><Settings size={22} /></div>
           <div>
-            <h2>{settings.adminPanelName || 'PharmaTrack Control Center'}</h2>
+            <h2>{settings.adminPanelName || 'Pharmacy Research Platform Control Center'}</h2>
             <p>Website management panel</p>
           </div>
         </div>
@@ -2759,8 +2905,8 @@ function AdminControlPanel({
             <div className="card">
               <SectionHeader icon={SlidersHorizontal} title="Website Content Settings" subtitle="Change homepage text, hero image, and admin panel labels" />
               <div className="form-grid">
-                <label className="field"><span>Main website name</span><input value={draft.siteName || ''} onChange={(e) => updateDraft('siteName', e.target.value)} placeholder="PharmaTrack Research Platform" /></label>
-                <label className="field"><span>Admin panel name</span><input value={draft.adminPanelName || ''} onChange={(e) => updateDraft('adminPanelName', e.target.value)} placeholder="PharmaTrack Control Center" /></label>
+                <label className="field"><span>Main website name</span><input value={draft.siteName || ''} onChange={(e) => updateDraft('siteName', e.target.value)} placeholder="Pharmacy Research Platform" /></label>
+                <label className="field"><span>Admin panel name</span><input value={draft.adminPanelName || ''} onChange={(e) => updateDraft('adminPanelName', e.target.value)} placeholder="Pharmacy Research Platform Control Center" /></label>
                 <label className="field wide-field"><span>Homepage headline</span><input value={draft.homepageHeadline || ''} onChange={(e) => updateDraft('homepageHeadline', e.target.value)} placeholder="A web-based Pharmacy Research Project Management System" /></label>
                 <label className="field wide-field"><span>Homepage subtitle</span><textarea value={draft.homepageSubtitle || ''} onChange={(e) => updateDraft('homepageSubtitle', e.target.value)} placeholder="Write the subtitle shown on the public website" /></label>
                 <label className="field wide-field"><span>Admin welcome message</span><textarea value={draft.adminWelcome || ''} onChange={(e) => updateDraft('adminWelcome', e.target.value)} placeholder="Write the admin panel welcome text" /></label>
@@ -2926,7 +3072,7 @@ function AdminControlPanel({
         )}
 
         {adminPanelTab === 'invitations' && <InvitationManager invitations={data.invitations} settings={settings} createInvitation={createInvitation} resendInvitation={resendInvitation} cancelInvitation={cancelInvitation} copyInvitationLink={copyInvitationLink} />}
-        {adminPanelTab === 'users' && <AdminDashboard data={data} projects={projects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} />}
+        {adminPanelTab === 'users' && <AdminDashboard data={data} projects={projects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} />}
         {adminPanelTab === 'deadlines' && <DeadlineManager deadlines={data.deadlines} createDeadline={createDeadline} removeDeadline={removeDeadline} />}
         {adminPanelTab === 'database' && <DatabaseTab databaseMode={databaseMode} />}
         {adminPanelTab === 'audit' && <AuditTab logs={auditLogs} />}
@@ -3351,10 +3497,11 @@ function CommitteeDashboard({ projects, updateProject, saveEvaluation }) {
   )
 }
 
-function AdminDashboard({ data, projects, currentUser, updateProject, updateUserRole, updateUserStatus, exportCsv, deleteWeeklyReport, deleteUploadedFile }) {
+function AdminDashboard({ data, projects, currentUser, updateProject, updateUserRole, updateUserStatus, exportCsv, deleteWeeklyReport, deleteUploadedFile, deleteUserAccount, deleteResearchGroup, deleteResearchProject }) {
   const supervisors = data.profiles.filter((u) => u.role === 'supervisor')
   const [supervisorName, setSupervisorName] = useState(supervisors[0]?.full_name || '')
   const [userTab, setUserTab] = useState('pending')
+  const [deletingAdminItem, setDeletingAdminItem] = useState('')
 
   const pendingUsers = data.profiles.filter((u) => (u.status || 'Pending') === 'Pending')
   const activeUsers = data.profiles.filter((u) => (u.status || 'Pending') === 'Active')
@@ -3377,6 +3524,27 @@ function AdminDashboard({ data, projects, currentUser, updateProject, updateUser
     : userTab === 'roles'
       ? 'Change roles for approved users and manage their account status.'
       : 'Review rejected accounts and restore them if needed.'
+
+  const researchGroups = getProjectGroupSummaries(projects)
+
+  async function runAdminDelete(key, action) {
+    if (deletingAdminItem) return
+    setDeletingAdminItem(key)
+    try {
+      await action()
+    } finally {
+      setDeletingAdminItem('')
+    }
+  }
+
+  function AdminPanelDeleteButton({ itemKey, label, onDelete }) {
+    const loading = deletingAdminItem === itemKey
+    return (
+      <button className="danger compact-button delete-item-button admin-panel-delete-button" type="button" disabled={Boolean(deletingAdminItem)} onClick={() => runAdminDelete(itemKey, onDelete)}>
+        <Trash2 size={14} /> {loading ? 'Deleting...' : label}
+      </button>
+    )
+  }
 
   return (
     <div className="grid half">
@@ -3438,6 +3606,9 @@ function AdminDashboard({ data, projects, currentUser, updateProject, updateUser
                   {userTab === 'pending' && !isCurrentAdmin && <button className="danger compact-button" onClick={() => updateUserStatus(u.id, 'Rejected')}>Reject</button>}
                   {userTab === 'rejected' && !isCurrentAdmin && <button className="warning compact-button" onClick={() => updateUserStatus(u.id, 'Pending')}>Move to Pending</button>}
                   {userTab === 'rejected' && !isCurrentAdmin && <button className="success compact-button" onClick={() => updateUserStatus(u.id, 'Active')}>Accept</button>}
+                  {canDeleteUserAccount(u, currentUser) && (
+                    <AdminPanelDeleteButton itemKey={`user-${u.id}`} label="Delete Account" onDelete={() => deleteUserAccount(u.id)} />
+                  )}
                 </div>
               </div>
             )
@@ -3450,6 +3621,44 @@ function AdminDashboard({ data, projects, currentUser, updateProject, updateUser
         <label className="field"><span>Supervisor name</span><input value={supervisorName} onChange={(e) => setSupervisorName(e.target.value)} placeholder="Write supervisor full name exactly" /></label>
         {projects.length ? projects.map((p) => <div className="mini-card" key={p.id}><div className="split"><div><b>{p.group_name}</b><p>{p.title}</p><p className="small muted">Supervisor: {p.supervisor_name}</p></div><button onClick={() => updateProject(p.id, { supervisor_name: supervisorName || 'Pending Assignment' })}>Assign</button></div></div>) : <EmptyState title="No projects to assign" text="Project assignments appear after students submit titles." icon={BookOpen} />}
         <button className="primary" onClick={exportCsv}><Download size={16} /> Export CSV Report</button>
+      </div>
+
+      <div className="card admin-delete-management-card">
+        <SectionHeader icon={Users} title="Research Group Deletion" subtitle="Admins can delete research groups and their linked projects/reports safely" />
+        <div className="managed-list compact-managed-list">
+          {researchGroups.length ? researchGroups.map((group) => (
+            <div className="mini-card managed-item" key={group.group_name}>
+              <div>
+                <b>{group.group_name}</b>
+                <p className="small muted">{group.count} research title{group.count === 1 ? '' : 's'} linked to this group</p>
+              </div>
+              {canDeleteResearchGroup(group.group_name, currentUser) && (
+                <AdminPanelDeleteButton itemKey={`group-${group.group_name}`} label="Delete Group" onDelete={() => deleteResearchGroup(group.group_name)} />
+              )}
+            </div>
+          )) : <EmptyState title="No research groups" text="Research groups will appear after research titles are submitted." icon={Users} />}
+        </div>
+      </div>
+
+      <div className="card admin-delete-management-card">
+        <SectionHeader icon={BookOpen} title="Research Title Deletion" subtitle="Admins can delete research titles/projects and related report data" />
+        <div className="managed-list compact-managed-list">
+          {projects.length ? projects.map((project) => {
+            const reportCount = data.reports.filter((report) => String(report.project_id) === String(project.id)).length
+            return (
+              <div className="mini-card managed-item" key={project.id}>
+                <div>
+                  <b>{project.title || 'Untitled research title'}</b>
+                  <p className="small muted">Group: {project.group_name || 'N/A'} • Area: {project.area || 'N/A'}</p>
+                  <p className="small muted">Supervisor: {project.supervisor_name || 'Pending Assignment'} • Reports: {reportCount}</p>
+                </div>
+                {canDeleteResearchProject(project, currentUser) && (
+                  <AdminPanelDeleteButton itemKey={`project-${project.id}`} label="Delete Title" onDelete={() => deleteResearchProject(project.id)} />
+                )}
+              </div>
+            )
+          }) : <EmptyState title="No research titles" text="Research titles will appear after students submit them." icon={BookOpen} />}
+        </div>
       </div>
 
       <div className="card admin-delete-management-card">
