@@ -3367,8 +3367,84 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
 
 function SupervisorDashboard({ data, projects, currentUser, reviewReport, createDeadline, removeDeadline, sendWeeklyReportToMyEmail, emailSendingReports = {} }) {
   const [feedback, setFeedback] = useState({})
+  const [selectedStudent, setSelectedStudent] = useState('all')
+  const [selectedStatus, setSelectedStatus] = useState('all')
+  const [selectedGroup, setSelectedGroup] = useState('all')
   const assignedProjects = projects.filter((p) => isAssignedSupervisorProject(p, currentUser))
-  const reports = data.reports.filter((r) => assignedProjects.some((p) => String(p.id) === String(r.project_id)))
+  const assignedProjectIds = new Set(assignedProjects.map((p) => String(p.id)))
+  const allowedReports = data.reports.filter((r) => assignedProjectIds.has(String(r.project_id)))
+
+  const studentOptions = useMemo(() => {
+    const students = new Map()
+    assignedProjects.forEach((project) => {
+      const projectReports = allowedReports.filter((report) => String(report.project_id) === String(project.id))
+      const projectStudent = findProfileByIdentity(data, {
+        id: project.student_id || project.created_by,
+        email: project.student_email || project.created_by_email,
+        submitted_by: Array.isArray(project.students) ? project.students[0] : project.group_name,
+      })
+      const candidates = [
+        projectStudent || null,
+        ...(projectReports.map((report) => findStudentProfileForReport(data, report)).filter(Boolean)),
+      ]
+      candidates.forEach((student) => {
+        const key = student?.id ? `id:${student.id}` : student?.email ? `email:${normalizeText(student.email)}` : `name:${normalizeText(student?.full_name || project.group_name)}`
+        if (!students.has(key)) {
+          students.set(key, {
+            key,
+            id: student?.id || null,
+            name: student?.full_name || project.group_name || 'Unknown student',
+            email: student?.email || project.student_email || '',
+            group: project.group_name || 'No research group',
+          })
+        }
+      })
+    })
+    allowedReports.forEach((report) => {
+      const project = assignedProjects.find((item) => String(item.id) === String(report.project_id))
+      const student = findStudentProfileForReport(data, report) || {
+        id: report.student_id || report.submitted_by_id || report.user_id || null,
+        full_name: report.submitted_by || project?.group_name || 'Unknown student',
+        email: report.student_email || report.submitted_by_email || '',
+      }
+      const key = student.id ? `id:${student.id}` : student.email ? `email:${normalizeText(student.email)}` : `name:${normalizeText(student.full_name)}`
+      if (!students.has(key)) {
+        students.set(key, {
+          key,
+          id: student.id || null,
+          name: student.full_name || 'Unknown student',
+          email: student.email || '',
+          group: project?.group_name || 'No research group',
+        })
+      }
+    })
+    return Array.from(students.values()).sort((a, b) => a.name.localeCompare(b.name))
+  }, [assignedProjects, allowedReports, data])
+
+  const groupOptions = useMemo(() => {
+    return Array.from(new Set(assignedProjects.map((project) => project.group_name || 'No research group'))).sort((a, b) => a.localeCompare(b))
+  }, [assignedProjects])
+
+  useEffect(() => {
+    if (selectedStudent !== 'all' && !studentOptions.some((student) => student.key === selectedStudent)) setSelectedStudent('all')
+    if (selectedGroup !== 'all' && !groupOptions.includes(selectedGroup)) setSelectedGroup('all')
+  }, [studentOptions, groupOptions, selectedStudent, selectedGroup])
+
+  const reports = allowedReports.filter((report) => {
+    const project = assignedProjects.find((item) => String(item.id) === String(report.project_id))
+    const student = findStudentProfileForReport(data, report) || {
+      id: report.student_id || report.submitted_by_id || report.user_id || null,
+      full_name: report.submitted_by || project?.group_name || 'Unknown student',
+      email: report.student_email || report.submitted_by_email || '',
+    }
+    const studentKey = student.id ? `id:${student.id}` : student.email ? `email:${normalizeText(student.email)}` : `name:${normalizeText(student.full_name)}`
+    const statusMatches = selectedStatus === 'all' || report.status === selectedStatus
+    const groupMatches = selectedGroup === 'all' || (project?.group_name || 'No research group') === selectedGroup
+    const studentMatches = selectedStudent === 'all' || studentKey === selectedStudent
+    return statusMatches && groupMatches && studentMatches
+  })
+
+  const selectedStudentName = selectedStudent === 'all' ? '' : studentOptions.find((student) => student.key === selectedStudent)?.name
 
   return (
     <div className="stack">
@@ -3376,16 +3452,48 @@ function SupervisorDashboard({ data, projects, currentUser, reviewReport, create
       <DeadlineManager deadlines={data.deadlines} createDeadline={createDeadline} removeDeadline={removeDeadline} />
 
       <div className="card supervisor-review-reports-card">
-        <SectionHeader icon={ClipboardCheck} title="Review Weekly Reports" subtitle="Approve or request revision" />
+        <SectionHeader icon={ClipboardCheck} title="Review Weekly Reports" subtitle="Choose a student, then review their weekly reports" />
+        <div className="supervisor-report-filter-panel">
+          <label className="field">
+            <span>Student</span>
+            <select value={selectedStudent} onChange={(e) => setSelectedStudent(e.target.value)}>
+              <option value="all">All Students</option>
+              {studentOptions.map((student) => (
+                <option key={student.key} value={student.key}>
+                  {student.name}{student.email ? ` — ${student.email}` : ''}{student.group ? ` (${student.group})` : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>Report status</span>
+            <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
+              <option value="all">All Statuses</option>
+              <option value="Submitted">Pending</option>
+              <option value="Accepted">Accepted</option>
+              <option value="Rejected">Rejected</option>
+              <option value="Revision Required">Needs Revision</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>Research group</span>
+            <select value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)}>
+              <option value="all">All Research Groups</option>
+              {groupOptions.map((group) => <option key={group} value={group}>{group}</option>)}
+            </select>
+          </label>
+        </div>
         {reports.length ? (
           <div className="supervisor-review-reports-scroll-container">
             {reports.map((r) => {
               const project = data.projects.find((p) => p.id === r.project_id)
+              const student = findStudentProfileForReport(data, r)
               return (
                 <div className="review-card" key={r.id}>
                   <div className="split">
                     <div>
-                      <p className="muted small bold">Student: {r.submitted_by || project?.group_name || 'Unknown student'}</p>
+                      <p className="muted small bold">Student: {student?.full_name || r.submitted_by || project?.group_name || 'Unknown student'}</p>
+                      {(student?.email || r.student_email || r.submitted_by_email || project?.group_name) && <p className="muted small">{student?.email || r.student_email || r.submitted_by_email || ''}{project?.group_name ? `${student?.email || r.student_email || r.submitted_by_email ? ' • ' : ''}${project.group_name}` : ''}</p>}
                       <h3>{project?.title || 'Weekly Report'}</h3>
                       <p className="muted small">Week {r.week_number} • Department: {r.department || project?.area || 'Not specified'} • Submitted {String(r.submitted_at || '').slice(0, 10) || 'date unavailable'}</p>
                     </div>
@@ -3427,7 +3535,7 @@ function SupervisorDashboard({ data, projects, currentUser, reviewReport, create
               )
             })}
           </div>
-        ) : <EmptyState title="No reports to review" text="Weekly reports from assigned projects will appear here." icon={ClipboardCheck} />}
+        ) : <EmptyState title={selectedStudentName ? 'No weekly reports found for this student.' : 'No reports to review'} text={selectedStudentName ? `${selectedStudentName} has not submitted weekly reports matching this filter yet.` : 'Weekly reports from assigned projects will appear here.'} icon={ClipboardCheck} />}
       </div>
     </div>
   )

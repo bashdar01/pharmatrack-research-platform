@@ -2775,3 +2775,28 @@ button:disabled {
     width: 100%;
   }
 }
+
+/* Supervisor weekly report filters */
+.supervisor-report-filter-panel {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.4fr) minmax(180px, 0.8fr) minmax(220px, 1fr);
+  gap: 14px;
+  align-items: end;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid #dbe4ef;
+  border-radius: 18px;
+  background: #f8fafc;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.75);
+}
+.supervisor-report-filter-panel .field {
+  min-width: 0;
+}
+.supervisor-report-filter-panel select {
+  width: 100%;
+}
+@media (max-width: 920px) {
+  .supervisor-report-filter-panel {
+    grid-template-columns: 1fr;
+  }
+}
