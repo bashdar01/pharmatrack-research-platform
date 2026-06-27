@@ -19,7 +19,7 @@ body { margin: 0; background: var(--bg); color: var(--text); }
 button, input, textarea, select { font-family: inherit; font-size: inherit; line-height: inherit; }
 button { cursor: pointer; border: 0; }
 .app { min-height: 100vh; }
-.hero { position: relative; display: flex; justify-content: flex-end; gap: 24px; align-items: flex-start; min-height: clamp(320px, 36vw, 520px); padding: 26px 6vw 36px; background-image: url('/hero-page.png'); background-size: cover; background-position: center; background-repeat: no-repeat; border-bottom: 1px solid var(--border); }
+.hero { position: relative; display: flex; justify-content: flex-end; gap: 24px; align-items: flex-start; min-height: clamp(360px, 42vw, 640px); padding: 26px 6vw 36px; background-color: #f4f7fb; background-image: url('/hero-page.png'); background-size: contain; background-position: center; background-repeat: no-repeat; border-bottom: 1px solid var(--border); }
 .hero h1, .login-card h1 { margin: 12px 0 8px; font-size: clamp(32px, 5vw, 54px); line-height: 1; letter-spacing: -0.04em; color: var(--text); }
 .hero-text { max-width: 780px; color: var(--muted); font-size: 17px; }
 .eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px; background: var(--card-soft); color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
@@ -488,7 +488,7 @@ button:disabled {
   border-radius: 22px;
   border: 1px solid var(--border);
   box-shadow: 0 14px 34px rgba(15, 23, 42, 0.12);
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
 }
 .deadline-form-grid {
@@ -551,8 +551,10 @@ button:disabled {
   background:
     linear-gradient(105deg, rgba(15,23,42,.92), rgba(15,23,42,.72) 44%, rgba(15,23,42,.20)),
     url('/hero-page.png');
-  background-size: cover;
-  background-position: center;
+  background-size: cover, contain;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+  background-color: #0f172a;
   color: #ffffff;
 }
 .admin-portal-header .admin-title-block {
@@ -781,8 +783,10 @@ button:disabled {
 .admin-image-preview {
   min-height: 280px;
   border-radius: 24px;
-  background-size: cover;
+  background-color: #f4f7fb;
+  background-size: contain;
   background-position: center;
+  background-repeat: no-repeat;
   border: 1px solid var(--border);
   overflow: hidden;
   position: relative;
@@ -1201,8 +1205,10 @@ button:disabled {
   background-image:
     linear-gradient(180deg, rgba(8, 145, 178, 0.80), rgba(29, 78, 216, 0.92)),
     var(--auth-bg-image);
-  background-size: cover;
-  background-position: center;
+  background-size: cover, contain;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+  background-color: #0f172a;
   color: #ffffff;
 }
 
@@ -1510,8 +1516,10 @@ button:disabled {
   padding: clamp(34px, 5vw, 76px);
   color: #ffffff;
   background-image: linear-gradient(135deg, rgba(13, 148, 136, .90), rgba(37, 99, 235, .92)), var(--auth-bg-image);
-  background-size: cover;
-  background-position: center;
+  background-size: cover, contain;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+  background-color: #0f766e;
   isolation: isolate;
 }
 
@@ -1777,8 +1785,10 @@ button:disabled {
   padding: 28px;
   color: #ffffff;
   background-image: linear-gradient(135deg, rgba(13, 148, 136, .88), rgba(37, 99, 235, .92)), var(--auth-bg-image);
-  background-size: cover;
-  background-position: center;
+  background-size: cover, contain;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+  background-color: #0f766e;
   isolation: isolate;
 }
 
@@ -1892,7 +1902,8 @@ button:disabled {
   overflow-y: auto;
 }
 .admin-image-preview {
-  background-size: cover;
+  background-color: #f4f7fb;
+  background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
 }
@@ -2680,3 +2691,41 @@ button:disabled {
     width: min(340px, calc(100vw - 24px));
   }
 }
+
+/* Full-image hero/banner fitting: keeps uploaded hero pictures fully visible on all screens */
+.hero,
+.admin-hero-preview,
+.admin-image-preview {
+  background-size: contain !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+}
+
+.admin-portal-header,
+.auth-brand-panel,
+.login-settings-preview {
+  background-size: cover, contain !important;
+  background-position: center center, center center !important;
+  background-repeat: no-repeat, no-repeat !important;
+}
+
+.login-hero-image {
+  width: 100%;
+  height: auto;
+  max-height: none;
+  object-fit: contain !important;
+  object-position: center center !important;
+  background: #f4f7fb;
+}
+
+@media (max-width: 760px) {
+  .hero {
+    min-height: clamp(260px, 68vw, 420px);
+    background-size: contain !important;
+  }
+  .admin-hero-preview,
+  .admin-image-preview {
+    min-height: 220px;
+  }
+}
+
