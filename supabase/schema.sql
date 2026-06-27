@@ -17,7 +17,7 @@ create table if not exists public.research_projects (
   id uuid primary key default uuid_generate_v4(),
   group_name text not null,
   title text not null,
-  area text not null,
+  area text not null check (area in ('Clinical Analysis','Clinical Pharmacy','Pharmaceutical Chemistry and Pharmacognosy','Pharmaceutics','Pharmacology')),
   supervisor_name text default 'Pending Assignment',
   supervisor_id uuid references public.profiles(id),
   supervisor_email text,
@@ -36,6 +36,7 @@ create table if not exists public.research_projects (
 create table if not exists public.weekly_reports (
   id uuid primary key default uuid_generate_v4(),
   project_id uuid references public.research_projects(id) on delete cascade,
+  department text check (department is null or department in ('Clinical Analysis','Clinical Pharmacy','Pharmaceutical Chemistry and Pharmacognosy','Pharmaceutics','Pharmacology')),
   week_number integer not null,
   submitted_by text not null,
   submitted_by_id uuid references public.profiles(id) on delete set null,

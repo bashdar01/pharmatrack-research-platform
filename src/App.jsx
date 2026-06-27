@@ -50,6 +50,21 @@ const invitationRoles = [
   { id: 'admin', label: 'Admin / Editor' },
 ]
 
+
+const DEPARTMENT_OPTIONS = [
+  'Clinical Analysis',
+  'Clinical Pharmacy',
+  'Pharmaceutical Chemistry and Pharmacognosy',
+  'Pharmaceutics',
+  'Pharmacology',
+]
+
+const DEFAULT_DEPARTMENT = DEPARTMENT_OPTIONS[0]
+
+function normalizeDepartment(value, fallback = DEFAULT_DEPARTMENT) {
+  return DEPARTMENT_OPTIONS.includes(value) ? value : fallback
+}
+
 const loginFontOptions = [
   { value: "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", label: 'Default / Inter' },
   { value: "Arial, Helvetica, sans-serif", label: 'Arial' },
@@ -1499,6 +1514,7 @@ export default function App() {
 
   async function createProject(form) {
     if (!form.title?.trim()) return setMessage('Please write a research title first.')
+    if (!DEPARTMENT_OPTIONS.includes(form.area)) return setMessage('Please select a valid department.')
     const studentAlreadySubmittedTitle = currentUser?.role === 'student' && data.projects.some((project) => isOwnStudentProject(project, currentUser))
     if (studentAlreadySubmittedTitle) {
       return setMessage('You already submitted a research title. New research title submission is closed for your account.')
@@ -1507,7 +1523,7 @@ export default function App() {
       id: crypto.randomUUID(),
       group_name: form.group_name || `${currentUser?.full_name || 'Student'} Project`,
       title: form.title,
-      area: form.area,
+      area: normalizeDepartment(form.area),
       supervisor_name: 'Pending Assignment',
       supervisor_id: null,
       supervisor_email: '',
@@ -1539,6 +1555,8 @@ export default function App() {
   async function createWeeklyReport(form, file) {
     if (!form.project_id) return setMessage('Create or select a research project first.')
     if (!form.completed_work?.trim()) return setMessage('Please write the work completed this week before submitting.')
+    const selectedReportProject = data.projects.find((item) => String(item.id) === String(form.project_id))
+    const reportDepartment = normalizeDepartment(form.department || selectedReportProject?.area)
     const nextWeek = Math.max(
       0,
       ...data.reports
@@ -1548,6 +1566,7 @@ export default function App() {
     const report = {
       id: crypto.randomUUID(),
       project_id: form.project_id,
+      department: reportDepartment,
       week_number: nextWeek,
       submitted_by: currentUser?.full_name || form.submitted_by,
       submitted_by_id: currentUser?.id || null,
@@ -3066,7 +3085,7 @@ function AdminAccessDenied({ currentUser, onLogout }) {
 }
 
 function FilterBar({ filters, setFilters, projects }) {
-  const areas = ['All', ...Array.from(new Set(projects.map((p) => p.area).filter(Boolean)))]
+  const areas = ['All', ...DEPARTMENT_OPTIONS]
   const statuses = ['All', ...Array.from(new Set(projects.flatMap((p) => [p.status, p.approval]).filter(Boolean)))]
   return (
     <div className="card filter-card no-print">
@@ -3096,8 +3115,8 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
   const hasSubmittedResearchTitle = Boolean(selectedProject)
   const reports = data.reports.filter((r) => String(r.project_id) === String(selectedProject?.id) && reportOwnedByUser(r, currentUser))
   const projectProgress = selectedProject ? getProjectProgress(selectedProject, data.reports) : 0
-  const [titleForm, setTitleForm] = useState({ title: '', area: 'Clinical Pharmacy', group_name: `${currentUser.full_name} Research Group`, final_due: '2026-06-20' })
-  const [reportForm, setReportForm] = useState({ completed_work: '', challenges: '', next_week_plan: '', attendance: 'Attended' })
+  const [titleForm, setTitleForm] = useState({ title: '', area: DEFAULT_DEPARTMENT, group_name: `${currentUser.full_name} Research Group`, final_due: '2026-06-20' })
+  const [reportForm, setReportForm] = useState({ completed_work: '', challenges: '', next_week_plan: '', attendance: 'Attended', department: DEFAULT_DEPARTMENT })
   const [file, setFile] = useState(null)
 
   return (
@@ -3133,6 +3152,12 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
           {selectedProject ? (
             <>
               <div className="form-grid">
+                <label className="field">
+                  <span>Department</span>
+                  <select value={normalizeDepartment(reportForm.department || selectedProject.area)} onChange={(e) => setReportForm({ ...reportForm, department: e.target.value })}>
+                    {DEPARTMENT_OPTIONS.map((department) => <option key={department} value={department}>{department}</option>)}
+                  </select>
+                </label>
                 <TextArea label="Work completed this week" value={reportForm.completed_work} onChange={(v) => setReportForm({ ...reportForm, completed_work: v })} />
                 <TextArea label="Problems or challenges" value={reportForm.challenges} onChange={(v) => setReportForm({ ...reportForm, challenges: v })} />
                 <TextArea label="Next week plan" value={reportForm.next_week_plan} onChange={(v) => setReportForm({ ...reportForm, next_week_plan: v })} />
@@ -3144,7 +3169,7 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
                   </select>
                 </label>
               </div>
-              <button className="primary" onClick={() => createWeeklyReport({ ...reportForm, project_id: selectedProject.id, submitted_by: currentUser.full_name }, file)}><Upload size={16} /> Submit Weekly Report</button>
+              <button className="primary" onClick={() => createWeeklyReport({ ...reportForm, department: normalizeDepartment(reportForm.department || selectedProject.area), project_id: selectedProject.id, submitted_by: currentUser.full_name }, file)}><Upload size={16} /> Submit Weekly Report</button>
             </>
           ) : <EmptyState title="Weekly reports locked" text="Create a research project first, then weekly report submission will be available." icon={Lock} />}
         </div>
@@ -3182,7 +3207,7 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
           <div className="form-grid compact">
             <input value={titleForm.title} onChange={(e) => setTitleForm({ ...titleForm, title: e.target.value })} placeholder="Research title" />
             <select value={titleForm.area} onChange={(e) => setTitleForm({ ...titleForm, area: e.target.value })}>
-              <option>Clinical Pharmacy</option><option>Pharmacology</option><option>Pharmaceutics</option><option>Pharmacognosy</option><option>Microbiology</option><option>Public Health</option>
+              {DEPARTMENT_OPTIONS.map((department) => <option key={department} value={department}>{department}</option>)}
             </select>
             <input value={titleForm.group_name} onChange={(e) => setTitleForm({ ...titleForm, group_name: e.target.value })} placeholder="Group name" />
             <input type="date" value={titleForm.final_due} onChange={(e) => setTitleForm({ ...titleForm, final_due: e.target.value })} />
@@ -3216,7 +3241,7 @@ function SupervisorDashboard({ data, projects, currentUser, reviewReport, create
                     <div>
                       <p className="muted small bold">Student: {r.submitted_by || project?.group_name || 'Unknown student'}</p>
                       <h3>{project?.title || 'Weekly Report'}</h3>
-                      <p className="muted small">Week {r.week_number} • Submitted {String(r.submitted_at || '').slice(0, 10) || 'date unavailable'}</p>
+                      <p className="muted small">Week {r.week_number} • Department: {r.department || project?.area || 'Not specified'} • Submitted {String(r.submitted_at || '').slice(0, 10) || 'date unavailable'}</p>
                     </div>
                     <div className="inline-actions">
                       <Pill tone={r.status === 'Accepted' ? 'green' : r.status === 'Revision Required' ? 'red' : 'amber'}>{r.status}</Pill>
