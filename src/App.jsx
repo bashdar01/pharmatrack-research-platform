@@ -443,40 +443,62 @@ function getProjectStudents(project) {
 
 function isOwnStudentProject(project, user) {
   if (!project || !user) return false
+  const userId = normalizeText(user.id)
   const userName = normalizeText(user.full_name)
   const userEmail = normalizeText(user.email)
-  const groupName = normalizeText(project.group_name)
-  const createdBy = normalizeText(project.created_by || project.student_name || project.submitted_by)
-  const studentId = normalizeText(project.student_id || project.user_id || project.owner_id)
+  const studentIds = [project.student_id, project.user_id, project.owner_id, project.created_by]
+    .map(normalizeText)
+    .filter(Boolean)
+  const studentEmails = [project.student_email, project.owner_email, project.created_by_email, project.submitted_by_email]
+    .map(normalizeText)
+    .filter(Boolean)
   const students = getProjectStudents(project).map(normalizeText)
+  const legacyHasNoOwner = !studentIds.length && !studentEmails.length
 
-  return (
-    (!!userName && (groupName.includes(userName) || createdBy === userName || students.some((student) => student.includes(userName) || userName.includes(student)))) ||
-    (!!userEmail && (createdBy === userEmail || students.includes(userEmail))) ||
-    (!!user.id && studentId === normalizeText(user.id))
-  )
+  if (userId && studentIds.includes(userId)) return true
+  if (userEmail && studentEmails.includes(userEmail)) return true
+
+  // Legacy support for older projects created before user IDs were saved.
+  // This fallback is intentionally exact to avoid one student matching another student's data.
+  if (legacyHasNoOwner) {
+    const createdBy = normalizeText(project.student_name || project.submitted_by || project.created_by_name)
+    const groupName = normalizeText(project.group_name)
+    return (
+      (!!userName && (createdBy === userName || groupName === userName || students.includes(userName))) ||
+      (!!userEmail && (createdBy === userEmail || students.includes(userEmail)))
+    )
+  }
+
+  return false
 }
 
 function isAssignedSupervisorProject(project, user) {
   if (!project || !user) return false
+  const supervisorId = normalizeText(project.supervisor_id || project.supervisor_user_id)
   const supervisorName = normalizeText(project.supervisor_name || project.supervisor || project.assigned_supervisor)
   const supervisorEmail = normalizeText(project.supervisor_email)
   return (
-    (!!user.full_name && supervisorName === normalizeText(user.full_name)) ||
-    (!!user.email && supervisorEmail === normalizeText(user.email))
+    (!!user.id && supervisorId === normalizeText(user.id)) ||
+    (!!user.email && supervisorEmail === normalizeText(user.email)) ||
+    (!!user.full_name && supervisorName === normalizeText(user.full_name))
   )
 }
 
 function getVisibleProjects(projects, role, user) {
   if (role === 'admin' || role === 'committee') return projects
   if (role === 'supervisor') return projects.filter((project) => isAssignedSupervisorProject(project, user))
-  return projects.filter((project) => isOwnStudentProject(project, user))
+  if (role === 'student') return projects.filter((project) => isOwnStudentProject(project, user))
+  return []
 }
 
-function getVisibleReports(reports, visibleProjects, role) {
-  const projectIds = new Set(visibleProjects.map((project) => project.id))
-  if (role === 'admin' || role === 'committee' || role === 'supervisor' || role === 'student') {
-    return reports.filter((report) => projectIds.has(report.project_id))
+function getVisibleReports(reports, visibleProjects, role, user) {
+  const projectIds = new Set(visibleProjects.map((project) => String(project.id)))
+  if (role === 'admin' || role === 'committee') return reports
+  if (role === 'student') {
+    return reports.filter((report) => projectIds.has(String(report.project_id)) && reportOwnedByUser(report, user))
+  }
+  if (role === 'supervisor') {
+    return reports.filter((report) => projectIds.has(String(report.project_id)))
   }
   return []
 }
@@ -499,15 +521,21 @@ function userIdMatches(value, user) {
 
 function reportOwnedByUser(report, user) {
   if (!report || !user) return false
-  return (
-    userIdMatches(report.submitted_by_id, user) ||
-    userIdMatches(report.user_id, user) ||
-    userIdMatches(report.created_by, user) ||
-    userIdMatches(report.uploaded_by, user) ||
-    userTextMatches(report.submitted_by, user) ||
-    userTextMatches(report.submitted_by_email, user) ||
-    userTextMatches(report.created_by_email, user)
-  )
+  const userId = normalizeText(user.id)
+  const userEmail = normalizeText(user.email)
+  const ownerIds = [report.submitted_by_id, report.student_id, report.user_id, report.created_by, report.uploaded_by]
+    .map(normalizeText)
+    .filter(Boolean)
+  const ownerEmails = [report.submitted_by_email, report.student_email, report.created_by_email, report.uploaded_by_email]
+    .map(normalizeText)
+    .filter(Boolean)
+  const legacyHasNoOwner = !ownerIds.length && !ownerEmails.length
+
+  if (userId && ownerIds.includes(userId)) return true
+  if (userEmail && ownerEmails.includes(userEmail)) return true
+
+  // Legacy support for older local records only when no owner ID/email exists.
+  return legacyHasNoOwner && userTextMatches(report.submitted_by, user)
 }
 
 function canDeleteReport(report, user) {
@@ -552,11 +580,21 @@ function findProfileByIdentity(data, identity = {}) {
 }
 
 function findStudentProfileForReport(data, report) {
-  return findProfileByIdentity(data, {
-    id: report?.submitted_by_id,
-    email: report?.submitted_by_email,
+  const found = findProfileByIdentity(data, {
+    id: report?.submitted_by_id || report?.student_id || report?.user_id,
+    email: report?.submitted_by_email || report?.student_email,
     submitted_by: report?.submitted_by,
   })
+  if (found) return found
+  if (report?.submitted_by_id || report?.student_id || report?.user_id || report?.submitted_by_email || report?.student_email) {
+    return {
+      id: report?.submitted_by_id || report?.student_id || report?.user_id || null,
+      full_name: report?.submitted_by || 'Student',
+      email: report?.submitted_by_email || report?.student_email || '',
+      role: 'student',
+    }
+  }
+  return null
 }
 
 function findSupervisorProfileForProject(data, project) {
@@ -564,11 +602,21 @@ function findSupervisorProfileForProject(data, project) {
   const supervisorId = project.supervisor_id || project.supervisor_user_id
   const supervisorEmail = normalizeText(project.supervisor_email)
   const supervisorName = normalizeText(project.supervisor_name || project.supervisor || project.assigned_supervisor)
-  return (data.profiles || []).find((profile) =>
+  const found = (data.profiles || []).find((profile) =>
     (!!supervisorId && String(profile.id) === String(supervisorId)) ||
     (!!supervisorEmail && normalizeText(profile.email) === supervisorEmail) ||
     (!!supervisorName && normalizeText(profile.full_name) === supervisorName)
-  ) || null
+  )
+  if (found) return found
+  if (supervisorId || supervisorEmail || supervisorName) {
+    return {
+      id: supervisorId || null,
+      full_name: project.supervisor_name || project.supervisor || project.assigned_supervisor || 'Supervisor',
+      email: project.supervisor_email || '',
+      role: 'supervisor',
+    }
+  }
+  return null
 }
 
 function canSendReportToSelf(report, project, user) {
@@ -577,6 +625,11 @@ function canSendReportToSelf(report, project, user) {
   if (user.role === 'student') return reportOwnedByUser(report, user)
   if (user.role === 'supervisor') return isAssignedSupervisorProject(project, user)
   return false
+}
+
+function makeUserScopedKey(baseKey, user) {
+  const identity = user?.id || user?.email || 'guest'
+  return `${baseKey}-${identity}`
 }
 
 function getReviewStatusLabel(status) {
@@ -995,7 +1048,9 @@ export default function App() {
   useEffect(() => {
     if (currentUser) {
       setRole(currentUser.role)
-      loadFromSupabase()
+      setTab('dashboard')
+      setEmailSendingReports({})
+      loadFromSupabase(currentUser)
     }
   }, [])
 
@@ -1013,7 +1068,7 @@ export default function App() {
     }
   }, [allowedRole, tab])
 
-  async function loadFromSupabase() {
+  async function loadFromSupabase(userOverride = currentUser) {
     if (!isSupabaseConfigured) return
     try {
       const [profiles, projects, reports, uploadedFiles, deadlines, notifications, evaluations, auditLogs] = await Promise.all([
@@ -1374,7 +1429,7 @@ export default function App() {
           }
         }
 
-        await loadFromSupabase()
+        await loadFromSupabase(loginUser)
       } else {
         const existingLocal = data.profiles.find((p) => p.email === email)
         if (isRegister) {
@@ -1420,8 +1475,11 @@ export default function App() {
       }
 
       saveCurrentUser(loginUser, Boolean(form.remember_me))
+      setEmailSendingReports({})
+      setTab('dashboard')
       setCurrentUser(loginUser)
       setRole(loginUser.role)
+      await loadFromSupabase(loginUser)
       setMessage(`Welcome, ${loginUser.full_name}.`)
     } catch (error) {
       setMessage(error.message || 'Authentication failed. Please check your Supabase URL, key, database policies, email, and password.')
@@ -1434,6 +1492,7 @@ export default function App() {
     if (isSupabaseConfigured) await supabase.auth.signOut()
     saveCurrentUser(null)
     setCurrentUser(null)
+    setEmailSendingReports({})
     setTab('dashboard')
     setMessage('You have logged out.')
   }
@@ -1450,6 +1509,12 @@ export default function App() {
       title: form.title,
       area: form.area,
       supervisor_name: 'Pending Assignment',
+      supervisor_id: null,
+      supervisor_email: '',
+      student_id: currentUser?.id || null,
+      student_email: currentUser?.email || '',
+      created_by: currentUser?.id || null,
+      created_by_email: currentUser?.email || '',
       approval: 'Pending Committee Review',
       status: 'Pending',
       progress: 0,
@@ -1474,14 +1539,24 @@ export default function App() {
   async function createWeeklyReport(form, file) {
     if (!form.project_id) return setMessage('Create or select a research project first.')
     if (!form.completed_work?.trim()) return setMessage('Please write the work completed this week before submitting.')
-    const nextWeek = Math.max(0, ...data.reports.filter((r) => String(r.project_id) === String(form.project_id)).map((r) => Number(r.week_number || 0))) + 1
+    const nextWeek = Math.max(
+      0,
+      ...data.reports
+        .filter((r) => String(r.project_id) === String(form.project_id) && reportOwnedByUser(r, currentUser))
+        .map((r) => Number(r.week_number || 0))
+    ) + 1
     const report = {
       id: crypto.randomUUID(),
       project_id: form.project_id,
       week_number: nextWeek,
-      submitted_by: form.submitted_by,
+      submitted_by: currentUser?.full_name || form.submitted_by,
       submitted_by_id: currentUser?.id || null,
       submitted_by_email: currentUser?.email || '',
+      student_id: currentUser?.id || null,
+      student_email: currentUser?.email || '',
+      user_id: currentUser?.id || null,
+      created_by: currentUser?.id || null,
+      created_by_email: currentUser?.email || '',
       submitted_at: new Date().toISOString(),
       completed_work: form.completed_work,
       challenges: form.challenges,
@@ -1560,6 +1635,9 @@ export default function App() {
       file_path: filePath,
       uploaded_by: currentUser?.id || null,
       uploaded_by_email: currentUser?.email || '',
+      user_id: currentUser?.id || null,
+      created_by: currentUser?.id || null,
+      created_by_email: currentUser?.email || '',
       file_mime_type: file.type || 'application/octet-stream',
     }).select().single()
     if (insert.error) throw insert.error
@@ -1774,7 +1852,7 @@ export default function App() {
         const { error } = await supabase.from('uploaded_files').delete().eq('id', fileId)
         if (error) throw error
         await addAudit(currentUser.full_name, 'deleted', `uploaded document: ${targetFile.file_name || fileId}`)
-        await loadFromSupabase()
+        await loadFromSupabase(loginUser)
       } else {
         const log = makeAudit(currentUser.full_name, 'deleted', `uploaded document: ${targetFile.file_name || fileId}`)
         setLocal((current) => ({
@@ -1814,7 +1892,7 @@ export default function App() {
         const progressUpdate = await supabase.from('research_projects').update({ progress: nextProgress }).eq('id', targetReport.project_id)
         if (progressUpdate.error) throw progressUpdate.error
         await addAudit(currentUser.full_name, 'deleted', `weekly report ${targetReport.week_number || reportId}`)
-        await loadFromSupabase()
+        await loadFromSupabase(loginUser)
       } else {
         const log = makeAudit(currentUser.full_name, 'deleted', `weekly report ${targetReport.week_number || reportId}`)
         setLocal((current) => ({
@@ -2216,7 +2294,7 @@ export default function App() {
     })
   }, [visibleProjects, filters])
 
-  const visibleReports = useMemo(() => getVisibleReports(data.reports, visibleProjects, allowedRole), [data.reports, visibleProjects, allowedRole])
+  const visibleReports = useMemo(() => getVisibleReports(data.reports, visibleProjects, allowedRole, currentUser), [data.reports, visibleProjects, allowedRole, currentUser])
 
   const visibleData = useMemo(() => ({
     ...data,
@@ -3016,7 +3094,7 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
   const ownProjects = projects.filter((p) => isOwnStudentProject(p, currentUser))
   const selectedProject = ownProjects[0] || data.projects.find((p) => isOwnStudentProject(p, currentUser))
   const hasSubmittedResearchTitle = Boolean(selectedProject)
-  const reports = data.reports.filter((r) => String(r.project_id) === String(selectedProject?.id))
+  const reports = data.reports.filter((r) => String(r.project_id) === String(selectedProject?.id) && reportOwnedByUser(r, currentUser))
   const projectProgress = selectedProject ? getProjectProgress(selectedProject, data.reports) : 0
   const [titleForm, setTitleForm] = useState({ title: '', area: 'Clinical Pharmacy', group_name: `${currentUser.full_name} Research Group`, final_due: '2026-06-20' })
   const [reportForm, setReportForm] = useState({ completed_work: '', challenges: '', next_week_plan: '', attendance: 'Attended' })
@@ -3066,7 +3144,7 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
                   </select>
                 </label>
               </div>
-              <button className="primary" onClick={() => createWeeklyReport({ ...reportForm, project_id: selectedProject.id, submitted_by: selectedProject.group_name }, file)}><Upload size={16} /> Submit Weekly Report</button>
+              <button className="primary" onClick={() => createWeeklyReport({ ...reportForm, project_id: selectedProject.id, submitted_by: currentUser.full_name }, file)}><Upload size={16} /> Submit Weekly Report</button>
             </>
           ) : <EmptyState title="Weekly reports locked" text="Create a research project first, then weekly report submission will be available." icon={Lock} />}
         </div>

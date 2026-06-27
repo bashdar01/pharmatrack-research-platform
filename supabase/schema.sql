@@ -20,6 +20,11 @@ create table if not exists public.research_projects (
   area text not null,
   supervisor_name text default 'Pending Assignment',
   supervisor_id uuid references public.profiles(id),
+  supervisor_email text,
+  student_id uuid references public.profiles(id) on delete set null,
+  student_email text,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_by_email text,
   approval text default 'Pending Committee Review',
   status text default 'Pending',
   progress numeric(5,2) default 0 check (progress >= 0 and progress <= 100),
@@ -35,6 +40,11 @@ create table if not exists public.weekly_reports (
   submitted_by text not null,
   submitted_by_id uuid references public.profiles(id) on delete set null,
   submitted_by_email text,
+  student_id uuid references public.profiles(id) on delete set null,
+  student_email text,
+  user_id uuid references public.profiles(id) on delete set null,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_by_email text,
   submitted_at timestamptz default now(),
   completed_work text not null,
   challenges text,
@@ -51,6 +61,9 @@ create table if not exists public.uploaded_files (
   report_id uuid references public.weekly_reports(id) on delete set null,
   uploaded_by uuid references public.profiles(id),
   uploaded_by_email text,
+  user_id uuid references public.profiles(id) on delete set null,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_by_email text,
   file_type text not null,
   file_name text not null,
   file_path text not null,
@@ -132,6 +145,60 @@ alter table public.notifications add column if not exists sender_user_id uuid re
 alter table public.notifications add column if not exists weekly_report_id uuid references public.weekly_reports(id) on delete cascade;
 alter table public.notifications add column if not exists project_id uuid references public.research_projects(id) on delete cascade;
 alter table public.notifications add column if not exists notification_type text;
+alter table public.research_projects add column if not exists supervisor_email text;
+alter table public.research_projects add column if not exists student_id uuid references public.profiles(id) on delete set null;
+alter table public.research_projects add column if not exists student_email text;
+alter table public.research_projects add column if not exists created_by uuid references public.profiles(id) on delete set null;
+alter table public.research_projects add column if not exists created_by_email text;
+
+alter table public.weekly_reports add column if not exists student_id uuid references public.profiles(id) on delete set null;
+alter table public.weekly_reports add column if not exists student_email text;
+alter table public.weekly_reports add column if not exists user_id uuid references public.profiles(id) on delete set null;
+alter table public.weekly_reports add column if not exists created_by uuid references public.profiles(id) on delete set null;
+alter table public.weekly_reports add column if not exists created_by_email text;
+
+alter table public.uploaded_files add column if not exists user_id uuid references public.profiles(id) on delete set null;
+alter table public.uploaded_files add column if not exists created_by uuid references public.profiles(id) on delete set null;
+alter table public.uploaded_files add column if not exists created_by_email text;
+
+update public.research_projects rp
+set student_id = p.id,
+    student_email = p.email,
+    created_by = coalesce(rp.created_by, p.id),
+    created_by_email = coalesce(rp.created_by_email, p.email)
+from public.profiles p
+where rp.student_id is null
+  and (
+    lower(coalesce(rp.student_email, '')) = lower(p.email)
+    or lower(coalesce(rp.created_by_email, '')) = lower(p.email)
+    or lower(coalesce(rp.group_name, '')) = lower(p.full_name)
+    or p.full_name = any(rp.students)
+  );
+
+update public.weekly_reports wr
+set student_id = p.id,
+    user_id = p.id,
+    created_by = coalesce(wr.created_by, p.id),
+    student_email = p.email,
+    created_by_email = coalesce(wr.created_by_email, p.email)
+from public.profiles p
+where (wr.student_id is null or wr.user_id is null)
+  and (
+    lower(coalesce(wr.submitted_by_email, '')) = lower(p.email)
+    or lower(coalesce(wr.student_email, '')) = lower(p.email)
+    or lower(coalesce(wr.submitted_by, '')) = lower(p.full_name)
+  );
+
+update public.uploaded_files uf
+set user_id = p.id,
+    created_by = coalesce(uf.created_by, p.id),
+    created_by_email = coalesce(uf.created_by_email, p.email)
+from public.profiles p
+where uf.user_id is null
+  and (
+    lower(coalesce(uf.uploaded_by_email, '')) = lower(p.email)
+    or uf.uploaded_by = p.id
+  );
 
 
 -- Development policies for testing with the built-in demo login. Before official university deployment,
