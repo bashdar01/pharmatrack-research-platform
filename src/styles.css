@@ -3087,3 +3087,134 @@ button:disabled {
     width: 100%;
   }
 }
+
+/* Admin subdomain feature parity: Users & Roles, assignment, and management layouts */
+.admin-dashboard-grid.full-admin-dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(340px, 0.7fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.admin-users-and-roles-card,
+.admin-delete-management-card,
+.admin-assignment-card {
+  min-width: 0;
+}
+
+.admin-users-and-roles-card {
+  grid-column: 1 / -1;
+}
+
+.admin-user-filter-bar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.5fr) repeat(3, minmax(150px, 0.75fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.admin-user-filter-bar input,
+.admin-user-filter-bar select,
+.admin-inline-assignment-field select,
+.admin-assignment-card select {
+  width: 100%;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 14px;
+  padding: 0.75rem 0.9rem;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+}
+
+.admin-users-and-roles-scroll {
+  max-height: 560px;
+  overflow-y: auto;
+  padding-right: 0.35rem;
+}
+
+.admin-user-role-management-row {
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.admin-role-actions-expanded {
+  min-width: 280px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  justify-content: flex-end;
+}
+
+.admin-role-actions-expanded select {
+  min-width: 165px;
+}
+
+.admin-inline-assignment-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 230px;
+}
+
+.admin-inline-assignment-field span {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.admin-project-assignment-list,
+.admin-delete-management-card .managed-list {
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 0.3rem;
+}
+
+.stacked-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: flex-end;
+}
+
+.admin-progress-management-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 0.35fr);
+  gap: 1rem;
+  align-items: center;
+}
+
+.admin-progress-inline {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 150px;
+}
+
+.admin-progress-inline span {
+  font-weight: 800;
+  text-align: right;
+  color: #0f172a;
+}
+
+@media (max-width: 980px) {
+  .admin-dashboard-grid.full-admin-dashboard-grid,
+  .admin-user-filter-bar,
+  .admin-progress-management-item {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-role-actions-expanded,
+  .stacked-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .admin-role-actions-expanded select,
+  .admin-inline-assignment-field {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .admin-progress-inline span {
+    text-align: left;
+  }
+}

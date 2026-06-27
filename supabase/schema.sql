@@ -10,6 +10,10 @@ create table if not exists public.profiles (
   email text unique not null,
   role text not null check (role in ('student','supervisor','committee','admin')),
   status text not null default 'Pending',
+  department text,
+  assigned_supervisor_id uuid,
+  assigned_supervisor_email text,
+  assigned_supervisor_name text,
   created_at timestamptz default now()
 );
 
@@ -159,6 +163,10 @@ alter table public.notifications add column if not exists weekly_report_id uuid 
 alter table public.notifications add column if not exists project_id uuid references public.research_projects(id) on delete cascade;
 alter table public.notifications add column if not exists related_deadline_id uuid references public.deadlines(id) on delete cascade;
 alter table public.notifications add column if not exists notification_type text;
+alter table public.profiles add column if not exists department text;
+alter table public.profiles add column if not exists assigned_supervisor_id uuid references public.profiles(id) on delete set null;
+alter table public.profiles add column if not exists assigned_supervisor_email text;
+alter table public.profiles add column if not exists assigned_supervisor_name text;
 alter table public.research_projects add column if not exists supervisor_email text;
 alter table public.research_projects add column if not exists student_id uuid references public.profiles(id) on delete set null;
 alter table public.research_projects add column if not exists student_email text;

@@ -2333,6 +2333,66 @@ export default function App() {
     setMessage(`${targetUser.full_name}'s account status was changed to ${newStatus}.`)
   }
 
+
+  async function assignStudentToSupervisor(studentId, supervisorId) {
+    if (!isAdminUser(currentUser)) return setMessage('You do not have permission to access this admin feature.')
+    const student = data.profiles.find((user) => String(user.id) === String(studentId))
+    if (!student || student.role !== 'student') return setMessage('Student account not found.')
+    const supervisor = supervisorId ? data.profiles.find((user) => String(user.id) === String(supervisorId) && user.role === 'supervisor') : null
+    if (supervisorId && !supervisor) return setMessage('Supervisor account not found.')
+
+    const studentName = normalizeText(student.full_name)
+    const studentEmail = normalizeText(student.email)
+    const linkedProjects = data.projects.filter((project) => {
+      const projectStudents = getProjectStudents(project).map(normalizeText)
+      return (
+        String(project.student_id || '') === String(student.id) ||
+        String(project.created_by || '') === String(student.id) ||
+        normalizeText(project.student_email) === studentEmail ||
+        normalizeText(project.created_by_email) === studentEmail ||
+        normalizeText(project.group_name) === studentName ||
+        projectStudents.includes(studentName) ||
+        projectStudents.includes(studentEmail)
+      )
+    })
+
+    const profileUpdate = {
+      assigned_supervisor_id: supervisor?.id || null,
+      assigned_supervisor_email: supervisor?.email || '',
+      assigned_supervisor_name: supervisor?.full_name || '',
+    }
+    const projectUpdate = {
+      supervisor_id: supervisor?.id || null,
+      supervisor_email: supervisor?.email || '',
+      supervisor_name: supervisor?.full_name || 'Pending Assignment',
+    }
+
+    try {
+      if (isSupabaseConfigured) {
+        const profileResult = await supabase.from('profiles').update(profileUpdate).eq('id', student.id)
+        if (profileResult.error) throw profileResult.error
+        for (const project of linkedProjects) {
+          const updateResult = await supabase.from('research_projects').update(projectUpdate).eq('id', project.id)
+          if (updateResult.error) throw updateResult.error
+        }
+        await addAudit(currentUser.full_name, supervisor ? 'assigned student to supervisor' : 'removed supervisor assignment for', `${student.full_name || student.email}${supervisor ? ` → ${supervisor.full_name || supervisor.email}` : ''}`)
+        await loadFromSupabase(loginUser)
+      } else {
+        const log = makeAudit(currentUser.full_name, supervisor ? 'assigned student to supervisor' : 'removed supervisor assignment for', `${student.full_name || student.email}${supervisor ? ` → ${supervisor.full_name || supervisor.email}` : ''}`)
+        const linkedIds = new Set(linkedProjects.map((project) => String(project.id)))
+        setLocal((current) => ({
+          ...current,
+          profiles: current.profiles.map((user) => String(user.id) === String(student.id) ? { ...user, ...profileUpdate } : user),
+          projects: current.projects.map((project) => linkedIds.has(String(project.id)) ? { ...project, ...projectUpdate } : project),
+          auditLogs: [log, ...current.auditLogs],
+        }))
+      }
+      setMessage(supervisor ? `${student.full_name || student.email} was assigned to ${supervisor.full_name || supervisor.email}.` : `Supervisor assignment removed for ${student.full_name || student.email}.`)
+    } catch (error) {
+      setMessage(error.message?.toLowerCase?.().includes('permission') || error.message?.toLowerCase?.().includes('row-level security') ? 'You do not have permission to access this admin feature.' : (error.message || 'Could not update supervisor assignment.'))
+    }
+  }
+
   async function saveEvaluation(form) {
     const project = data.projects[0]
     if (!project) return setMessage('Create a project first before saving an evaluation.')
@@ -2897,10 +2957,18 @@ export default function App() {
         removeDeadline={removeDeadline}
         deleteWeeklyReport={deleteWeeklyReport}
         deleteUploadedFile={deleteUploadedFile}
+        deleteUserAccount={deleteUserAccount}
+        deleteResearchGroup={deleteResearchGroup}
+        deleteResearchProject={deleteResearchProject}
+        assignStudentToSupervisor={assignStudentToSupervisor}
         createInvitation={createInvitation}
         resendInvitation={resendInvitation}
         cancelInvitation={cancelInvitation}
         copyInvitationLink={copyInvitationLink}
+        createNotification={createNotification}
+        markNotificationRead={markNotificationRead}
+        removeNotification={removeNotification}
+        printPdfReport={printPdfReport}
         databaseMode={databaseMode}
         auditLogs={visibleData.auditLogs}
         onLogout={logout}
@@ -2941,7 +3009,7 @@ export default function App() {
             {allowedRole === 'student' && <StudentDashboard data={visibleData} projects={visibleProjects} currentUser={currentUser} createProject={createProject} createWeeklyReport={createWeeklyReport} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
             {allowedRole === 'supervisor' && <SupervisorDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} reviewReport={reviewReport} createDeadline={createDeadline} removeDeadline={removeDeadline} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
             {allowedRole === 'committee' && <CommitteeDashboard data={visibleData} projects={filteredProjects} updateProject={updateProject} saveEvaluation={saveEvaluation} />}
-            {allowedRole === 'admin' && <AdminDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} />}
+            {allowedRole === 'admin' && <AdminDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} assignStudentToSupervisor={assignStudentToSupervisor} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} />}
           </>
         )}
 
@@ -3036,10 +3104,18 @@ function AdminControlPanel({
   removeDeadline,
   deleteWeeklyReport,
   deleteUploadedFile,
+  deleteUserAccount,
+  deleteResearchGroup,
+  deleteResearchProject,
+  assignStudentToSupervisor,
   createInvitation,
   resendInvitation,
   cancelInvitation,
   copyInvitationLink,
+  createNotification,
+  markNotificationRead,
+  removeNotification,
+  printPdfReport,
   databaseMode,
   auditLogs,
   onLogout,
@@ -3058,6 +3134,8 @@ function AdminControlPanel({
     { id: 'users', label: 'Users & Roles', icon: Users },
     { id: 'invitations', label: 'Invite Users', icon: Mail },
     { id: 'deadlines', label: 'Deadlines', icon: CalendarDays },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'reports', label: 'Reports', icon: Printer },
     { id: 'database', label: 'Database', icon: Database },
     { id: 'audit', label: 'Audit Log', icon: ShieldCheck },
   ]
@@ -3182,7 +3260,7 @@ function AdminControlPanel({
         <header className="admin-panel-topbar no-print">
           <div>
             <p className="eyebrow"><UserCog size={16} /> Admin subdomain</p>
-            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : 'Control Center'}</h1>
+            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Notifications' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : 'Control Center'}</h1>
             <p>{settings.adminWelcome}</p>
           </div>
           <a className="admin-preview-link" href="/" target="_blank" rel="noreferrer">Open main website</a>
@@ -3420,8 +3498,10 @@ function AdminControlPanel({
         )}
 
         {adminPanelTab === 'invitations' && <InvitationManager invitations={data.invitations} settings={settings} createInvitation={createInvitation} resendInvitation={resendInvitation} cancelInvitation={cancelInvitation} copyInvitationLink={copyInvitationLink} />}
-        {adminPanelTab === 'users' && <AdminDashboard data={data} projects={projects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} />}
-        {adminPanelTab === 'deadlines' && <DeadlineManager deadlines={data.deadlines} createDeadline={createDeadline} removeDeadline={removeDeadline} />}
+        {adminPanelTab === 'users' && <AdminDashboard data={data} projects={projects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} assignStudentToSupervisor={assignStudentToSupervisor} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} />}
+        {adminPanelTab === 'deadlines' && <DeadlineManager deadlines={data.deadlines} createDeadline={createDeadline} removeDeadline={removeDeadline} students={data.profiles.filter((profile) => profile.role === 'student').map((student) => ({ key: makeStudentOptionKey(student), id: student.id, name: student.full_name, email: student.email, group: student.department || student.area || 'Student' }))} currentUser={currentUser} />}
+        {adminPanelTab === 'notifications' && <NotificationsTab data={data} role="admin" currentUser={currentUser} createNotification={createNotification} markNotificationRead={markNotificationRead} removeNotification={removeNotification} />}
+        {adminPanelTab === 'reports' && <ReportsTab data={data} projects={projects} currentUser={currentUser} role="admin" printPdfReport={printPdfReport} exportCsv={exportCsv} />}
         {adminPanelTab === 'database' && <DatabaseTab databaseMode={databaseMode} />}
         {adminPanelTab === 'audit' && <AuditTab logs={auditLogs} />}
       </main>
@@ -4142,21 +4222,80 @@ function CommitteeDashboard({ projects, updateProject, saveEvaluation }) {
   )
 }
 
-function AdminDashboard({ data, projects, currentUser, updateProject, updateUserRole, updateUserStatus, exportCsv, deleteWeeklyReport, deleteUploadedFile, deleteUserAccount, deleteResearchGroup, deleteResearchProject }) {
+function AdminDashboard({ data, projects, currentUser, updateProject, updateUserRole, updateUserStatus, assignStudentToSupervisor, exportCsv, deleteWeeklyReport, deleteUploadedFile, deleteUserAccount, deleteResearchGroup, deleteResearchProject }) {
   const supervisors = data.profiles.filter((u) => u.role === 'supervisor')
-  const [supervisorName, setSupervisorName] = useState(supervisors[0]?.full_name || '')
+  const students = data.profiles.filter((u) => u.role === 'student')
+  const [projectSupervisorId, setProjectSupervisorId] = useState(supervisors[0]?.id || '')
   const [userTab, setUserTab] = useState('pending')
-  const [deletingAdminItem, setDeletingAdminItem] = useState('')
+  const [userSearch, setUserSearch] = useState('')
+  const [userRoleFilter, setUserRoleFilter] = useState('all')
+  const [userStatusFilter, setUserStatusFilter] = useState('all')
+  const [userDepartmentFilter, setUserDepartmentFilter] = useState('all')
+  const [adminActionLoading, setAdminActionLoading] = useState('')
+
+  useEffect(() => {
+    if (!projectSupervisorId && supervisors[0]?.id) setProjectSupervisorId(supervisors[0].id)
+  }, [projectSupervisorId, supervisors])
 
   const pendingUsers = data.profiles.filter((u) => (u.status || 'Pending') === 'Pending')
   const activeUsers = data.profiles.filter((u) => (u.status || 'Pending') === 'Active')
   const rejectedUsers = data.profiles.filter((u) => (u.status || 'Pending') === 'Rejected')
 
-  const usersToShow = userTab === 'pending'
+  const baseUsersToShow = userTab === 'pending'
     ? pendingUsers
     : userTab === 'roles'
       ? activeUsers
       : rejectedUsers
+
+  function getUserDepartment(user) {
+    const direct = user.department || user.area || user.research_area
+    if (direct) return direct
+    const relatedProject = projects.find((project) =>
+      String(project.student_id || project.created_by || '') === String(user.id) ||
+      normalizeText(project.student_email || project.created_by_email) === normalizeText(user.email) ||
+      normalizeText(project.group_name) === normalizeText(user.full_name) ||
+      getProjectStudents(project).map(normalizeText).includes(normalizeText(user.full_name))
+    )
+    return relatedProject?.area || 'Not set'
+  }
+
+  function getAssignedSupervisor(user) {
+    if (user.role !== 'student') return null
+    if (user.assigned_supervisor_id || user.assigned_supervisor_email || user.assigned_supervisor_name) {
+      const byId = supervisors.find((s) => String(s.id) === String(user.assigned_supervisor_id))
+      const byEmail = supervisors.find((s) => normalizeText(s.email) === normalizeText(user.assigned_supervisor_email))
+      return byId || byEmail || { id: user.assigned_supervisor_id || '', full_name: user.assigned_supervisor_name || 'Assigned supervisor', email: user.assigned_supervisor_email || '' }
+    }
+    const relatedProject = projects.find((project) =>
+      String(project.student_id || project.created_by || '') === String(user.id) ||
+      normalizeText(project.student_email || project.created_by_email) === normalizeText(user.email) ||
+      normalizeText(project.group_name) === normalizeText(user.full_name) ||
+      getProjectStudents(project).map(normalizeText).includes(normalizeText(user.full_name))
+    )
+    if (!relatedProject) return null
+    return supervisors.find((s) => String(s.id) === String(relatedProject.supervisor_id)) ||
+      supervisors.find((s) => normalizeText(s.email) === normalizeText(relatedProject.supervisor_email)) ||
+      supervisors.find((s) => normalizeText(s.full_name) === normalizeText(relatedProject.supervisor_name)) ||
+      (relatedProject.supervisor_name && relatedProject.supervisor_name !== 'Pending Assignment' ? { id: relatedProject.supervisor_id || '', full_name: relatedProject.supervisor_name, email: relatedProject.supervisor_email || '' } : null)
+  }
+
+  function getSupervisorStudentCount(supervisor) {
+    const assigned = getAssignedSupervisorStudents(data, projects.filter((project) => isAssignedSupervisorProject(project, supervisor)), data.reports)
+    return assigned.length
+  }
+
+  const departmentOptions = Array.from(new Set([...DEPARTMENTS, ...data.profiles.map(getUserDepartment).filter((value) => value && value !== 'Not set')])).sort((a, b) => a.localeCompare(b))
+
+  const usersToShow = baseUsersToShow.filter((user) => {
+    const q = userSearch.trim().toLowerCase()
+    const department = getUserDepartment(user)
+    const assigned = getAssignedSupervisor(user)
+    const matchesSearch = !q || [user.full_name, user.email, user.role, user.status, department, assigned?.full_name, assigned?.email].some((value) => String(value || '').toLowerCase().includes(q))
+    const matchesRole = userRoleFilter === 'all' || user.role === userRoleFilter
+    const matchesStatus = userStatusFilter === 'all' || (user.status || 'Pending') === userStatusFilter
+    const matchesDepartment = userDepartmentFilter === 'all' || department === userDepartmentFilter
+    return matchesSearch && matchesRole && matchesStatus && matchesDepartment
+  })
 
   const tabTitle = userTab === 'pending'
     ? 'Pending User Approval'
@@ -4167,34 +4306,44 @@ function AdminDashboard({ data, projects, currentUser, updateProject, updateUser
   const tabSubtitle = userTab === 'pending'
     ? 'Approve or reject newly registered users before they can access the platform.'
     : userTab === 'roles'
-      ? 'Change roles for approved users and manage their account status.'
+      ? 'Search, filter, change roles, update status, assign students to supervisors, and delete accounts.'
       : 'Review rejected accounts and restore them if needed.'
 
   const researchGroups = getProjectGroupSummaries(projects)
+  const selectedProjectSupervisor = supervisors.find((supervisor) => String(supervisor.id) === String(projectSupervisorId))
 
-  async function runAdminDelete(key, action) {
-    if (deletingAdminItem) return
-    setDeletingAdminItem(key)
+  async function runAdminAction(key, action) {
+    if (adminActionLoading) return
+    setAdminActionLoading(key)
     try {
       await action()
     } finally {
-      setDeletingAdminItem('')
+      setAdminActionLoading('')
     }
   }
 
   function AdminPanelDeleteButton({ itemKey, label, onDelete }) {
-    const loading = deletingAdminItem === itemKey
+    const loading = adminActionLoading === itemKey
     return (
-      <button className="danger compact-button delete-item-button admin-panel-delete-button" type="button" disabled={Boolean(deletingAdminItem)} onClick={() => runAdminDelete(itemKey, onDelete)}>
+      <button className="danger compact-button delete-item-button admin-panel-delete-button" type="button" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(itemKey, onDelete)}>
         <Trash2 size={14} /> {loading ? 'Deleting...' : label}
       </button>
     )
   }
 
+  function handleProjectSupervisorAssign(projectId) {
+    const supervisor = selectedProjectSupervisor
+    updateProject(projectId, {
+      supervisor_name: supervisor?.full_name || 'Pending Assignment',
+      supervisor_id: supervisor?.id || null,
+      supervisor_email: supervisor?.email || '',
+    })
+  }
+
   return (
-    <div className="grid half">
-      <div className="card admin-user-management-card">
-        <SectionHeader icon={Users} title="Accept New Users" subtitle="Approve new accounts and manage user roles" />
+    <div className="admin-dashboard-grid full-admin-dashboard-grid">
+      <div className="card admin-user-management-card admin-users-and-roles-card">
+        <SectionHeader icon={Users} title="Users and Roles" subtitle="Approve users, manage roles, assign students, and delete accounts" />
 
         <div className="admin-user-tabs">
           <button className={userTab === 'pending' ? 'active' : ''} onClick={() => setUserTab('pending')}>
@@ -4208,64 +4357,139 @@ function AdminDashboard({ data, projects, currentUser, updateProject, updateUser
           </button>
         </div>
 
+        <div className="admin-user-filter-bar">
+          <input value={userSearch} onChange={(e) => setUserSearch(e.target.value)} placeholder="Search name, email, role, department, status..." />
+          <select value={userRoleFilter} onChange={(e) => setUserRoleFilter(e.target.value)}>
+            <option value="all">All roles</option>
+            {roleButtons.map((role) => <option key={role.id} value={role.id}>{role.label}</option>)}
+          </select>
+          <select value={userStatusFilter} onChange={(e) => setUserStatusFilter(e.target.value)}>
+            <option value="all">All statuses</option>
+            <option value="Pending">Pending</option>
+            <option value="Active">Active</option>
+            <option value="Rejected">Rejected</option>
+          </select>
+          <select value={userDepartmentFilter} onChange={(e) => setUserDepartmentFilter(e.target.value)}>
+            <option value="all">All departments</option>
+            {departmentOptions.map((department) => <option key={department} value={department}>{department}</option>)}
+          </select>
+        </div>
+
         <div className="soft-box admin-tab-note">
           <b>{tabTitle}</b>
           <p>{tabSubtitle}</p>
         </div>
 
-        <div className="admin-user-approval-scroll-container">
+        <div className="admin-user-approval-scroll-container admin-users-and-roles-scroll">
           {usersToShow.length ? usersToShow.map((u) => {
             const isCurrentAdmin = u.id === currentUser.id
             const statusTone = u.status === 'Active' ? 'green' : u.status === 'Rejected' ? 'red' : 'amber'
             const requestedRoleLabel = roleButtons.find((role) => role.id === u.role)?.label || u.role || 'Student'
             const submittedAt = String(u.created_at || u.submitted_at || u.registered_at || '').slice(0, 16).replace('T', ' ') || 'Date unavailable'
+            const department = getUserDepartment(u)
+            const assignedSupervisor = getAssignedSupervisor(u)
+            const supervisorStudentCount = u.role === 'supervisor' ? getSupervisorStudentCount(u) : 0
+            const assignmentLoading = adminActionLoading === `assign-${u.id}`
             return (
-              <div className="mini-card user-role-row admin-pending-user-request" key={u.id}>
+              <div className="mini-card user-role-row admin-pending-user-request admin-user-role-management-row" key={u.id}>
                 <div className="admin-pending-user-info">
                   <b>{u.full_name || 'Unnamed user'}</b>
                   <p>{u.email || 'No email available'}</p>
-                  <p className="small muted">Requested role: <b>{requestedRoleLabel}</b></p>
+                  <p className="small muted">Role: <b>{requestedRoleLabel}</b> • Status: <b>{u.status || 'Pending'}</b></p>
+                  <p className="small muted">Department: <b>{department}</b></p>
                   <p className="small muted">Submitted: <b>{submittedAt}</b></p>
-                  <p className="small muted">Account status: <b>{u.status || 'Pending'}</b></p>
+                  {u.role === 'student' && <p className="small muted">Assigned supervisor: <b>{assignedSupervisor?.full_name || 'Not assigned'}</b>{assignedSupervisor?.email ? ` • ${assignedSupervisor.email}` : ''}</p>}
+                  {u.role === 'supervisor' && <p className="small muted">Assigned students/projects: <b>{supervisorStudentCount}</b></p>}
                   {isCurrentAdmin && <p className="small muted">Current admin account</p>}
                 </div>
-                <div className="role-management admin-pending-user-actions">
+                <div className="role-management admin-pending-user-actions admin-role-actions-expanded">
                   <Pill tone={u.role === 'admin' ? 'blue' : u.role === 'supervisor' ? 'green' : u.role === 'committee' ? 'amber' : 'slate'}>{requestedRoleLabel}</Pill>
                   <Pill tone={statusTone}>{u.status || 'Pending'}</Pill>
 
                   {(userTab === 'roles' || userTab === 'pending') && (
-                    <select value={u.role} disabled={isCurrentAdmin} onChange={(e) => updateUserRole(u.id, e.target.value)}>
+                    <select value={u.role} disabled={isCurrentAdmin || Boolean(adminActionLoading)} onChange={(e) => runAdminAction(`role-${u.id}`, () => updateUserRole(u.id, e.target.value))}>
                       {roleButtons.map((role) => <option key={role.id} value={role.id}>{role.label}</option>)}
                     </select>
                   )}
 
-                  {userTab === 'roles' && (
-                    <select value={u.status || 'Pending'} disabled={isCurrentAdmin} onChange={(e) => updateUserStatus(u.id, e.target.value)}>
+                  {(userTab === 'roles' || userTab === 'pending' || userTab === 'rejected') && (
+                    <select value={u.status || 'Pending'} disabled={isCurrentAdmin || Boolean(adminActionLoading)} onChange={(e) => runAdminAction(`status-${u.id}`, () => updateUserStatus(u.id, e.target.value))}>
                       <option value="Pending">Pending</option>
                       <option value="Active">Active / Approved</option>
                       <option value="Rejected">Rejected</option>
                     </select>
                   )}
 
-                  {userTab === 'pending' && !isCurrentAdmin && <button className="success compact-button" onClick={() => updateUserStatus(u.id, 'Active')}>Accept</button>}
-                  {userTab === 'pending' && !isCurrentAdmin && <button className="danger compact-button" onClick={() => updateUserStatus(u.id, 'Rejected')}>Reject</button>}
-                  {userTab === 'rejected' && !isCurrentAdmin && <button className="warning compact-button" onClick={() => updateUserStatus(u.id, 'Pending')}>Move to Pending</button>}
-                  {userTab === 'rejected' && !isCurrentAdmin && <button className="success compact-button" onClick={() => updateUserStatus(u.id, 'Active')}>Accept</button>}
-                  {canDeleteUserAccount(u, currentUser) && (
+                  {u.role === 'student' && (
+                    <label className="admin-inline-assignment-field">
+                      <span>Supervisor</span>
+                      <select value={assignedSupervisor?.id || ''} disabled={Boolean(adminActionLoading)} onChange={(e) => runAdminAction(`assign-${u.id}`, () => assignStudentToSupervisor?.(u.id, e.target.value))}>
+                        <option value="">Not assigned</option>
+                        {supervisors.map((supervisor) => <option key={supervisor.id} value={supervisor.id}>{supervisor.full_name || supervisor.email}</option>)}
+                      </select>
+                      {assignmentLoading && <small className="muted">Updating...</small>}
+                    </label>
+                  )}
+
+                  {userTab === 'pending' && !isCurrentAdmin && <button className="success compact-button" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`accept-${u.id}`, () => updateUserStatus(u.id, 'Active'))}>Accept</button>}
+                  {userTab === 'pending' && !isCurrentAdmin && <button className="danger compact-button" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`reject-${u.id}`, () => updateUserStatus(u.id, 'Rejected'))}>Reject</button>}
+                  {userTab === 'rejected' && !isCurrentAdmin && <button className="warning compact-button" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`pending-${u.id}`, () => updateUserStatus(u.id, 'Pending'))}>Move to Pending</button>}
+                  {userTab === 'rejected' && !isCurrentAdmin && <button className="success compact-button" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`accept-${u.id}`, () => updateUserStatus(u.id, 'Active'))}>Accept</button>}
+                  {canDeleteUserAccount(u, currentUser) && deleteUserAccount && (
                     <AdminPanelDeleteButton itemKey={`user-${u.id}`} label="Delete Account" onDelete={() => deleteUserAccount(u.id)} />
                   )}
                 </div>
               </div>
             )
-          }) : <EmptyState title={`No ${tabTitle.toLowerCase()}`} text="Users will appear here after registration or after profiles are loaded from Supabase." icon={Users} />}
+          }) : <EmptyState title={`No ${tabTitle.toLowerCase()}`} text="Try changing the search/filter settings or wait for users to register." icon={Users} />}
         </div>
       </div>
 
-      <div className="card">
-        <SectionHeader icon={UserCog} title="Supervisor Assignment" subtitle="Assign projects to supervisors" />
-        <label className="field"><span>Supervisor name</span><input value={supervisorName} onChange={(e) => setSupervisorName(e.target.value)} placeholder="Write supervisor full name exactly" /></label>
-        {projects.length ? projects.map((p) => <div className="mini-card" key={p.id}><div className="split"><div><b>{p.group_name}</b><p>{p.title}</p><p className="small muted">Supervisor: {p.supervisor_name}</p></div><button onClick={() => updateProject(p.id, { supervisor_name: supervisorName || 'Pending Assignment' })}>Assign</button></div></div>) : <EmptyState title="No projects to assign" text="Project assignments appear after students submit titles." icon={BookOpen} />}
+      <div className="card admin-assignment-card">
+        <SectionHeader icon={UserCog} title="Project Supervisor Assignment" subtitle="Assign or update supervisors for submitted research titles" />
+        <label className="field">
+          <span>Choose supervisor</span>
+          <select value={projectSupervisorId} onChange={(e) => setProjectSupervisorId(e.target.value)}>
+            <option value="">Pending Assignment / remove supervisor</option>
+            {supervisors.map((supervisor) => <option key={supervisor.id} value={supervisor.id}>{supervisor.full_name || supervisor.email}</option>)}
+          </select>
+        </label>
+        <div className="managed-list compact-managed-list admin-project-assignment-list">
+          {projects.length ? projects.map((p) => (
+            <div className="mini-card managed-item" key={p.id}>
+              <div>
+                <b>{p.group_name}</b>
+                <p>{p.title}</p>
+                <p className="small muted">Student: {p.student_email || p.created_by_email || getProjectStudents(p).join(', ') || 'Not linked'}</p>
+                <p className="small muted">Supervisor: {p.supervisor_name || 'Pending Assignment'}</p>
+              </div>
+              <div className="stacked-actions">
+                <button className="secondary compact-button" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`project-assign-${p.id}`, () => handleProjectSupervisorAssign(p.id))}>Update Supervisor</button>
+                <button className="warning compact-button" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`project-unassign-${p.id}`, () => updateProject(p.id, { supervisor_name: 'Pending Assignment', supervisor_id: null, supervisor_email: '' }))}>Remove Assignment</button>
+              </div>
+            </div>
+          )) : <EmptyState title="No projects to assign" text="Project assignments appear after students submit titles." icon={BookOpen} />}
+        </div>
         <button className="primary" onClick={exportCsv}><Download size={16} /> Export CSV Report</button>
+      </div>
+
+      <div className="card admin-delete-management-card">
+        <SectionHeader icon={CheckCircle2} title="Project Progress Management" subtitle="Admin view of all research progress records" />
+        <div className="managed-list compact-managed-list">
+          {projects.length ? projects.map((project) => (
+            <div className="mini-card managed-item admin-progress-management-item" key={`progress-${project.id}`}>
+              <div>
+                <b>{project.title || 'Untitled research title'}</b>
+                <p className="small muted">Student: {project.student_email || project.created_by_email || getProjectStudents(project).join(', ') || 'Not linked'} • Group: {project.group_name || 'N/A'}</p>
+                <p className="small muted">Status: {project.status || 'Pending'} • Last update: {String(project.updated_at || project.created_at || '').slice(0, 10) || 'N/A'}</p>
+              </div>
+              <div className="admin-progress-inline">
+                <span>{formatProgress(project.progress)}%</span>
+                <ProgressBar value={project.progress} />
+              </div>
+            </div>
+          )) : <EmptyState title="No project progress" text="Project progress will appear after research titles are submitted." icon={CheckCircle2} />}
+        </div>
       </div>
 
       <div className="card admin-delete-management-card">
@@ -4277,7 +4501,7 @@ function AdminDashboard({ data, projects, currentUser, updateProject, updateUser
                 <b>{group.group_name}</b>
                 <p className="small muted">{group.count} research title{group.count === 1 ? '' : 's'} linked to this group</p>
               </div>
-              {canDeleteResearchGroup(group.group_name, currentUser) && (
+              {canDeleteResearchGroup(group.group_name, currentUser) && deleteResearchGroup && (
                 <AdminPanelDeleteButton itemKey={`group-${group.group_name}`} label="Delete Group" onDelete={() => deleteResearchGroup(group.group_name)} />
               )}
             </div>
@@ -4297,7 +4521,7 @@ function AdminDashboard({ data, projects, currentUser, updateProject, updateUser
                   <p className="small muted">Group: {project.group_name || 'N/A'} • Area: {project.area || 'N/A'}</p>
                   <p className="small muted">Supervisor: {project.supervisor_name || 'Pending Assignment'} • Reports: {reportCount}</p>
                 </div>
-                {canDeleteResearchProject(project, currentUser) && (
+                {canDeleteResearchProject(project, currentUser) && deleteResearchProject && (
                   <AdminPanelDeleteButton itemKey={`project-${project.id}`} label="Delete Title" onDelete={() => deleteResearchProject(project.id)} />
                 )}
               </div>
@@ -4318,7 +4542,7 @@ function AdminDashboard({ data, projects, currentUser, updateProject, updateUser
                   <p className="small muted">Submitted by: {report.submitted_by || 'Unknown'} • {String(report.submitted_at || '').slice(0, 10)}</p>
                   <p className="small muted">Status: {report.status}</p>
                 </div>
-                {canDeleteReport(report, currentUser) && <DeleteItemButton label="Delete Report" onDelete={() => deleteWeeklyReport(report.id)} />}
+                {canDeleteReport(report, currentUser) && deleteWeeklyReport && <AdminPanelDeleteButton itemKey={`report-${report.id}`} label="Delete Report" onDelete={() => deleteWeeklyReport(report.id)} />}
               </div>
             )
           }) : <EmptyState title="No weekly reports" text="Submitted weekly reports will appear here." icon={MessageSquareText} />}
