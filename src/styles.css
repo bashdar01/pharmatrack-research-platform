@@ -19,7 +19,7 @@ body { margin: 0; background: var(--bg); color: var(--text); }
 button, input, textarea, select { font-family: inherit; font-size: inherit; line-height: inherit; }
 button { cursor: pointer; border: 0; }
 .app { min-height: 100vh; }
-.hero { position: relative; display: flex; justify-content: flex-end; gap: 24px; align-items: flex-start; min-height: clamp(360px, 42vw, 640px); padding: 26px 6vw 36px; background-color: #f4f7fb; background-image: url('/hero-page.png'); background-size: contain; background-position: center; background-repeat: no-repeat; border-bottom: 1px solid var(--border); }
+.hero { position: relative; display: flex; justify-content: flex-end; gap: 24px; align-items: flex-start; min-height: clamp(320px, 36vw, 520px); padding: 26px 6vw 36px; background-image: url('/hero-page.png'); background-size: cover; background-position: center; background-repeat: no-repeat; border-bottom: 1px solid var(--border); }
 .hero h1, .login-card h1 { margin: 12px 0 8px; font-size: clamp(32px, 5vw, 54px); line-height: 1; letter-spacing: -0.04em; color: var(--text); }
 .hero-text { max-width: 780px; color: var(--muted); font-size: 17px; }
 .eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px; background: var(--card-soft); color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
@@ -488,7 +488,7 @@ button:disabled {
   border-radius: 22px;
   border: 1px solid var(--border);
   box-shadow: 0 14px 34px rgba(15, 23, 42, 0.12);
-  object-fit: contain;
+  object-fit: cover;
   object-position: center;
 }
 .deadline-form-grid {
@@ -551,10 +551,8 @@ button:disabled {
   background:
     linear-gradient(105deg, rgba(15,23,42,.92), rgba(15,23,42,.72) 44%, rgba(15,23,42,.20)),
     url('/hero-page.png');
-  background-size: cover, contain;
-  background-position: center, center;
-  background-repeat: no-repeat, no-repeat;
-  background-color: #0f172a;
+  background-size: cover;
+  background-position: center;
   color: #ffffff;
 }
 .admin-portal-header .admin-title-block {
@@ -783,10 +781,8 @@ button:disabled {
 .admin-image-preview {
   min-height: 280px;
   border-radius: 24px;
-  background-color: #f4f7fb;
-  background-size: contain;
+  background-size: cover;
   background-position: center;
-  background-repeat: no-repeat;
   border: 1px solid var(--border);
   overflow: hidden;
   position: relative;
@@ -1205,10 +1201,8 @@ button:disabled {
   background-image:
     linear-gradient(180deg, rgba(8, 145, 178, 0.80), rgba(29, 78, 216, 0.92)),
     var(--auth-bg-image);
-  background-size: cover, contain;
-  background-position: center, center;
-  background-repeat: no-repeat, no-repeat;
-  background-color: #0f172a;
+  background-size: cover;
+  background-position: center;
   color: #ffffff;
 }
 
@@ -1516,10 +1510,8 @@ button:disabled {
   padding: clamp(34px, 5vw, 76px);
   color: #ffffff;
   background-image: linear-gradient(135deg, rgba(13, 148, 136, .90), rgba(37, 99, 235, .92)), var(--auth-bg-image);
-  background-size: cover, contain;
-  background-position: center, center;
-  background-repeat: no-repeat, no-repeat;
-  background-color: #0f766e;
+  background-size: cover;
+  background-position: center;
   isolation: isolate;
 }
 
@@ -1785,10 +1777,8 @@ button:disabled {
   padding: 28px;
   color: #ffffff;
   background-image: linear-gradient(135deg, rgba(13, 148, 136, .88), rgba(37, 99, 235, .92)), var(--auth-bg-image);
-  background-size: cover, contain;
-  background-position: center, center;
-  background-repeat: no-repeat, no-repeat;
-  background-color: #0f766e;
+  background-size: cover;
+  background-position: center;
   isolation: isolate;
 }
 
@@ -1902,8 +1892,7 @@ button:disabled {
   overflow-y: auto;
 }
 .admin-image-preview {
-  background-color: #f4f7fb;
-  background-size: contain;
+  background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
 }
@@ -2692,40 +2681,71 @@ button:disabled {
   }
 }
 
-/* Full-image hero/banner fitting: keeps uploaded hero pictures fully visible on all screens */
-.hero,
-.admin-hero-preview,
-.admin-image-preview {
-  background-size: contain !important;
-  background-position: center center !important;
-  background-repeat: no-repeat !important;
+/* Admin Accept New Users: scrollable approval box matching weekly report cards */
+.admin-user-management-card {
+  overflow: hidden;
 }
-
-.admin-portal-header,
-.auth-brand-panel,
-.login-settings-preview {
-  background-size: cover, contain !important;
-  background-position: center center, center center !important;
-  background-repeat: no-repeat, no-repeat !important;
+.admin-user-approval-scroll-container {
+  height: 580px;
+  max-height: 580px;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  border: 1px solid #dbe4ef;
+  border-radius: 18px;
+  background: #f8fafc;
+  padding: 12px;
+  margin-top: 12px;
+  box-sizing: border-box;
 }
-
-.login-hero-image {
-  width: 100%;
-  height: auto;
-  max-height: none;
-  object-fit: contain !important;
-  object-position: center center !important;
-  background: #f4f7fb;
+.admin-user-approval-scroll-container .admin-pending-user-request {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+  margin-bottom: 14px;
 }
-
-@media (max-width: 760px) {
-  .hero {
-    min-height: clamp(260px, 68vw, 420px);
-    background-size: contain !important;
+.admin-user-approval-scroll-container .admin-pending-user-request:last-child {
+  margin-bottom: 0;
+}
+.admin-pending-user-info {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.admin-pending-user-info p {
+  margin: 5px 0 0;
+}
+.admin-pending-user-actions {
+  justify-content: flex-end;
+  max-width: 360px;
+}
+.admin-pending-user-actions .compact-button {
+  min-width: 92px;
+}
+@media (max-width: 900px) {
+  .admin-user-approval-scroll-container {
+    height: 500px;
+    max-height: 500px;
   }
-  .admin-hero-preview,
-  .admin-image-preview {
-    min-height: 220px;
+  .admin-pending-user-actions {
+    max-width: none;
+    justify-content: flex-start;
   }
 }
-
+@media (max-width: 720px) {
+  .admin-user-management-card {
+    width: 100%;
+  }
+  .admin-user-approval-scroll-container {
+    height: 460px;
+    max-height: 460px;
+    padding: 10px;
+  }
+  .admin-user-approval-scroll-container .admin-pending-user-request {
+    align-items: stretch;
+  }
+  .admin-pending-user-actions .compact-button,
+  .admin-pending-user-actions select {
+    width: 100%;
+  }
+}
