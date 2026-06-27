@@ -643,34 +643,58 @@ function upsertStudentOption(map, student = {}, fallback = {}) {
 
 function getAssignedSupervisorStudents(data, assignedProjects = [], reports = []) {
   const students = new Map()
-  const projectIds = new Set((assignedProjects || []).map((project) => String(project.id)))
+  const assignedProjectList = assignedProjects || []
+  const projectIds = new Set(assignedProjectList.map((project) => String(project.id)))
+  const studentProfiles = (data.profiles || []).filter((profile) => profile.role === 'student')
 
-  ;(assignedProjects || []).forEach((project) => {
-    const projectStudent = findProfileByIdentity(data, {
+  assignedProjectList.forEach((project) => {
+    const explicitStudent = findProfileByIdentity(data, {
       id: project.student_id || project.created_by,
       email: project.student_email || project.created_by_email,
-      submitted_by: Array.isArray(project.students) ? project.students[0] : project.group_name,
+      submitted_by: project.student_name,
     })
-    upsertStudentOption(students, projectStudent || {}, {
-      id: project.student_id || project.created_by || null,
-      email: project.student_email || project.created_by_email || '',
-      name: projectStudent?.full_name || (Array.isArray(project.students) ? project.students[0] : '') || project.group_name,
-      group: project.group_name,
+    if (explicitStudent?.role === 'student' || explicitStudent?.id || explicitStudent?.email) {
+      upsertStudentOption(students, explicitStudent || {}, {
+        id: project.student_id || project.created_by || null,
+        email: project.student_email || project.created_by_email || '',
+        name: explicitStudent?.full_name || project.student_name || project.group_name || 'Student',
+        group: project.group_name,
+      })
+    }
+
+    const projectStudentNames = getProjectStudents(project)
+    projectStudentNames.forEach((studentName) => {
+      const matchedProfile = studentProfiles.find((profile) => normalizeText(profile.full_name) === normalizeText(studentName) || normalizeText(profile.email) === normalizeText(studentName))
+      upsertStudentOption(students, matchedProfile || {}, {
+        id: matchedProfile?.id || null,
+        email: matchedProfile?.email || '',
+        name: matchedProfile?.full_name || studentName,
+        group: project.group_name,
+      })
     })
+
+    if (!project.student_id && !project.created_by && !project.student_email && !project.created_by_email && !projectStudentNames.length && project.group_name) {
+      const matchedProfile = studentProfiles.find((profile) => normalizeText(profile.full_name) === normalizeText(project.group_name))
+      if (matchedProfile) {
+        upsertStudentOption(students, matchedProfile, { group: project.group_name })
+      }
+    }
   })
 
   ;(reports || []).filter((report) => projectIds.has(String(report.project_id))).forEach((report) => {
-    const project = (assignedProjects || []).find((item) => String(item.id) === String(report.project_id))
+    const project = assignedProjectList.find((item) => String(item.id) === String(report.project_id))
     const student = findStudentProfileForReport(data, report)
     upsertStudentOption(students, student || {}, {
       id: report.student_id || report.submitted_by_id || report.user_id || report.created_by || null,
       email: report.student_email || report.submitted_by_email || report.created_by_email || '',
-      name: report.submitted_by || project?.group_name || 'Unknown student',
+      name: report.submitted_by || student?.full_name || 'Unknown student',
       group: project?.group_name || 'No research group',
     })
   })
 
-  return Array.from(students.values()).sort((a, b) => a.name.localeCompare(b.name))
+  return Array.from(students.values())
+    .filter((student) => student.id || student.email || student.name)
+    .sort((a, b) => a.name.localeCompare(b.name))
 }
 
 function itemMatchesStudentOption(item = {}, student = {}) {
@@ -2513,8 +2537,18 @@ export default function App() {
   }
 
   async function createDeadline(form) {
-    if (!['admin', 'supervisor'].includes(allowedRole)) return setMessage('Only supervisors and admins can add deadlines.')
-    if (!form.title?.trim() || !form.due_date) return setMessage('Please write the deadline title and due date.')
+    if (!['admin', 'supervisor'].includes(allowedRole)) {
+      setMessage('Only supervisors and admins can add deadlines.')
+      return { ok: false, error: 'Only supervisors and admins can add deadlines.' }
+    }
+
+    const title = form.title?.trim() || ''
+    const dueDate = form.due_date || ''
+    if (!title || !dueDate) {
+      const error = 'Please write the deadline title and due date.'
+      setMessage(error)
+      return { ok: false, error }
+    }
 
     const assignedProjects = allowedRole === 'supervisor'
       ? getVisibleProjects(data.projects, 'supervisor', currentUser)
@@ -2524,12 +2558,25 @@ export default function App() {
       ? assignedStudents
       : Array.isArray(form.selected_students) ? form.selected_students : []
 
+    if (!selectedStudents.length) {
+      const error = 'Please select at least one student.'
+      setMessage(error)
+      return { ok: false, error }
+    }
+
     if (allowedRole === 'supervisor') {
-      if (!assignedStudents.length) return setMessage('No assigned students were found for this supervisor.')
-      if (!selectedStudents.length) return setMessage('Please select at least one assigned student for this deadline.')
+      if (!assignedStudents.length) {
+        const error = 'No assigned students were found for this supervisor.'
+        setMessage(error)
+        return { ok: false, error }
+      }
       const allowedKeys = new Set(assignedStudents.map((student) => student.key))
       const hasInvalidStudent = selectedStudents.some((student) => !allowedKeys.has(student.key))
-      if (hasInvalidStudent) return setMessage('You can only assign deadlines to your own assigned students.')
+      if (hasInvalidStudent) {
+        const error = 'You can only assign deadlines to your own assigned students.'
+        setMessage(error)
+        return { ok: false, error }
+      }
     }
 
     const targetStudentIds = selectedStudents.map((student) => student.id).filter(Boolean)
@@ -2538,14 +2585,14 @@ export default function App() {
     const targetStudentKeys = selectedStudents.map((student) => student.key).filter(Boolean)
     const deadline = {
       id: crypto.randomUUID(),
-      title: form.title.trim(),
+      title,
       description: form.description?.trim() || '',
       deadline_type: form.deadline_type || 'Supervisor Deadline',
-      due_date: form.due_date,
+      due_date: dueDate,
       academic_year: form.academic_year || '2026-2027',
       status: form.status || 'Active',
       priority: form.priority || 'Normal',
-      target_scope: form.target_scope || (selectedStudents.length ? 'selected_students' : 'all'),
+      target_scope: form.target_scope === 'all_assigned' ? 'all_assigned' : 'selected_students',
       target_student_ids: targetStudentIds,
       target_student_emails: targetStudentEmails,
       target_student_names: targetStudentNames,
@@ -2564,6 +2611,7 @@ export default function App() {
       recipient_email: student.email || '',
       sender_user_id: currentUser?.id || null,
       notification_type: 'deadline_assigned',
+      related_deadline_id: deadline.id,
       title: 'New Deadline Assigned',
       message: `${currentUser?.full_name || 'Your supervisor'} assigned a new deadline: ${deadline.title}. Due date: ${deadline.due_date}.${deadline.description ? ` ${deadline.description}` : ''}`,
       type: 'Deadline',
@@ -2572,27 +2620,45 @@ export default function App() {
       created_at: new Date().toISOString(),
     }))
 
-    if (isSupabaseConfigured) {
-      const { id, created_at, ...deadlineForDb } = deadline
-      const { error } = await supabase.from('deadlines').insert(deadlineForDb)
-      if (error) return setMessage(`${error.message}. Run supabase/supervisor_deadline_progress_update.sql in Supabase SQL Editor, then try again.`)
-      if (notificationRows.length) {
-        const notificationForDb = notificationRows.map(({ id: _id, ...note }) => note)
-        const noteResult = await supabase.from('notifications').insert(notificationForDb)
-        if (noteResult.error) console.warn('Deadline notification could not be saved:', noteResult.error)
+    try {
+      if (isSupabaseConfigured) {
+        const { id: _id, created_at: _createdAt, ...deadlineForDb } = deadline
+        const insertResult = await supabase.from('deadlines').insert(deadlineForDb).select('*').single()
+        if (insertResult.error) {
+          const rawMessage = insertResult.error.message || 'Deadline could not be saved.'
+          const error = rawMessage.toLowerCase().includes('row-level security') || rawMessage.toLowerCase().includes('policy')
+            ? 'Deadline could not be saved because of Supabase permission rules. Run supabase/deadline_add_button_fix.sql in Supabase SQL Editor, then try again.'
+            : `${rawMessage}. Run supabase/deadline_add_button_fix.sql in Supabase SQL Editor, then try again.`
+          setMessage(error)
+          return { ok: false, error }
+        }
+        if (notificationRows.length) {
+          const notificationForDb = notificationRows.map(({ id: _noteId, ...note }) => note)
+          const noteResult = await supabase.from('notifications').insert(notificationForDb)
+          if (noteResult.error) console.warn('Deadline notification could not be saved:', noteResult.error)
+        }
+        await addAudit(currentUser.full_name, 'created', `deadline: ${deadline.title}`)
+        await loadFromSupabase()
+      } else {
+        const log = makeAudit(currentUser.full_name, 'created', `deadline: ${deadline.title}`)
+        setLocal((current) => ({
+          ...current,
+          deadlines: [deadline, ...current.deadlines],
+          notifications: [...notificationRows, ...(current.notifications || [])],
+          auditLogs: [log, ...current.auditLogs],
+        }))
       }
-      await addAudit(currentUser.full_name, 'created', `deadline: ${deadline.title}`)
-      await loadFromSupabase()
-    } else {
-      const log = makeAudit(currentUser.full_name, 'created', `deadline: ${deadline.title}`)
-      setLocal((current) => ({
-        ...current,
-        deadlines: [deadline, ...current.deadlines],
-        notifications: [...notificationRows, ...(current.notifications || [])],
-        auditLogs: [log, ...current.auditLogs],
-      }))
+      const success = selectedStudents.length
+        ? `Deadline added successfully for ${selectedStudents.length} student${selectedStudents.length === 1 ? '' : 's'}.`
+        : 'Deadline added successfully.'
+      setMessage(success)
+      return { ok: true, deadline }
+    } catch (error) {
+      console.error('Deadline creation failed:', error)
+      const errorMessage = error?.message || 'Deadline could not be saved. Please try again.'
+      setMessage(errorMessage)
+      return { ok: false, error: errorMessage }
     }
-    setMessage(selectedStudents.length ? `Deadline added for ${selectedStudents.length} student${selectedStudents.length === 1 ? '' : 's'}.` : 'Deadline added successfully.')
   }
 
   async function removeDeadline(deadlineId) {
@@ -2623,6 +2689,36 @@ export default function App() {
       ...current,
       notifications: current.notifications.map((n) => n.id === id ? { ...n, is_read: true } : n),
     }))
+  }
+
+  async function removeNotification(id) {
+    const target = data.notifications.find((notification) => String(notification.id) === String(id))
+    if (!target) {
+      setMessage('Notification not found.')
+      return { ok: false, error: 'Notification not found.' }
+    }
+    if (!notificationForUser(target, currentUser, allowedRole) && allowedRole !== 'admin') {
+      const error = 'You do not have permission to remove this notification.'
+      setMessage(error)
+      return { ok: false, error }
+    }
+
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.from('notifications').delete().eq('id', id)
+      if (error) {
+        const errorMessage = error.message || 'Notification could not be removed.'
+        setMessage(errorMessage)
+        return { ok: false, error: errorMessage }
+      }
+      await loadFromSupabase()
+    } else {
+      setLocal((current) => ({
+        ...current,
+        notifications: (current.notifications || []).filter((notification) => String(notification.id) !== String(id)),
+      }))
+    }
+    setMessage('Notification removed successfully.')
+    return { ok: true }
   }
 
   function exportCsv() {
@@ -2796,7 +2892,7 @@ export default function App() {
           </>
         )}
 
-        {tab === 'notifications' && <NotificationsTab data={data} role={allowedRole} currentUser={currentUser} createNotification={createNotification} markNotificationRead={markNotificationRead} />}
+        {tab === 'notifications' && <NotificationsTab data={data} role={allowedRole} currentUser={currentUser} createNotification={createNotification} markNotificationRead={markNotificationRead} removeNotification={removeNotification} />}
         {tab === 'reports' && <ReportsTab data={visibleData} projects={filteredProjects} currentUser={currentUser} role={allowedRole} printPdfReport={printPdfReport} exportCsv={exportCsv} />}
         {tab === 'database' && allowedRole === 'admin' && <DatabaseTab databaseMode={databaseMode} />}
         {tab === 'database' && allowedRole !== 'admin' && <div className="card"><SectionHeader icon={Lock} title="Database Access Locked" subtitle="Only Admin accounts can view database status" /><p className="muted">Please use your role dashboard, notifications, or reports page.</p></div>}
@@ -3720,7 +3816,7 @@ function StudentMultiSelectDropdown({ students = [], targetScope, selectedKeys =
     : students.filter((student) => selectedKeys.includes(student.key))
 
   const summaryText = targetScope === 'all_assigned'
-    ? 'All Students'
+    ? 'All Assigned Students'
     : selectedStudents.length
       ? selectedStudents.map((student) => student.name).join(', ')
       : 'Select student(s)'
@@ -3775,7 +3871,7 @@ function StudentMultiSelectDropdown({ students = [], targetScope, selectedKeys =
           </div>
           <button type="button" className={`student-option-row all-option${targetScope === 'all_assigned' ? ' selected' : ''}`} onClick={selectAllStudents}>
             <span className="student-option-check">{targetScope === 'all_assigned' ? '✓' : ''}</span>
-            <span><b>All Students</b><small>Send to all assigned students</small></span>
+            <span><b>All Assigned Students</b><small>Send only to your assigned students</small></span>
           </button>
           <div className="student-options-scroll">
             {filteredStudents.length ? filteredStudents.map((student) => {
@@ -3810,14 +3906,23 @@ function DeadlineManager({ deadlines, createDeadline, removeDeadline, students =
     selected_student_keys: [],
   })
   const [studentSelectError, setStudentSelectError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
+  const [savingDeadline, setSavingDeadline] = useState(false)
 
   const selectedStudents = form.target_scope === 'all_assigned'
     ? students
     : students.filter((student) => form.selected_student_keys.includes(student.key))
+  const hasValidDeadlineRecipients = selectedStudents.length > 0
 
   function resetForm() {
     setForm({ title: '', description: '', deadline_type: 'Weekly Report', due_date: '', academic_year: '2026-2027', status: 'Active', priority: 'Normal', target_scope: 'all_assigned', selected_student_keys: [] })
     setStudentSelectError('')
+    setFieldErrors({})
+  }
+
+  function updateFormField(field, value) {
+    setFieldErrors((current) => ({ ...current, [field]: '' }))
+    setForm((current) => ({ ...current, [field]: value }))
   }
 
   function updateStudentSelection(nextSelection) {
@@ -3825,45 +3930,72 @@ function DeadlineManager({ deadlines, createDeadline, removeDeadline, students =
     setForm((current) => ({ ...current, ...nextSelection }))
   }
 
-  function submitDeadline() {
-    if (!selectedStudents.length) {
-      setStudentSelectError('Please select at least one student.')
-      return
-    }
-    createDeadline({
+  function validateDeadlineForm() {
+    const nextErrors = {}
+    if (!form.title.trim()) nextErrors.title = 'Please write a deadline title.'
+    if (!form.due_date) nextErrors.due_date = 'Please choose a due date.'
+    if (!selectedStudents.length) setStudentSelectError('Please select at least one student.')
+    else setStudentSelectError('')
+    setFieldErrors(nextErrors)
+    return Object.keys(nextErrors).length === 0 && selectedStudents.length > 0
+  }
+
+  async function submitDeadline(event) {
+    event?.preventDefault?.()
+    if (savingDeadline) return
+    if (!validateDeadlineForm()) return
+    setSavingDeadline(true)
+    const result = await createDeadline({
       ...form,
       selected_students: selectedStudents,
       target_scope: form.target_scope,
     })
-    resetForm()
+    setSavingDeadline(false)
+    if (result?.ok) resetForm()
   }
 
   return (
     <div className="card supervisor-deadline-card">
       <SectionHeader icon={CalendarDays} title="Set and Manage Deadlines" subtitle="Choose which assigned student receives each deadline" />
-      <div className="deadline-target-panel deadline-target-panel-dropdown">
-        <StudentMultiSelectDropdown
-          students={students}
-          targetScope={form.target_scope}
-          selectedKeys={form.selected_student_keys}
-          onChange={updateStudentSelection}
-          error={studentSelectError}
-        />
-        <div className="deadline-target-summary">
-          <b>Selected recipients</b>
-          <p>{form.target_scope === 'all_assigned' ? 'All Students' : selectedStudents.length ? selectedStudents.map((student) => student.name).join(', ') : 'No assigned students selected'}</p>
+      <form className="deadline-create-form" onSubmit={submitDeadline} noValidate>
+        <div className="deadline-target-panel deadline-target-panel-dropdown">
+          <StudentMultiSelectDropdown
+            students={students}
+            targetScope={form.target_scope}
+            selectedKeys={form.selected_student_keys}
+            onChange={updateStudentSelection}
+            error={studentSelectError}
+          />
+          <div className="deadline-target-summary">
+            <b>Selected recipients</b>
+            <p>{form.target_scope === 'all_assigned' ? 'All Assigned Students' : selectedStudents.length ? selectedStudents.map((student) => student.name).join(', ') : 'No assigned students selected'}</p>
+            {!students.length && <small className="form-error-text">No assigned students found.</small>}
+          </div>
         </div>
-      </div>
-      <div className="deadline-form-grid deadline-form-grid-updated">
-        <label className="field"><span>Deadline title</span><input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Example: Submit weekly report 3" /></label>
-        <label className="field"><span>Deadline type</span><select value={form.deadline_type} onChange={(e) => setForm({ ...form, deadline_type: e.target.value })}><option>Weekly Report</option><option>Proposal</option><option>Data Collection</option><option>Draft Thesis</option><option>Final Thesis</option><option>Poster</option><option>Presentation</option><option>Supervisor Deadline</option></select></label>
-        <label className="field"><span>Due date</span><input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></label>
-        <label className="field"><span>Academic year</span><input value={form.academic_year} onChange={(e) => setForm({ ...form, academic_year: e.target.value })} placeholder="2026-2027" /></label>
-        <label className="field"><span>Status</span><select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}><option>Active</option><option>Inactive</option><option>Completed</option></select></label>
-        <label className="field"><span>Priority</span><select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}><option>Normal</option><option>High</option><option>Urgent</option><option>Low</option></select></label>
-        <label className="field deadline-description-field"><span>Description</span><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Write deadline details or instructions" /></label>
-        <div className="deadline-actions"><button className="primary" type="button" onClick={submitDeadline}><CalendarDays size={16} /> Add Deadline</button></div>
-      </div>
+        <div className="deadline-form-grid deadline-form-grid-updated">
+          <label className="field">
+            <span>Deadline title</span>
+            <input value={form.title} onChange={(e) => updateFormField('title', e.target.value)} placeholder="Example: Submit weekly report 3" aria-invalid={Boolean(fieldErrors.title)} />
+            {fieldErrors.title && <small className="form-error-text">{fieldErrors.title}</small>}
+          </label>
+          <label className="field"><span>Deadline type</span><select value={form.deadline_type} onChange={(e) => updateFormField('deadline_type', e.target.value)}><option>Weekly Report</option><option>Proposal</option><option>Data Collection</option><option>Draft Thesis</option><option>Final Thesis</option><option>Poster</option><option>Presentation</option><option>Supervisor Deadline</option></select></label>
+          <label className="field">
+            <span>Due date</span>
+            <input type="date" value={form.due_date} onChange={(e) => updateFormField('due_date', e.target.value)} aria-invalid={Boolean(fieldErrors.due_date)} />
+            {fieldErrors.due_date && <small className="form-error-text">{fieldErrors.due_date}</small>}
+          </label>
+          <label className="field"><span>Academic year</span><input value={form.academic_year} onChange={(e) => updateFormField('academic_year', e.target.value)} placeholder="2026-2027" /></label>
+          <label className="field"><span>Status</span><select value={form.status} onChange={(e) => updateFormField('status', e.target.value)}><option>Active</option><option>Inactive</option><option>Completed</option></select></label>
+          <label className="field"><span>Priority</span><select value={form.priority} onChange={(e) => updateFormField('priority', e.target.value)}><option>Normal</option><option>High</option><option>Urgent</option><option>Low</option></select></label>
+          <label className="field deadline-description-field"><span>Description</span><textarea value={form.description} onChange={(e) => updateFormField('description', e.target.value)} placeholder="Write deadline details or instructions" /></label>
+          <div className="deadline-actions">
+            <button className="primary" type="submit" disabled={savingDeadline || !hasValidDeadlineRecipients}>
+              <CalendarDays size={16} /> {savingDeadline ? 'Adding Deadline...' : 'Add Deadline'}
+            </button>
+            {!hasValidDeadlineRecipients && <small className="form-error-text deadline-action-error">Please select at least one student.</small>}
+          </div>
+        </div>
+      </form>
       <div className="deadline-list">
         {deadlines.length ? deadlines.map((d) => (
           <div className="mini-card deadline-item" key={d.id}>
@@ -4173,16 +4305,48 @@ function ProjectDecisionTable({ projects, updateProject }) {
   )
 }
 
-function NotificationsTab({ data, role, currentUser, createNotification, markNotificationRead }) {
+function NotificationsTab({ data, role, currentUser, createNotification, markNotificationRead, removeNotification }) {
   const [form, setForm] = useState({ title: '', message: '', type: 'Reminder', target_role: 'all' })
+  const [removingNotificationId, setRemovingNotificationId] = useState('')
   const visibleNotifications = data.notifications.filter((n) => notificationForUser(n, currentUser, role))
+
+  async function handleRemoveNotification(notificationId) {
+    if (removingNotificationId) return
+    if (!window.confirm('Are you sure you want to remove this notification?')) return
+    setRemovingNotificationId(notificationId)
+    try {
+      await removeNotification(notificationId)
+    } finally {
+      setRemovingNotificationId('')
+    }
+  }
+
   return (
     <div className="grid two-one">
       <div className="card">
         <SectionHeader icon={Bell} title="Notifications and Reminders" subtitle="Deadline reminders and admin messages" />
         <div className="notification-list">
           {data.deadlines.map((d) => <div className="mini-card reminder" key={d.id}><div className="split"><div><b>{d.title}</b><p>{d.deadline_type} deadline on {d.due_date}</p></div><Pill tone="blue">Deadline</Pill></div></div>)}
-          {visibleNotifications.length ? visibleNotifications.map((n) => <div className={`mini-card ${n.is_read ? '' : 'unread'}`} key={n.id}><div className="split"><div><b>{n.title}</b><p>{n.message}</p><p className="small muted">{n.type} • {String(n.created_at).slice(0, 16).replace('T', ' ')}</p></div><button onClick={() => markNotificationRead(n.id)}>{n.is_read ? 'Read' : 'Mark read'}</button></div></div>) : <EmptyState title="No custom notifications" text="Admin-created notifications will appear here." icon={Bell} />}
+          {visibleNotifications.length ? visibleNotifications.map((n) => {
+            const removing = String(removingNotificationId) === String(n.id)
+            return (
+              <div className={`mini-card notification-item ${n.is_read ? '' : 'unread'}`} key={n.id}>
+                <div className="split notification-item-layout">
+                  <div>
+                    <b>{n.title}</b>
+                    <p>{n.message}</p>
+                    <p className="small muted">{n.type} • {String(n.created_at).slice(0, 16).replace('T', ' ')}</p>
+                  </div>
+                  <div className="notification-actions">
+                    <button type="button" onClick={() => markNotificationRead(n.id)} disabled={removing}>{n.is_read ? 'Read' : 'Mark read'}</button>
+                    <button type="button" className="danger compact-button" onClick={() => handleRemoveNotification(n.id)} disabled={removing}>
+                      <Trash2 size={14} /> {removing ? 'Removing...' : 'Remove'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          }) : <EmptyState title="No custom notifications" text="Admin-created notifications will appear here." icon={Bell} />}
         </div>
       </div>
       {['admin', 'committee'].includes(role) ? (

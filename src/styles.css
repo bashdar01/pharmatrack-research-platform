@@ -3056,3 +3056,34 @@ button:disabled {
     font-size: 22px;
   }
 }
+
+.notification-item-layout {
+  align-items: flex-start;
+  gap: 14px;
+}
+.notification-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 170px;
+}
+.notification-actions button {
+  margin: 0;
+}
+.deadline-action-error {
+  display: block;
+  margin-top: 8px;
+}
+@media (max-width: 760px) {
+  .notification-item-layout {
+    display: grid;
+  }
+  .notification-actions {
+    justify-content: stretch;
+    min-width: 0;
+  }
+  .notification-actions button {
+    width: 100%;
+  }
+}

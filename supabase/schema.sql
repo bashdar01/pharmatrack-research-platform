@@ -96,10 +96,21 @@ create table if not exists public.evaluations (
 create table if not exists public.deadlines (
   id uuid primary key default uuid_generate_v4(),
   title text not null,
+  description text,
   deadline_type text not null,
   due_date date not null,
   academic_year text default '2026-2027',
   status text default 'Active',
+  priority text default 'Normal',
+  target_scope text default 'all',
+  target_student_ids uuid[] default array[]::uuid[],
+  target_student_emails text[] default array[]::text[],
+  target_student_names text[] default array[]::text[],
+  target_student_keys text[] default array[]::text[],
+  supervisor_id uuid references public.profiles(id) on delete set null,
+  supervisor_email text,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_by_email text,
   created_at timestamptz default now()
 );
 
@@ -111,6 +122,7 @@ create table if not exists public.notifications (
   sender_user_id uuid references public.profiles(id) on delete set null,
   weekly_report_id uuid references public.weekly_reports(id) on delete cascade,
   project_id uuid references public.research_projects(id) on delete cascade,
+  related_deadline_id uuid references public.deadlines(id) on delete cascade,
   notification_type text,
   title text not null,
   message text not null,
@@ -145,6 +157,7 @@ alter table public.notifications add column if not exists recipient_email text;
 alter table public.notifications add column if not exists sender_user_id uuid references public.profiles(id) on delete set null;
 alter table public.notifications add column if not exists weekly_report_id uuid references public.weekly_reports(id) on delete cascade;
 alter table public.notifications add column if not exists project_id uuid references public.research_projects(id) on delete cascade;
+alter table public.notifications add column if not exists related_deadline_id uuid references public.deadlines(id) on delete cascade;
 alter table public.notifications add column if not exists notification_type text;
 alter table public.research_projects add column if not exists supervisor_email text;
 alter table public.research_projects add column if not exists student_id uuid references public.profiles(id) on delete set null;
@@ -161,6 +174,18 @@ alter table public.weekly_reports add column if not exists created_by_email text
 alter table public.uploaded_files add column if not exists user_id uuid references public.profiles(id) on delete set null;
 alter table public.uploaded_files add column if not exists created_by uuid references public.profiles(id) on delete set null;
 alter table public.uploaded_files add column if not exists created_by_email text;
+
+alter table public.deadlines add column if not exists description text;
+alter table public.deadlines add column if not exists priority text default 'Normal';
+alter table public.deadlines add column if not exists target_scope text default 'all';
+alter table public.deadlines add column if not exists target_student_ids uuid[] default array[]::uuid[];
+alter table public.deadlines add column if not exists target_student_emails text[] default array[]::text[];
+alter table public.deadlines add column if not exists target_student_names text[] default array[]::text[];
+alter table public.deadlines add column if not exists target_student_keys text[] default array[]::text[];
+alter table public.deadlines add column if not exists supervisor_id uuid references public.profiles(id) on delete set null;
+alter table public.deadlines add column if not exists supervisor_email text;
+alter table public.deadlines add column if not exists created_by uuid references public.profiles(id) on delete set null;
+alter table public.deadlines add column if not exists created_by_email text;
 
 update public.research_projects rp
 set student_id = p.id,
@@ -270,6 +295,21 @@ for insert to authenticated with check (
 );
 create policy "notifications_update_own_read_status" on public.notifications
 for update to authenticated using (
+  exists (
+    select 1 from public.profiles p
+    where lower(p.email) = lower(auth.jwt() ->> 'email')
+      and coalesce(p.status, 'Pending') = 'Active'
+      and (
+        p.role = 'admin'
+        or notifications.profile_id = p.id
+        or notifications.recipient_user_id = p.id
+        or lower(coalesce(notifications.recipient_email, '')) = lower(p.email)
+      )
+  )
+);
+
+create policy "notifications_delete_own_or_admin" on public.notifications
+for delete to authenticated using (
   exists (
     select 1 from public.profiles p
     where lower(p.email) = lower(auth.jwt() ->> 'email')
