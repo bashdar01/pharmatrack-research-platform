@@ -1780,7 +1780,6 @@ export default function App() {
     if (!form.project_id) return setMessage('Create or select a research project first.')
     if (!form.completed_work?.trim()) return setMessage('Please write the work completed this week before submitting.')
     const selectedReportProject = data.projects.find((item) => String(item.id) === String(form.project_id))
-    const reportDepartment = normalizeDepartment(form.department || selectedReportProject?.area)
     const nextWeek = Math.max(
       0,
       ...data.reports
@@ -1790,7 +1789,6 @@ export default function App() {
     const report = {
       id: crypto.randomUUID(),
       project_id: form.project_id,
-      department: reportDepartment,
       week_number: nextWeek,
       submitted_by: currentUser?.full_name || form.submitted_by,
       submitted_by_id: currentUser?.id || null,
@@ -2275,9 +2273,25 @@ export default function App() {
   }
 
   async function updateProject(projectId, fields) {
+    const currentProject = data.projects.find((project) => String(project.id) === String(projectId))
+    const approvalWillBeAccepted = String(fields?.approval || '') === 'Approved'
+    const wasAlreadyAccepted = String(currentProject?.approval || '') === 'Approved'
+    const shouldSendAcceptanceEmail = approvalWillBeAccepted && !wasAlreadyAccepted
+    let projectEmailWarning = ''
+
     if (isSupabaseConfigured) {
       const { error } = await supabase.from('research_projects').update(fields).eq('id', projectId)
       if (error) return setMessage(error.message)
+
+      if (shouldSendAcceptanceEmail) {
+        try {
+          await sendProjectAcceptanceEmail(projectId)
+        } catch (emailError) {
+          console.warn('Project acceptance email could not be sent:', emailError)
+          projectEmailWarning = ` Project was updated, but the acceptance email could not be sent: ${emailError.message || 'Check Edge Function logs.'}`
+        }
+      }
+
       await addAudit(currentUser.full_name, 'updated', `project ${projectId}`)
       await loadFromSupabase()
     } else {
@@ -2288,7 +2302,7 @@ export default function App() {
         auditLogs: [log, ...current.auditLogs],
       }))
     }
-    setMessage('Project updated.')
+    setMessage(projectEmailWarning || (shouldSendAcceptanceEmail ? 'Project accepted and student email notification sent.' : 'Project updated.'))
   }
 
   async function updateUserRole(userId, newRole) {
@@ -2369,14 +2383,26 @@ export default function App() {
 
     try {
       if (isSupabaseConfigured) {
-        const profileResult = await supabase.from('profiles').update(profileUpdate).eq('id', student.id)
-        if (profileResult.error) throw profileResult.error
-        for (const project of linkedProjects) {
-          const updateResult = await supabase.from('research_projects').update(projectUpdate).eq('id', project.id)
-          if (updateResult.error) throw updateResult.error
+        const rpcResult = await supabase.rpc('admin_assign_student_to_supervisor', {
+          target_student_id: student.id,
+          target_supervisor_id: supervisor?.id || null,
+        })
+        if (rpcResult.error) throw rpcResult.error
+
+        let assignmentEmailWarning = ''
+        if (supervisor) {
+          try {
+            await sendAssignmentEmails(student, supervisor, linkedProjects)
+          } catch (emailError) {
+            console.warn('Assignment email could not be sent:', emailError)
+            assignmentEmailWarning = ` Assignment was saved, but the email could not be sent: ${emailError.message || 'Check Edge Function logs.'}`
+          }
         }
+
         await addAudit(currentUser.full_name, supervisor ? 'assigned student to supervisor' : 'removed supervisor assignment for', `${student.full_name || student.email}${supervisor ? ` → ${supervisor.full_name || supervisor.email}` : ''}`)
         await loadFromSupabase(loginUser)
+        setMessage(supervisor ? `${student.full_name || student.email} was assigned to ${supervisor.full_name || supervisor.email}.${assignmentEmailWarning}` : `Supervisor assignment removed for ${student.full_name || student.email}.`)
+        return
       } else {
         const log = makeAudit(currentUser.full_name, supervisor ? 'assigned student to supervisor' : 'removed supervisor assignment for', `${student.full_name || student.email}${supervisor ? ` → ${supervisor.full_name || supervisor.email}` : ''}`)
         const linkedIds = new Set(linkedProjects.map((project) => String(project.id)))
@@ -2473,6 +2499,41 @@ export default function App() {
     if (error) throw new Error(error.message || 'Invitation email could not be sent.')
     if (emailResult?.error) throw new Error(emailResult.error)
     return emailResult
+  }
+
+
+  async function sendPlatformEmail(kind, payload = {}) {
+    if (!isSupabaseConfigured || !supabase?.functions?.invoke) {
+      throw new Error('Supabase Edge Functions are not configured. Deploy send-platform-email and configure RESEND_API_KEY plus INVITE_FROM_EMAIL.')
+    }
+    const { data: emailResult, error } = await supabase.functions.invoke('send-platform-email', {
+      body: {
+        kind,
+        appUrl: typeof window !== 'undefined' ? window.location.origin : '',
+        ...payload,
+      },
+    })
+    if (error) throw new Error(error.message || 'Email could not be sent.')
+    if (emailResult?.error) throw new Error(emailResult.error)
+    return emailResult
+  }
+
+  async function sendAssignmentEmails(student, supervisor, linkedProjects = []) {
+    if (!student || !supervisor) return null
+    return sendPlatformEmail('assignment', {
+      studentId: student.id,
+      supervisorId: supervisor.id,
+      projectIds: linkedProjects.map((project) => project.id).filter(Boolean),
+      assignmentDate: new Date().toISOString(),
+    })
+  }
+
+  async function sendProjectAcceptanceEmail(projectId) {
+    if (!projectId) return null
+    return sendPlatformEmail('project_accepted', {
+      projectId,
+      acceptedAt: new Date().toISOString(),
+    })
   }
 
   async function createInvitation(form, options = {}) {
@@ -3690,7 +3751,7 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
   const reports = data.reports.filter((r) => String(r.project_id) === String(selectedProject?.id) && reportOwnedByUser(r, currentUser))
   const projectProgress = selectedProject ? getProjectProgress(selectedProject, data.reports) : 0
   const [titleForm, setTitleForm] = useState({ title: '', area: DEFAULT_DEPARTMENT, group_name: `${currentUser.full_name} Research Group`, final_due: '2026-06-20' })
-  const [reportForm, setReportForm] = useState({ completed_work: '', challenges: '', next_week_plan: '', attendance: 'Attended', department: DEFAULT_DEPARTMENT })
+  const [reportForm, setReportForm] = useState({ completed_work: '', challenges: '', next_week_plan: '', attendance: 'Attended' })
   const [file, setFile] = useState(null)
 
   return (
@@ -3726,12 +3787,6 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
           {selectedProject ? (
             <>
               <div className="form-grid">
-                <label className="field">
-                  <span>Department</span>
-                  <select value={normalizeDepartment(reportForm.department || selectedProject.area)} onChange={(e) => setReportForm({ ...reportForm, department: e.target.value })}>
-                    {DEPARTMENT_OPTIONS.map((department) => <option key={department} value={department}>{department}</option>)}
-                  </select>
-                </label>
                 <TextArea label="Work completed this week" value={reportForm.completed_work} onChange={(v) => setReportForm({ ...reportForm, completed_work: v })} />
                 <TextArea label="Problems or challenges" value={reportForm.challenges} onChange={(v) => setReportForm({ ...reportForm, challenges: v })} />
                 <TextArea label="Next week plan" value={reportForm.next_week_plan} onChange={(v) => setReportForm({ ...reportForm, next_week_plan: v })} />
@@ -3743,7 +3798,7 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
                   </select>
                 </label>
               </div>
-              <button className="primary" onClick={() => createWeeklyReport({ ...reportForm, department: normalizeDepartment(reportForm.department || selectedProject.area), project_id: selectedProject.id, submitted_by: currentUser.full_name }, file)}><Upload size={16} /> Submit Weekly Report</button>
+              <button className="primary" onClick={() => createWeeklyReport({ ...reportForm, project_id: selectedProject.id, submitted_by: currentUser.full_name }, file)}><Upload size={16} /> Submit Weekly Report</button>
             </>
           ) : <EmptyState title="Weekly reports locked" text="Create a research project first, then weekly report submission will be available." icon={Lock} />}
         </div>
@@ -3872,7 +3927,7 @@ function SupervisorDashboard({ data, projects, currentUser, reviewReport, create
                       <p className="muted small bold">Student: {student?.full_name || r.submitted_by || project?.group_name || 'Unknown student'}</p>
                       {(student?.email || r.student_email || r.submitted_by_email || project?.group_name) && <p className="muted small">{student?.email || r.student_email || r.submitted_by_email || ''}{project?.group_name ? `${student?.email || r.student_email || r.submitted_by_email ? ' • ' : ''}${project.group_name}` : ''}</p>}
                       <h3>{project?.title || 'Weekly Report'}</h3>
-                      <p className="muted small">Week {r.week_number} • Department: {r.department || project?.area || 'Not specified'} • Submitted {String(r.submitted_at || '').slice(0, 10) || 'date unavailable'}</p>
+                      <p className="muted small">Week {r.week_number} • Submitted {String(r.submitted_at || '').slice(0, 10) || 'date unavailable'}</p>
                     </div>
                     <div className="inline-actions">
                       <Pill tone={r.status === 'Accepted' ? 'green' : r.status === 'Revision Required' ? 'red' : 'amber'}>{r.status}</Pill>
@@ -4284,7 +4339,7 @@ function AdminDashboard({ data, projects, currentUser, updateProject, updateUser
     return assigned.length
   }
 
-  const departmentOptions = Array.from(new Set([...DEPARTMENTS, ...data.profiles.map(getUserDepartment).filter((value) => value && value !== 'Not set')])).sort((a, b) => a.localeCompare(b))
+  const departmentOptions = Array.from(new Set([...DEPARTMENT_OPTIONS, ...data.profiles.map(getUserDepartment).filter((value) => value && value !== 'Not set')])).sort((a, b) => a.localeCompare(b))
 
   const usersToShow = baseUsersToShow.filter((user) => {
     const q = userSearch.trim().toLowerCase()

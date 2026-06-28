@@ -1,4 +1,4 @@
-// PharmaTrack weekly report email sender
+// Pharmacy Research Platform weekly report email sender
 // Deploy with: supabase functions deploy email-weekly-report-to-me
 // Required custom secrets: RESEND_API_KEY, INVITE_FROM_EMAIL
 // Supabase hosted Edge Functions automatically provide SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.
@@ -198,7 +198,7 @@ function buildReportEmailHtml(args: {
         </div>
         ${actionButton}
         <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;" />
-        <p style="font-size:13px;color:#64748b;margin:0;">PharmaTrack Research Platform</p>
+        <p style="font-size:13px;color:#64748b;margin:0;">Pharmacy Research Platform</p>
       </div>
     </div>
   `
