@@ -83,18 +83,28 @@ create table if not exists public.evaluations (
   id uuid primary key default uuid_generate_v4(),
   project_id uuid references public.research_projects(id) on delete cascade,
   evaluator_name text not null,
-  evaluation_type text not null,
-  attendance_score integer default 0,
-  progress_score integer default 0,
-  research_quality_score integer default 0,
-  writing_score integer default 0,
-  presentation_score integer default 0,
-  teamwork_score integer default 0,
+  evaluation_type text not null default 'Final Evaluation Rubric /50',
+  -- New /50 rubric mapping:
+  -- attendance_score = Title novelty /10
+  -- progress_score = Research contents /10
+  -- research_quality_score = Flow of writing and data presentation /10
+  -- writing_score = Plagiarism and AI /10
+  -- presentation_score = Follow the university guideline /10
+  -- teamwork_score is kept for compatibility with old /100 data and is 0 for new /50 evaluations.
+  attendance_score integer default 0 check (attendance_score between 0 and 10),
+  progress_score integer default 0 check (progress_score between 0 and 10),
+  research_quality_score integer default 0 check (research_quality_score between 0 and 10),
+  writing_score integer default 0 check (writing_score between 0 and 10),
+  presentation_score integer default 0 check (presentation_score between 0 and 10),
+  teamwork_score integer default 0 check (teamwork_score between 0 and 10),
   total_score integer generated always as (
     attendance_score + progress_score + research_quality_score + writing_score + presentation_score + teamwork_score
   ) stored,
+  max_score integer default 50,
+  rubric_version text default 'final_rubric_50_v1',
   comments text,
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
 );
 
 create table if not exists public.deadlines (
@@ -270,9 +280,46 @@ create policy "uploaded_files_delete_admin_only" on public.uploaded_files for de
   )
 );
 
-create policy "evaluations_select_authenticated" on public.evaluations for select to anon, authenticated using (true);
-create policy "evaluations_insert_authenticated" on public.evaluations for insert to anon, authenticated with check (true);
-create policy "evaluations_update_authenticated" on public.evaluations for update to anon, authenticated using (true);
+create policy "evaluations_select_authenticated" on public.evaluations for select to authenticated using (true);
+create policy "evaluations_insert_completed_projects_only" on public.evaluations for insert to authenticated with check (
+  exists (
+    select 1 from public.profiles p
+    where lower(p.email) = lower(auth.jwt() ->> 'email')
+      and coalesce(p.status, 'Pending') = 'Active'
+      and p.role in ('admin', 'committee')
+  )
+  and exists (
+    select 1 from public.research_projects rp
+    where rp.id = project_id
+      and coalesce(rp.progress, 0) >= 100
+  )
+  and attendance_score between 0 and 10
+  and progress_score between 0 and 10
+  and research_quality_score between 0 and 10
+  and writing_score between 0 and 10
+  and presentation_score between 0 and 10
+  and teamwork_score between 0 and 10
+);
+create policy "evaluations_update_completed_projects_only" on public.evaluations for update to authenticated using (
+  exists (
+    select 1 from public.profiles p
+    where lower(p.email) = lower(auth.jwt() ->> 'email')
+      and coalesce(p.status, 'Pending') = 'Active'
+      and p.role in ('admin', 'committee')
+  )
+) with check (
+  exists (
+    select 1 from public.research_projects rp
+    where rp.id = project_id
+      and coalesce(rp.progress, 0) >= 100
+  )
+  and attendance_score between 0 and 10
+  and progress_score between 0 and 10
+  and research_quality_score between 0 and 10
+  and writing_score between 0 and 10
+  and presentation_score between 0 and 10
+  and teamwork_score between 0 and 10
+);
 
 create policy "deadlines_select_authenticated" on public.deadlines for select to anon, authenticated using (true);
 create policy "deadlines_insert_authenticated" on public.deadlines for insert to anon, authenticated with check (true);
@@ -1020,3 +1067,209 @@ using (
     )
   )
 );
+
+
+
+-- PDF Report Customization RLS/RPC fix.
+-- Run once in Supabase SQL Editor, or deploy with: npx supabase db push
+-- This keeps the existing Print/PDF report system and fixes global save failures caused by app_settings RLS.
+
+create table if not exists public.app_settings (
+  key text primary key,
+  value jsonb not null default '{}'::jsonb,
+  updated_by text,
+  updated_at timestamptz default now()
+);
+
+alter table public.app_settings enable row level security;
+
+-- Robust admin check used by app_settings policies, storage policies, and the save RPC.
+-- It supports existing profile rows where the admin profile is matched by email or auth.uid().
+create or replace function public.is_pdf_customization_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1
+    from public.profiles p
+    where lower(coalesce(p.role, '')) = 'admin'
+      and lower(coalesce(p.status, 'pending')) in ('active', 'approved')
+      and (
+        lower(coalesce(p.email, '')) = lower(coalesce(auth.jwt() ->> 'email', ''))
+        or p.id = auth.uid()
+      )
+  );
+$$;
+
+grant execute on function public.is_pdf_customization_admin() to anon, authenticated;
+
+-- All users can read saved report template settings so existing Print/PDF buttons use the global template.
+drop policy if exists "Authenticated users can read app settings" on public.app_settings;
+drop policy if exists "Public can read app settings" on public.app_settings;
+create policy "Public can read app settings"
+  on public.app_settings
+  for select
+  to anon, authenticated
+  using (true);
+
+-- Only approved admins can change global app settings.
+drop policy if exists "Approved admins can insert app settings" on public.app_settings;
+create policy "Approved admins can insert app settings"
+  on public.app_settings
+  for insert
+  to authenticated
+  with check (public.is_pdf_customization_admin());
+
+drop policy if exists "Approved admins can update app settings" on public.app_settings;
+create policy "Approved admins can update app settings"
+  on public.app_settings
+  for update
+  to authenticated
+  using (public.is_pdf_customization_admin())
+  with check (public.is_pdf_customization_admin());
+
+drop policy if exists "Approved admins can delete app settings" on public.app_settings;
+create policy "Approved admins can delete app settings"
+  on public.app_settings
+  for delete
+  to authenticated
+  using (public.is_pdf_customization_admin());
+
+-- SECURITY DEFINER save endpoint used by the frontend as the primary global save path.
+-- This avoids direct upsert RLS insert failures while still verifying admin permission server-side.
+create or replace function public.save_pdf_report_settings(next_value jsonb, updated_by_value text default null)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  saved_value jsonb;
+begin
+  if not public.is_pdf_customization_admin() then
+    raise exception 'Only approved admin accounts can edit PDF report customization settings.';
+  end if;
+
+  insert into public.app_settings as s (key, value, updated_by, updated_at)
+  values (
+    'pdf_report',
+    coalesce(next_value, '{}'::jsonb),
+    coalesce(updated_by_value, auth.jwt() ->> 'email', 'admin'),
+    now()
+  )
+  on conflict (key) do update set
+    value = excluded.value,
+    updated_by = excluded.updated_by,
+    updated_at = now()
+  returning s.value into saved_value;
+
+  return saved_value;
+end;
+$$;
+
+grant execute on function public.save_pdf_report_settings(jsonb, text) to authenticated;
+
+-- Default report settings. Existing customized values are preserved.
+insert into public.app_settings (key, value, updated_by)
+values (
+  'pdf_report',
+  jsonb_build_object(
+    'logoUrl', '',
+    'logoPath', '',
+    'reportTitle', 'Pharmacy Research Project Management Report',
+    'headerText', 'Hawler Medical University – College of Pharmacy',
+    'universityName', 'Hawler Medical University',
+    'collegeName', 'College of Pharmacy',
+    'departmentName', 'Department of Pharmacy',
+    'footerText', '',
+    'showPageNumbers', true,
+    'showGeneratedDateTime', true,
+    'sections', jsonb_build_object(
+      'userInformation', true,
+      'studentInformation', true,
+      'supervisorInformation', true,
+      'researchGroup', true,
+      'researchTitle', true,
+      'weeklyReports', true,
+      'feedback', true,
+      'projectProgress', true,
+      'deadlines', true,
+      'finalEvaluationRubric', true,
+      'signatures', true,
+      'generatedDateTime', true
+    )
+  ),
+  'system'
+)
+on conflict (key) do update set
+  value = excluded.value || public.app_settings.value,
+  updated_at = now();
+
+-- Reuse/create the existing public app-assets bucket for PDF report logos.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'app-assets',
+  'app-assets',
+  true,
+  5242880,
+  array['image/png', 'image/jpeg', 'image/jpg', 'image/webp']::text[]
+)
+on conflict (id) do update set
+  public = true,
+  file_size_limit = greatest(coalesce(storage.buckets.file_size_limit, 0), excluded.file_size_limit),
+  allowed_mime_types = (
+    select array_agg(distinct t.mime_type)
+    from unnest(coalesce(storage.buckets.allowed_mime_types, array[]::text[]) || excluded.allowed_mime_types) as t(mime_type)
+  );
+
+-- Public read for uploaded PDF report logos.
+drop policy if exists "Public can view PDF report logos" on storage.objects;
+create policy "Public can view PDF report logos"
+  on storage.objects
+  for select
+  to anon, authenticated
+  using (bucket_id = 'app-assets' and (storage.foldername(name))[1] = 'pdf-reports');
+
+-- Admin-only logo writes.
+drop policy if exists "Admins can upload PDF report logos" on storage.objects;
+create policy "Admins can upload PDF report logos"
+  on storage.objects
+  for insert
+  to authenticated
+  with check (
+    bucket_id = 'app-assets'
+    and (storage.foldername(name))[1] = 'pdf-reports'
+    and public.is_pdf_customization_admin()
+  );
+
+drop policy if exists "Admins can update PDF report logos" on storage.objects;
+create policy "Admins can update PDF report logos"
+  on storage.objects
+  for update
+  to authenticated
+  using (
+    bucket_id = 'app-assets'
+    and (storage.foldername(name))[1] = 'pdf-reports'
+    and public.is_pdf_customization_admin()
+  )
+  with check (
+    bucket_id = 'app-assets'
+    and (storage.foldername(name))[1] = 'pdf-reports'
+    and public.is_pdf_customization_admin()
+  );
+
+drop policy if exists "Admins can delete PDF report logos" on storage.objects;
+create policy "Admins can delete PDF report logos"
+  on storage.objects
+  for delete
+  to authenticated
+  using (
+    bucket_id = 'app-assets'
+    and (storage.foldername(name))[1] = 'pdf-reports'
+    and public.is_pdf_customization_admin()
+  );
+
+notify pgrst, 'reload schema';

@@ -286,6 +286,69 @@ const defaultWebsiteSettings = {
   maintenanceNotice: '',
 }
 
+const defaultPdfReportSections = {
+  userInformation: true,
+  studentInformation: true,
+  supervisorInformation: true,
+  researchGroup: true,
+  researchTitle: true,
+  weeklyReports: true,
+  feedback: true,
+  projectProgress: true,
+  deadlines: true,
+  finalEvaluationRubric: true,
+  signatures: true,
+  generatedDateTime: true,
+}
+
+const defaultPdfReportSettings = {
+  logoUrl: '',
+  logoPath: '',
+  reportTitle: 'Pharmacy Research Project Management Report',
+  headerText: 'Hawler Medical University – College of Pharmacy',
+  universityName: 'Hawler Medical University',
+  collegeName: 'College of Pharmacy',
+  departmentName: 'Department of Pharmacy',
+  footerText: '',
+  showPageNumbers: true,
+  showGeneratedDateTime: true,
+  sections: defaultPdfReportSections,
+}
+
+const pdfReportSectionLabels = [
+  ['userInformation', 'User information'],
+  ['studentInformation', 'Student information'],
+  ['supervisorInformation', 'Supervisor information'],
+  ['researchGroup', 'Research group'],
+  ['researchTitle', 'Research title'],
+  ['weeklyReports', 'Weekly reports'],
+  ['feedback', 'Feedback'],
+  ['projectProgress', 'Project progress'],
+  ['deadlines', 'Deadlines'],
+  ['finalEvaluationRubric', 'Final evaluation rubric'],
+  ['signatures', 'Signatures'],
+  ['generatedDateTime', 'Generated date/time'],
+]
+
+function normalizePdfReportSettings(settings) {
+  const next = { ...defaultPdfReportSettings, ...(settings || {}) }
+  next.sections = { ...defaultPdfReportSections, ...((settings && settings.sections) || {}) }
+  return next
+}
+
+function loadPdfReportSettings() {
+  try {
+    const saved = localStorage.getItem('pharmatrack-pdf-report-settings')
+    return saved ? normalizePdfReportSettings(JSON.parse(saved)) : defaultPdfReportSettings
+  } catch {
+    return defaultPdfReportSettings
+  }
+}
+
+function savePdfReportSettingsLocal(settings) {
+  localStorage.setItem('pharmatrack-pdf-report-settings', JSON.stringify(normalizePdfReportSettings(settings)))
+}
+
 function normalizeSettings(settings) {
   return { ...defaultWebsiteSettings, ...(settings || {}) }
 }
@@ -357,11 +420,73 @@ function optimizeImageFile(file, options = {}) {
   })
 }
 
+const adminPanelTabs = ['overview', 'branding', 'login-settings', 'users', 'invitations', 'deadlines', 'notifications', 'reports', 'pdf-report', 'database', 'audit']
+
+const adminPanelPathAliases = {
+  '': 'overview',
+  admin: 'overview',
+  overview: 'overview',
+  dashboard: 'overview',
+  branding: 'branding',
+  settings: 'branding',
+  website: 'branding',
+  'website-settings': 'branding',
+  login: 'login-settings',
+  'login-settings': 'login-settings',
+  users: 'users',
+  roles: 'users',
+  'users-roles': 'users',
+  'users-and-roles': 'users',
+  invitations: 'invitations',
+  invite: 'invitations',
+  deadlines: 'deadlines',
+  notifications: 'notifications',
+  reports: 'reports',
+  'pdf-report': 'pdf-report',
+  pdf: 'pdf-report',
+  'pdf-customization': 'pdf-report',
+  'pdf-report-customization': 'pdf-report',
+  print: 'pdf-report',
+  'print-pdf': 'pdf-report',
+  database: 'database',
+  audit: 'audit',
+  'audit-log': 'audit',
+}
+
+function isAdminPanelTab(value) {
+  return adminPanelTabs.includes(value)
+}
+
+function getInitialAdminPanelTab() {
+  if (typeof window === 'undefined') return 'overview'
+  const params = new URLSearchParams(window.location.search)
+  const queryTab = params.get('panel') || params.get('tab')
+  if (isAdminPanelTab(queryTab)) return queryTab
+
+  const hashTab = String(window.location.hash || '').replace('#', '').trim().toLowerCase()
+  if (isAdminPanelTab(hashTab)) return hashTab
+  if (adminPanelPathAliases[hashTab]) return adminPanelPathAliases[hashTab]
+
+  const parts = window.location.pathname.split('/').map((part) => part.trim().toLowerCase()).filter(Boolean)
+  const lastPart = parts[parts.length - 1] || ''
+  return adminPanelPathAliases[lastPart] || 'overview'
+}
+
 function isAdminPortalRequest() {
   if (typeof window === 'undefined') return false
   const host = window.location.hostname.toLowerCase()
   const params = new URLSearchParams(window.location.search)
-  return host.startsWith('admin.') || window.location.pathname.startsWith('/admin') || params.get('admin') === 'true'
+  const parts = window.location.pathname.split('/').map((part) => part.trim().toLowerCase()).filter(Boolean)
+  const firstPart = parts[0] || ''
+  const lastPart = parts[parts.length - 1] || ''
+  return (
+    host.startsWith('admin.') ||
+    firstPart === 'admin' ||
+    params.get('admin') === 'true' ||
+    params.get('panel') === 'users' ||
+    params.get('tab') === 'users' ||
+    ['users', 'roles', 'users-roles', 'users-and-roles'].includes(lastPart)
+  )
 }
 
 const emptyData = {
@@ -1236,8 +1361,10 @@ export default function App() {
   const [role, setRole] = useState('student')
   const [tab, setTab] = useState('dashboard')
   const [data, setData] = useState(loadLocalData)
+  const [dataLoadError, setDataLoadError] = useState('')
   const [websiteSettings, setWebsiteSettings] = useState(loadWebsiteSettings)
-  const [adminPanelTab, setAdminPanelTab] = useState('overview')
+  const [pdfReportSettings, setPdfReportSettings] = useState(loadPdfReportSettings)
+  const [adminPanelTab, setAdminPanelTab] = useState(getInitialAdminPanelTab)
   const [currentUser, setCurrentUser] = useState(loadCurrentUser)
   const [message, setMessage] = useState('')
   const [loginLoading, setLoginLoading] = useState(false)
@@ -1258,6 +1385,7 @@ export default function App() {
 
   useEffect(() => {
     loadWebsiteSettingsFromSupabase()
+    loadPdfReportSettingsFromSupabase()
   }, [])
 
   useEffect(() => {
@@ -1337,6 +1465,7 @@ export default function App() {
         progress: getProjectProgress(project, reportsData),
       }))
 
+      setDataLoadError('')
       setData(cleanData({
         profiles: profiles.data || [],
         projects: projectsData,
@@ -1349,6 +1478,7 @@ export default function App() {
         invitations: invitationsData,
       }))
     } catch (error) {
+      setDataLoadError(error.message || 'Unknown database error')
       setMessage(`Database error: ${error.message}`)
     }
   }
@@ -1411,6 +1541,149 @@ export default function App() {
     } catch {
       // The website can still run without the optional app_settings table.
     }
+  }
+
+  async function loadPdfReportSettingsFromSupabase() {
+    if (!isSupabaseConfigured) return
+    try {
+      const { data: row, error } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'pdf_report')
+        .maybeSingle()
+      if (error) return
+      if (row?.value) {
+        const settings = normalizePdfReportSettings(row.value)
+        setPdfReportSettings(settings)
+        savePdfReportSettingsLocal(settings)
+      }
+    } catch {
+      // The default PDF design still works if the optional settings row is not created yet.
+    }
+  }
+
+  async function updatePdfReportSettings(nextValues, options = {}) {
+    if (currentUser?.role !== 'admin') {
+      setMessage('Only Admin accounts can edit PDF report customization settings.')
+      return { ok: false }
+    }
+
+    const nextSettings = normalizePdfReportSettings({ ...pdfReportSettings, ...nextValues })
+    setPdfReportSettings(nextSettings)
+    savePdfReportSettingsLocal(nextSettings)
+
+    if (isSupabaseConfigured) {
+      try {
+        let saveError = null
+
+        const rpcSave = await supabase.rpc('save_pdf_report_settings', {
+          next_value: nextSettings,
+          updated_by_value: currentUser?.email || currentUser?.full_name || 'admin',
+        })
+
+        if (rpcSave.error) {
+          saveError = rpcSave.error
+          const directSave = await supabase
+            .from('app_settings')
+            .upsert({
+              key: 'pdf_report',
+              value: nextSettings,
+              updated_by: currentUser?.email || currentUser?.full_name || 'admin',
+              updated_at: new Date().toISOString(),
+            }, { onConflict: 'key' })
+          if (directSave.error) saveError = directSave.error
+          else saveError = null
+        }
+
+        if (saveError) throw saveError
+        if (!options.silent) {
+          await addAudit(currentUser.full_name, 'updated', 'PDF report customization settings')
+          setMessage('PDF report customization saved. Existing Print/PDF buttons will use the updated template.')
+        }
+        return { ok: true }
+      } catch (error) {
+        setMessage(`PDF settings saved locally, but global database save failed: ${error.message}. Run the updated supabase/pdf_report_customization_update.sql in Supabase SQL Editor, then save again.`)
+        return { ok: false }
+      }
+    }
+
+    if (!options.silent) {
+      setMessage('PDF report customization saved locally for preview. Connect Supabase and run supabase/pdf_report_customization_update.sql to save globally.')
+    }
+    return { ok: true }
+  }
+
+  async function uploadPdfReportLogo(file) {
+    if (currentUser?.role !== 'admin') {
+      setMessage('Only Admin accounts can upload PDF report logos.')
+      return { ok: false }
+    }
+    if (!file) return { ok: false }
+    if (!file.type?.startsWith('image/')) {
+      setMessage('Please choose a valid logo image file.')
+      return { ok: false }
+    }
+
+    try {
+      const outputType = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
+      const dataUrl = await optimizeImageFile(file, { maxWidth: 900, maxHeight: 450, quality: 0.92, outputType })
+      let logoUrl = dataUrl
+      let logoPath = ''
+
+      if (isSupabaseConfigured) {
+        const blob = await fetch(dataUrl).then((response) => response.blob())
+        const extension = outputType === 'image/png' ? 'png' : 'jpg'
+        const safeName = sanitizeFileName(file.name || 'pdf-report-logo').toLowerCase()
+        logoPath = `pdf-reports/logo-${Date.now()}-${safeName}.${extension}`
+        const upload = await supabase.storage
+          .from('app-assets')
+          .upload(logoPath, blob, {
+            contentType: outputType,
+            cacheControl: '3600',
+            upsert: true,
+          })
+        if (upload.error) throw upload.error
+        const { data: publicData } = supabase.storage.from('app-assets').getPublicUrl(logoPath)
+        logoUrl = publicData?.publicUrl || dataUrl
+      }
+
+      await updatePdfReportSettings({ logoUrl, logoPath }, { silent: true })
+      setMessage(isSupabaseConfigured ? 'PDF report logo uploaded. Click Save PDF Report Settings to confirm other changes.' : 'PDF report logo loaded locally for preview.')
+      return { ok: true, logoUrl, logoPath }
+    } catch (error) {
+      try {
+        const fallback = await fileToDataUrl(file)
+        await updatePdfReportSettings({ logoUrl: fallback, logoPath: '' }, { silent: true })
+        setMessage(`Logo preview loaded locally, but Supabase upload failed: ${error.message}. Run the updated supabase/pdf_report_customization_update.sql, then upload again.`)
+        return { ok: true, logoUrl: fallback }
+      } catch {
+        setMessage(error.message || 'Could not upload the selected logo. Try a smaller JPG or PNG file.')
+        return { ok: false }
+      }
+    }
+  }
+
+  async function removePdfReportLogo() {
+    if (currentUser?.role !== 'admin') {
+      setMessage('Only Admin accounts can remove PDF report logos.')
+      return { ok: false }
+    }
+
+    const oldPath = pdfReportSettings.logoPath
+    await updatePdfReportSettings({ logoUrl: '', logoPath: '' }, { silent: true })
+    if (isSupabaseConfigured && oldPath) {
+      try {
+        await supabase.storage.from('app-assets').remove([oldPath])
+      } catch {
+        // Removing the setting is enough to hide the logo even if storage cleanup fails.
+      }
+    }
+    setMessage('PDF report logo removed. Existing Print/PDF reports will use the no-logo template.')
+    return { ok: true }
+  }
+
+  async function resetPdfReportSettings() {
+    return updatePdfReportSettings(defaultPdfReportSettings)
   }
 
   async function updateWebsiteSettings(nextValues, options = {}) {
@@ -1780,6 +2053,7 @@ export default function App() {
     if (!form.project_id) return setMessage('Create or select a research project first.')
     if (!form.completed_work?.trim()) return setMessage('Please write the work completed this week before submitting.')
     const selectedReportProject = data.projects.find((item) => String(item.id) === String(form.project_id))
+    const reportDepartment = normalizeDepartment(form.department || selectedReportProject?.area)
     const nextWeek = Math.max(
       0,
       ...data.reports
@@ -1789,6 +2063,7 @@ export default function App() {
     const report = {
       id: crypto.randomUUID(),
       project_id: form.project_id,
+      department: reportDepartment,
       week_number: nextWeek,
       submitted_by: currentUser?.full_name || form.submitted_by,
       submitted_by_id: currentUser?.id || null,
@@ -2096,7 +2371,7 @@ export default function App() {
         const { error } = await supabase.from('uploaded_files').delete().eq('id', fileId)
         if (error) throw error
         await addAudit(currentUser.full_name, 'deleted', `uploaded document: ${targetFile.file_name || fileId}`)
-        await loadFromSupabase(loginUser)
+        await loadFromSupabase(currentUser)
       } else {
         const log = makeAudit(currentUser.full_name, 'deleted', `uploaded document: ${targetFile.file_name || fileId}`)
         setLocal((current) => ({
@@ -2136,7 +2411,7 @@ export default function App() {
         const progressUpdate = await supabase.from('research_projects').update({ progress: nextProgress }).eq('id', targetReport.project_id)
         if (progressUpdate.error) throw progressUpdate.error
         await addAudit(currentUser.full_name, 'deleted', `weekly report ${targetReport.week_number || reportId}`)
-        await loadFromSupabase(loginUser)
+        await loadFromSupabase(currentUser)
       } else {
         const log = makeAudit(currentUser.full_name, 'deleted', `weekly report ${targetReport.week_number || reportId}`)
         setLocal((current) => ({
@@ -2166,7 +2441,7 @@ export default function App() {
         const { error } = await supabase.rpc('admin_delete_profile', { target_profile_id: userId })
         if (error) throw error
         await addAudit(currentUser.full_name, 'deleted account', `${targetUser.full_name || targetUser.email}`)
-        await loadFromSupabase(loginUser)
+        await loadFromSupabase(currentUser)
       } else {
         const log = makeAudit(currentUser.full_name, 'deleted account', `${targetUser.full_name || targetUser.email}`)
         const targetEmail = String(targetUser.email || '').toLowerCase()
@@ -2214,7 +2489,7 @@ export default function App() {
         const { error } = await supabase.rpc('admin_delete_research_project', { target_project_id: projectId })
         if (error) throw error
         await addAudit(currentUser.full_name, 'deleted research title', `${targetProject.title || projectId}`)
-        await loadFromSupabase(loginUser)
+        await loadFromSupabase(currentUser)
       } else {
         const log = makeAudit(currentUser.full_name, 'deleted research title', `${targetProject.title || projectId}`)
         setLocal((current) => ({
@@ -2253,7 +2528,7 @@ export default function App() {
         const { error } = await supabase.rpc('admin_delete_research_group', { target_group_name: normalizedGroup })
         if (error) throw error
         await addAudit(currentUser.full_name, 'deleted research group', normalizedGroup)
-        await loadFromSupabase(loginUser)
+        await loadFromSupabase(currentUser)
       } else {
         const log = makeAudit(currentUser.full_name, 'deleted research group', normalizedGroup)
         setLocal((current) => ({
@@ -2273,25 +2548,9 @@ export default function App() {
   }
 
   async function updateProject(projectId, fields) {
-    const currentProject = data.projects.find((project) => String(project.id) === String(projectId))
-    const approvalWillBeAccepted = String(fields?.approval || '') === 'Approved'
-    const wasAlreadyAccepted = String(currentProject?.approval || '') === 'Approved'
-    const shouldSendAcceptanceEmail = approvalWillBeAccepted && !wasAlreadyAccepted
-    let projectEmailWarning = ''
-
     if (isSupabaseConfigured) {
       const { error } = await supabase.from('research_projects').update(fields).eq('id', projectId)
       if (error) return setMessage(error.message)
-
-      if (shouldSendAcceptanceEmail) {
-        try {
-          await sendProjectAcceptanceEmail(projectId)
-        } catch (emailError) {
-          console.warn('Project acceptance email could not be sent:', emailError)
-          projectEmailWarning = ` Project was updated, but the acceptance email could not be sent: ${emailError.message || 'Check Edge Function logs.'}`
-        }
-      }
-
       await addAudit(currentUser.full_name, 'updated', `project ${projectId}`)
       await loadFromSupabase()
     } else {
@@ -2302,49 +2561,79 @@ export default function App() {
         auditLogs: [log, ...current.auditLogs],
       }))
     }
-    setMessage(projectEmailWarning || (shouldSendAcceptanceEmail ? 'Project accepted and student email notification sent.' : 'Project updated.'))
+    setMessage('Project updated.')
+  }
+
+  function isMissingRpcFunction(error) {
+    const message = String(error?.message || '').toLowerCase()
+    return error?.code === 'PGRST202' || message.includes('could not find the function') || message.includes('schema cache')
+  }
+
+  async function adminUpdateProfile(userId, updates) {
+    if (!isSupabaseConfigured) return
+    const { error: rpcError } = await supabase.rpc('admin_update_profile', {
+      target_profile_id: userId,
+      profile_updates: updates,
+    })
+
+    if (!rpcError) return
+    if (!isMissingRpcFunction(rpcError)) throw rpcError
+
+    // Backward compatibility for databases that have not run the latest optional RPC yet.
+    const { error } = await supabase.from('profiles').update(updates).eq('id', userId)
+    if (error) throw error
   }
 
   async function updateUserRole(userId, newRole) {
-    const targetUser = data.profiles.find((u) => u.id === userId)
+    const targetUser = data.profiles.find((u) => String(u.id) === String(userId))
     if (!targetUser) return setMessage('User not found.')
-    if (targetUser.id === currentUser.id) return setMessage('For safety, the active admin cannot change their own role while logged in.')
+    if (String(targetUser.id) === String(currentUser.id)) return setMessage('For safety, the active admin cannot change their own role while logged in.')
+    if (!roleButtons.some((role) => role.id === newRole)) return setMessage('Please choose a valid role.')
 
-    if (isSupabaseConfigured) {
-      const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', userId)
-      if (error) return setMessage(error.message)
-      await addAudit(currentUser.full_name, 'changed user role for', `${targetUser.full_name} to ${newRole}`)
-      await loadFromSupabase()
-    } else {
-      const log = makeAudit(currentUser.full_name, 'changed user role for', `${targetUser.full_name} to ${newRole}`)
-      setLocal((current) => ({
-        ...current,
-        profiles: current.profiles.map((u) => u.id === userId ? { ...u, role: newRole } : u),
-        auditLogs: [log, ...current.auditLogs],
-      }))
+    try {
+      if (isSupabaseConfigured) {
+        await adminUpdateProfile(userId, { role: newRole })
+        await addAudit(currentUser.full_name, 'changed user role for', `${targetUser.full_name} to ${newRole}`)
+        await loadFromSupabase(currentUser)
+      } else {
+        const log = makeAudit(currentUser.full_name, 'changed user role for', `${targetUser.full_name} to ${newRole}`)
+        setLocal((current) => ({
+          ...current,
+          profiles: current.profiles.map((u) => String(u.id) === String(userId) ? { ...u, role: newRole } : u),
+          auditLogs: [log, ...current.auditLogs],
+        }))
+      }
+      setMessage(`${targetUser.full_name}'s role was changed to ${roleButtons.find((r) => r.id === newRole)?.label || newRole}.`)
+    } catch (error) {
+      const message = String(error?.message || '')
+      setMessage(message.toLowerCase().includes('permission') || message.toLowerCase().includes('row-level security') ? 'You do not have permission to change user roles. Run supabase/admin_users_roles_page_fix.sql in Supabase SQL Editor, then try again.' : (message || 'Could not change this user role.'))
     }
-    setMessage(`${targetUser.full_name}'s role was changed to ${roleButtons.find((r) => r.id === newRole)?.label || newRole}.`)
   }
 
   async function updateUserStatus(userId, newStatus) {
-    const targetUser = data.profiles.find((u) => u.id === userId)
+    const targetUser = data.profiles.find((u) => String(u.id) === String(userId))
     if (!targetUser) return setMessage('User not found.')
-    if (targetUser.id === currentUser.id) return setMessage('For safety, the active admin cannot change their own approval status while logged in.')
+    if (String(targetUser.id) === String(currentUser.id)) return setMessage('For safety, the active admin cannot change their own approval status while logged in.')
+    if (!['Pending', 'Active', 'Rejected'].includes(newStatus)) return setMessage('Please choose a valid account status.')
 
-    if (isSupabaseConfigured) {
-      const { error } = await supabase.from('profiles').update({ status: newStatus }).eq('id', userId)
-      if (error) return setMessage(error.message)
-      await addAudit(currentUser.full_name, 'changed user approval status for', `${targetUser.full_name} to ${newStatus}`)
-      await loadFromSupabase()
-    } else {
-      const log = makeAudit(currentUser.full_name, 'changed user approval status for', `${targetUser.full_name} to ${newStatus}`)
-      setLocal((current) => ({
-        ...current,
-        profiles: current.profiles.map((u) => u.id === userId ? { ...u, status: newStatus } : u),
-        auditLogs: [log, ...current.auditLogs],
-      }))
+    try {
+      if (isSupabaseConfigured) {
+        await adminUpdateProfile(userId, { status: newStatus })
+        await addAudit(currentUser.full_name, 'changed user approval status for', `${targetUser.full_name} to ${newStatus}`)
+        await loadFromSupabase(currentUser)
+      } else {
+        const log = makeAudit(currentUser.full_name, 'changed user approval status for', `${targetUser.full_name} to ${newStatus}`)
+        setLocal((current) => ({
+          ...current,
+          profiles: current.profiles.map((u) => String(u.id) === String(userId) ? { ...u, status: newStatus } : u),
+          auditLogs: [log, ...current.auditLogs],
+        }))
+      }
+      setMessage(`${targetUser.full_name}'s account status was changed to ${newStatus}.`)
+    } catch (error) {
+      const message = String(error?.message || '')
+      setMessage(message.toLowerCase().includes('permission') || message.toLowerCase().includes('row-level security') ? 'You do not have permission to change account approval. Run supabase/admin_users_roles_page_fix.sql in Supabase SQL Editor, then try again.' : (message || 'Could not change this account status.'))
     }
-    setMessage(`${targetUser.full_name}'s account status was changed to ${newStatus}.`)
   }
 
 
@@ -2387,22 +2676,20 @@ export default function App() {
           target_student_id: student.id,
           target_supervisor_id: supervisor?.id || null,
         })
-        if (rpcResult.error) throw rpcResult.error
 
-        let assignmentEmailWarning = ''
-        if (supervisor) {
-          try {
-            await sendAssignmentEmails(student, supervisor, linkedProjects)
-          } catch (emailError) {
-            console.warn('Assignment email could not be sent:', emailError)
-            assignmentEmailWarning = ` Assignment was saved, but the email could not be sent: ${emailError.message || 'Check Edge Function logs.'}`
+        if (rpcResult.error && !isMissingRpcFunction(rpcResult.error)) throw rpcResult.error
+
+        if (rpcResult.error) {
+          const profileResult = await supabase.from('profiles').update(profileUpdate).eq('id', student.id)
+          if (profileResult.error) throw profileResult.error
+          for (const project of linkedProjects) {
+            const updateResult = await supabase.from('research_projects').update(projectUpdate).eq('id', project.id)
+            if (updateResult.error) throw updateResult.error
           }
         }
 
         await addAudit(currentUser.full_name, supervisor ? 'assigned student to supervisor' : 'removed supervisor assignment for', `${student.full_name || student.email}${supervisor ? ` → ${supervisor.full_name || supervisor.email}` : ''}`)
-        await loadFromSupabase(loginUser)
-        setMessage(supervisor ? `${student.full_name || student.email} was assigned to ${supervisor.full_name || supervisor.email}.${assignmentEmailWarning}` : `Supervisor assignment removed for ${student.full_name || student.email}.`)
-        return
+        await loadFromSupabase(currentUser)
       } else {
         const log = makeAudit(currentUser.full_name, supervisor ? 'assigned student to supervisor' : 'removed supervisor assignment for', `${student.full_name || student.email}${supervisor ? ` → ${supervisor.full_name || supervisor.email}` : ''}`)
         const linkedIds = new Set(linkedProjects.map((project) => String(project.id)))
@@ -2420,34 +2707,90 @@ export default function App() {
   }
 
   async function saveEvaluation(form) {
-    const project = data.projects[0]
-    if (!project) return setMessage('Create a project first before saving an evaluation.')
+    const project = data.projects.find((item) => String(item.id) === String(form.project_id))
+    if (!project) {
+      setMessage('Please select a completed group project before saving the final evaluation.')
+      return { ok: false }
+    }
+
+    const progress = Number(getProjectProgress(project, data.reports) || project.progress || 0)
+    if (progress < 100) {
+      setMessage('This project is not eligible for final evaluation until progress reaches 100%.')
+      return { ok: false }
+    }
+
+    const scoreKeys = ['title_novelty', 'research_contents', 'flow_writing_data', 'plagiarism_ai', 'university_guideline']
+    const scores = Object.fromEntries(scoreKeys.map((key) => [key, Number(form[key])]))
+    const invalid = scoreKeys.some((key) => !Number.isFinite(scores[key]) || scores[key] < 1 || scores[key] > 10)
+    if (invalid) {
+      setMessage('Each criterion must be scored from 1 to 10.')
+      return { ok: false }
+    }
+
+    const existingEvaluation = data.evaluations.find((evaluation) => String(evaluation.project_id) === String(project.id))
+    const now = new Date().toISOString()
     const record = {
-      id: crypto.randomUUID(),
+      id: existingEvaluation?.id || crypto.randomUUID(),
       project_id: project.id,
       evaluator_name: currentUser.full_name,
-      evaluation_type: 'Final Presentation and Poster',
-      attendance_score: Number(form.attendance || 0),
-      progress_score: Number(form.progress || 0),
-      research_quality_score: Number(form.quality || 0),
-      writing_score: Number(form.writing || 0),
-      presentation_score: Number(form.presentation || 0),
-      teamwork_score: Number(form.teamwork || 0),
-      comments: form.comments,
-      created_at: new Date().toISOString(),
+      evaluation_type: 'Final Evaluation Rubric /50',
+      attendance_score: scores.title_novelty,
+      progress_score: scores.research_contents,
+      research_quality_score: scores.flow_writing_data,
+      writing_score: scores.plagiarism_ai,
+      presentation_score: scores.university_guideline,
+      teamwork_score: 0,
+      comments: form.comments || '',
+      created_at: existingEvaluation?.created_at || now,
+      updated_at: now,
+      rubric_version: 'final_rubric_50_v1',
+      max_score: 50,
+    }
+
+    const recordForDb = {
+      project_id: record.project_id,
+      evaluator_name: record.evaluator_name,
+      evaluation_type: record.evaluation_type,
+      attendance_score: record.attendance_score,
+      progress_score: record.progress_score,
+      research_quality_score: record.research_quality_score,
+      writing_score: record.writing_score,
+      presentation_score: record.presentation_score,
+      teamwork_score: record.teamwork_score,
+      comments: record.comments,
+      rubric_version: record.rubric_version,
+      max_score: record.max_score,
+      updated_at: record.updated_at,
     }
 
     if (isSupabaseConfigured) {
-      const { id, ...recordForDb } = record
-      const { error } = await supabase.from('evaluations').insert(recordForDb)
-      if (error) return setMessage(error.message)
-      await addAudit(currentUser.full_name, 'saved', 'final evaluation')
+      let result
+      if (existingEvaluation?.id) {
+        result = await supabase.from('evaluations').update(recordForDb).eq('id', existingEvaluation.id)
+      } else {
+        result = await supabase.from('evaluations').insert(recordForDb)
+      }
+      if (result.error) {
+        const msg = result.error.message?.toLowerCase?.().includes('eligible')
+          ? 'This project is not eligible for final evaluation until progress reaches 100%.'
+          : result.error.message
+        setMessage(msg)
+        return { ok: false }
+      }
+      await addAudit(currentUser.full_name, existingEvaluation ? 'updated' : 'saved', 'final evaluation /50')
       await loadFromSupabase()
     } else {
-      const log = makeAudit(currentUser.full_name, 'saved', 'final evaluation')
-      setLocal((current) => ({ ...current, evaluations: [record, ...current.evaluations], auditLogs: [log, ...current.auditLogs] }))
+      const log = makeAudit(currentUser.full_name, existingEvaluation ? 'updated' : 'saved', 'final evaluation /50')
+      setLocal((current) => ({
+        ...current,
+        evaluations: existingEvaluation
+          ? current.evaluations.map((evaluation) => String(evaluation.id) === String(existingEvaluation.id) ? { ...evaluation, ...record } : evaluation)
+          : [record, ...current.evaluations],
+        auditLogs: [log, ...current.auditLogs],
+      }))
     }
-    setMessage('Evaluation saved.')
+    setMessage('Final evaluation saved successfully.')
+    return { ok: true }
   }
 
 
@@ -2499,41 +2842,6 @@ export default function App() {
     if (error) throw new Error(error.message || 'Invitation email could not be sent.')
     if (emailResult?.error) throw new Error(emailResult.error)
     return emailResult
-  }
-
-
-  async function sendPlatformEmail(kind, payload = {}) {
-    if (!isSupabaseConfigured || !supabase?.functions?.invoke) {
-      throw new Error('Supabase Edge Functions are not configured. Deploy send-platform-email and configure RESEND_API_KEY plus INVITE_FROM_EMAIL.')
-    }
-    const { data: emailResult, error } = await supabase.functions.invoke('send-platform-email', {
-      body: {
-        kind,
-        appUrl: typeof window !== 'undefined' ? window.location.origin : '',
-        ...payload,
-      },
-    })
-    if (error) throw new Error(error.message || 'Email could not be sent.')
-    if (emailResult?.error) throw new Error(emailResult.error)
-    return emailResult
-  }
-
-  async function sendAssignmentEmails(student, supervisor, linkedProjects = []) {
-    if (!student || !supervisor) return null
-    return sendPlatformEmail('assignment', {
-      studentId: student.id,
-      supervisorId: supervisor.id,
-      projectIds: linkedProjects.map((project) => project.id).filter(Boolean),
-      assignmentDate: new Date().toISOString(),
-    })
-  }
-
-  async function sendProjectAcceptanceEmail(projectId) {
-    if (!projectId) return null
-    return sendPlatformEmail('project_accepted', {
-      projectId,
-      acceptedAt: new Date().toISOString(),
-    })
   }
 
   async function createInvitation(form, options = {}) {
@@ -3003,10 +3311,15 @@ export default function App() {
     return (
       <AdminControlPanel
         settings={websiteSettings}
+        pdfReportSettings={pdfReportSettings}
         adminPanelTab={adminPanelTab}
         setAdminPanelTab={setAdminPanelTab}
         updateSettings={updateWebsiteSettings}
         resetSettings={resetWebsiteSettings}
+        updatePdfReportSettings={updatePdfReportSettings}
+        uploadPdfReportLogo={uploadPdfReportLogo}
+        removePdfReportLogo={removePdfReportLogo}
+        resetPdfReportSettings={resetPdfReportSettings}
         data={data}
         projects={filteredProjects}
         currentUser={currentUser}
@@ -3021,6 +3334,7 @@ export default function App() {
         deleteUserAccount={deleteUserAccount}
         deleteResearchGroup={deleteResearchGroup}
         deleteResearchProject={deleteResearchProject}
+        loadError={dataLoadError}
         assignStudentToSupervisor={assignStudentToSupervisor}
         createInvitation={createInvitation}
         resendInvitation={resendInvitation}
@@ -3065,17 +3379,17 @@ export default function App() {
               {statCards.map((card) => <StatCard key={card.title} {...card} />)}
             </section>
 
-            {allowedRole !== 'student' && <FilterBar filters={filters} setFilters={setFilters} projects={visibleProjects} />}
+            {allowedRole === 'supervisor' && <FilterBar filters={filters} setFilters={setFilters} projects={visibleProjects} />}
 
             {allowedRole === 'student' && <StudentDashboard data={visibleData} projects={visibleProjects} currentUser={currentUser} createProject={createProject} createWeeklyReport={createWeeklyReport} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
             {allowedRole === 'supervisor' && <SupervisorDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} reviewReport={reviewReport} createDeadline={createDeadline} removeDeadline={removeDeadline} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
-            {allowedRole === 'committee' && <CommitteeDashboard data={visibleData} projects={filteredProjects} updateProject={updateProject} saveEvaluation={saveEvaluation} />}
-            {allowedRole === 'admin' && <AdminDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} assignStudentToSupervisor={assignStudentToSupervisor} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} />}
+            {allowedRole === 'committee' && <CommitteeDashboard data={visibleData} projects={visibleProjects} updateProject={updateProject} saveEvaluation={saveEvaluation} />}
+            {allowedRole === 'admin' && <AdminDashboard data={visibleData} projects={visibleProjects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} assignStudentToSupervisor={assignStudentToSupervisor} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} loadError={dataLoadError} />}
           </>
         )}
 
         {tab === 'notifications' && <NotificationsTab data={data} role={allowedRole} currentUser={currentUser} createNotification={createNotification} markNotificationRead={markNotificationRead} removeNotification={removeNotification} />}
-        {tab === 'reports' && <ReportsTab data={visibleData} projects={filteredProjects} currentUser={currentUser} role={allowedRole} printPdfReport={printPdfReport} exportCsv={exportCsv} />}
+        {tab === 'reports' && <ReportsTab data={visibleData} projects={filteredProjects} currentUser={currentUser} role={allowedRole} printPdfReport={printPdfReport} exportCsv={exportCsv} pdfReportSettings={pdfReportSettings} />}
         {tab === 'database' && allowedRole === 'admin' && <DatabaseTab databaseMode={databaseMode} />}
         {tab === 'database' && allowedRole !== 'admin' && <div className="card"><SectionHeader icon={Lock} title="Database Access Locked" subtitle="Only Admin accounts can view database status" /><p className="muted">Please use your role dashboard, notifications, or reports page.</p></div>}
         {tab === 'audit' && allowedRole === 'admin' && <AuditTab logs={visibleData.auditLogs} />}
@@ -3150,10 +3464,15 @@ function UserProfileMenu({ currentUser, onLogout }) {
 
 function AdminControlPanel({
   settings,
+  pdfReportSettings = defaultPdfReportSettings,
   adminPanelTab,
   setAdminPanelTab,
   updateSettings,
   resetSettings,
+  updatePdfReportSettings,
+  uploadPdfReportLogo,
+  removePdfReportLogo,
+  resetPdfReportSettings,
   data,
   projects,
   currentUser,
@@ -3181,6 +3500,7 @@ function AdminControlPanel({
   auditLogs,
   onLogout,
   message,
+  loadError = '',
 }) {
   const [draft, setDraft] = useState(settings)
   const [brandingError, setBrandingError] = useState('')
@@ -3197,9 +3517,20 @@ function AdminControlPanel({
     { id: 'deadlines', label: 'Deadlines', icon: CalendarDays },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'reports', label: 'Reports', icon: Printer },
+    { id: 'pdf-report', label: 'PDF Report Customization', icon: FileText },
     { id: 'database', label: 'Database', icon: Database },
     { id: 'audit', label: 'Audit Log', icon: ShieldCheck },
   ]
+
+  function changeAdminPanelTab(nextTab) {
+    if (!isAdminPanelTab(nextTab)) return
+    setAdminPanelTab(nextTab)
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      url.searchParams.set('panel', nextTab)
+      window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
+    }
+  }
 
   function updateDraft(key, value) {
     setDraft((current) => ({ ...current, [key]: value }))
@@ -3308,7 +3639,7 @@ function AdminControlPanel({
           {navItems.map((item) => {
             const Icon = item.icon
             return (
-              <button key={item.id} className={adminPanelTab === item.id ? 'active' : ''} onClick={() => setAdminPanelTab(item.id)}>
+              <button key={item.id} className={adminPanelTab === item.id ? 'active' : ''} onClick={() => changeAdminPanelTab(item.id)}>
                 <Icon size={17} /> {item.label}
               </button>
             )
@@ -3321,7 +3652,7 @@ function AdminControlPanel({
         <header className="admin-panel-topbar no-print">
           <div>
             <p className="eyebrow"><UserCog size={16} /> Admin subdomain</p>
-            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Notifications' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : 'Control Center'}</h1>
+            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Notifications' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'pdf-report' ? 'PDF Report Customization' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : 'Control Center'}</h1>
             <p>{settings.adminWelcome}</p>
           </div>
           <a className="admin-preview-link" href="/" target="_blank" rel="noreferrer">Open main website</a>
@@ -3376,11 +3707,12 @@ function AdminControlPanel({
               </div>
               <div className="card admin-quick-actions">
                 <SectionHeader icon={Settings} title="Quick Management" subtitle="Common website management actions" />
-                <button className="secondary wide" onClick={() => setAdminPanelTab('branding')}><SlidersHorizontal size={16} /> Change homepage hero and texts</button>
-                <button className="secondary wide" onClick={() => setAdminPanelTab('login-settings')}><Lock size={16} /> Edit login page design</button>
-                <button className="secondary wide" onClick={() => setAdminPanelTab('users')}><Users size={16} /> Manage users and approvals</button>
-                <button className="secondary wide" onClick={() => setAdminPanelTab('invitations')}><Mail size={16} /> Invite users by role</button>
-                <button className="secondary wide" onClick={() => setAdminPanelTab('deadlines')}><CalendarDays size={16} /> Add or remove deadlines</button>
+                <button className="secondary wide" onClick={() => changeAdminPanelTab('branding')}><SlidersHorizontal size={16} /> Change homepage hero and texts</button>
+                <button className="secondary wide" onClick={() => changeAdminPanelTab('login-settings')}><Lock size={16} /> Edit login page design</button>
+                <button className="secondary wide" onClick={() => changeAdminPanelTab('pdf-report')}><FileText size={16} /> Customize PDF report template</button>
+                <button className="secondary wide" onClick={() => changeAdminPanelTab('users')}><Users size={16} /> Manage users and approvals</button>
+                <button className="secondary wide" onClick={() => changeAdminPanelTab('invitations')}><Mail size={16} /> Invite users by role</button>
+                <button className="secondary wide" onClick={() => changeAdminPanelTab('deadlines')}><CalendarDays size={16} /> Add or remove deadlines</button>
                 <button className="secondary wide" onClick={exportCsv}><Download size={16} /> Export project CSV</button>
               </div>
             </section>
@@ -3559,10 +3891,11 @@ function AdminControlPanel({
         )}
 
         {adminPanelTab === 'invitations' && <InvitationManager invitations={data.invitations} settings={settings} createInvitation={createInvitation} resendInvitation={resendInvitation} cancelInvitation={cancelInvitation} copyInvitationLink={copyInvitationLink} />}
-        {adminPanelTab === 'users' && <AdminDashboard data={data} projects={projects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} assignStudentToSupervisor={assignStudentToSupervisor} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} />}
+        {adminPanelTab === 'users' && <AdminDashboard data={data} projects={projects} currentUser={currentUser} loadError={loadError} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} assignStudentToSupervisor={assignStudentToSupervisor} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} />}
         {adminPanelTab === 'deadlines' && <DeadlineManager deadlines={data.deadlines} createDeadline={createDeadline} removeDeadline={removeDeadline} students={data.profiles.filter((profile) => profile.role === 'student').map((student) => ({ key: makeStudentOptionKey(student), id: student.id, name: student.full_name, email: student.email, group: student.department || student.area || 'Student' }))} currentUser={currentUser} />}
         {adminPanelTab === 'notifications' && <NotificationsTab data={data} role="admin" currentUser={currentUser} createNotification={createNotification} markNotificationRead={markNotificationRead} removeNotification={removeNotification} />}
-        {adminPanelTab === 'reports' && <ReportsTab data={data} projects={projects} currentUser={currentUser} role="admin" printPdfReport={printPdfReport} exportCsv={exportCsv} />}
+        {adminPanelTab === 'reports' && <ReportsTab data={data} projects={projects} currentUser={currentUser} role="admin" printPdfReport={printPdfReport} exportCsv={exportCsv} pdfReportSettings={pdfReportSettings} />}
+        {adminPanelTab === 'pdf-report' && <PdfReportCustomizationPanel settings={pdfReportSettings} updateSettings={updatePdfReportSettings} uploadLogo={uploadPdfReportLogo} removeLogo={removePdfReportLogo} resetSettings={resetPdfReportSettings} data={data} projects={projects} currentUser={currentUser} printPdfReport={printPdfReport} />}
         {adminPanelTab === 'database' && <DatabaseTab databaseMode={databaseMode} />}
         {adminPanelTab === 'audit' && <AuditTab logs={auditLogs} />}
       </main>
@@ -3751,7 +4084,7 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
   const reports = data.reports.filter((r) => String(r.project_id) === String(selectedProject?.id) && reportOwnedByUser(r, currentUser))
   const projectProgress = selectedProject ? getProjectProgress(selectedProject, data.reports) : 0
   const [titleForm, setTitleForm] = useState({ title: '', area: DEFAULT_DEPARTMENT, group_name: `${currentUser.full_name} Research Group`, final_due: '2026-06-20' })
-  const [reportForm, setReportForm] = useState({ completed_work: '', challenges: '', next_week_plan: '', attendance: 'Attended' })
+  const [reportForm, setReportForm] = useState({ completed_work: '', challenges: '', next_week_plan: '', attendance: 'Attended', department: DEFAULT_DEPARTMENT })
   const [file, setFile] = useState(null)
 
   return (
@@ -3787,6 +4120,12 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
           {selectedProject ? (
             <>
               <div className="form-grid">
+                <label className="field">
+                  <span>Department</span>
+                  <select value={normalizeDepartment(reportForm.department || selectedProject.area)} onChange={(e) => setReportForm({ ...reportForm, department: e.target.value })}>
+                    {DEPARTMENT_OPTIONS.map((department) => <option key={department} value={department}>{department}</option>)}
+                  </select>
+                </label>
                 <TextArea label="Work completed this week" value={reportForm.completed_work} onChange={(v) => setReportForm({ ...reportForm, completed_work: v })} />
                 <TextArea label="Problems or challenges" value={reportForm.challenges} onChange={(v) => setReportForm({ ...reportForm, challenges: v })} />
                 <TextArea label="Next week plan" value={reportForm.next_week_plan} onChange={(v) => setReportForm({ ...reportForm, next_week_plan: v })} />
@@ -3798,7 +4137,7 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
                   </select>
                 </label>
               </div>
-              <button className="primary" onClick={() => createWeeklyReport({ ...reportForm, project_id: selectedProject.id, submitted_by: currentUser.full_name }, file)}><Upload size={16} /> Submit Weekly Report</button>
+              <button className="primary" onClick={() => createWeeklyReport({ ...reportForm, department: normalizeDepartment(reportForm.department || selectedProject.area), project_id: selectedProject.id, submitted_by: currentUser.full_name }, file)}><Upload size={16} /> Submit Weekly Report</button>
             </>
           ) : <EmptyState title="Weekly reports locked" text="Create a research project first, then weekly report submission will be available." icon={Lock} />}
         </div>
@@ -3927,7 +4266,7 @@ function SupervisorDashboard({ data, projects, currentUser, reviewReport, create
                       <p className="muted small bold">Student: {student?.full_name || r.submitted_by || project?.group_name || 'Unknown student'}</p>
                       {(student?.email || r.student_email || r.submitted_by_email || project?.group_name) && <p className="muted small">{student?.email || r.student_email || r.submitted_by_email || ''}{project?.group_name ? `${student?.email || r.student_email || r.submitted_by_email ? ' • ' : ''}${project.group_name}` : ''}</p>}
                       <h3>{project?.title || 'Weekly Report'}</h3>
-                      <p className="muted small">Week {r.week_number} • Submitted {String(r.submitted_at || '').slice(0, 10) || 'date unavailable'}</p>
+                      <p className="muted small">Week {r.week_number} • Department: {r.department || project?.area || 'Not specified'} • Submitted {String(r.submitted_at || '').slice(0, 10) || 'date unavailable'}</p>
                     </div>
                     <div className="inline-actions">
                       <Pill tone={r.status === 'Accepted' ? 'green' : r.status === 'Revision Required' ? 'red' : 'amber'}>{r.status}</Pill>
@@ -4255,29 +4594,197 @@ function ProjectProgressSection({ projects = [], reports = [], students = [] }) 
   )
 }
 
-function CommitteeDashboard({ projects, updateProject, saveEvaluation }) {
-  const [evalForm, setEvalForm] = useState({ attendance: 10, progress: 18, quality: 18, writing: 17, presentation: 18, teamwork: 5, comments: '' })
-  const total = ['attendance', 'progress', 'quality', 'writing', 'presentation', 'teamwork'].reduce((sum, key) => sum + Number(evalForm[key] || 0), 0)
+function CommitteeDashboard({ data = emptyData, projects = [], updateProject, saveEvaluation }) {
+  const reports = Array.isArray(data?.reports) ? data.reports : []
+  const evaluations = Array.isArray(data?.evaluations) ? data.evaluations : []
+  const sourceProjects = Array.isArray(projects) ? projects : []
+  const [reviewSearch, setReviewSearch] = useState('')
+  const [reviewStatus, setReviewStatus] = useState('all')
+  const [reviewDepartment, setReviewDepartment] = useState('all')
+  const [reviewGroup, setReviewGroup] = useState('all')
+  const [projectSearch, setProjectSearch] = useState('')
+  const [selectedProjectId, setSelectedProjectId] = useState('')
+  const [evalForm, setEvalForm] = useState({ title_novelty: '', research_contents: '', flow_writing_data: '', plagiarism_ai: '', university_guideline: '', comments: '' })
+  const [evalMessage, setEvalMessage] = useState('')
+  const [savingEvaluation, setSavingEvaluation] = useState(false)
+
+  const reviewStatusOptions = ['all', ...Array.from(new Set(sourceProjects.flatMap((p) => [p.status, p.approval]).filter(Boolean)))]
+  const reviewGroupOptions = ['all', ...Array.from(new Set(sourceProjects.map((p) => p.group_name).filter(Boolean))).sort((a, b) => a.localeCompare(b))]
+
+  const reviewProjects = sourceProjects.filter((project) => {
+    const q = reviewSearch.trim().toLowerCase()
+    const matchesSearch = !q || [project.title, project.group_name, project.area, project.supervisor_name, project.student_email, project.created_by_email, getProjectStudents(project).join(' ')].some((value) => String(value || '').toLowerCase().includes(q))
+    const matchesStatus = reviewStatus === 'all' || project.status === reviewStatus || project.approval === reviewStatus
+    const matchesDepartment = reviewDepartment === 'all' || project.area === reviewDepartment
+    const matchesGroup = reviewGroup === 'all' || project.group_name === reviewGroup
+    return matchesSearch && matchesStatus && matchesDepartment && matchesGroup
+  })
+
+  const completedProjects = sourceProjects.filter((project) => Number(getProjectProgress(project, reports) || project.progress || 0) >= 100)
+  const completedProjectOptions = completedProjects.filter((project) => {
+    const q = projectSearch.trim().toLowerCase()
+    return !q || [project.title, project.group_name, project.supervisor_name, project.student_email, project.created_by_email, getProjectStudents(project).join(' ')].some((value) => String(value || '').toLowerCase().includes(q))
+  })
+
+  useEffect(() => {
+    if (selectedProjectId && !completedProjects.some((project) => String(project.id) === String(selectedProjectId))) {
+      setSelectedProjectId('')
+    }
+  }, [completedProjects, selectedProjectId])
+
+  const selectedProject = completedProjects.find((project) => String(project.id) === String(selectedProjectId))
+  const existingEvaluation = selectedProject ? evaluations.find((evaluation) => String(evaluation.project_id) === String(selectedProject.id)) : null
+
+  useEffect(() => {
+    if (!selectedProject) {
+      setEvalForm({ title_novelty: '', research_contents: '', flow_writing_data: '', plagiarism_ai: '', university_guideline: '', comments: '' })
+      setEvalMessage('')
+      return
+    }
+    if (existingEvaluation) {
+      const normalizeSavedScore = (value) => {
+        const numeric = Number(value || 0)
+        if (!Number.isFinite(numeric) || numeric <= 0) return ''
+        return String(Math.min(10, Math.max(1, numeric)))
+      }
+      setEvalForm({
+        title_novelty: normalizeSavedScore(existingEvaluation.attendance_score),
+        research_contents: normalizeSavedScore(existingEvaluation.progress_score),
+        flow_writing_data: normalizeSavedScore(existingEvaluation.research_quality_score),
+        plagiarism_ai: normalizeSavedScore(existingEvaluation.writing_score),
+        university_guideline: normalizeSavedScore(existingEvaluation.presentation_score),
+        comments: existingEvaluation.comments || '',
+      })
+      setEvalMessage(`Saved evaluation loaded. Current total: ${Number(existingEvaluation.total_score || 0) > 50 ? 'old /100 score' : `${existingEvaluation.total_score || 0}/50`}.`)
+    } else {
+      setEvalForm({ title_novelty: '', research_contents: '', flow_writing_data: '', plagiarism_ai: '', university_guideline: '', comments: '' })
+      setEvalMessage('')
+    }
+  }, [selectedProjectId, existingEvaluation?.id])
+
+  const rubricCriteria = [
+    ['1', 'Title novelty', 'title_novelty'],
+    ['2', 'Research contents: well-reviewed, summarized, and organized', 'research_contents'],
+    ['3', 'Flow of writing and data presentation', 'flow_writing_data'],
+    ['4', 'Plagiarism and AI', 'plagiarism_ai'],
+    ['5', 'Follow the university guideline', 'university_guideline'],
+  ]
+  const rubricKeys = rubricCriteria.map(([, , key]) => key)
+  const total = rubricKeys.reduce((sum, key) => sum + Number(evalForm[key] || 0), 0)
+  const hasInvalidScore = rubricKeys.some((key) => {
+    const value = Number(evalForm[key])
+    return !Number.isFinite(value) || value < 1 || value > 10
+  })
+
+  function updateRubricScore(key, value) {
+    setEvalMessage('')
+    if (value === '') {
+      setEvalForm((current) => ({ ...current, [key]: '' }))
+      return
+    }
+    const numeric = Math.min(10, Math.max(1, Number(value)))
+    setEvalForm((current) => ({ ...current, [key]: Number.isFinite(numeric) ? String(numeric) : '' }))
+  }
+
+  async function submitFinalEvaluation() {
+    if (!selectedProject) {
+      setEvalMessage('Please select a completed group project.')
+      return
+    }
+    if (hasInvalidScore) {
+      setEvalMessage('Each criterion must be scored from 1 to 10.')
+      return
+    }
+    setSavingEvaluation(true)
+    const result = await saveEvaluation({ ...evalForm, project_id: selectedProject.id })
+    setSavingEvaluation(false)
+    if (result?.ok) setEvalMessage('Final evaluation saved successfully.')
+    else setEvalMessage('Could not save final evaluation. Please check the message above and try again.')
+  }
 
   return (
-    <div className="stack">
-      <div className="card">
-        <SectionHeader icon={Search} title="Research Committee Review" subtitle="Approve, reject, or request revision for project titles" />
-        {projects.length ? <ProjectDecisionTable projects={projects} updateProject={updateProject} /> : <EmptyState title="No matching projects" text="Projects will appear here after students submit research titles." icon={Search} />}
+    <div className="stack committee-dashboard-layout">
+      <div className="card committee-review-card combined-filter-card">
+        <SectionHeader icon={Search} title="Research Committee Review" subtitle="Search, filter, approve, reject, or request revision for project titles" />
+        <div className="section-filter-bar committee-filter-bar">
+          <label className="field"><span>Search</span><input value={reviewSearch} onChange={(e) => setReviewSearch(e.target.value)} placeholder="Search title, group, student, supervisor..." /></label>
+          <label className="field"><span>Status</span><select value={reviewStatus} onChange={(e) => setReviewStatus(e.target.value)}><option value="all">All statuses</option>{reviewStatusOptions.filter((item) => item !== 'all').map((status) => <option key={status} value={status}>{status}</option>)}</select></label>
+          <label className="field"><span>Department</span><select value={reviewDepartment} onChange={(e) => setReviewDepartment(e.target.value)}><option value="all">All departments</option>{DEPARTMENT_OPTIONS.map((department) => <option key={department} value={department}>{department}</option>)}</select></label>
+          <label className="field"><span>Research group</span><select value={reviewGroup} onChange={(e) => setReviewGroup(e.target.value)}><option value="all">All groups</option>{reviewGroupOptions.filter((item) => item !== 'all').map((group) => <option key={group} value={group}>{group}</option>)}</select></label>
+        </div>
+        {reviewProjects.length ? <ProjectDecisionTable projects={reviewProjects} updateProject={updateProject} /> : <EmptyState title="No matching projects" text="Try changing the filters or wait for students to submit research titles." icon={Search} />}
       </div>
-      <div className="card">
-        <SectionHeader icon={CheckCircle2} title="Final Evaluation Rubric" subtitle="100-mark assessment model" />
-        <div className="rubric-grid">{[
-          ['Attendance', 'attendance'], ['Weekly progress', 'progress'], ['Research quality', 'quality'], ['Writing', 'writing'], ['Presentation', 'presentation'], ['Teamwork', 'teamwork']
-        ].map(([label, key]) => <label className="field" key={key}><span>{label}</span><input type="number" value={evalForm[key]} onChange={(e) => setEvalForm({ ...evalForm, [key]: e.target.value })} /></label>)}<div className="total-box"><p>Total</p><h2>{total}/100</h2></div></div>
-        <input value={evalForm.comments} onChange={(e) => setEvalForm({ ...evalForm, comments: e.target.value })} placeholder="Committee comments" />
-        <button className="primary" onClick={() => saveEvaluation(evalForm)}>Save Evaluation</button>
+
+      <div className="card final-evaluation-card">
+        <SectionHeader icon={CheckCircle2} title="Final Evaluation Rubric" subtitle="Completed group projects only • Total: /50" />
+        <div className="final-evaluation-selector">
+          <label className="field"><span>Search completed projects</span><input value={projectSearch} onChange={(e) => setProjectSearch(e.target.value)} placeholder="Search by title, group, student, or supervisor" /></label>
+          <label className="field"><span>Completed group project</span><select value={selectedProjectId} onChange={(e) => setSelectedProjectId(e.target.value)}><option value="">Select a completed group project</option>{completedProjectOptions.map((project) => <option key={project.id} value={project.id}>{project.title} — {project.group_name || 'No group'} — {getProjectStudents(project).join(', ') || project.student_email || project.created_by_email || 'Student not linked'} — {project.supervisor_name || 'No supervisor'} — progress: 100%</option>)}</select></label>
+        </div>
+
+        {!completedProjects.length ? (
+          <EmptyState title="No group projects have reached 100% progress yet." text="Final evaluation becomes available only when a group project reaches 100% progress." icon={CheckCircle2} />
+        ) : selectedProject ? (
+          <div className="final-evaluation-body">
+            <div className="selected-project-summary soft-box">
+              <div>
+                <p className="eyebrow">Selected completed project</p>
+                <h3>{selectedProject.title}</h3>
+                <p className="muted">Group: {selectedProject.group_name || 'Not specified'}</p>
+                <p className="muted small">Students: {getProjectStudents(selectedProject).join(', ') || selectedProject.student_email || selectedProject.created_by_email || 'Not linked'} • Supervisor: {selectedProject.supervisor_name || 'Not assigned'} • Progress: {formatProgress(getProjectProgress(selectedProject, reports) || selectedProject.progress)}%</p>
+              </div>
+              {existingEvaluation && <Pill tone="blue">Already evaluated</Pill>}
+            </div>
+
+            <div className="rubric-table-wrap">
+              <table className="rubric-table final-rubric-table">
+                <thead><tr><th>No.</th><th>Criteria</th><th>Score</th></tr></thead>
+                <tbody>
+                  {rubricCriteria.map(([number, label, key]) => (
+                    <tr key={key}>
+                      <td>{number}</td>
+                      <td>{label}</td>
+                      <td><input type="number" min="1" max="10" value={evalForm[key]} onChange={(e) => updateRubricScore(key, e.target.value)} aria-label={`${label} score`} /><span className="rubric-score-unit">/10</span></td>
+                    </tr>
+                  ))}
+                  <tr className="rubric-total-row"><td>Total</td><td></td><td><strong>{total}/50</strong></td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            {hasInvalidScore && <p className="form-error-text">Each criterion must be scored from 1 to 10.</p>}
+            <label className="field"><span>Comments</span><textarea value={evalForm.comments} onChange={(e) => setEvalForm((current) => ({ ...current, comments: e.target.value }))} placeholder="Final evaluation comments" /></label>
+            <div className="final-evaluation-actions">
+              <div className="total-box final-total-box"><p>Total</p><h2>{total}/50</h2></div>
+              <button className="primary" type="button" disabled={savingEvaluation || hasInvalidScore} onClick={submitFinalEvaluation}><CheckCircle2 size={16} /> {savingEvaluation ? 'Saving...' : existingEvaluation ? 'Update Final Evaluation' : 'Save Final Evaluation'}</button>
+            </div>
+            {evalMessage && <div className={`message ${evalMessage.includes('success') ? 'success-message' : ''}`}>{evalMessage}</div>}
+          </div>
+        ) : (
+          <EmptyState title="Select a completed group project" text="Choose a 100% completed project from the dropdown to open the /50 final evaluation rubric." icon={CheckCircle2} />
+        )}
       </div>
     </div>
   )
 }
 
-function AdminDashboard({ data, projects, currentUser, updateProject, updateUserRole, updateUserStatus, assignStudentToSupervisor, exportCsv, deleteWeeklyReport, deleteUploadedFile, deleteUserAccount, deleteResearchGroup, deleteResearchProject }) {
+
+function AdminDashboard({ data = emptyData, projects = [], currentUser, loadError = '', updateProject, updateUserRole, updateUserStatus, assignStudentToSupervisor, exportCsv, deleteWeeklyReport, deleteUploadedFile, deleteUserAccount, deleteResearchGroup, deleteResearchProject }) {
+  const usersLoading = !data || !Array.isArray(data.profiles)
+  data = cleanData({
+    ...emptyData,
+    ...(data || {}),
+    profiles: Array.isArray(data?.profiles) ? data.profiles : [],
+    projects: Array.isArray(data?.projects) ? data.projects : [],
+    reports: Array.isArray(data?.reports) ? data.reports : [],
+    uploadedFiles: Array.isArray(data?.uploadedFiles) ? data.uploadedFiles : [],
+    deadlines: Array.isArray(data?.deadlines) ? data.deadlines : [],
+    notifications: Array.isArray(data?.notifications) ? data.notifications : [],
+    evaluations: Array.isArray(data?.evaluations) ? data.evaluations : [],
+    auditLogs: Array.isArray(data?.auditLogs) ? data.auditLogs : [],
+    invitations: Array.isArray(data?.invitations) ? data.invitations : [],
+  })
+  projects = Array.isArray(projects) ? projects : []
   const supervisors = data.profiles.filter((u) => u.role === 'supervisor')
   const students = data.profiles.filter((u) => u.role === 'student')
   const [projectSupervisorId, setProjectSupervisorId] = useState(supervisors[0]?.id || '')
@@ -4436,7 +4943,7 @@ function AdminDashboard({ data, projects, currentUser, updateProject, updateUser
         </div>
 
         <div className="admin-user-approval-scroll-container admin-users-and-roles-scroll">
-          {usersToShow.length ? usersToShow.map((u) => {
+          {loadError ? <EmptyState title="Failed to load users. Please try again." text={loadError} icon={Users} /> : usersLoading ? <EmptyState title="Loading users..." text="Please wait while the user list loads." icon={Users} /> : usersToShow.length ? usersToShow.map((u) => {
             const isCurrentAdmin = u.id === currentUser.id
             const statusTone = u.status === 'Active' ? 'green' : u.status === 'Rejected' ? 'red' : 'amber'
             const requestedRoleLabel = roleButtons.find((role) => role.id === u.role)?.label || u.role || 'Student'
@@ -4496,7 +5003,7 @@ function AdminDashboard({ data, projects, currentUser, updateProject, updateUser
                 </div>
               </div>
             )
-          }) : <EmptyState title={`No ${tabTitle.toLowerCase()}`} text="Try changing the search/filter settings or wait for users to register." icon={Users} />}
+          }) : <EmptyState title="No users found." text="Try changing the search/filter settings or wait for users to register." icon={Users} />}
         </div>
       </div>
 
@@ -4528,26 +5035,86 @@ function AdminDashboard({ data, projects, currentUser, updateProject, updateUser
         <button className="primary" onClick={exportCsv}><Download size={16} /> Export CSV Report</button>
       </div>
 
-      <div className="card admin-delete-management-card">
-        <SectionHeader icon={CheckCircle2} title="Project Progress Management" subtitle="Admin view of all research progress records" />
-        <div className="managed-list compact-managed-list">
-          {projects.length ? projects.map((project) => (
-            <div className="mini-card managed-item admin-progress-management-item" key={`progress-${project.id}`}>
-              <div>
-                <b>{project.title || 'Untitled research title'}</b>
-                <p className="small muted">Student: {project.student_email || project.created_by_email || getProjectStudents(project).join(', ') || 'Not linked'} • Group: {project.group_name || 'N/A'}</p>
-                <p className="small muted">Status: {project.status || 'Pending'} • Last update: {String(project.updated_at || project.created_at || '').slice(0, 10) || 'N/A'}</p>
+      <div className="admin-management-alignment-grid">
+        <div className="card admin-delete-management-card admin-research-title-card">
+          <SectionHeader icon={BookOpen} title="Research Title Deletion" subtitle="Admins can delete research titles/projects and related report data" />
+          <div className="managed-list compact-managed-list">
+            {projects.length ? projects.map((project) => {
+              const reportCount = data.reports.filter((report) => String(report.project_id) === String(project.id)).length
+              return (
+                <div className="mini-card managed-item" key={project.id}>
+                  <div>
+                    <b>{project.title || 'Untitled research title'}</b>
+                    <p className="small muted">Group: {project.group_name || 'N/A'} • Area: {project.area || 'N/A'}</p>
+                    <p className="small muted">Supervisor: {project.supervisor_name || 'Pending Assignment'} • Reports: {reportCount}</p>
+                  </div>
+                  {canDeleteResearchProject(project, currentUser) && deleteResearchProject && (
+                    <AdminPanelDeleteButton itemKey={`project-${project.id}`} label="Delete Title" onDelete={() => deleteResearchProject(project.id)} />
+                  )}
+                </div>
+              )
+            }) : <EmptyState title="No research titles" text="Research titles will appear after students submit them." icon={BookOpen} />}
+          </div>
+        </div>
+
+        <div className="card admin-delete-management-card admin-project-progress-card">
+          <SectionHeader icon={CheckCircle2} title="Project Progress Management" subtitle="Admin view of all research progress records" />
+          <div className="managed-list compact-managed-list">
+            {projects.length ? projects.map((project) => (
+              <div className="mini-card managed-item admin-progress-management-item" key={`progress-${project.id}`}>
+                <div>
+                  <b>{project.title || 'Untitled research title'}</b>
+                  <p className="small muted">Student: {project.student_email || project.created_by_email || getProjectStudents(project).join(', ') || 'Not linked'} • Group: {project.group_name || 'N/A'}</p>
+                  <p className="small muted">Status: {project.status || 'Pending'} • Last update: {String(project.updated_at || project.created_at || '').slice(0, 10) || 'N/A'}</p>
+                </div>
+                <div className="admin-progress-inline">
+                  <span>{formatProgress(project.progress)}%</span>
+                  <ProgressBar value={project.progress} />
+                </div>
               </div>
-              <div className="admin-progress-inline">
-                <span>{formatProgress(project.progress)}%</span>
-                <ProgressBar value={project.progress} />
-              </div>
-            </div>
-          )) : <EmptyState title="No project progress" text="Project progress will appear after research titles are submitted." icon={CheckCircle2} />}
+            )) : <EmptyState title="No project progress" text="Project progress will appear after research titles are submitted." icon={CheckCircle2} />}
+          </div>
+        </div>
+
+        <div className="card admin-delete-management-card admin-report-deletion-card">
+          <SectionHeader icon={Trash2} title="Report Deletion" subtitle="Admins can delete any weekly report" />
+          <div className="managed-list">
+            {data.reports.length ? data.reports.map((report) => {
+              const project = data.projects.find((p) => String(p.id) === String(report.project_id))
+              return (
+                <div className="mini-card managed-item" key={report.id}>
+                  <div>
+                    <b>Week {report.week_number} — {project?.title || 'Weekly Report'}</b>
+                    <p className="small muted">Submitted by: {report.submitted_by || 'Unknown'} • {String(report.submitted_at || '').slice(0, 10)}</p>
+                    <p className="small muted">Status: {report.status}</p>
+                  </div>
+                  {canDeleteReport(report, currentUser) && deleteWeeklyReport && <AdminPanelDeleteButton itemKey={`report-${report.id}`} label="Delete Report" onDelete={() => deleteWeeklyReport(report.id)} />}
+                </div>
+              )
+            }) : <EmptyState title="No weekly reports" text="Submitted weekly reports will appear here." icon={MessageSquareText} />}
+          </div>
+        </div>
+
+        <div className="card admin-delete-management-card admin-uploaded-document-card">
+          <SectionHeader icon={FileText} title="Uploaded Document Deletion" subtitle="Admins can delete any uploaded file" />
+          <div className="managed-list">
+            {data.uploadedFiles.length ? data.uploadedFiles.map((file) => {
+              const report = data.reports.find((item) => String(item.id) === String(file.report_id))
+              return (
+                <div className="mini-card managed-item" key={file.id}>
+                  <div>
+                    <b>{file.file_name || 'Uploaded document'}</b>
+                    <p className="small muted">{file.file_type || 'Document'} • Week {report?.week_number || 'N/A'} • {String(file.created_at || '').slice(0, 10)}</p>
+                    <ReportAttachmentBox attachment={file} canDelete={canDeleteUploadedFile(file, currentUser, data.reports)} onDelete={() => deleteUploadedFile(file.id)} />
+                  </div>
+                </div>
+              )
+            }) : <EmptyState title="No uploaded documents" text="Uploaded documents will appear here." icon={FileText} />}
+          </div>
         </div>
       </div>
 
-      <div className="card admin-delete-management-card">
+      <div className="card admin-delete-management-card admin-research-group-card">
         <SectionHeader icon={Users} title="Research Group Deletion" subtitle="Admins can delete research groups and their linked projects/reports safely" />
         <div className="managed-list compact-managed-list">
           {researchGroups.length ? researchGroups.map((group) => (
@@ -4561,64 +5128,6 @@ function AdminDashboard({ data, projects, currentUser, updateProject, updateUser
               )}
             </div>
           )) : <EmptyState title="No research groups" text="Research groups will appear after research titles are submitted." icon={Users} />}
-        </div>
-      </div>
-
-      <div className="card admin-delete-management-card">
-        <SectionHeader icon={BookOpen} title="Research Title Deletion" subtitle="Admins can delete research titles/projects and related report data" />
-        <div className="managed-list compact-managed-list">
-          {projects.length ? projects.map((project) => {
-            const reportCount = data.reports.filter((report) => String(report.project_id) === String(project.id)).length
-            return (
-              <div className="mini-card managed-item" key={project.id}>
-                <div>
-                  <b>{project.title || 'Untitled research title'}</b>
-                  <p className="small muted">Group: {project.group_name || 'N/A'} • Area: {project.area || 'N/A'}</p>
-                  <p className="small muted">Supervisor: {project.supervisor_name || 'Pending Assignment'} • Reports: {reportCount}</p>
-                </div>
-                {canDeleteResearchProject(project, currentUser) && deleteResearchProject && (
-                  <AdminPanelDeleteButton itemKey={`project-${project.id}`} label="Delete Title" onDelete={() => deleteResearchProject(project.id)} />
-                )}
-              </div>
-            )
-          }) : <EmptyState title="No research titles" text="Research titles will appear after students submit them." icon={BookOpen} />}
-        </div>
-      </div>
-
-      <div className="card admin-delete-management-card">
-        <SectionHeader icon={Trash2} title="Report Deletion" subtitle="Admins can delete any weekly report" />
-        <div className="managed-list">
-          {data.reports.length ? data.reports.map((report) => {
-            const project = data.projects.find((p) => String(p.id) === String(report.project_id))
-            return (
-              <div className="mini-card managed-item" key={report.id}>
-                <div>
-                  <b>Week {report.week_number} — {project?.title || 'Weekly Report'}</b>
-                  <p className="small muted">Submitted by: {report.submitted_by || 'Unknown'} • {String(report.submitted_at || '').slice(0, 10)}</p>
-                  <p className="small muted">Status: {report.status}</p>
-                </div>
-                {canDeleteReport(report, currentUser) && deleteWeeklyReport && <AdminPanelDeleteButton itemKey={`report-${report.id}`} label="Delete Report" onDelete={() => deleteWeeklyReport(report.id)} />}
-              </div>
-            )
-          }) : <EmptyState title="No weekly reports" text="Submitted weekly reports will appear here." icon={MessageSquareText} />}
-        </div>
-      </div>
-
-      <div className="card admin-delete-management-card">
-        <SectionHeader icon={FileText} title="Uploaded Document Deletion" subtitle="Admins can delete any uploaded file" />
-        <div className="managed-list">
-          {data.uploadedFiles.length ? data.uploadedFiles.map((file) => {
-            const report = data.reports.find((item) => String(item.id) === String(file.report_id))
-            return (
-              <div className="mini-card managed-item" key={file.id}>
-                <div>
-                  <b>{file.file_name || 'Uploaded document'}</b>
-                  <p className="small muted">{file.file_type || 'Document'} • Week {report?.week_number || 'N/A'} • {String(file.created_at || '').slice(0, 10)}</p>
-                  <ReportAttachmentBox attachment={file} canDelete={canDeleteUploadedFile(file, currentUser, data.reports)} onDelete={() => deleteUploadedFile(file.id)} />
-                </div>
-              </div>
-            )
-          }) : <EmptyState title="No uploaded documents" text="Uploaded documents will appear here." icon={FileText} />}
         </div>
       </div>
     </div>
@@ -4694,23 +5203,241 @@ function NotificationsTab({ data, role, currentUser, createNotification, markNot
   )
 }
 
-function ReportsTab({ data, projects, currentUser, role, printPdfReport, exportCsv }) {
-  const today = new Date().toISOString().slice(0, 10)
+function ReportTable({ children }) {
+  return <div className="table-wrap"><table>{children}</table></div>
+}
+
+function reportSectionVisible(settings, key) {
+  return normalizePdfReportSettings(settings).sections[key] !== false
+}
+
+function getReportStudentLabel(report, data) {
+  const student = findStudentProfileForReport(data, report)
+  return student?.full_name || report.submitted_by || report.student_name || report.created_by_email || 'Student'
+}
+
+function getReportProject(data, report) {
+  return (data.projects || []).find((project) => String(project.id) === String(report.project_id)) || null
+}
+
+function PdfReportSection({ settings, sectionKey, title, children, exists = true }) {
+  if (!exists || !reportSectionVisible(settings, sectionKey)) return null
+  return <section className={`report-section report-section-${sectionKey}`}><h3>{title}</h3>{children}</section>
+}
+
+function ReportsTab({ data, projects, currentUser, role, printPdfReport, exportCsv, pdfReportSettings = defaultPdfReportSettings }) {
+  const settings = normalizePdfReportSettings(pdfReportSettings)
+  const generatedAt = new Date()
+  const generatedLabel = generatedAt.toLocaleString()
+  const hasProjects = Array.isArray(projects) && projects.length > 0
+  const reports = Array.isArray(data.reports) ? data.reports : []
+  const deadlines = Array.isArray(data.deadlines) ? data.deadlines : []
+  const evaluations = Array.isArray(data.evaluations) ? data.evaluations : []
+  const students = (data.profiles || []).filter((profile) => profile.role === 'student')
+  const supervisors = (data.profiles || []).filter((profile) => profile.role === 'supervisor')
+  const showGeneratedAt = settings.showGeneratedDateTime !== false && reportSectionVisible(settings, 'generatedDateTime')
+  const footerText = String(settings.footerText || '').trim()
+  const departmentLine = [settings.universityName, settings.collegeName, settings.departmentName].filter(Boolean).join(' • ')
+
   return (
     <div className="stack">
       <div className="card no-print">
         <SectionHeader icon={Printer} title="Print / Export PDF Reports" subtitle="Use the browser print dialog and choose Save as PDF" />
         <div className="action-row report-actions"><button className="primary" onClick={printPdfReport}><Printer size={16} /> Print / Save as PDF</button><button className="secondary" onClick={exportCsv}><Download size={16} /> Export CSV</button></div>
       </div>
-      <div className="card print-report">
-        <div className="report-header">
-          <h2>Hawler Medical University – College of Pharmacy</h2>
-          <h1>Pharmacy Research Project Management Report</h1>
-          <p>Generated by: {currentUser.full_name} • Date: {today}</p>
+
+      <div className="card print-report pdf-report-template">
+        <div className="report-header pdf-report-header">
+          {settings.logoUrl ? <img className="pdf-report-logo" src={settings.logoUrl} alt="Report logo" /> : null}
+          <div>
+            <h2>{settings.headerText || departmentLine || defaultPdfReportSettings.headerText}</h2>
+            <h1>{settings.reportTitle || defaultPdfReportSettings.reportTitle}</h1>
+            {departmentLine && <p>{departmentLine}</p>}
+            {showGeneratedAt && <p>Generated by: {currentUser.full_name || currentUser.email} • Date/time: {generatedLabel}</p>}
+          </div>
         </div>
-        <section className="report-section"><h3>Summary</h3><div className="report-grid">{role === 'admin' && <p><b>Total users:</b> {data.profiles.length}</p>}<p><b>Visible projects:</b> {data.projects.length}</p><p><b>Filtered projects:</b> {projects.length}</p><p><b>Weekly reports:</b> {data.reports.length}</p></div></section>
-        <section className="report-section"><h3>Project List</h3>{projects.length ? <div className="table-wrap"><table><thead><tr><th>Group</th><th>Title</th><th>Area</th><th>Supervisor</th><th>Status</th><th>Progress</th></tr></thead><tbody>{projects.map((p) => <tr key={p.id}><td>{p.group_name}</td><td>{p.title}</td><td>{p.area}</td><td>{p.supervisor_name}</td><td>{p.approval}</td><td>{formatProgress(getProjectProgress(p, data.reports))}%</td></tr>)}</tbody></table></div> : <p>No projects match the current filter.</p>}</section>
-        <section className="report-section"><h3>Deadlines</h3>{data.deadlines.map((d) => <p key={d.id}><b>{d.title}</b> — {d.deadline_type}, due {d.due_date}</p>)}</section>
+
+        <PdfReportSection settings={settings} sectionKey="userInformation" title="User Information">
+          <div className="report-grid">
+            <p><b>Name:</b> {currentUser.full_name || 'User'}</p>
+            <p><b>Email:</b> {currentUser.email || 'Not available'}</p>
+            <p><b>Role:</b> {getRoleLabel(role)}</p>
+            <p><b>Status:</b> {currentUser.status || 'Active'}</p>
+          </div>
+        </PdfReportSection>
+
+        <PdfReportSection settings={settings} sectionKey="studentInformation" title="Student Information" exists={role === 'student' || students.length > 0 || projects.some((project) => project.student_email || project.created_by_email)}>
+          {role === 'student' ? (
+            <div className="report-grid"><p><b>Student:</b> {currentUser.full_name}</p><p><b>Email:</b> {currentUser.email}</p><p><b>Department:</b> {currentUser.department || currentUser.area || DEFAULT_DEPARTMENT}</p></div>
+          ) : students.length ? (
+            <ReportTable><thead><tr><th>Student</th><th>Email</th><th>Status</th><th>Department</th></tr></thead><tbody>{students.map((student) => <tr key={student.id || student.email}><td>{student.full_name}</td><td>{student.email}</td><td>{student.status || 'Pending'}</td><td>{student.department || student.area || '-'}</td></tr>)}</tbody></ReportTable>
+          ) : (
+            <p>No student profile information is available for this report.</p>
+          )}
+        </PdfReportSection>
+
+        <PdfReportSection settings={settings} sectionKey="supervisorInformation" title="Supervisor Information" exists={role === 'supervisor' || supervisors.length > 0 || projects.some((project) => project.supervisor_name || project.supervisor_email)}>
+          {role === 'supervisor' ? (
+            <div className="report-grid"><p><b>Supervisor:</b> {currentUser.full_name}</p><p><b>Email:</b> {currentUser.email}</p><p><b>Assigned projects:</b> {projects.length}</p></div>
+          ) : supervisors.length ? (
+            <ReportTable><thead><tr><th>Supervisor</th><th>Email</th><th>Status</th><th>Assigned projects</th></tr></thead><tbody>{supervisors.map((supervisor) => <tr key={supervisor.id || supervisor.email}><td>{supervisor.full_name}</td><td>{supervisor.email}</td><td>{supervisor.status || 'Pending'}</td><td>{projects.filter((project) => normalizeText(project.supervisor_email) === normalizeText(supervisor.email) || normalizeText(project.supervisor_name) === normalizeText(supervisor.full_name)).length}</td></tr>)}</tbody></ReportTable>
+          ) : (
+            <ReportTable><thead><tr><th>Project</th><th>Supervisor</th><th>Email</th></tr></thead><tbody>{projects.map((project) => <tr key={project.id}><td>{project.title}</td><td>{project.supervisor_name || 'Pending Assignment'}</td><td>{project.supervisor_email || '-'}</td></tr>)}</tbody></ReportTable>
+          )}
+        </PdfReportSection>
+
+        <PdfReportSection settings={settings} sectionKey="researchGroup" title="Research Group" exists={hasProjects}>
+          <ReportTable><thead><tr><th>Group</th><th>Students</th><th>Supervisor</th><th>Status</th></tr></thead><tbody>{projects.map((project) => <tr key={project.id}><td>{project.group_name || 'Research group'}</td><td>{getProjectStudents(project).join(', ') || project.student_email || '-'}</td><td>{project.supervisor_name || 'Pending Assignment'}</td><td>{project.approval || project.status || '-'}</td></tr>)}</tbody></ReportTable>
+        </PdfReportSection>
+
+        <PdfReportSection settings={settings} sectionKey="researchTitle" title="Research Title" exists={hasProjects}>
+          <ReportTable><thead><tr><th>Title</th><th>Department</th><th>Final due</th><th>Approval</th></tr></thead><tbody>{projects.map((project) => <tr key={project.id}><td>{project.title}</td><td>{project.area || '-'}</td><td>{project.final_due || '-'}</td><td>{project.approval || '-'}</td></tr>)}</tbody></ReportTable>
+        </PdfReportSection>
+
+        <PdfReportSection settings={settings} sectionKey="weeklyReports" title="Weekly Reports" exists={reports.length > 0}>
+          <ReportTable><thead><tr><th>Week</th><th>Project</th><th>Student</th><th>Status</th><th>Submitted</th></tr></thead><tbody>{reports.map((report) => { const project = getReportProject(data, report); return <tr key={report.id}><td>{report.week_number || '-'}</td><td>{project?.title || 'Weekly Report'}</td><td>{getReportStudentLabel(report, data)}</td><td>{report.status || 'Submitted'}</td><td>{report.submitted_at ? new Date(report.submitted_at).toLocaleDateString() : '-'}</td></tr> })}</tbody></ReportTable>
+        </PdfReportSection>
+
+        <PdfReportSection settings={settings} sectionKey="feedback" title="Feedback" exists={reports.some((report) => report.feedback || report.supervisor_feedback)}>
+          {reports.filter((report) => report.feedback || report.supervisor_feedback).map((report) => {
+            const project = getReportProject(data, report)
+            return <div className="mini-card report-feedback-print" key={report.id}><b>{project?.title || 'Weekly Report'} — Week {report.week_number || '-'}</b><p>{report.feedback || report.supervisor_feedback}</p></div>
+          })}
+        </PdfReportSection>
+
+        <PdfReportSection settings={settings} sectionKey="projectProgress" title="Project Progress" exists={hasProjects}>
+          <ReportTable><thead><tr><th>Group</th><th>Title</th><th>Progress</th><th>Status</th></tr></thead><tbody>{projects.map((project) => <tr key={project.id}><td>{project.group_name || '-'}</td><td>{project.title}</td><td>{formatProgress(getProjectProgress(project, data.reports))}%</td><td>{project.status || '-'}</td></tr>)}</tbody></ReportTable>
+        </PdfReportSection>
+
+        <PdfReportSection settings={settings} sectionKey="deadlines" title="Deadlines" exists={deadlines.length > 0}>
+          <ReportTable><thead><tr><th>Deadline</th><th>Type</th><th>Due date</th><th>Status</th></tr></thead><tbody>{deadlines.map((deadline) => <tr key={deadline.id}><td>{deadline.title}</td><td>{deadline.deadline_type}</td><td>{deadline.due_date}</td><td>{deadline.status || 'Active'}</td></tr>)}</tbody></ReportTable>
+        </PdfReportSection>
+
+        <PdfReportSection settings={settings} sectionKey="finalEvaluationRubric" title="Final Evaluation Rubric" exists={evaluations.length > 0}>
+          <ReportTable><thead><tr><th>Project</th><th>Evaluator</th><th>Title novelty</th><th>Research contents</th><th>Writing/data flow</th><th>Plagiarism/AI</th><th>Guideline</th><th>Total</th></tr></thead><tbody>{evaluations.map((evaluation) => { const project = data.projects.find((item) => String(item.id) === String(evaluation.project_id)); const total = Number(evaluation.total_score ?? 0) || [evaluation.attendance_score, evaluation.progress_score, evaluation.research_quality_score, evaluation.writing_score, evaluation.presentation_score].reduce((sum, score) => sum + Number(score || 0), 0); return <tr key={evaluation.id}><td>{project?.title || 'Completed project'}</td><td>{evaluation.evaluator_name || '-'}</td><td>{evaluation.attendance_score ?? '-'}</td><td>{evaluation.progress_score ?? '-'}</td><td>{evaluation.research_quality_score ?? '-'}</td><td>{evaluation.writing_score ?? '-'}</td><td>{evaluation.presentation_score ?? '-'}</td><td>{total}/{evaluation.max_score || 50}</td></tr> })}</tbody></ReportTable>
+        </PdfReportSection>
+
+        <PdfReportSection settings={settings} sectionKey="signatures" title="Signatures">
+          <div className="signature-grid"><div><span />Student Signature</div><div><span />Supervisor Signature</div><div><span />Research Committee / Admin Signature</div></div>
+        </PdfReportSection>
+
+        {(footerText || settings.showPageNumbers !== false) && <footer className="pdf-report-footer"><p>{footerText}</p>{settings.showPageNumbers !== false && <p className="pdf-page-number">Page <span className="page-number-placeholder" /></p>}</footer>}
+      </div>
+    </div>
+  )
+}
+
+function PdfReportCustomizationPanel({ settings, updateSettings, uploadLogo, removeLogo, resetSettings, data, projects, currentUser, printPdfReport }) {
+  const [draft, setDraft] = useState(() => normalizePdfReportSettings(settings))
+  const [localMessage, setLocalMessage] = useState('')
+
+  useEffect(() => {
+    setDraft(normalizePdfReportSettings(settings))
+  }, [settings])
+
+  function updateDraft(key, value) {
+    setDraft((current) => ({ ...current, [key]: value }))
+  }
+
+  function updateSection(sectionKey, value) {
+    setDraft((current) => ({ ...current, sections: { ...current.sections, [sectionKey]: value } }))
+  }
+
+  async function saveDraft() {
+    if (!String(draft.reportTitle || '').trim()) {
+      setLocalMessage('Please write a report header/title text before saving.')
+      return
+    }
+    const result = await updateSettings(draft)
+    setLocalMessage(result?.ok === false ? 'Could not save globally. Check Supabase SQL/storage setup.' : 'PDF report customization saved.')
+  }
+
+  async function handleLogoUpload(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    const result = await uploadLogo(file)
+    if (result?.logoUrl) {
+      setDraft((current) => ({ ...current, logoUrl: result.logoUrl, logoPath: result.logoPath || '' }))
+    }
+  }
+
+  async function handleRemoveLogo() {
+    await removeLogo()
+    setDraft((current) => ({ ...current, logoUrl: '', logoPath: '' }))
+  }
+
+  async function handleReset() {
+    await resetSettings()
+    setDraft(defaultPdfReportSettings)
+    setLocalMessage('PDF report settings reset to the default design.')
+  }
+
+  return (
+    <div className="admin-panel-stack pdf-customization-page">
+      <div className="card">
+        <SectionHeader icon={FileText} title="PDF Report Customization" subtitle="Customize the existing Print/PDF Report template used by student, supervisor, admin, and research committee reports" />
+        <div className="form-grid">
+          <label className="field wide-field"><span>Report header/title text</span><input value={draft.reportTitle || ''} onChange={(e) => updateDraft('reportTitle', e.target.value)} placeholder="Pharmacy Research Project Management Report" /></label>
+          <label className="field"><span>Header line</span><input value={draft.headerText || ''} onChange={(e) => updateDraft('headerText', e.target.value)} placeholder="Hawler Medical University – College of Pharmacy" /></label>
+          <label className="field"><span>University name</span><input value={draft.universityName || ''} onChange={(e) => updateDraft('universityName', e.target.value)} placeholder="Hawler Medical University" /></label>
+          <label className="field"><span>College name</span><input value={draft.collegeName || ''} onChange={(e) => updateDraft('collegeName', e.target.value)} placeholder="College of Pharmacy" /></label>
+          <label className="field"><span>Department name</span><input value={draft.departmentName || ''} onChange={(e) => updateDraft('departmentName', e.target.value)} placeholder="Department of Pharmacy" /></label>
+          <label className="field wide-field"><span>Footer text</span><textarea value={draft.footerText || ''} onChange={(e) => updateDraft('footerText', e.target.value)} placeholder="Optional footer text shown at the bottom of printed/PDF reports" /></label>
+        </div>
+        <div className="settings-actions">
+          <button className="primary" onClick={saveDraft}><Save size={16} /> Save PDF Report Settings</button>
+          <button className="secondary" onClick={handleReset}><RefreshCw size={16} /> Reset Default PDF Design</button>
+          <button className="secondary" onClick={printPdfReport}><Printer size={16} /> Preview by Print / Save as PDF</button>
+        </div>
+        {localMessage && <div className="message">{localMessage}</div>}
+      </div>
+
+      <div className="admin-split-layout">
+        <div className="card">
+          <SectionHeader icon={ImageIcon} title="Report Logo" subtitle="Upload, replace, or remove the logo used in the existing PDF report template" />
+          <label className="field"><span>Logo URL</span><input value={draft.logoUrl || ''} onChange={(e) => updateDraft('logoUrl', e.target.value)} placeholder="Paste hosted logo URL or upload below" /></label>
+          <label className="field"><span>Upload / replace logo</span><input type="file" accept="image/*" onChange={handleLogoUpload} /></label>
+          {draft.logoUrl ? <div className="pdf-logo-preview"><img src={draft.logoUrl} alt="PDF report logo preview" /></div> : <div className="pdf-logo-preview empty"><span>No logo selected</span></div>}
+          <div className="settings-actions">
+            <button className="secondary" onClick={() => updateSettings({ ...draft, logoUrl: draft.logoUrl, logoPath: draft.logoPath || '' })}><Save size={16} /> Save Logo Setting</button>
+            <button className="danger" onClick={handleRemoveLogo}><Trash2 size={16} /> Remove Logo</button>
+          </div>
+          <div className="soft-box settings-note"><p>Uploaded logos use the existing Supabase Storage bucket <code>app-assets</code>. If storage is not configured, the logo still previews locally.</p></div>
+        </div>
+
+        <div className="card">
+          <SectionHeader icon={Eye} title="Template Preview" subtitle="The existing Print/PDF button uses these saved settings globally" />
+          <div className="pdf-template-preview">
+            {draft.logoUrl ? <img src={draft.logoUrl} alt="Logo preview" /> : <div className="preview-logo-placeholder">Logo</div>}
+            <h4>{draft.headerText || defaultPdfReportSettings.headerText}</h4>
+            <h3>{draft.reportTitle || defaultPdfReportSettings.reportTitle}</h3>
+            <p>{[draft.universityName, draft.collegeName, draft.departmentName].filter(Boolean).join(' • ')}</p>
+            <div className="preview-report-lines"><span /><span /><span /></div>
+            {draft.footerText && <small>{draft.footerText}</small>}
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <SectionHeader icon={SlidersHorizontal} title="Show / Hide Report Sections" subtitle="Control which sections appear in printed/PDF reports across all roles" />
+        <div className="pdf-toggle-grid">
+          {pdfReportSectionLabels.map(([key, label]) => (
+            <label className="settings-toggle" key={key}>
+              <input type="checkbox" checked={draft.sections[key] !== false} onChange={(e) => updateSection(key, e.target.checked)} />
+              <span><b>{label}</b><small>{draft.sections[key] !== false ? 'Shown in reports when data exists.' : 'Hidden from reports.'}</small></span>
+            </label>
+          ))}
+          <label className="settings-toggle">
+            <input type="checkbox" checked={draft.showPageNumbers !== false} onChange={(e) => updateDraft('showPageNumbers', e.target.checked)} />
+            <span><b>Page numbers</b><small>Show page number text in the report footer.</small></span>
+          </label>
+          <label className="settings-toggle">
+            <input type="checkbox" checked={draft.showGeneratedDateTime !== false} onChange={(e) => updateDraft('showGeneratedDateTime', e.target.checked)} />
+            <span><b>Generated date/time</b><small>Show generated date/time in the header.</small></span>
+          </label>
+        </div>
+        <div className="soft-box settings-note"><p>Students, supervisors, and research committee users cannot edit these settings; they only use the saved template when pressing the existing Print/PDF button.</p></div>
       </div>
     </div>
   )
