@@ -2803,15 +2803,43 @@ export default function App() {
   }
 
   async function assignSupervisorThroughEdgeFunction({ student, supervisorId }) {
-    if (!isSupabaseConfigured || !supabase?.functions?.invoke) throw new Error('Supabase Edge Functions are not configured.')
-    const { data: result, error } = await supabase.functions.invoke('assign-supervisor', {
-      body: {
-        studentId: student.id,
-        supervisorId: supervisorId || null,
-        appUrl: window.location?.origin || '',
+    if (!isSupabaseConfigured) throw new Error('Supabase Edge Functions are not configured.')
+
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+    if (!supabaseUrl || !supabaseAnonKey) throw new Error('Supabase URL or anon key is missing.')
+
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+    const accessToken = sessionData?.session?.access_token
+    if (sessionError || !accessToken) throw new Error('Please log out, log in again, and try assigning the supervisor again.')
+
+    const payload = {
+      studentId: student.id,
+      supervisorId: supervisorId || null,
+      appUrl: window.location?.origin || '',
+    }
+
+    const response = await fetch(`${supabaseUrl.replace(/\/$/, '')}/functions/v1/assign-supervisor`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: supabaseAnonKey,
+        Authorization: `Bearer ${accessToken}`,
       },
+      body: JSON.stringify(payload),
     })
-    if (error) throw new Error(formatEdgeFunctionError(error, 'assign-supervisor'))
+
+    const text = await response.text().catch(() => '')
+    let result = null
+    try {
+      result = text ? JSON.parse(text) : null
+    } catch (_parseError) {
+      result = { error: text }
+    }
+
+    if (!response.ok) {
+      throw new Error(result?.error || result?.message || `assign-supervisor Edge Function failed with status ${response.status}.`)
+    }
     if (result?.error) throw new Error(result.error)
     return result || { success: true }
   }
