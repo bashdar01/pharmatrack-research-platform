@@ -2802,7 +2802,7 @@ export default function App() {
     return combined || `The ${functionName} Edge Function failed.`
   }
 
-  async function assignSupervisorThroughEdgeFunction({ student, supervisorId }) {
+  async function assignSupervisorThroughEdgeFunction({ student, supervisorId, projectId = '' }) {
     if (!isSupabaseConfigured) throw new Error('Supabase Edge Functions are not configured.')
 
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
@@ -2816,6 +2816,8 @@ export default function App() {
     const payload = {
       studentId: student.id,
       supervisorId: supervisorId || null,
+      projectId: projectId || null,
+      action: supervisorId ? 'assign' : 'remove',
       appUrl: window.location?.origin || '',
     }
 
@@ -2867,7 +2869,7 @@ export default function App() {
     return result || { success: true }
   }
 
-  async function assignStudentToSupervisor(studentId, supervisorId) {
+  async function assignStudentToSupervisor(studentId, supervisorId, options = {}) {
     if (!isAdminUser(currentUser)) return setMessage('You do not have permission to access this admin feature.')
     const student = data.profiles.find((user) => String(user.id) === String(studentId))
     if (!student || student.role !== 'student') return setMessage('Student account not found.')
@@ -2926,7 +2928,7 @@ export default function App() {
       if (isSupabaseConfigured) {
         let assignmentBackendError = null
         try {
-          const backendResult = await assignSupervisorThroughEdgeFunction({ student, supervisorId: supervisor?.id || null })
+          const backendResult = await assignSupervisorThroughEdgeFunction({ student, supervisorId: supervisor?.id || null, projectId: options.projectId || '' })
           await addAudit(currentUser.full_name, supervisor ? 'assigned student to supervisor' : 'removed supervisor assignment for', `${student.full_name || student.email}${supervisor ? ` → ${supervisor.full_name || supervisor.email}` : ''}`)
           await loadFromSupabase(currentUser)
 
@@ -5358,7 +5360,7 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
     const student = project ? getProjectAssignedStudent(project) : null
 
     if (student?.id && assignStudentToSupervisor) {
-      await assignStudentToSupervisor(student.id, supervisor?.id || '')
+      await assignStudentToSupervisor(student.id, supervisor?.id || '', { projectId })
       return
     }
 
@@ -5374,7 +5376,7 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
     const student = project ? getProjectAssignedStudent(project) : null
 
     if (student?.id && assignStudentToSupervisor) {
-      await assignStudentToSupervisor(student.id, '')
+      await assignStudentToSupervisor(student.id, '', { projectId })
       return
     }
 

@@ -175,6 +175,17 @@ async function getProjectsForStudent(supabaseUrl: string, serviceRoleKey: string
   return await restFetch(supabaseUrl, serviceRoleKey, `research_projects?or=(${encodeURIComponent(filters)})&select=*&order=created_at.desc`)
 }
 
+async function getProjectById(supabaseUrl: string, serviceRoleKey: string, projectId: string) {
+  if (!projectId) return null
+  const rows = await restFetch(supabaseUrl, serviceRoleKey, `research_projects?id=eq.${encodeURIComponent(projectId)}&select=*&limit=1`)
+  return Array.isArray(rows) ? rows[0] || null : null
+}
+
+function projectHasSupervisor(project: AnyRecord) {
+  const name = normalize(project?.supervisor_name)
+  return Boolean(project?.supervisor_id || project?.supervisor_email || (name && name !== 'pending assignment' && name !== 'not assigned'))
+}
+
 function firstProjectSummary(projects: AnyRecord[]) {
   const project = projects?.[0]
   if (!project) return { title: 'Not available', group: 'Not available', area: 'Not available' }
@@ -185,7 +196,7 @@ function firstProjectSummary(projects: AnyRecord[]) {
   }
 }
 
-async function updateStudentAssignment(supabaseUrl: string, serviceRoleKey: string, student: AnyRecord, supervisor: AnyRecord | null, preserveEmailMarker: boolean) {
+async function updateStudentAssignment(supabaseUrl: string, serviceRoleKey: string, student: AnyRecord, supervisor: AnyRecord | null, preserveEmailMarker: boolean, projectId = '') {
   const now = new Date().toISOString()
   const updates = supervisor
     ? {
@@ -218,15 +229,24 @@ async function updateStudentAssignment(supabaseUrl: string, serviceRoleKey: stri
     student.full_name ? `group_name.ilike.${student.full_name}` : '',
   ].filter(Boolean).join(',')
 
+  const projectUpdates = {
+    supervisor_id: supervisor?.id || null,
+    supervisor_email: supervisor?.email || '',
+    supervisor_name: supervisor?.full_name || 'Pending Assignment',
+    updated_at: now,
+  }
+
   if (filters) {
     await restFetch(supabaseUrl, serviceRoleKey, `research_projects?or=(${encodeURIComponent(filters)})`, {
       method: 'PATCH',
-      body: JSON.stringify({
-        supervisor_id: supervisor?.id || null,
-        supervisor_email: supervisor?.email || '',
-        supervisor_name: supervisor?.full_name || 'Pending Assignment',
-        updated_at: now,
-      }),
+      body: JSON.stringify(projectUpdates),
+    })
+  }
+
+  if (projectId) {
+    await restFetch(supabaseUrl, serviceRoleKey, `research_projects?id=eq.${encodeURIComponent(projectId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(projectUpdates),
     })
   }
 }
@@ -381,6 +401,8 @@ Deno.serve(async (req) => {
     console.log('assign-supervisor payload:', {
       studentId: payload.studentId || payload.target_student_id,
       supervisorId: payload.supervisorId || payload.target_supervisor_id || null,
+      projectId: payload.projectId || payload.project_id || null,
+      action: payload.action || null,
       hasAppUrl: Boolean(payload.appUrl),
     })
 
@@ -392,16 +414,28 @@ Deno.serve(async (req) => {
 
     const studentId = String(payload.studentId || payload.target_student_id || '')
     const supervisorId = String(payload.supervisorId || payload.target_supervisor_id || '')
+    const projectId = String(payload.projectId || payload.project_id || '')
     const student = await getProfileById(supabaseUrl, serviceRoleKey, studentId)
     if (!student || normalize(student.role) !== 'student') return jsonResponse({ error: 'Student account not found.' }, 404)
 
-    const projects = await getProjectsForStudent(supabaseUrl, serviceRoleKey, student)
+    let projects = await getProjectsForStudent(supabaseUrl, serviceRoleKey, student)
+    if (projectId) {
+      const selectedProject = await getProjectById(supabaseUrl, serviceRoleKey, projectId)
+      if (selectedProject && !projects.some((project) => String(project.id || '') === String(selectedProject.id || ''))) {
+        projects = [selectedProject, ...projects]
+      }
+    }
     const assignedAt = new Date().toISOString()
     const appUrl = getAbsoluteSiteUrl(String(payload.appUrl || getSiteUrl(req.headers.get('origin') || '')))
 
     if (!supervisorId) {
-      const hadAssignment = Boolean(student.assigned_supervisor_id || student.assigned_supervisor_email || student.assigned_supervisor_name)
-      await updateStudentAssignment(supabaseUrl, serviceRoleKey, student, null, false)
+      const hadAssignment = Boolean(
+        student.assigned_supervisor_id ||
+        student.assigned_supervisor_email ||
+        student.assigned_supervisor_name ||
+        projects.some(projectHasSupervisor)
+      )
+      await updateStudentAssignment(supabaseUrl, serviceRoleKey, student, null, false, projectId)
       return jsonResponse({
         success: true,
         assignmentSaved: true,
@@ -427,7 +461,7 @@ Deno.serve(async (req) => {
         normalize(student.assigned_supervisor_email_supervisor_email) === normalize(supervisor.email)
       )
 
-    await updateStudentAssignment(supabaseUrl, serviceRoleKey, student, supervisor, sameSupervisor && emailAlreadySent)
+    await updateStudentAssignment(supabaseUrl, serviceRoleKey, student, supervisor, sameSupervisor && emailAlreadySent, projectId)
 
     if (sameSupervisor && emailAlreadySent) {
       return jsonResponse({
