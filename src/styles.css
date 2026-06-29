@@ -4374,3 +4374,63 @@ button:disabled {
     color: #2563eb;
   }
 }
+
+/* Profile menu refinement: remove blue cover banner and separate logout/destructive actions from primary blue */
+@media screen {
+  .student-profile-dropdown.redesigned-profile-card .profile-cover,
+  .user-profile-menu .student-profile-dropdown.redesigned-profile-card .profile-cover {
+    display: none !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    background: transparent !important;
+    background-image: none !important;
+  }
+
+  .student-profile-dropdown.redesigned-profile-card .profile-card-body,
+  .user-profile-menu .student-profile-dropdown.redesigned-profile-card .profile-card-body {
+    padding-top: 22px !important;
+  }
+
+  .student-profile-dropdown.redesigned-profile-card .profile-avatar-shell,
+  .user-profile-menu .student-profile-dropdown.redesigned-profile-card .profile-avatar-shell {
+    margin-top: 0 !important;
+  }
+
+  .student-profile-dropdown.redesigned-profile-card .profile-menu-button.logout,
+  .user-profile-menu .profile-menu-button.logout,
+  .profile-menu-actions .profile-menu-button.logout,
+  .profile-menu-button.logout {
+    background: #fee2e2 !important;
+    background-image: none !important;
+    color: #b91c1c !important;
+    border-color: #fecaca !important;
+    box-shadow: none !important;
+  }
+
+  .student-profile-dropdown.redesigned-profile-card .profile-menu-button.logout:hover,
+  .user-profile-menu .profile-menu-button.logout:hover,
+  .profile-menu-actions .profile-menu-button.logout:hover,
+  .profile-menu-button.logout:hover {
+    background: #fecaca !important;
+    color: #991b1b !important;
+    border-color: #fca5a5 !important;
+  }
+
+  .admin-logout,
+  .danger,
+  button.danger {
+    background: #fee2e2 !important;
+    background-image: none !important;
+    color: #b91c1c !important;
+    border-color: #fecaca !important;
+    box-shadow: none !important;
+  }
+
+  .admin-logout:hover,
+  .danger:hover:not(:disabled),
+  button.danger:hover:not(:disabled) {
+    background: #fecaca !important;
+    color: #991b1b !important;
+    border-color: #fca5a5 !important;
+  }
+}
