@@ -286,6 +286,8 @@ const defaultWebsiteSettings = {
   maintenanceNotice: '',
 }
 
+const PDF_REPORT_SETTINGS_KEY = 'pdf_report'
+
 const defaultPdfReportSections = {
   userInformation: true,
   studentInformation: true,
@@ -1549,7 +1551,7 @@ export default function App() {
       const { data: row, error } = await supabase
         .from('app_settings')
         .select('value')
-        .eq('key', 'pdf_report')
+        .eq('key', PDF_REPORT_SETTINGS_KEY)
         .maybeSingle()
       if (error) return
       if (row?.value) {
@@ -1574,43 +1576,39 @@ export default function App() {
 
     if (isSupabaseConfigured) {
       try {
-        let saveError = null
-
-        const rpcSave = await supabase.rpc('save_pdf_report_settings', {
+        const { data: savedValue, error } = await supabase.rpc('save_pdf_report_settings', {
           next_value: nextSettings,
           updated_by_value: currentUser?.email || currentUser?.full_name || 'admin',
         })
 
-        if (rpcSave.error) {
-          saveError = rpcSave.error
-          const directSave = await supabase
-            .from('app_settings')
-            .upsert({
-              key: 'pdf_report',
-              value: nextSettings,
-              updated_by: currentUser?.email || currentUser?.full_name || 'admin',
-              updated_at: new Date().toISOString(),
-            }, { onConflict: 'key' })
-          if (directSave.error) saveError = directSave.error
-          else saveError = null
+        if (error) {
+          const missingRpc = String(error.message || '').toLowerCase().includes('function') || String(error.message || '').toLowerCase().includes('schema cache')
+          throw new Error(
+            missingRpc
+              ? `${error.message}. The database function is not installed yet. Run supabase/pdf_report_customization_update.sql in Supabase SQL Editor, refresh the website, then save again.`
+              : error.message
+          )
         }
 
-        if (saveError) throw saveError
+        const savedSettings = normalizePdfReportSettings(savedValue || nextSettings)
+        setPdfReportSettings(savedSettings)
+        savePdfReportSettingsLocal(savedSettings)
+
         if (!options.silent) {
           await addAudit(currentUser.full_name, 'updated', 'PDF report customization settings')
-          setMessage('PDF report customization saved. Existing Print/PDF buttons will use the updated template.')
+          setMessage('PDF report settings saved successfully.')
         }
-        return { ok: true }
+        return { ok: true, settings: savedSettings }
       } catch (error) {
-        setMessage(`PDF settings saved locally, but global database save failed: ${error.message}. Run the updated supabase/pdf_report_customization_update.sql in Supabase SQL Editor, then save again.`)
-        return { ok: false }
+        setMessage(`PDF settings were kept locally for preview, but global database save failed: ${error.message}. Run the latest supabase/pdf_report_customization_update.sql in Supabase SQL Editor, refresh, then log out and log in again with the approved Admin email before saving.`)
+        return { ok: false, error }
       }
     }
 
     if (!options.silent) {
       setMessage('PDF report customization saved locally for preview. Connect Supabase and run supabase/pdf_report_customization_update.sql to save globally.')
     }
-    return { ok: true }
+    return { ok: true, settings: nextSettings }
   }
 
   async function uploadPdfReportLogo(file) {
@@ -2052,8 +2050,6 @@ export default function App() {
   async function createWeeklyReport(form, file) {
     if (!form.project_id) return setMessage('Create or select a research project first.')
     if (!form.completed_work?.trim()) return setMessage('Please write the work completed this week before submitting.')
-    const selectedReportProject = data.projects.find((item) => String(item.id) === String(form.project_id))
-    const reportDepartment = normalizeDepartment(form.department || selectedReportProject?.area)
     const nextWeek = Math.max(
       0,
       ...data.reports
@@ -2063,7 +2059,6 @@ export default function App() {
     const report = {
       id: crypto.randomUUID(),
       project_id: form.project_id,
-      department: reportDepartment,
       week_number: nextWeek,
       submitted_by: currentUser?.full_name || form.submitted_by,
       submitted_by_id: currentUser?.id || null,
@@ -4084,7 +4079,7 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
   const reports = data.reports.filter((r) => String(r.project_id) === String(selectedProject?.id) && reportOwnedByUser(r, currentUser))
   const projectProgress = selectedProject ? getProjectProgress(selectedProject, data.reports) : 0
   const [titleForm, setTitleForm] = useState({ title: '', area: DEFAULT_DEPARTMENT, group_name: `${currentUser.full_name} Research Group`, final_due: '2026-06-20' })
-  const [reportForm, setReportForm] = useState({ completed_work: '', challenges: '', next_week_plan: '', attendance: 'Attended', department: DEFAULT_DEPARTMENT })
+  const [reportForm, setReportForm] = useState({ completed_work: '', challenges: '', next_week_plan: '', attendance: 'Attended' })
   const [file, setFile] = useState(null)
 
   return (
@@ -4119,13 +4114,7 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
           <SectionHeader icon={MessageSquareText} title="Submit Weekly Report" subtitle="Submit progress and upload evidence file" />
           {selectedProject ? (
             <>
-              <div className="form-grid">
-                <label className="field">
-                  <span>Department</span>
-                  <select value={normalizeDepartment(reportForm.department || selectedProject.area)} onChange={(e) => setReportForm({ ...reportForm, department: e.target.value })}>
-                    {DEPARTMENT_OPTIONS.map((department) => <option key={department} value={department}>{department}</option>)}
-                  </select>
-                </label>
+              <div className="form-grid weekly-report-form-grid">
                 <TextArea label="Work completed this week" value={reportForm.completed_work} onChange={(v) => setReportForm({ ...reportForm, completed_work: v })} />
                 <TextArea label="Problems or challenges" value={reportForm.challenges} onChange={(v) => setReportForm({ ...reportForm, challenges: v })} />
                 <TextArea label="Next week plan" value={reportForm.next_week_plan} onChange={(v) => setReportForm({ ...reportForm, next_week_plan: v })} />
@@ -4137,7 +4126,7 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
                   </select>
                 </label>
               </div>
-              <button className="primary" onClick={() => createWeeklyReport({ ...reportForm, department: normalizeDepartment(reportForm.department || selectedProject.area), project_id: selectedProject.id, submitted_by: currentUser.full_name }, file)}><Upload size={16} /> Submit Weekly Report</button>
+              <button className="primary" onClick={() => createWeeklyReport({ ...reportForm, project_id: selectedProject.id, submitted_by: currentUser.full_name }, file)}><Upload size={16} /> Submit Weekly Report</button>
             </>
           ) : <EmptyState title="Weekly reports locked" text="Create a research project first, then weekly report submission will be available." icon={Lock} />}
         </div>
@@ -5225,25 +5214,384 @@ function PdfReportSection({ settings, sectionKey, title, children, exists = true
   return <section className={`report-section report-section-${sectionKey}`}><h3>{title}</h3>{children}</section>
 }
 
+
+function NoRecords({ text = 'No records available.' }) {
+  return <p className="no-records-message">{text}</p>
+}
+
+function makeSupervisorOptionKey(supervisor = {}) {
+  if (supervisor.id) return `id:${supervisor.id}`
+  if (supervisor.email) return `email:${normalizeText(supervisor.email)}`
+  return `name:${normalizeText(supervisor.name || supervisor.full_name || 'unknown-supervisor')}`
+}
+
+function upsertSupervisorOption(map, supervisor = {}, fallback = {}) {
+  const name = supervisor.name || supervisor.full_name || fallback.name || 'Supervisor'
+  const email = supervisor.email || fallback.email || ''
+  const id = supervisor.id || fallback.id || null
+  const key = makeSupervisorOptionKey({ id, email, name })
+  if (!map.has(key)) {
+    map.set(key, { key, id, email, name })
+    return
+  }
+  const existing = map.get(key)
+  map.set(key, {
+    ...existing,
+    id: existing.id || id,
+    email: existing.email || email,
+    name: existing.name || name,
+  })
+}
+
+function getReportSupervisorOptions(data = {}, projects = []) {
+  const supervisors = new Map()
+  ;(data.profiles || [])
+    .filter((profile) => profile.role === 'supervisor')
+    .forEach((profile) => upsertSupervisorOption(supervisors, profile))
+  ;(projects || []).forEach((project) => {
+    const supervisor = findSupervisorProfileForProject(data, project)
+    if (supervisor?.id || supervisor?.email || supervisor?.full_name) {
+      upsertSupervisorOption(supervisors, supervisor, {
+        id: project.supervisor_id || project.supervisor_user_id || null,
+        email: project.supervisor_email || '',
+        name: project.supervisor_name || project.supervisor || project.assigned_supervisor || 'Supervisor',
+      })
+    }
+  })
+  return Array.from(supervisors.values()).sort((a, b) => a.name.localeCompare(b.name))
+}
+
+function projectMatchesSupervisorOption(project = {}, supervisor = {}) {
+  if (!project || !supervisor) return false
+  const supervisorId = normalizeText(project.supervisor_id || project.supervisor_user_id)
+  const supervisorEmail = normalizeText(project.supervisor_email)
+  const supervisorName = normalizeText(project.supervisor_name || project.supervisor || project.assigned_supervisor)
+  return (
+    (!!supervisor.id && supervisorId === normalizeText(supervisor.id)) ||
+    (!!supervisor.email && supervisorEmail === normalizeText(supervisor.email)) ||
+    (!!supervisor.name && supervisorName === normalizeText(supervisor.name))
+  )
+}
+
+function getReportStudentOptions(data = {}, projects = [], reports = []) {
+  const students = new Map()
+  // Only derive report dropdown students from the currently allowed/assigned projects and reports.
+  // This prevents admin/committee supervisor-filtered dropdowns and supervisor dropdowns from leaking unrelated students.
+  getAssignedSupervisorStudents(data, projects, reports).forEach((student) => upsertStudentOption(students, student, student))
+  return Array.from(students.values()).sort((a, b) => a.name.localeCompare(b.name))
+}
+
+function optionMatchesSearch(option = {}, search = '') {
+  const q = normalizeText(search)
+  if (!q) return true
+  return [option.name, option.email, option.group, option.title, option.supervisorName].some((value) => normalizeText(value).includes(q))
+}
+
+function getStudentResearchLabel(student = {}, projects = [], reports = []) {
+  const project = (projects || []).find((item) => projectMatchesStudentOption(item, student, reports))
+  return project?.title || project?.group_name || student.group || 'No research project linked'
+}
+
+function getStudentSupervisorLabel(data = {}, student = {}, projects = [], reports = []) {
+  const project = (projects || []).find((item) => projectMatchesStudentOption(item, student, reports))
+  const supervisor = findSupervisorProfileForProject(data, project)
+  return supervisor?.full_name || project?.supervisor_name || 'Not assigned'
+}
+
+function getProgressStatusLabel(project = {}, reports = []) {
+  const progress = Number(getProjectProgress(project, reports) ?? project.progress ?? 0)
+  if (progress >= 100 || normalizeText(project.status).includes('complete')) return 'Completed'
+  if (progress >= 60) return 'In Progress'
+  if (progress > 0) return 'Started'
+  return 'Not Started'
+}
+
+function projectMatchesProgressFilter(project = {}, reports = [], filter = 'All') {
+  if (!filter || filter === 'All') return true
+  return getProgressStatusLabel(project, reports) === filter
+}
+
+function projectHasEvaluation(project = {}, evaluations = []) {
+  return (evaluations || []).some((evaluation) => String(evaluation.project_id) === String(project.id))
+}
+
+function projectMatchesEvaluationFilter(project = {}, evaluations = [], filter = 'All') {
+  if (!filter || filter === 'All') return true
+  const hasEvaluation = projectHasEvaluation(project, evaluations)
+  return filter === 'Evaluated' ? hasEvaluation : !hasEvaluation
+}
+
+function deadlineTargetsStudentOption(deadline = {}, student = {}) {
+  return deadlineTargetsStudent(deadline, { id: student.id, email: student.email, full_name: student.name || student.full_name })
+}
+
+function studentOptionToProfile(student = {}) {
+  return {
+    id: student.id || null,
+    full_name: student.name || student.full_name || 'Student',
+    email: student.email || '',
+    role: 'student',
+    group: student.group || '',
+  }
+}
+
+function buildStudentOptionGroups(data = {}, supervisorOptions = [], selectedSupervisorKey = 'all', projects = [], reports = [], search = '') {
+  const groups = []
+  const selectedSupervisor = supervisorOptions.find((item) => item.key === selectedSupervisorKey)
+  const supervisorsToUse = selectedSupervisorKey === 'all'
+    ? supervisorOptions
+    : selectedSupervisor
+      ? [selectedSupervisor]
+      : []
+
+  supervisorsToUse.forEach((supervisor) => {
+    const supervisorProjects = (projects || []).filter((project) => projectMatchesSupervisorOption(project, supervisor))
+    const options = getReportStudentOptions(data, supervisorProjects, reports)
+      .map((student) => ({ ...student, title: getStudentResearchLabel(student, supervisorProjects, reports), supervisorName: supervisor.name }))
+      .filter((student) => optionMatchesSearch(student, search))
+    groups.push({ key: supervisor.key, label: supervisor.name || 'Supervisor', options })
+  })
+
+  if (selectedSupervisorKey === 'all' && !groups.length) {
+    const allOptions = getReportStudentOptions(data, projects, reports)
+      .map((student) => ({ ...student, title: getStudentResearchLabel(student, projects, reports), supervisorName: getStudentSupervisorLabel(data, student, projects, reports) }))
+      .filter((student) => optionMatchesSearch(student, search))
+    groups.push({ key: 'all', label: 'All Supervisors', options: allOptions })
+  }
+
+  return groups
+}
 function ReportsTab({ data, projects, currentUser, role, printPdfReport, exportCsv, pdfReportSettings = defaultPdfReportSettings }) {
   const settings = normalizePdfReportSettings(pdfReportSettings)
   const generatedAt = new Date()
   const generatedLabel = generatedAt.toLocaleString()
-  const hasProjects = Array.isArray(projects) && projects.length > 0
-  const reports = Array.isArray(data.reports) ? data.reports : []
-  const deadlines = Array.isArray(data.deadlines) ? data.deadlines : []
-  const evaluations = Array.isArray(data.evaluations) ? data.evaluations : []
-  const students = (data.profiles || []).filter((profile) => profile.role === 'student')
-  const supervisors = (data.profiles || []).filter((profile) => profile.role === 'supervisor')
+  const [selectedSupervisorKey, setSelectedSupervisorKey] = useState('all')
+  const [selectedStudentKey, setSelectedStudentKey] = useState(role === 'student' ? makeStudentOptionKey({ id: currentUser?.id, email: currentUser?.email, name: currentUser?.full_name }) : 'all')
+  const [supervisorSearch, setSupervisorSearch] = useState('')
+  const [studentSearch, setStudentSearch] = useState('')
+  const [reportFilters, setReportFilters] = useState({ group: 'All', title: '', progress: 'All', evaluation: 'All' })
+  const [printMessage, setPrintMessage] = useState('')
+  const isAdminLike = role === 'admin' || role === 'committee'
+  const baseProjects = Array.isArray(projects) ? projects : []
+  const allReports = Array.isArray(data.reports) ? data.reports : []
+  const allDeadlines = Array.isArray(data.deadlines) ? data.deadlines : []
+  const allEvaluations = Array.isArray(data.evaluations) ? data.evaluations : []
+  const supervisorOptions = useMemo(() => getReportSupervisorOptions(data, baseProjects), [data, baseProjects])
+  const filteredSupervisorOptions = useMemo(() => supervisorOptions.filter((supervisor) => optionMatchesSearch(supervisor, supervisorSearch)), [supervisorOptions, supervisorSearch])
+
+  useEffect(() => {
+    if (role === 'student') {
+      setSelectedSupervisorKey('all')
+      setSelectedStudentKey(makeStudentOptionKey({ id: currentUser?.id, email: currentUser?.email, name: currentUser?.full_name }))
+      return
+    }
+    if (role === 'supervisor') {
+      setSelectedSupervisorKey('all')
+      return
+    }
+    if (!selectedSupervisorKey) setSelectedStudentKey('all')
+  }, [role, currentUser?.id, currentUser?.email, currentUser?.full_name, selectedSupervisorKey])
+
+  const supervisorFilteredProjects = useMemo(() => {
+    if (!isAdminLike) return baseProjects
+    if (!selectedSupervisorKey) return []
+    if (selectedSupervisorKey === 'all') return baseProjects
+    const selectedSupervisor = supervisorOptions.find((supervisor) => supervisor.key === selectedSupervisorKey)
+    if (!selectedSupervisor) return []
+    return baseProjects.filter((project) => projectMatchesSupervisorOption(project, selectedSupervisor))
+  }, [isAdminLike, baseProjects, selectedSupervisorKey, supervisorOptions])
+
+  const groupOptions = useMemo(() => {
+    const groups = Array.from(new Set(supervisorFilteredProjects.map((project) => project.group_name).filter(Boolean)))
+    return groups.sort((a, b) => a.localeCompare(b))
+  }, [supervisorFilteredProjects])
+
+  const projectFilteredProjects = useMemo(() => {
+    const titleSearch = normalizeText(reportFilters.title)
+    return supervisorFilteredProjects.filter((project) => {
+      const matchesGroup = reportFilters.group === 'All' || project.group_name === reportFilters.group
+      const matchesTitle = !titleSearch || [project.title, project.group_name, project.area].some((value) => normalizeText(value).includes(titleSearch))
+      const matchesProgress = projectMatchesProgressFilter(project, allReports, reportFilters.progress)
+      const matchesEvaluation = projectMatchesEvaluationFilter(project, allEvaluations, reportFilters.evaluation)
+      return matchesGroup && matchesTitle && matchesProgress && matchesEvaluation
+    })
+  }, [supervisorFilteredProjects, reportFilters, allReports, allEvaluations])
+
+  const supervisorStudentOptions = useMemo(() => {
+    if (role !== 'supervisor') return []
+    return getAssignedSupervisorStudents(data, projectFilteredProjects, allReports)
+      .map((student) => ({ ...student, title: getStudentResearchLabel(student, projectFilteredProjects, allReports), supervisorName: currentUser?.full_name || 'Supervisor' }))
+  }, [role, data, projectFilteredProjects, allReports, currentUser?.full_name])
+
+  const adminStudentGroups = useMemo(() => {
+    if (!isAdminLike) return []
+    return buildStudentOptionGroups(data, supervisorOptions, selectedSupervisorKey, projectFilteredProjects, allReports, studentSearch)
+  }, [isAdminLike, data, supervisorOptions, selectedSupervisorKey, projectFilteredProjects, allReports, studentSearch])
+
+  const adminStudentOptions = useMemo(() => {
+    const map = new Map()
+    adminStudentGroups.forEach((group) => group.options.forEach((student) => upsertStudentOption(map, student, student)))
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name))
+  }, [adminStudentGroups])
+
+  const selectableStudentOptions = role === 'supervisor'
+    ? supervisorStudentOptions.filter((student) => optionMatchesSearch(student, studentSearch))
+    : isAdminLike
+      ? adminStudentOptions
+      : [studentOptionToProfile({ id: currentUser?.id, email: currentUser?.email, name: currentUser?.full_name })]
+
+  const selectedStudent = role === 'student'
+    ? { id: currentUser?.id, email: currentUser?.email, name: currentUser?.full_name || 'Student', group: currentUser?.department || '' }
+    : selectableStudentOptions.find((student) => student.key === selectedStudentKey) || null
+
+  const studentFilteredProjects = useMemo(() => {
+    if (role === 'student') return projectFilteredProjects.filter((project) => isOwnStudentProject(project, currentUser))
+    if (selectedStudentKey === 'all') return projectFilteredProjects
+    if (!selectedStudent) return []
+    return projectFilteredProjects.filter((project) => projectMatchesStudentOption(project, selectedStudent, allReports))
+  }, [role, projectFilteredProjects, selectedStudentKey, selectedStudent, allReports, currentUser])
+
+  const selectedProjectIds = useMemo(() => new Set(studentFilteredProjects.map((project) => String(project.id))), [studentFilteredProjects])
+
+  const scopedReports = useMemo(() => {
+    return allReports.filter((report) => {
+      const projectAllowed = !report.project_id || selectedProjectIds.has(String(report.project_id))
+      if (!projectAllowed) return false
+      if (role === 'student') return reportOwnedByUser(report, currentUser)
+      if (selectedStudentKey === 'all') return true
+      return selectedStudent ? itemMatchesStudentOption(report, selectedStudent) : false
+    })
+  }, [allReports, selectedProjectIds, role, currentUser, selectedStudentKey, selectedStudent])
+
+  const scopedDeadlines = useMemo(() => {
+    return allDeadlines.filter((deadline) => {
+      if (role === 'student') return deadlineVisibleToUser(deadline, 'student', currentUser)
+      if (selectedStudentKey !== 'all' && selectedStudent) {
+        return !hasDeadlineTargets(deadline) || deadlineTargetsStudentOption(deadline, selectedStudent)
+      }
+      if (role === 'supervisor') return deadlineVisibleToUser(deadline, 'supervisor', currentUser)
+      return true
+    })
+  }, [allDeadlines, role, currentUser, selectedStudentKey, selectedStudent])
+
+  const scopedEvaluations = useMemo(() => allEvaluations.filter((evaluation) => selectedProjectIds.has(String(evaluation.project_id))), [allEvaluations, selectedProjectIds])
+  const scopedStudents = useMemo(() => {
+    if (role === 'student') return [studentOptionToProfile({ id: currentUser?.id, email: currentUser?.email, name: currentUser?.full_name })]
+    if (selectedStudentKey !== 'all' && selectedStudent) return [studentOptionToProfile(selectedStudent)]
+    return selectableStudentOptions.map(studentOptionToProfile)
+  }, [role, currentUser, selectedStudentKey, selectedStudent, selectableStudentOptions])
+  const scopedSupervisors = useMemo(() => {
+    if (role === 'supervisor') return [currentUser]
+    if (!isAdminLike) return []
+    if (selectedSupervisorKey === 'all') return supervisorOptions
+    return supervisorOptions.filter((supervisor) => supervisor.key === selectedSupervisorKey)
+  }, [role, currentUser, isAdminLike, selectedSupervisorKey, supervisorOptions])
+
+  const hasProjects = studentFilteredProjects.length > 0
   const showGeneratedAt = settings.showGeneratedDateTime !== false && reportSectionVisible(settings, 'generatedDateTime')
   const footerText = String(settings.footerText || '').trim()
   const departmentLine = [settings.universityName, settings.collegeName, settings.departmentName].filter(Boolean).join(' • ')
+  const feedbackReports = scopedReports.filter((report) => report.feedback || report.supervisor_feedback)
+  const selectedSupervisor = supervisorOptions.find((supervisor) => supervisor.key === selectedSupervisorKey) || null
+  const noAssignedStudentsForSupervisor = isAdminLike && selectedSupervisorKey && selectedSupervisorKey !== 'all' && selectableStudentOptions.length === 0
+  const studentDropdownDisabled = isAdminLike && !selectedSupervisorKey
+  const canGenerateReport = role === 'student' || role === 'admin' || role === 'committee' || (role === 'supervisor' && (selectedStudentKey === 'all' || Boolean(selectedStudent)))
+
+  const updateFilter = (key, value) => setReportFilters((current) => ({ ...current, [key]: value }))
+
+  const handleSupervisorChange = (value) => {
+    setSelectedSupervisorKey(value)
+    setSelectedStudentKey('all')
+    setPrintMessage('')
+  }
+
+  const handlePrint = async () => {
+    if (!canGenerateReport) {
+      setPrintMessage('You do not have permission to generate this report.')
+      return
+    }
+
+    if (isSupabaseConfigured) {
+      const targetStudent = selectedStudentKey === 'all' ? null : selectedStudent
+      const targetSupervisor = role === 'supervisor' ? currentUser : selectedSupervisor
+      const { data: allowed, error } = await supabase.rpc('can_generate_pdf_report', {
+        target_student_id: targetStudent?.id || null,
+        target_student_email: targetStudent?.email || null,
+        target_supervisor_id: targetSupervisor?.id || null,
+        target_supervisor_email: targetSupervisor?.email || null,
+      })
+      if (error || allowed === false) {
+        setPrintMessage('You do not have permission to generate this report.')
+        return
+      }
+    }
+
+    setPrintMessage('')
+    printPdfReport()
+  }
 
   return (
     <div className="stack">
-      <div className="card no-print">
-        <SectionHeader icon={Printer} title="Print / Export PDF Reports" subtitle="Use the browser print dialog and choose Save as PDF" />
-        <div className="action-row report-actions"><button className="primary" onClick={printPdfReport}><Printer size={16} /> Print / Save as PDF</button><button className="secondary" onClick={exportCsv}><Download size={16} /> Export CSV</button></div>
+      <div className="card no-print report-control-card">
+        <SectionHeader icon={Printer} title="Print / Export PDF Reports" subtitle="Use the existing Print/PDF report button with role-based data permissions" />
+
+        {role === 'student' ? (
+          <div className="soft-box compact-report-note"><b>Student report:</b> your PDF report automatically uses only your own data.</div>
+        ) : (
+          <div className="report-filter-panel">
+            {role === 'supervisor' ? (
+              <div className="field-group report-selector-group">
+                <label className="field"><span>Search assigned student</span><input value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} placeholder="Search by name, email, or title" /></label>
+                <label className="field"><span>Select assigned student</span><select value={selectedStudentKey} onChange={(e) => { setSelectedStudentKey(e.target.value); setPrintMessage('') }}>
+                  <option value="all">All Assigned Students</option>
+                  {selectableStudentOptions.map((student) => <option key={student.key} value={student.key}>{student.name}{student.email ? ` • ${student.email}` : ''}{student.title ? ` • ${student.title}` : ''}</option>)}
+                </select></label>
+                {!supervisorStudentOptions.length && <p className="form-error-text">No students found.</p>}
+              </div>
+            ) : (
+              <>
+                <div className="field-group report-selector-group two-col">
+                  <label className="field"><span>Search supervisor</span><input value={supervisorSearch} onChange={(e) => setSupervisorSearch(e.target.value)} placeholder="Search supervisor" /></label>
+                  <label className="field"><span>Select supervisor</span><select value={selectedSupervisorKey} onChange={(e) => handleSupervisorChange(e.target.value)}>
+                    <option value="">Select a supervisor first</option>
+                    <option value="all">All Supervisors</option>
+                    {filteredSupervisorOptions.map((supervisor) => <option key={supervisor.key} value={supervisor.key}>{supervisor.name}{supervisor.email ? ` • ${supervisor.email}` : ''}</option>)}
+                  </select></label>
+                </div>
+                <div className="field-group report-selector-group">
+                  <label className="field"><span>Search student</span><input value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} disabled={studentDropdownDisabled} placeholder={studentDropdownDisabled ? 'Select a supervisor first' : 'Search by name, email, research group, or title'} /></label>
+                  <label className="field"><span>Select student</span><select value={selectedStudentKey} onChange={(e) => { setSelectedStudentKey(e.target.value); setPrintMessage('') }} disabled={studentDropdownDisabled}>
+                    <option value="all">All Students</option>
+                    {adminStudentGroups.map((group) => group.options.length ? (
+                      <optgroup key={group.key} label={group.label}>
+                        {group.options.map((student) => <option key={`${group.key}-${student.key}`} value={student.key}>{student.name}{student.email ? ` • ${student.email}` : ''}{student.title ? ` • ${student.title}` : ''}</option>)}
+                      </optgroup>
+                    ) : null)}
+                  </select></label>
+                  {studentDropdownDisabled && <p className="muted small">Select a supervisor first.</p>}
+                  {noAssignedStudentsForSupervisor && <p className="form-error-text">No assigned students found for this supervisor.</p>}
+                  {!studentDropdownDisabled && !noAssignedStudentsForSupervisor && selectableStudentOptions.length === 0 && <p className="form-error-text">No students found.</p>}
+                </div>
+              </>
+            )}
+
+            <div className="field-group report-selector-group report-extra-filters">
+              <label className="field"><span>Research group</span><select value={reportFilters.group} onChange={(e) => updateFilter('group', e.target.value)}><option>All</option>{groupOptions.map((group) => <option key={group} value={group}>{group}</option>)}</select></label>
+              <label className="field"><span>Research title/project</span><input value={reportFilters.title} onChange={(e) => updateFilter('title', e.target.value)} placeholder="Search title or project" /></label>
+              <label className="field"><span>Progress status</span><select value={reportFilters.progress} onChange={(e) => updateFilter('progress', e.target.value)}><option>All</option><option>Not Started</option><option>Started</option><option>In Progress</option><option>Completed</option></select></label>
+              <label className="field"><span>Final evaluation</span><select value={reportFilters.evaluation} onChange={(e) => updateFilter('evaluation', e.target.value)}><option>All</option><option>Evaluated</option><option>Not Evaluated</option></select></label>
+            </div>
+          </div>
+        )}
+
+        <div className="report-selection-summary">
+          <span><b>Projects:</b> {studentFilteredProjects.length}</span>
+          <span><b>Weekly reports:</b> {scopedReports.length}</span>
+          <span><b>Feedback:</b> {feedbackReports.length}</span>
+          <span><b>Final evaluations:</b> {scopedEvaluations.length}</span>
+        </div>
+        {printMessage && <div className="form-error-text">{printMessage}</div>}
+        <div className="action-row report-actions"><button className="primary" onClick={handlePrint}><Printer size={16} /> Print / Save as PDF</button><button className="secondary" onClick={exportCsv}><Download size={16} /> Export CSV</button></div>
       </div>
 
       <div className="card print-report pdf-report-template">
@@ -5266,55 +5614,44 @@ function ReportsTab({ data, projects, currentUser, role, printPdfReport, exportC
           </div>
         </PdfReportSection>
 
-        <PdfReportSection settings={settings} sectionKey="studentInformation" title="Student Information" exists={role === 'student' || students.length > 0 || projects.some((project) => project.student_email || project.created_by_email)}>
-          {role === 'student' ? (
-            <div className="report-grid"><p><b>Student:</b> {currentUser.full_name}</p><p><b>Email:</b> {currentUser.email}</p><p><b>Department:</b> {currentUser.department || currentUser.area || DEFAULT_DEPARTMENT}</p></div>
-          ) : students.length ? (
-            <ReportTable><thead><tr><th>Student</th><th>Email</th><th>Status</th><th>Department</th></tr></thead><tbody>{students.map((student) => <tr key={student.id || student.email}><td>{student.full_name}</td><td>{student.email}</td><td>{student.status || 'Pending'}</td><td>{student.department || student.area || '-'}</td></tr>)}</tbody></ReportTable>
-          ) : (
-            <p>No student profile information is available for this report.</p>
-          )}
+        <PdfReportSection settings={settings} sectionKey="studentInformation" title="Student Information">
+          {scopedStudents.length ? (
+            <ReportTable><thead><tr><th>Student</th><th>Email</th><th>Supervisor</th><th>Research/project</th></tr></thead><tbody>{scopedStudents.map((student) => <tr key={student.id || student.email || student.full_name}><td>{student.full_name}</td><td>{student.email || '-'}</td><td>{getStudentSupervisorLabel(data, { id: student.id, email: student.email, name: student.full_name }, studentFilteredProjects, scopedReports)}</td><td>{getStudentResearchLabel({ id: student.id, email: student.email, name: student.full_name }, studentFilteredProjects, scopedReports)}</td></tr>)}</tbody></ReportTable>
+          ) : <NoRecords />}
         </PdfReportSection>
 
-        <PdfReportSection settings={settings} sectionKey="supervisorInformation" title="Supervisor Information" exists={role === 'supervisor' || supervisors.length > 0 || projects.some((project) => project.supervisor_name || project.supervisor_email)}>
-          {role === 'supervisor' ? (
-            <div className="report-grid"><p><b>Supervisor:</b> {currentUser.full_name}</p><p><b>Email:</b> {currentUser.email}</p><p><b>Assigned projects:</b> {projects.length}</p></div>
-          ) : supervisors.length ? (
-            <ReportTable><thead><tr><th>Supervisor</th><th>Email</th><th>Status</th><th>Assigned projects</th></tr></thead><tbody>{supervisors.map((supervisor) => <tr key={supervisor.id || supervisor.email}><td>{supervisor.full_name}</td><td>{supervisor.email}</td><td>{supervisor.status || 'Pending'}</td><td>{projects.filter((project) => normalizeText(project.supervisor_email) === normalizeText(supervisor.email) || normalizeText(project.supervisor_name) === normalizeText(supervisor.full_name)).length}</td></tr>)}</tbody></ReportTable>
-          ) : (
-            <ReportTable><thead><tr><th>Project</th><th>Supervisor</th><th>Email</th></tr></thead><tbody>{projects.map((project) => <tr key={project.id}><td>{project.title}</td><td>{project.supervisor_name || 'Pending Assignment'}</td><td>{project.supervisor_email || '-'}</td></tr>)}</tbody></ReportTable>
-          )}
+        <PdfReportSection settings={settings} sectionKey="supervisorInformation" title="Supervisor Information">
+          {scopedSupervisors.length ? (
+            <ReportTable><thead><tr><th>Supervisor</th><th>Email</th><th>Assigned students</th><th>Assigned projects</th></tr></thead><tbody>{scopedSupervisors.map((supervisor) => { const supervisorProjects = role === 'supervisor' ? studentFilteredProjects : studentFilteredProjects.filter((project) => projectMatchesSupervisorOption(project, supervisor)); const assignedStudents = getAssignedSupervisorStudents(data, supervisorProjects, scopedReports); return <tr key={supervisor.id || supervisor.email || supervisor.key}><td>{supervisor.full_name || supervisor.name}</td><td>{supervisor.email || '-'}</td><td>{assignedStudents.length}</td><td>{supervisorProjects.length}</td></tr> })}</tbody></ReportTable>
+          ) : <NoRecords />}
         </PdfReportSection>
 
-        <PdfReportSection settings={settings} sectionKey="researchGroup" title="Research Group" exists={hasProjects}>
-          <ReportTable><thead><tr><th>Group</th><th>Students</th><th>Supervisor</th><th>Status</th></tr></thead><tbody>{projects.map((project) => <tr key={project.id}><td>{project.group_name || 'Research group'}</td><td>{getProjectStudents(project).join(', ') || project.student_email || '-'}</td><td>{project.supervisor_name || 'Pending Assignment'}</td><td>{project.approval || project.status || '-'}</td></tr>)}</tbody></ReportTable>
+        <PdfReportSection settings={settings} sectionKey="researchGroup" title="Research Group">
+          {hasProjects ? <ReportTable><thead><tr><th>Group</th><th>Students</th><th>Supervisor</th><th>Status</th></tr></thead><tbody>{studentFilteredProjects.map((project) => <tr key={project.id}><td>{project.group_name || 'Research group'}</td><td>{getProjectStudents(project).join(', ') || project.student_email || '-'}</td><td>{project.supervisor_name || 'Pending Assignment'}</td><td>{project.approval || project.status || '-'}</td></tr>)}</tbody></ReportTable> : <NoRecords />}
         </PdfReportSection>
 
-        <PdfReportSection settings={settings} sectionKey="researchTitle" title="Research Title" exists={hasProjects}>
-          <ReportTable><thead><tr><th>Title</th><th>Department</th><th>Final due</th><th>Approval</th></tr></thead><tbody>{projects.map((project) => <tr key={project.id}><td>{project.title}</td><td>{project.area || '-'}</td><td>{project.final_due || '-'}</td><td>{project.approval || '-'}</td></tr>)}</tbody></ReportTable>
+        <PdfReportSection settings={settings} sectionKey="researchTitle" title="Research Title / Project">
+          {hasProjects ? <ReportTable><thead><tr><th>Title</th><th>Department</th><th>Final due</th><th>Approval</th></tr></thead><tbody>{studentFilteredProjects.map((project) => <tr key={project.id}><td>{project.title}</td><td>{project.area || '-'}</td><td>{project.final_due || '-'}</td><td>{project.approval || '-'}</td></tr>)}</tbody></ReportTable> : <NoRecords />}
         </PdfReportSection>
 
-        <PdfReportSection settings={settings} sectionKey="weeklyReports" title="Weekly Reports" exists={reports.length > 0}>
-          <ReportTable><thead><tr><th>Week</th><th>Project</th><th>Student</th><th>Status</th><th>Submitted</th></tr></thead><tbody>{reports.map((report) => { const project = getReportProject(data, report); return <tr key={report.id}><td>{report.week_number || '-'}</td><td>{project?.title || 'Weekly Report'}</td><td>{getReportStudentLabel(report, data)}</td><td>{report.status || 'Submitted'}</td><td>{report.submitted_at ? new Date(report.submitted_at).toLocaleDateString() : '-'}</td></tr> })}</tbody></ReportTable>
+        <PdfReportSection settings={settings} sectionKey="weeklyReports" title="Weekly Reports">
+          {scopedReports.length ? <ReportTable><thead><tr><th>Week</th><th>Project</th><th>Student</th><th>Status</th><th>Score</th><th>Submitted</th></tr></thead><tbody>{scopedReports.map((report) => { const project = getReportProject({ ...data, projects: studentFilteredProjects }, report); return <tr key={report.id}><td>{report.week_number || '-'}</td><td>{project?.title || 'Weekly Report'}</td><td>{getReportStudentLabel(report, data)}</td><td>{report.status || 'Submitted'}</td><td>{report.score ?? '-'}</td><td>{report.submitted_at ? new Date(report.submitted_at).toLocaleDateString() : '-'}</td></tr> })}</tbody></ReportTable> : <NoRecords />}
         </PdfReportSection>
 
-        <PdfReportSection settings={settings} sectionKey="feedback" title="Feedback" exists={reports.some((report) => report.feedback || report.supervisor_feedback)}>
-          {reports.filter((report) => report.feedback || report.supervisor_feedback).map((report) => {
-            const project = getReportProject(data, report)
-            return <div className="mini-card report-feedback-print" key={report.id}><b>{project?.title || 'Weekly Report'} — Week {report.week_number || '-'}</b><p>{report.feedback || report.supervisor_feedback}</p></div>
-          })}
+        <PdfReportSection settings={settings} sectionKey="feedback" title="Feedback">
+          {feedbackReports.length ? <ReportTable><thead><tr><th>Week</th><th>Project</th><th>Student</th><th>Feedback</th></tr></thead><tbody>{feedbackReports.map((report) => { const project = getReportProject({ ...data, projects: studentFilteredProjects }, report); return <tr key={report.id}><td>{report.week_number || '-'}</td><td>{project?.title || 'Weekly Report'}</td><td>{getReportStudentLabel(report, data)}</td><td className="compact-feedback-cell">{report.feedback || report.supervisor_feedback}</td></tr> })}</tbody></ReportTable> : <NoRecords />}
         </PdfReportSection>
 
-        <PdfReportSection settings={settings} sectionKey="projectProgress" title="Project Progress" exists={hasProjects}>
-          <ReportTable><thead><tr><th>Group</th><th>Title</th><th>Progress</th><th>Status</th></tr></thead><tbody>{projects.map((project) => <tr key={project.id}><td>{project.group_name || '-'}</td><td>{project.title}</td><td>{formatProgress(getProjectProgress(project, data.reports))}%</td><td>{project.status || '-'}</td></tr>)}</tbody></ReportTable>
+        <PdfReportSection settings={settings} sectionKey="projectProgress" title="Project Progress">
+          {hasProjects ? <ReportTable><thead><tr><th>Group</th><th>Title</th><th>Progress</th><th>Status</th></tr></thead><tbody>{studentFilteredProjects.map((project) => <tr key={project.id}><td>{project.group_name || '-'}</td><td>{project.title}</td><td>{formatProgress(getProjectProgress(project, scopedReports))}%</td><td>{getProgressStatusLabel(project, scopedReports)}</td></tr>)}</tbody></ReportTable> : <NoRecords />}
         </PdfReportSection>
 
-        <PdfReportSection settings={settings} sectionKey="deadlines" title="Deadlines" exists={deadlines.length > 0}>
-          <ReportTable><thead><tr><th>Deadline</th><th>Type</th><th>Due date</th><th>Status</th></tr></thead><tbody>{deadlines.map((deadline) => <tr key={deadline.id}><td>{deadline.title}</td><td>{deadline.deadline_type}</td><td>{deadline.due_date}</td><td>{deadline.status || 'Active'}</td></tr>)}</tbody></ReportTable>
+        <PdfReportSection settings={settings} sectionKey="deadlines" title="Deadlines">
+          {scopedDeadlines.length ? <ReportTable><thead><tr><th>Deadline</th><th>Type</th><th>Due date</th><th>Status</th></tr></thead><tbody>{scopedDeadlines.map((deadline) => <tr key={deadline.id}><td>{deadline.title}</td><td>{deadline.deadline_type}</td><td>{deadline.due_date}</td><td>{deadline.status || 'Active'}</td></tr>)}</tbody></ReportTable> : <NoRecords />}
         </PdfReportSection>
 
-        <PdfReportSection settings={settings} sectionKey="finalEvaluationRubric" title="Final Evaluation Rubric" exists={evaluations.length > 0}>
-          <ReportTable><thead><tr><th>Project</th><th>Evaluator</th><th>Title novelty</th><th>Research contents</th><th>Writing/data flow</th><th>Plagiarism/AI</th><th>Guideline</th><th>Total</th></tr></thead><tbody>{evaluations.map((evaluation) => { const project = data.projects.find((item) => String(item.id) === String(evaluation.project_id)); const total = Number(evaluation.total_score ?? 0) || [evaluation.attendance_score, evaluation.progress_score, evaluation.research_quality_score, evaluation.writing_score, evaluation.presentation_score].reduce((sum, score) => sum + Number(score || 0), 0); return <tr key={evaluation.id}><td>{project?.title || 'Completed project'}</td><td>{evaluation.evaluator_name || '-'}</td><td>{evaluation.attendance_score ?? '-'}</td><td>{evaluation.progress_score ?? '-'}</td><td>{evaluation.research_quality_score ?? '-'}</td><td>{evaluation.writing_score ?? '-'}</td><td>{evaluation.presentation_score ?? '-'}</td><td>{total}/{evaluation.max_score || 50}</td></tr> })}</tbody></ReportTable>
+        <PdfReportSection settings={settings} sectionKey="finalEvaluationRubric" title="Final Evaluation Rubric / Result">
+          {scopedEvaluations.length ? <ReportTable><thead><tr><th>Project</th><th>Evaluator</th><th>Title novelty</th><th>Research contents</th><th>Writing/data flow</th><th>Plagiarism/AI</th><th>Guideline</th><th>Total</th></tr></thead><tbody>{scopedEvaluations.map((evaluation) => { const project = studentFilteredProjects.find((item) => String(item.id) === String(evaluation.project_id)); const total = Number(evaluation.total_score ?? 0) || [evaluation.attendance_score, evaluation.progress_score, evaluation.research_quality_score, evaluation.writing_score, evaluation.presentation_score].reduce((sum, score) => sum + Number(score || 0), 0); return <tr key={evaluation.id}><td>{project?.title || 'Completed project'}</td><td>{evaluation.evaluator_name || '-'}</td><td>{evaluation.attendance_score ?? '-'}</td><td>{evaluation.progress_score ?? '-'}</td><td>{evaluation.research_quality_score ?? '-'}</td><td>{evaluation.writing_score ?? '-'}</td><td>{evaluation.presentation_score ?? '-'}</td><td>{total}/{evaluation.max_score || 50}</td></tr> })}</tbody></ReportTable> : <NoRecords />}
         </PdfReportSection>
 
         <PdfReportSection settings={settings} sectionKey="signatures" title="Signatures">
@@ -5349,7 +5686,7 @@ function PdfReportCustomizationPanel({ settings, updateSettings, uploadLogo, rem
       return
     }
     const result = await updateSettings(draft)
-    setLocalMessage(result?.ok === false ? 'Could not save globally. Check Supabase SQL/storage setup.' : 'PDF report customization saved.')
+    setLocalMessage(result?.ok === false ? 'Global database save failed. Run supabase/pdf_report_customization_update.sql in Supabase SQL Editor, refresh, then save again.' : 'PDF report settings saved successfully.')
   }
 
   async function handleLogoUpload(event) {

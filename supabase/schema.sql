@@ -188,6 +188,7 @@ alter table public.weekly_reports add column if not exists student_email text;
 alter table public.weekly_reports add column if not exists user_id uuid references public.profiles(id) on delete set null;
 alter table public.weekly_reports add column if not exists created_by uuid references public.profiles(id) on delete set null;
 alter table public.weekly_reports add column if not exists created_by_email text;
+alter table public.weekly_reports alter column department drop not null;
 
 alter table public.uploaded_files add column if not exists user_id uuid references public.profiles(id) on delete set null;
 alter table public.uploaded_files add column if not exists created_by uuid references public.profiles(id) on delete set null;
@@ -1070,9 +1071,11 @@ using (
 
 
 
--- PDF Report Customization RLS/RPC fix.
--- Run once in Supabase SQL Editor, or deploy with: npx supabase db push
--- This keeps the existing Print/PDF report system and fixes global save failures caused by app_settings RLS.
+-- PDF Report Customization complete RLS/RPC fix.
+-- Run this file in Supabase SQL Editor.
+-- Safe to run multiple times.
+-- It keeps RLS enabled, allows everyone to read saved PDF template settings,
+-- and allows only authenticated approved Admin users to insert/update PDF settings.
 
 create table if not exists public.app_settings (
   key text primary key,
@@ -1081,76 +1084,115 @@ create table if not exists public.app_settings (
   updated_at timestamptz default now()
 );
 
+alter table public.app_settings add column if not exists key text;
+alter table public.app_settings add column if not exists value jsonb default '{}'::jsonb;
+alter table public.app_settings add column if not exists updated_by text;
+alter table public.app_settings add column if not exists updated_at timestamptz default now();
+
+update public.app_settings set value = '{}'::jsonb where value is null;
+delete from public.app_settings where key is null;
+delete from public.app_settings a
+using public.app_settings b
+where a.key = b.key
+  and a.ctid < b.ctid;
+
+alter table public.app_settings alter column key set not null;
+alter table public.app_settings alter column value set not null;
+create unique index if not exists app_settings_key_unique on public.app_settings (key);
+
 alter table public.app_settings enable row level security;
 
--- Robust admin check used by app_settings policies, storage policies, and the save RPC.
--- It supports existing profile rows where the admin profile is matched by email or auth.uid().
+grant usage on schema public to anon, authenticated;
+grant select on public.app_settings to anon, authenticated;
+grant insert, update on public.app_settings to authenticated;
+
+-- Server-side Admin check used by app_settings policies, storage policies, and the save RPC.
+-- Robust for this project: profiles.id may be different from auth.uid(),
+-- some older admin rows may have NULL/blank status, and JWT email can differ by source.
+-- Admin permission is still verified against public.profiles, not localStorage.
 create or replace function public.is_pdf_customization_admin()
 returns boolean
 language sql
 security definer
-set search_path = public
+set search_path = public, auth
 stable
 as $$
+  with auth_context as (
+    select
+      auth.uid() as uid,
+      lower(trim(coalesce(
+        auth.jwt() ->> 'email',
+        (select au.email from auth.users au where au.id = auth.uid()),
+        ''
+      ))) as email
+  )
   select exists (
     select 1
     from public.profiles p
-    where lower(coalesce(p.role, '')) = 'admin'
-      and lower(coalesce(p.status, 'pending')) in ('active', 'approved')
+    cross join auth_context ac
+    where lower(trim(coalesce(p.role, ''))) in ('admin', 'admin/editor')
+      and coalesce(nullif(lower(trim(coalesce(p.status, ''))), ''), 'active') in ('active', 'approved')
       and (
-        lower(coalesce(p.email, '')) = lower(coalesce(auth.jwt() ->> 'email', ''))
-        or p.id = auth.uid()
+        (ac.uid is not null and p.id = ac.uid)
+        or (ac.email <> '' and lower(trim(coalesce(p.email, ''))) = ac.email)
       )
   );
 $$;
-
 grant execute on function public.is_pdf_customization_admin() to anon, authenticated;
 
--- All users can read saved report template settings so existing Print/PDF buttons use the global template.
-drop policy if exists "Authenticated users can read app settings" on public.app_settings;
-drop policy if exists "Public can read app settings" on public.app_settings;
-create policy "Public can read app settings"
+-- Replace all app_settings policies with one clean set.
+-- This prevents old/non-admin write policies from staying active.
+do $$
+declare
+  pol record;
+begin
+  for pol in
+    select policyname
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'app_settings'
+  loop
+    execute format('drop policy if exists %I on public.app_settings', pol.policyname);
+  end loop;
+end $$;
+
+create policy "app_settings_read_global"
   on public.app_settings
   for select
   to anon, authenticated
   using (true);
 
--- Only approved admins can change global app settings.
-drop policy if exists "Approved admins can insert app settings" on public.app_settings;
-create policy "Approved admins can insert app settings"
+create policy "app_settings_insert_admin_only"
   on public.app_settings
   for insert
   to authenticated
   with check (public.is_pdf_customization_admin());
 
-drop policy if exists "Approved admins can update app settings" on public.app_settings;
-create policy "Approved admins can update app settings"
+create policy "app_settings_update_admin_only"
   on public.app_settings
   for update
   to authenticated
   using (public.is_pdf_customization_admin())
   with check (public.is_pdf_customization_admin());
 
-drop policy if exists "Approved admins can delete app settings" on public.app_settings;
-create policy "Approved admins can delete app settings"
-  on public.app_settings
-  for delete
-  to authenticated
-  using (public.is_pdf_customization_admin());
-
--- SECURITY DEFINER save endpoint used by the frontend as the primary global save path.
--- This avoids direct upsert RLS insert failures while still verifying admin permission server-side.
+-- Secure backend save endpoint used by the frontend.
+-- It performs one stable-key upsert and bypasses direct frontend RLS insert problems,
+-- while still verifying Admin permission inside the database.
 create or replace function public.save_pdf_report_settings(next_value jsonb, updated_by_value text default null)
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, auth
 as $$
 declare
   saved_value jsonb;
 begin
+  if auth.uid() is null then
+    raise exception 'You must be logged in to save PDF report settings.';
+  end if;
+
   if not public.is_pdf_customization_admin() then
-    raise exception 'Only approved admin accounts can edit PDF report customization settings.';
+    raise exception 'Your Supabase login is not linked to an Active Admin profile. Please run the updated PDF SQL, refresh, then log out/in with the approved Admin email if needed.';
   end if;
 
   insert into public.app_settings as s (key, value, updated_by, updated_at)
@@ -1172,8 +1214,9 @@ $$;
 
 grant execute on function public.save_pdf_report_settings(jsonb, text) to authenticated;
 
--- Default report settings. Existing customized values are preserved.
-insert into public.app_settings (key, value, updated_by)
+-- Default PDF report customization row.
+-- Existing custom values are preserved; missing default keys are added.
+insert into public.app_settings (key, value, updated_by, updated_at)
 values (
   'pdf_report',
   jsonb_build_object(
@@ -1202,7 +1245,8 @@ values (
       'generatedDateTime', true
     )
   ),
-  'system'
+  'system',
+  now()
 )
 on conflict (key) do update set
   value = excluded.value || public.app_settings.value,
@@ -1225,7 +1269,7 @@ on conflict (id) do update set
     from unnest(coalesce(storage.buckets.allowed_mime_types, array[]::text[]) || excluded.allowed_mime_types) as t(mime_type)
   );
 
--- Public read for uploaded PDF report logos.
+-- PDF logo storage policies.
 drop policy if exists "Public can view PDF report logos" on storage.objects;
 create policy "Public can view PDF report logos"
   on storage.objects
@@ -1233,7 +1277,6 @@ create policy "Public can view PDF report logos"
   to anon, authenticated
   using (bucket_id = 'app-assets' and (storage.foldername(name))[1] = 'pdf-reports');
 
--- Admin-only logo writes.
 drop policy if exists "Admins can upload PDF report logos" on storage.objects;
 create policy "Admins can upload PDF report logos"
   on storage.objects
@@ -1273,3 +1316,255 @@ create policy "Admins can delete PDF report logos"
   );
 
 notify pgrst, 'reload schema';
+-- Role-based Print/PDF report permissions and assigned-student lookup.
+-- Run this file in Supabase SQL Editor.
+-- Safe to run multiple times.
+-- Keeps RLS/security intact and adds backend permission checks used by the existing Print/PDF button.
+
+create or replace function public.current_profile_id()
+returns uuid
+language sql
+security definer
+set search_path = public, auth
+stable
+as $$
+  with auth_context as (
+    select
+      auth.uid() as uid,
+      lower(trim(coalesce(
+        auth.jwt() ->> 'email',
+        (select au.email from auth.users au where au.id = auth.uid()),
+        ''
+      ))) as email
+  )
+  select p.id
+  from public.profiles p
+  cross join auth_context ac
+  where coalesce(nullif(lower(trim(coalesce(p.status, ''))), ''), 'active') in ('active', 'approved')
+    and (
+      (ac.uid is not null and p.id = ac.uid)
+      or (ac.email <> '' and lower(trim(coalesce(p.email, ''))) = ac.email)
+    )
+  limit 1;
+$$;
+
+create or replace function public.current_profile_email()
+returns text
+language sql
+security definer
+set search_path = public, auth
+stable
+as $$
+  select lower(trim(coalesce(
+    (select p.email from public.profiles p where p.id = public.current_profile_id()),
+    auth.jwt() ->> 'email',
+    (select au.email from auth.users au where au.id = auth.uid()),
+    ''
+  )));
+$$;
+
+create or replace function public.current_profile_full_name()
+returns text
+language sql
+security definer
+set search_path = public, auth
+stable
+as $$
+  select coalesce((select p.full_name from public.profiles p where p.id = public.current_profile_id()), '');
+$$;
+
+create or replace function public.current_profile_role()
+returns text
+language sql
+security definer
+set search_path = public, auth
+stable
+as $$
+  select lower(trim(coalesce((select p.role from public.profiles p where p.id = public.current_profile_id()), '')));
+$$;
+
+grant execute on function public.current_profile_id() to authenticated;
+grant execute on function public.current_profile_email() to authenticated;
+grant execute on function public.current_profile_full_name() to authenticated;
+grant execute on function public.current_profile_role() to authenticated;
+
+create or replace function public.project_assigned_to_current_supervisor(project_row public.research_projects)
+returns boolean
+language sql
+security definer
+set search_path = public, auth
+stable
+as $$
+  select coalesce(public.current_profile_role(), '') = 'supervisor'
+    and (
+      project_row.supervisor_id = public.current_profile_id()
+      or lower(trim(coalesce(project_row.supervisor_email, ''))) = public.current_profile_email()
+      or lower(trim(coalesce(project_row.supervisor_name, ''))) = lower(trim(public.current_profile_full_name()))
+    );
+$$;
+
+grant execute on function public.project_assigned_to_current_supervisor(public.research_projects) to authenticated;
+
+create or replace function public.can_generate_pdf_report(
+  target_student_id uuid default null,
+  target_student_email text default null,
+  target_supervisor_id uuid default null,
+  target_supervisor_email text default null
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public, auth
+stable
+as $$
+declare
+  requester_id uuid := public.current_profile_id();
+  requester_email text := public.current_profile_email();
+  requester_role text := public.current_profile_role();
+  requester_name text := lower(trim(public.current_profile_full_name()));
+  normalized_student_email text := lower(trim(coalesce(target_student_email, '')));
+  normalized_supervisor_email text := lower(trim(coalesce(target_supervisor_email, '')));
+begin
+  if auth.uid() is null or requester_id is null then
+    return false;
+  end if;
+
+  if requester_role in ('admin', 'committee', 'admin/editor') then
+    return true;
+  end if;
+
+  if requester_role = 'student' then
+    return (
+      (target_student_id is null and normalized_student_email = '')
+      or target_student_id = requester_id
+      or normalized_student_email = requester_email
+    );
+  end if;
+
+  if requester_role = 'supervisor' then
+    if target_supervisor_id is not null and target_supervisor_id <> requester_id then
+      return false;
+    end if;
+    if normalized_supervisor_email <> '' and normalized_supervisor_email <> requester_email then
+      return false;
+    end if;
+
+    -- All assigned students report is allowed for the logged-in supervisor only.
+    if target_student_id is null and normalized_student_email = '' then
+      return true;
+    end if;
+
+    return exists (
+      select 1
+      from public.research_projects rp
+      where (
+        rp.supervisor_id = requester_id
+        or lower(trim(coalesce(rp.supervisor_email, ''))) = requester_email
+        or lower(trim(coalesce(rp.supervisor_name, ''))) = requester_name
+      )
+      and (
+        rp.student_id = target_student_id
+        or rp.created_by = target_student_id
+        or lower(trim(coalesce(rp.student_email, ''))) = normalized_student_email
+        or lower(trim(coalesce(rp.created_by_email, ''))) = normalized_student_email
+        or exists (
+          select 1
+          from public.weekly_reports wr
+          where wr.project_id = rp.id
+            and (
+              wr.student_id = target_student_id
+              or wr.submitted_by_id = target_student_id
+              or wr.user_id = target_student_id
+              or lower(trim(coalesce(wr.student_email, wr.submitted_by_email, wr.created_by_email, ''))) = normalized_student_email
+            )
+        )
+      )
+    );
+  end if;
+
+  return false;
+end;
+$$;
+
+grant execute on function public.can_generate_pdf_report(uuid, text, uuid, text) to authenticated;
+
+create or replace function public.get_pdf_report_students_for_supervisor(
+  target_supervisor_id uuid default null,
+  target_supervisor_email text default null
+)
+returns table (
+  student_id uuid,
+  student_name text,
+  student_email text,
+  supervisor_id uuid,
+  supervisor_name text,
+  supervisor_email text,
+  research_group text,
+  research_title text
+)
+language plpgsql
+security definer
+set search_path = public, auth
+stable
+as $$
+declare
+  requester_id uuid := public.current_profile_id();
+  requester_email text := public.current_profile_email();
+  requester_role text := public.current_profile_role();
+  normalized_supervisor_email text := lower(trim(coalesce(target_supervisor_email, '')));
+begin
+  if auth.uid() is null or requester_id is null then
+    raise exception 'You do not have permission to generate this report.';
+  end if;
+
+  if requester_role = 'supervisor' then
+    if target_supervisor_id is not null and target_supervisor_id <> requester_id then
+      raise exception 'You do not have permission to generate this report.';
+    end if;
+    if normalized_supervisor_email <> '' and normalized_supervisor_email <> requester_email then
+      raise exception 'You do not have permission to generate this report.';
+    end if;
+    target_supervisor_id := requester_id;
+    target_supervisor_email := requester_email;
+  elsif requester_role not in ('admin', 'committee', 'admin/editor') then
+    raise exception 'You do not have permission to generate this report.';
+  end if;
+
+  return query
+  select distinct
+    coalesce(sp.id, rp.student_id, rp.created_by) as student_id,
+    coalesce(sp.full_name, nullif(rp.group_name, ''), 'Student') as student_name,
+    coalesce(sp.email, rp.student_email, rp.created_by_email, '') as student_email,
+    rp.supervisor_id,
+    coalesce(sup.full_name, rp.supervisor_name, 'Supervisor') as supervisor_name,
+    coalesce(sup.email, rp.supervisor_email, '') as supervisor_email,
+    rp.group_name as research_group,
+    rp.title as research_title
+  from public.research_projects rp
+  left join public.profiles sp
+    on sp.id = rp.student_id
+    or lower(trim(sp.email)) = lower(trim(coalesce(rp.student_email, rp.created_by_email, '')))
+  left join public.profiles sup
+    on sup.id = rp.supervisor_id
+    or lower(trim(sup.email)) = lower(trim(coalesce(rp.supervisor_email, '')))
+  where (
+    target_supervisor_id is null
+    or rp.supervisor_id = target_supervisor_id
+  )
+  and (
+    coalesce(target_supervisor_email, '') = ''
+    or lower(trim(coalesce(rp.supervisor_email, sup.email, ''))) = lower(trim(target_supervisor_email))
+  )
+  and (
+    requester_role in ('admin', 'committee', 'admin/editor')
+    or (
+      rp.supervisor_id = requester_id
+      or lower(trim(coalesce(rp.supervisor_email, ''))) = requester_email
+      or lower(trim(coalesce(rp.supervisor_name, ''))) = lower(trim(public.current_profile_full_name()))
+    )
+  )
+  order by student_name, research_group, research_title;
+end;
+$$;
+
+grant execute on function public.get_pdf_report_students_for_supervisor(uuid, text) to authenticated;

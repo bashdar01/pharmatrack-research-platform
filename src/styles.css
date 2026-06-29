@@ -3218,3 +3218,896 @@ button:disabled {
     text-align: left;
   }
 }
+
+/* Combined admin/committee filters and final evaluation /50 rubric */
+.combined-filter-card .section-filter-bar,
+.section-filter-bar {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.4fr) repeat(3, minmax(150px, 0.8fr));
+  gap: 0.9rem;
+  align-items: end;
+  padding: 1rem;
+  margin: 1rem 0 1.1rem;
+  background: var(--card-soft);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+}
+
+.final-evaluation-card {
+  overflow: visible;
+}
+
+.final-evaluation-selector {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(320px, 1.3fr);
+  gap: 0.9rem;
+  align-items: end;
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--card-soft);
+}
+
+.final-evaluation-body {
+  display: grid;
+  gap: 1rem;
+}
+
+.selected-project-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.selected-project-summary h3 {
+  margin: 0.35rem 0;
+}
+
+.rubric-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--card);
+}
+
+.final-rubric-table {
+  min-width: 650px;
+  margin: 0;
+}
+
+.final-rubric-table th,
+.final-rubric-table td {
+  vertical-align: middle;
+}
+
+.final-rubric-table td:first-child,
+.final-rubric-table th:first-child {
+  width: 80px;
+  text-align: center;
+}
+
+.final-rubric-table td:last-child,
+.final-rubric-table th:last-child {
+  width: 180px;
+}
+
+.final-rubric-table input[type="number"] {
+  width: 82px;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  font-weight: 800;
+}
+
+.rubric-score-unit {
+  display: inline-block;
+  margin-left: 0.45rem;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.rubric-total-row td {
+  background: var(--card-soft);
+  font-weight: 900;
+}
+
+.final-evaluation-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.final-total-box {
+  min-width: 170px;
+}
+
+.success-message {
+  border-color: rgba(5, 150, 105, 0.2);
+  background: rgba(5, 150, 105, 0.08);
+  color: #065f46;
+}
+
+@media (max-width: 980px) {
+  .combined-filter-card .section-filter-bar,
+  .section-filter-bar,
+  .final-evaluation-selector {
+    grid-template-columns: 1fr;
+  }
+
+  .selected-project-summary,
+  .final-evaluation-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .final-total-box {
+    width: 100%;
+  }
+}
+
+/* Admin Users & Roles page: stable two-row management alignment without blank gaps */
+.admin-dashboard-grid.full-admin-dashboard-grid {
+  grid-template-columns: 1fr !important;
+  gap: 18px !important;
+  align-items: stretch !important;
+}
+
+.admin-management-alignment-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: stretch;
+  grid-auto-flow: row dense;
+}
+
+.admin-management-alignment-grid > .admin-delete-management-card,
+.admin-research-group-card,
+.admin-assignment-card,
+.admin-users-and-roles-card {
+  width: 100%;
+  min-width: 0;
+}
+
+.admin-management-alignment-grid > .admin-delete-management-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 430px;
+}
+
+.admin-management-alignment-grid > .admin-delete-management-card .section-header {
+  flex: 0 0 auto;
+}
+
+.admin-management-alignment-grid > .admin-delete-management-card .managed-list,
+.admin-management-alignment-grid > .admin-delete-management-card .compact-managed-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none !important;
+  border: 1px solid #dbe4ef;
+  border-radius: 18px;
+  background: #f8fafc;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.admin-project-progress-card {
+  min-height: 500px !important;
+}
+
+.admin-project-progress-card .managed-list,
+.admin-project-progress-card .compact-managed-list {
+  min-height: 360px;
+}
+
+.admin-report-deletion-card,
+.admin-uploaded-document-card {
+  align-self: stretch;
+}
+
+.admin-report-deletion-card .managed-list,
+.admin-uploaded-document-card .managed-list {
+  min-height: 290px;
+}
+
+.admin-research-group-card .managed-list,
+.admin-research-group-card .compact-managed-list,
+.admin-project-assignment-list {
+  border: 1px solid #dbe4ef;
+  border-radius: 18px;
+  background: #f8fafc;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.admin-user-approval-scroll-container.admin-users-and-roles-scroll {
+  min-height: 360px;
+}
+
+.admin-panel-main .message {
+  margin-bottom: 16px;
+}
+
+@media (max-width: 980px) {
+  .admin-management-alignment-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-management-alignment-grid > .admin-delete-management-card,
+  .admin-project-progress-card {
+    min-height: 0 !important;
+  }
+
+  .admin-project-progress-card .managed-list,
+  .admin-project-progress-card .compact-managed-list,
+  .admin-report-deletion-card .managed-list,
+  .admin-uploaded-document-card .managed-list {
+    min-height: 0;
+  }
+}
+
+.runtime-error-page main {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+}
+
+.runtime-error-page pre {
+  white-space: pre-wrap;
+  overflow-x: auto;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 14px;
+  color: #be123c;
+}
+
+/* Existing Print/PDF report customization */
+.pdf-report-template {
+  position: relative;
+}
+.pdf-report-header {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 18px;
+  align-items: center;
+  text-align: left;
+}
+.pdf-report-header > div {
+  text-align: center;
+}
+.pdf-report-logo {
+  width: 112px;
+  max-height: 92px;
+  object-fit: contain;
+  border-radius: 14px;
+}
+.pdf-report-footer {
+  margin-top: 28px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.signature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-top: 24px;
+}
+.signature-grid div {
+  min-height: 76px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 10px;
+  font-weight: 800;
+}
+.signature-grid span {
+  display: block;
+  border-bottom: 1px solid var(--border);
+  min-height: 36px;
+}
+.pdf-toggle-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: 12px;
+}
+.pdf-logo-preview,
+.pdf-template-preview {
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: var(--card-soft);
+  padding: 18px;
+  min-height: 150px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+.pdf-logo-preview img {
+  max-width: min(320px, 100%);
+  max-height: 130px;
+  object-fit: contain;
+}
+.pdf-logo-preview.empty,
+.preview-logo-placeholder {
+  color: var(--muted);
+  font-weight: 900;
+}
+.pdf-template-preview {
+  background: #ffffff;
+  color: #0f172a;
+}
+.pdf-template-preview img,
+.preview-logo-placeholder {
+  width: 86px;
+  height: 70px;
+  object-fit: contain;
+  border-radius: 12px;
+  margin-bottom: 10px;
+}
+.preview-logo-placeholder {
+  border: 1px dashed #cbd5e1;
+  display: grid;
+  place-items: center;
+}
+.pdf-template-preview h3,
+.pdf-template-preview h4,
+.pdf-template-preview p {
+  margin: 4px 0;
+}
+.preview-report-lines {
+  width: 100%;
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+.preview-report-lines span {
+  display: block;
+  height: 12px;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+.report-feedback-print {
+  margin-top: 12px;
+}
+
+@media print {
+  @page {
+    margin: 14mm;
+  }
+  .pdf-customization-page { display: none !important; }
+  .pdf-report-template { font-size: 11.5px; }
+  .pdf-report-template .table-wrap { overflow: visible; border-radius: 0; }
+  .pdf-report-template table { min-width: 0; font-size: 10.5px; }
+  .pdf-report-template th,
+  .pdf-report-template td { padding: 7px 6px; }
+  .pdf-report-logo { width: 82px; max-height: 68px; }
+  .pdf-report-footer { break-inside: avoid; }
+  .signature-grid { break-inside: avoid; }
+  .signature-grid div { min-height: 58px; }
+}
+
+@media (max-width: 900px) {
+  .pdf-toggle-grid,
+  .signature-grid,
+  .pdf-report-header {
+    grid-template-columns: 1fr;
+  }
+  .pdf-report-header,
+  .pdf-report-header > div {
+    text-align: center;
+  }
+}
+
+
+/* Compact 90%-style UI and admin navigation scrolling */
+@media screen {
+  body {
+    font-size: 15px;
+  }
+
+  main {
+    padding: 24px 0 48px;
+  }
+
+  .hero {
+    min-height: clamp(300px, 32vw, 470px);
+    padding: 22px 5vw 32px;
+    gap: 18px;
+  }
+
+  .hero h1,
+  .login-card h1 {
+    font-size: clamp(29px, 4.5vw, 49px);
+  }
+
+  .hero-text {
+    font-size: 16px;
+  }
+
+  .login-page {
+    padding: 24px;
+  }
+
+  .login-card {
+    padding: 30px;
+    border-radius: 28px;
+  }
+
+  .role-button {
+    padding: 15px 16px;
+    border-radius: 18px;
+  }
+
+  .tabs {
+    gap: 8px;
+    margin: 10px 0 18px;
+  }
+
+  .tabs button {
+    padding: 9px 13px;
+  }
+
+  .message {
+    padding: 12px 15px;
+    margin-bottom: 15px;
+  }
+
+  .stats {
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  .card {
+    padding: 20px;
+    border-radius: 22px;
+  }
+
+  .stat-card h2,
+  .admin-management-card h2 {
+    font-size: 30px;
+  }
+
+  .icon-box {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+  }
+
+  .section-header {
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .section-header h3 {
+    font-size: 18px;
+  }
+
+  .grid,
+  .stack,
+  .admin-panel-stack,
+  .admin-split-layout {
+    gap: 18px;
+  }
+
+  .form-grid,
+  .filter-grid,
+  .deadline-form-grid,
+  .invitation-filters {
+    gap: 12px;
+  }
+
+  .field {
+    gap: 6px;
+  }
+
+  input,
+  textarea,
+  select {
+    border-radius: 15px;
+    padding: 10px 12px;
+  }
+
+  textarea {
+    min-height: 104px;
+  }
+
+  .input-icon {
+    border-radius: 15px;
+    padding-left: 10px;
+  }
+
+  .input-icon input {
+    border-radius: 15px;
+  }
+
+  .primary,
+  .success,
+  .warning,
+  .danger,
+  .secondary,
+  .ghost-button,
+  .ghost-dark,
+  .action-row button,
+  .mini-card button {
+    padding: 10px 14px;
+    border-radius: 14px;
+    margin-top: 12px;
+  }
+
+  .wide {
+    height: 44px;
+  }
+
+  .soft-box,
+  .mini-card,
+  .review-card,
+  .empty-state {
+    border-radius: 18px;
+    padding: 15px;
+  }
+
+  .mini-card,
+  .review-card {
+    margin-bottom: 10px;
+  }
+
+  th,
+  td {
+    padding: 12px 14px;
+  }
+
+  .table-wrap {
+    margin-top: 13px;
+    border-radius: 17px;
+  }
+
+  .weekly-report-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-panel-shell {
+    grid-template-columns: 270px minmax(0, 1fr);
+  }
+
+  .admin-sidebar {
+    min-height: 0;
+    overflow: hidden;
+    padding: 18px;
+    gap: 14px;
+  }
+
+  .admin-brand-block {
+    gap: 10px;
+    padding-bottom: 14px;
+  }
+
+  .admin-logo-mark {
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+  }
+
+  .admin-brand-block h2 {
+    font-size: 14px;
+  }
+
+  .admin-profile-mini {
+    padding: 10px;
+    border-radius: 15px;
+  }
+
+  .admin-side-nav {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: calc(100vh - 240px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    padding-right: 4px;
+    align-content: start;
+    scrollbar-width: thin;
+  }
+
+  .admin-side-nav::-webkit-scrollbar {
+    width: 7px;
+  }
+
+  .admin-side-nav::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, .28);
+    border-radius: 999px;
+  }
+
+  .admin-side-nav button,
+  .admin-logout {
+    min-height: 40px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: 13.5px;
+    line-height: 1.15;
+  }
+
+  .admin-logout {
+    flex: 0 0 auto;
+    margin-top: 0;
+  }
+
+  .admin-panel-main {
+    width: min(1280px, calc(100% - 38px));
+    padding: 24px 0 46px;
+  }
+
+  .admin-panel-topbar {
+    padding: 20px;
+    border-radius: 22px;
+    margin-bottom: 18px;
+  }
+
+  .admin-panel-topbar h1 {
+    font-size: clamp(24px, 2.6vw, 36px);
+    line-height: 1.05;
+    letter-spacing: -0.035em;
+    white-space: normal;
+  }
+
+  .admin-preview-link {
+    padding: 10px 14px;
+  }
+
+  .admin-management-grid {
+    gap: 13px;
+  }
+
+  .admin-management-card {
+    padding: 18px;
+    border-radius: 21px;
+  }
+
+  .admin-management-card p {
+    margin-top: 12px;
+  }
+
+  .admin-hero-preview,
+  .admin-image-preview {
+    min-height: 240px;
+    border-radius: 20px;
+    padding: 18px;
+  }
+
+  .admin-hero-preview h3 {
+    font-size: clamp(23px, 3.4vw, 36px);
+  }
+
+  .pdf-customization-page .section-header h3,
+  .pdf-customization-page h3 {
+    font-size: 17px;
+  }
+
+  .pdf-toggle-grid {
+    gap: 10px;
+  }
+
+  .pdf-logo-preview,
+  .pdf-template-preview {
+    border-radius: 18px;
+    padding: 15px;
+    min-height: 132px;
+  }
+}
+
+@media screen and (max-width: 1180px) {
+  .admin-sidebar {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .admin-side-nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-height: 42vh;
+    overflow-y: auto;
+  }
+
+  .admin-side-nav button {
+    justify-content: flex-start;
+  }
+}
+
+@media screen and (max-width: 760px) {
+  body {
+    font-size: 15px;
+  }
+
+  main,
+  .admin-panel-main {
+    width: 94vw;
+    padding-top: 20px;
+  }
+
+  .hero {
+    min-height: 250px;
+    padding: 18px 4vw;
+  }
+
+  .login-card,
+  .card {
+    padding: 18px;
+  }
+
+  .weekly-report-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-side-nav {
+    grid-template-columns: 1fr;
+    max-height: 50vh;
+  }
+
+  .admin-panel-topbar h1 {
+    font-size: clamp(23px, 7vw, 31px);
+  }
+}
+
+/* Role-based Print/PDF report controls and compact feedback display */
+.report-control-card {
+  display: grid;
+  gap: 12px;
+}
+.report-filter-panel {
+  display: grid;
+  gap: 12px;
+}
+.report-selector-group {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 12px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--card-soft);
+}
+.report-selector-group.two-col {
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+}
+.report-extra-filters {
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+}
+.report-selector-group .field {
+  gap: 5px;
+  font-size: 13px;
+}
+.report-selector-group input,
+.report-selector-group select {
+  min-height: 42px;
+  border-radius: 14px;
+  padding: 9px 12px;
+  font-size: 13.5px;
+}
+.report-selection-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+}
+.report-selection-summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card-soft);
+  color: var(--muted);
+  font-size: 12px;
+}
+.compact-report-note {
+  padding: 12px 14px;
+  border-radius: 16px;
+  font-size: 13px;
+}
+.no-records-message {
+  margin: 8px 0;
+  padding: 12px 14px;
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  background: var(--card-soft);
+  color: var(--muted);
+  font-weight: 700;
+}
+.compact-feedback-cell {
+  max-width: 360px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+  font-size: 12.5px;
+}
+.student-supervisor-feedback-container .mini-card,
+.supervisor-supervisor-feedback-container .mini-card,
+.supervisor-review-reports-card .mini-card,
+.report-feedback-print {
+  padding: 12px 14px !important;
+  border-radius: 16px !important;
+  margin-bottom: 8px !important;
+}
+.supervisor-feedback-scroll-box,
+.feedback-scroll-box {
+  height: auto !important;
+  min-height: 78px !important;
+  max-height: 110px !important;
+  padding: 9px 11px !important;
+  border-radius: 14px !important;
+  line-height: 1.42 !important;
+  font-size: 13px;
+  margin: 6px 0 !important;
+}
+.supervisor-feedback-textarea {
+  min-height: 96px !important;
+  height: 104px !important;
+  max-height: 130px !important;
+  border-radius: 14px !important;
+  font-size: 13px;
+}
+.supervisor-feedback-review-box {
+  padding: 12px !important;
+  border-radius: 16px !important;
+  margin-top: 10px !important;
+}
+.supervisor-feedback-review-box h4 {
+  margin-bottom: 8px !important;
+  font-size: 13px !important;
+}
+.supervisor-feedback-actions {
+  gap: 8px !important;
+  margin-top: 8px !important;
+}
+.supervisor-feedback-actions button {
+  padding: 9px 12px !important;
+  border-radius: 12px !important;
+  font-size: 12.5px;
+}
+
+@media (max-width: 900px) {
+  .report-selector-group,
+  .report-selector-group.two-col,
+  .report-extra-filters {
+    grid-template-columns: 1fr;
+  }
+  .compact-feedback-cell {
+    max-width: none;
+  }
+}
+
+@media print {
+  .report-selection-summary,
+  .report-filter-panel,
+  .report-control-card {
+    display: none !important;
+  }
+  .pdf-report-template .report-section {
+    margin: 12px 0;
+    break-inside: avoid;
+  }
+  .pdf-report-template .report-section h3 {
+    margin: 0 0 6px;
+    font-size: 13px;
+  }
+  .pdf-report-template .compact-feedback-cell {
+    max-width: 260px;
+    font-size: 9.8px;
+    line-height: 1.25;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .pdf-report-template .no-records-message {
+    padding: 7px 8px;
+    font-size: 10px;
+    border-radius: 8px;
+  }
+}
