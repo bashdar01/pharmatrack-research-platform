@@ -284,7 +284,9 @@ const defaultWebsiteSettings = {
   loginShowCircles: true,
   adminWelcome: 'Manage website content, user access, deadlines, projects, database status, and audit activity from one admin control panel.',
   maintenanceNotice: '',
+  assetUpdatedAt: '',
 }
+
 
 const PDF_REPORT_SETTINGS_KEY = 'pdf_report'
 
@@ -368,6 +370,37 @@ function saveWebsiteSettingsLocal(settings) {
   localStorage.setItem('pharmatrack-website-settings', JSON.stringify(normalizeSettings(settings)))
 }
 
+
+
+function sanitizeSettingImageUrl(value) {
+  const raw = String(value || '').trim()
+  if (!raw || raw === 'none') return ''
+  if (raw.startsWith('url(')) {
+    return raw.replace(/^url\((.*)\)$/i, '$1').trim().replace(/^['"]|['"]$/g, '')
+  }
+  return raw
+}
+
+function versionedAssetUrl(value, version) {
+  const raw = sanitizeSettingImageUrl(value)
+  if (!raw || raw.startsWith('data:') || raw.startsWith('blob:')) return raw
+  if (raw.startsWith('/')) return raw
+  const stamp = String(version || '').trim()
+  if (!stamp) return raw
+  const separator = raw.includes('?') ? '&' : '?'
+  return `${raw}${separator}v=${encodeURIComponent(stamp)}`
+}
+
+function cssImageUrl(value, version) {
+  const raw = versionedAssetUrl(value, version)
+  if (!raw) return 'none'
+  return `url("${raw.replace(/"/g, '%22')}")`
+}
+
+function settingImageUrl(value, fallback = '/hero-page.png', version = '') {
+  const raw = versionedAssetUrl(value, version)
+  return raw || fallback
+}
 
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -1155,7 +1188,7 @@ function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = fa
 
   const isRegister = mode === 'register'
   const isForgotPassword = mode === 'forgot'
-  const heroSrc = settings.loginBackgroundImage || settings.loginHeroImage || settings.heroImage || '/hero-page.png'
+  const heroSrc = settingImageUrl(settings.loginBackgroundImage || settings.loginHeroImage || settings.heroImage, '/hero-page.png', settings.assetUpdatedAt)
   const logoSrc = settings.loginLogoImage || ''
   const welcomeTitle = settings.loginWelcomeTitle || 'Welcome to Research Platform'
   const welcomeSubtitle = settings.loginWelcomeSubtitle || 'Publish your groundbreaking research and connect with scholars worldwide.'
@@ -1181,7 +1214,7 @@ function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = fa
     <div className="login-page modern-login-page">
       <div className="auth-shell">
         <section className={`auth-brand-panel ${settings.loginShowCircles === false ? 'circles-hidden' : 'circles-live'}`} style={{
-          '--auth-bg-image': `url(${heroSrc})`,
+          '--auth-bg-image': cssImageUrl(heroSrc),
           '--login-bg-start': settings.loginGradientStart || defaultWebsiteSettings.loginGradientStart,
           '--login-bg-end': settings.loginGradientEnd || defaultWebsiteSettings.loginGradientEnd,
           '--login-circle-color': settings.loginCircleColor || defaultWebsiteSettings.loginCircleColor,
@@ -1323,7 +1356,7 @@ function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = fa
 
 function ResetPasswordPage({ onUpdatePassword, onBackToLogin, message, loading, settings = defaultWebsiteSettings }) {
   const [form, setForm] = useState({ password: '', confirm_password: '' })
-  const heroSrc = settings.loginBackgroundImage || settings.loginHeroImage || settings.heroImage || '/hero-page.png'
+  const heroSrc = settingImageUrl(settings.loginBackgroundImage || settings.loginHeroImage || settings.heroImage, '/hero-page.png', settings.assetUpdatedAt)
   const logoSrc = settings.loginLogoImage || ''
   const welcomeTitle = settings.loginWelcomeTitle || 'Welcome to Research Platform'
   const welcomeSubtitle = settings.loginWelcomeSubtitle || 'Publish your groundbreaking research and connect with scholars worldwide.'
@@ -1337,7 +1370,7 @@ function ResetPasswordPage({ onUpdatePassword, onBackToLogin, message, loading, 
     <div className="login-page modern-login-page">
       <div className="auth-shell">
         <section className={`auth-brand-panel ${settings.loginShowCircles === false ? 'circles-hidden' : 'circles-live'}`} style={{
-          '--auth-bg-image': `url(${heroSrc})`,
+          '--auth-bg-image': cssImageUrl(heroSrc),
           '--login-bg-start': settings.loginGradientStart || defaultWebsiteSettings.loginGradientStart,
           '--login-bg-end': settings.loginGradientEnd || defaultWebsiteSettings.loginGradientEnd,
           '--login-circle-color': settings.loginCircleColor || defaultWebsiteSettings.loginCircleColor,
@@ -1742,31 +1775,76 @@ export default function App() {
   }
 
   async function updateWebsiteSettings(nextValues, options = {}) {
-    const nextSettings = normalizeSettings({ ...websiteSettings, ...nextValues })
+    if (currentUser?.role !== 'admin') {
+      setMessage('Only Admin accounts can edit website settings.')
+      return { ok: false }
+    }
+
+    const nextSettings = normalizeSettings({ ...websiteSettings, ...nextValues, assetUpdatedAt: new Date().toISOString() })
+    if (!sanitizeSettingImageUrl(nextSettings.heroImage)) nextSettings.heroImage = defaultWebsiteSettings.heroImage
+    if (!sanitizeSettingImageUrl(nextSettings.loginBackgroundImage)) nextSettings.loginBackgroundImage = defaultWebsiteSettings.loginBackgroundImage
+    if (!sanitizeSettingImageUrl(nextSettings.loginHeroImage)) nextSettings.loginHeroImage = nextSettings.loginBackgroundImage || defaultWebsiteSettings.loginHeroImage
     setWebsiteSettings(nextSettings)
     saveWebsiteSettingsLocal(nextSettings)
 
     if (isSupabaseConfigured) {
       try {
-        const { error } = await supabase
-          .from('app_settings')
-          .upsert({
-            key: 'website',
-            value: nextSettings,
-            updated_by: currentUser?.email || currentUser?.full_name || 'admin',
-            updated_at: new Date().toISOString(),
-          }, { onConflict: 'key' })
-        if (error) throw error
+        const rpcResult = await supabase.rpc('save_website_settings', {
+          next_value: nextSettings,
+          updated_by_value: currentUser?.email || currentUser?.full_name || 'admin',
+        })
+
+        let savedValue = rpcResult.data
+        if (rpcResult.error) {
+          const messageText = String(rpcResult.error.message || '')
+          const missingRpc = messageText.toLowerCase().includes('function') || messageText.toLowerCase().includes('schema cache')
+
+          if (!missingRpc) {
+            throw new Error(messageText)
+          }
+
+          // Some Supabase projects keep the old PostgREST function schema cache for a few minutes
+          // after running SQL. If that happens, use the same protected app_settings table directly.
+          // This still relies on the admin-only RLS policies installed by supabase/website_settings.sql.
+          const fallbackSave = await supabase
+            .from('app_settings')
+            .upsert(
+              {
+                key: 'website',
+                value: nextSettings,
+                updated_by: currentUser?.email || currentUser?.full_name || 'admin',
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: 'key' }
+            )
+            .select('value')
+            .maybeSingle()
+
+          if (fallbackSave.error) {
+            throw new Error(`${messageText}. Direct app_settings save also failed: ${fallbackSave.error.message}`)
+          }
+          savedValue = fallbackSave.data?.value || nextSettings
+        }
+
+        const savedSettings = normalizeSettings(savedValue || nextSettings)
+        setWebsiteSettings(savedSettings)
+        saveWebsiteSettingsLocal(savedSettings)
+
         if (!options.silent) {
           await addAudit(currentUser.full_name, 'updated', 'website settings')
-          setMessage('Website settings saved. The public website will use the new settings after refresh.')
+          setMessage('Website settings saved globally. The public website will use the new settings after refresh.')
         }
+        return { ok: true, settings: savedSettings }
       } catch (error) {
-        setMessage(`Settings saved locally. To save globally for all users, run supabase/website_settings.sql in Supabase SQL Editor. Details: ${error.message}`)
+        if (!options.silent) {
+          setMessage(`Settings were kept locally for preview, but global database save failed: ${error.message}. Run the latest supabase/website_settings.sql in Supabase SQL Editor, refresh, then log out and log in again with the approved Admin email before saving.`)
+        }
+        return { ok: false, error }
       }
     } else if (!options.silent) {
       setMessage('Website settings saved locally for preview. Connect Supabase and run supabase/website_settings.sql to make settings global.')
     }
+    return { ok: true, settings: nextSettings }
   }
 
   async function resetWebsiteSettings() {
@@ -2714,14 +2792,38 @@ export default function App() {
   }
 
 
+  function formatEdgeFunctionError(error, functionName = 'assign-supervisor') {
+    const message = String(error?.message || error || '')
+    const details = String(error?.context?.message || error?.details || '')
+    const combined = [message, details].filter(Boolean).join(' ')
+    if (/failed to send a request|fetch|network|cors/i.test(combined)) {
+      return `Failed to send a request to the ${functionName} Edge Function. Deploy it with --no-verify-jwt and check Supabase Edge Function logs.`
+    }
+    return combined || `The ${functionName} Edge Function failed.`
+  }
+
+  async function assignSupervisorThroughEdgeFunction({ student, supervisorId }) {
+    if (!isSupabaseConfigured || !supabase?.functions?.invoke) throw new Error('Supabase Edge Functions are not configured.')
+    const { data: result, error } = await supabase.functions.invoke('assign-supervisor', {
+      body: {
+        studentId: student.id,
+        supervisorId: supervisorId || null,
+        appUrl: window.location?.origin || '',
+      },
+    })
+    if (error) throw new Error(formatEdgeFunctionError(error, 'assign-supervisor'))
+    if (result?.error) throw new Error(result.error)
+    return result || { success: true }
+  }
+
   async function sendSupervisorAssignmentEmails({ student, supervisor, linkedProjects = [], assignedAt }) {
-    if (!isSupabaseConfigured) throw new Error('Automatic email requires Supabase Edge Function send-platform-email.')
+    if (!isSupabaseConfigured) throw new Error('Automatic email requires Supabase Edge Function send-assignment-email.')
     if (!student?.email) throw new Error('Student email address is missing.')
     if (!supervisor?.email) throw new Error('Supervisor email address is missing.')
 
     const projectIds = linkedProjects.map((project) => project.id).filter(Boolean)
     const appUrl = window.location?.origin || ''
-    const { data: result, error } = await supabase.functions.invoke('send-platform-email', {
+    const { data: result, error } = await supabase.functions.invoke('send-assignment-email', {
       body: {
         kind: 'assignment',
         studentId: student.id,
@@ -2732,7 +2834,7 @@ export default function App() {
       },
     })
 
-    if (error) throw new Error(error.message || 'Assignment email notification could not be sent.')
+    if (error) throw new Error(formatEdgeFunctionError(error, 'send-assignment-email'))
     if (result?.error) throw new Error(result.error)
     return result || { success: true }
   }
@@ -2770,6 +2872,10 @@ export default function App() {
       normalizeText(student.assigned_supervisor_name) === normalizeText(supervisor.full_name)
     ) : false
     const alreadyAssignedToSameSupervisor = Boolean(supervisor && (profileAlreadyAssignedToSupervisor || projectAlreadyAssignedToSupervisor))
+    const assignmentEmailAlreadySent = Boolean(supervisor && student.assigned_supervisor_email_sent_at && (
+      String(student.assigned_supervisor_email_supervisor_id || '') === String(supervisor.id) ||
+      normalizeText(student.assigned_supervisor_email_supervisor_email) === normalizeText(supervisor.email)
+    ))
     const hasAnySupervisorAssignment = Boolean(student.assigned_supervisor_id || student.assigned_supervisor_email || student.assigned_supervisor_name || linkedProjects.some((project) => project.supervisor_id || project.supervisor_email || (project.supervisor_name && project.supervisor_name !== 'Pending Assignment')))
     const removalWithoutChange = !supervisor && !hasAnySupervisorAssignment
 
@@ -2790,6 +2896,29 @@ export default function App() {
       let emailError = null
 
       if (isSupabaseConfigured) {
+        let assignmentBackendError = null
+        try {
+          const backendResult = await assignSupervisorThroughEdgeFunction({ student, supervisorId: supervisor?.id || null })
+          await addAudit(currentUser.full_name, supervisor ? 'assigned student to supervisor' : 'removed supervisor assignment for', `${student.full_name || student.email}${supervisor ? ` → ${supervisor.full_name || supervisor.email}` : ''}`)
+          await loadFromSupabase(currentUser)
+
+          if (!supervisor) {
+            setMessage(backendResult?.message || (removalWithoutChange ? `No supervisor assignment was found for ${student.full_name || student.email}.` : 'Supervisor removed successfully.'))
+          } else if (backendResult?.noChange || backendResult?.emailSkipped) {
+            setMessage(`${student.full_name || student.email} is already assigned to ${supervisor.full_name || supervisor.email}. No duplicate email was sent.`)
+          } else if (backendResult?.emailSent || backendResult?.notificationsSent) {
+            setMessage('Supervisor assigned successfully and email notifications sent.')
+          } else if (backendResult?.emailFailed || backendResult?.emailError) {
+            setMessage(`Supervisor assigned successfully, but email notification failed. Please check the email service or Edge Function logs. ${backendResult.emailError || ''}`.trim())
+          } else {
+            setMessage('Supervisor assigned successfully.')
+          }
+          return
+        } catch (backendError) {
+          assignmentBackendError = backendError
+          console.warn('assign-supervisor Edge Function failed; falling back to database assignment only:', backendError)
+        }
+
         const rpcResult = await supabase.rpc('admin_assign_student_to_supervisor', {
           target_student_id: student.id,
           target_supervisor_id: supervisor?.id || null,
@@ -2806,7 +2935,9 @@ export default function App() {
           }
         }
 
-        if (supervisor && !alreadyAssignedToSameSupervisor) {
+        if (supervisor && assignmentBackendError) {
+          emailError = assignmentBackendError
+        } else if (supervisor && (!alreadyAssignedToSameSupervisor || !assignmentEmailAlreadySent)) {
           try {
             emailResult = await sendSupervisorAssignmentEmails({ student, supervisor, linkedProjects, assignedAt })
           } catch (notificationError) {
@@ -2830,14 +2961,14 @@ export default function App() {
 
       if (!supervisor) {
         setMessage(removalWithoutChange ? `No supervisor assignment was found for ${student.full_name || student.email}.` : `Supervisor assignment removed for ${student.full_name || student.email}.`)
-      } else if (alreadyAssignedToSameSupervisor || emailResult?.skipped) {
+      } else if ((alreadyAssignedToSameSupervisor && assignmentEmailAlreadySent) || emailResult?.skipped) {
         setMessage(`${student.full_name || student.email} is already assigned to ${supervisor.full_name || supervisor.email}. No duplicate email was sent.`)
       } else if (emailError) {
-        setMessage(`Student assigned successfully, but email notification failed. ${emailError.message || 'Check Supabase Edge Function logs.'}`)
+        setMessage(`Supervisor assigned successfully, but email notification failed. Please check the email service or Edge Function logs. ${emailError.message || ''}`.trim())
       } else if (!isSupabaseConfigured) {
-        setMessage(`Student assigned successfully. Automatic email notifications require Supabase Edge Function deployment.`)
+        setMessage(`Supervisor assigned successfully. Automatic email notifications require Supabase Edge Function deployment.`)
       } else {
-        setMessage('Student assigned successfully and email notifications sent.')
+        setMessage('Supervisor assigned successfully and email notifications sent.')
       }
     } catch (error) {
       setMessage(error.message?.toLowerCase?.().includes('permission') || error.message?.toLowerCase?.().includes('row-level security') ? 'You do not have permission to access this admin feature.' : (error.message || 'Could not update supervisor assignment.'))
@@ -3502,7 +3633,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <header className="hero no-print" style={{ backgroundImage: `url(${websiteSettings.heroImage || '/hero-page.png'})` }}>
+      <header className="hero no-print" style={{ '--hero-bg-image': cssImageUrl(websiteSettings.heroImage, websiteSettings.assetUpdatedAt), backgroundImage: cssImageUrl(websiteSettings.heroImage, websiteSettings.assetUpdatedAt) }}>
         <UserProfileMenu
           currentUser={currentUser}
           onLogout={logout}
@@ -3706,7 +3837,7 @@ function AdminControlPanel({
         const blob = await fetch(dataUrl).then((response) => response.blob())
         const extension = outputType === 'image/png' ? 'png' : 'jpg'
         const safeName = String(file.name || key).replace(/[^a-z0-9._-]/gi, '-').toLowerCase()
-        const filePath = `login-page/${key}-${Date.now()}-${safeName}.${extension}`
+        const filePath = `website-backgrounds/${key}-${Date.now()}-${safeName}.${extension}`
         const upload = await supabase.storage
           .from('app-assets')
           .upload(filePath, blob, {
@@ -3717,7 +3848,7 @@ function AdminControlPanel({
 
         if (upload.error) {
           updateDraft(key, dataUrl)
-          setBrandingError(`Image preview loaded locally, but global upload failed: ${upload.error.message}. Run supabase/login_page_assets.sql in Supabase SQL Editor, then upload again.`)
+          setBrandingError(`Image preview loaded locally, but global upload failed: ${upload.error.message}. Run supabase/website_settings.sql in Supabase SQL Editor, then upload again.`)
           return
         }
 
@@ -3725,7 +3856,7 @@ function AdminControlPanel({
         const publicUrl = publicData?.publicUrl
         if (!publicUrl) throw new Error('Image uploaded, but Supabase did not return a public URL.')
         updateDraft(key, publicUrl)
-        setBrandingError('Image uploaded successfully. Click Save Login Page Settings to publish it on the login page.')
+        setBrandingError(key === 'heroImage' ? 'Hero background uploaded successfully. Click Save Website Settings to publish it globally.' : key === 'loginBackgroundImage' ? 'Login background uploaded successfully. Click Save Login Page Settings to publish it globally.' : 'Image uploaded successfully. Click Save Login Page Settings to publish it globally.')
         return
       }
 
@@ -3741,6 +3872,19 @@ function AdminControlPanel({
       }
     } finally {
       setPanelActionLoading('')
+    }
+  }
+
+
+  async function removeWebsiteBackground(key, label) {
+    if (panelActionLoading) return
+    const next = { ...draft, [key]: defaultWebsiteSettings[key] || '/hero-page.png', assetUpdatedAt: new Date().toISOString() }
+    setDraft(next)
+    const result = await updateSettings(next)
+    if (result?.ok) {
+      setBrandingError(`${label} removed successfully. The default background will be used.`)
+    } else {
+      setBrandingError(`Failed to remove ${label.toLowerCase()}. Check the website settings SQL/RLS setup.`)
     }
   }
 
@@ -3862,7 +4006,7 @@ function AdminControlPanel({
             <section className="admin-split-layout">
               <div className="card admin-preview-card">
                 <SectionHeader icon={ImageIcon} title="Website Preview" subtitle="Current public homepage visual and text settings" />
-                <div className="admin-hero-preview" style={{ backgroundImage: `url(${settings.heroImage || '/hero-page.png'})` }}>
+                <div className="admin-hero-preview" style={{ '--hero-bg-image': cssImageUrl(settings.heroImage, settings.assetUpdatedAt), backgroundImage: `linear-gradient(135deg, rgba(15, 23, 42, .18), rgba(15, 23, 42, .04)), ${cssImageUrl(settings.heroImage, settings.assetUpdatedAt)}` }}>
                   <div>
                     <h3>{settings.homepageHeadline}</h3>
                     <p>{settings.homepageSubtitle}</p>
@@ -3906,7 +4050,11 @@ function AdminControlPanel({
               <SectionHeader icon={ImageIcon} title="Homepage Hero Image" subtitle="Upload a preview image or paste a hosted image URL" />
               <label className="field"><span>Homepage hero image URL</span><input value={draft.heroImage || ''} onChange={(e) => updateDraft('heroImage', e.target.value)} placeholder="/hero-page.png or image URL" /></label>
               <label className="field"><span>Upload homepage hero image</span><input type="file" accept="image/*" onChange={(e) => handleImageUpload('heroImage', e.target.files?.[0])} /></label>
-              <div className="admin-image-preview" style={{ backgroundImage: `url(${draft.heroImage || '/hero-page.png'})` }} />
+              <div className="admin-image-preview" style={{ '--hero-bg-image': cssImageUrl(draft.heroImage, draft.assetUpdatedAt), backgroundImage: cssImageUrl(draft.heroImage, draft.assetUpdatedAt) }} />
+              <div className="settings-actions compact-actions">
+                <button className="secondary min-button-width" disabled={Boolean(panelActionLoading)} onClick={() => runPanelAction('save-hero-background', () => updateSettings(draft))}><ButtonContent loading={panelActionLoading === 'save-hero-background'} loadingText="Saving..." icon={Save}>Save Hero Background</ButtonContent></button>
+                <button className="danger min-button-width" disabled={Boolean(panelActionLoading)} onClick={() => runPanelAction('remove-hero-background', () => removeWebsiteBackground('heroImage', 'Hero background'))}><ButtonContent loading={panelActionLoading === 'remove-hero-background'} loadingText="Removing..." icon={Trash2}>Remove Hero Background</ButtonContent></button>
+              </div>
 
               <div className="soft-box settings-note">
                 <b>Important</b>
@@ -3923,6 +4071,10 @@ function AdminControlPanel({
               <div className="form-grid">
                 <label className="field wide-field"><span>Background photo/image URL</span><input value={draft.loginBackgroundImage || ''} onChange={(e) => updateDraft('loginBackgroundImage', e.target.value)} placeholder="/hero-page.png or hosted image URL" /></label>
                 <label className="field wide-field"><span>Upload background photo/image</span><input type="file" accept="image/*" onChange={(e) => handleImageUpload('loginBackgroundImage', e.target.files?.[0])} /></label>
+                <div className="settings-actions compact-actions wide-field">
+                  <button className="secondary min-button-width" disabled={Boolean(panelActionLoading)} onClick={() => runPanelAction('save-login-background', () => updateSettings(draft))}><ButtonContent loading={panelActionLoading === 'save-login-background'} loadingText="Saving..." icon={Save}>Save Login Background</ButtonContent></button>
+                  <button className="danger min-button-width" disabled={Boolean(panelActionLoading)} onClick={() => runPanelAction('remove-login-background', () => removeWebsiteBackground('loginBackgroundImage', 'Login background'))}><ButtonContent loading={panelActionLoading === 'remove-login-background'} loadingText="Removing..." icon={Trash2}>Remove Login Background</ButtonContent></button>
+                </div>
                 <label className="field wide-field"><span>Logo/icon image URL</span><input value={draft.loginLogoImage || ''} onChange={(e) => updateDraft('loginLogoImage', e.target.value)} placeholder="Optional logo/icon image URL" /></label>
                 <label className="field wide-field"><span>Upload logo/icon image</span><input type="file" accept="image/*" onChange={(e) => handleImageUpload('loginLogoImage', e.target.files?.[0])} /></label>
                 <label className="field wide-field"><span>Welcome title</span><input value={draft.loginWelcomeTitle || ''} onChange={(e) => updateDraft('loginWelcomeTitle', e.target.value)} placeholder="Welcome to Research Platform" /></label>
@@ -4009,7 +4161,7 @@ function AdminControlPanel({
             <div className="card login-admin-preview-card">
               <SectionHeader icon={Eye} title="Login Page Preview" subtitle="Preview of the current login branding section" />
               <div className={`login-settings-preview ${draft.loginShowCircles === false ? 'circles-hidden' : 'circles-live'}`} style={{
-                '--auth-bg-image': `url(${draft.loginBackgroundImage || draft.loginHeroImage || draft.heroImage || '/hero-page.png'})`,
+                '--auth-bg-image': cssImageUrl(draft.loginBackgroundImage || draft.loginHeroImage || draft.heroImage, draft.assetUpdatedAt),
                 '--login-bg-start': draft.loginGradientStart || defaultWebsiteSettings.loginGradientStart,
                 '--login-bg-end': draft.loginGradientEnd || defaultWebsiteSettings.loginGradientEnd,
                 '--login-circle-color': draft.loginCircleColor || defaultWebsiteSettings.loginCircleColor,
@@ -5189,6 +5341,22 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
     })
   }
 
+  async function handleProjectSupervisorRemove(projectId) {
+    const project = projects.find((item) => String(item.id) === String(projectId))
+    const student = project ? getProjectAssignedStudent(project) : null
+
+    if (student?.id && assignStudentToSupervisor) {
+      await assignStudentToSupervisor(student.id, '')
+      return
+    }
+
+    await updateProject(projectId, {
+      supervisor_name: 'Pending Assignment',
+      supervisor_id: null,
+      supervisor_email: '',
+    })
+  }
+
   if (dataLoading) return <LoadingBlock text="Loading users..." />
 
   return (
@@ -5325,8 +5493,8 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
                 <p className="small muted">Supervisor: {p.supervisor_name || 'Pending Assignment'}</p>
               </div>
               <div className="stacked-actions">
-                <button className="secondary compact-button min-button-width" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`project-assign-${p.id}`, () => handleProjectSupervisorAssign(p.id))}><ButtonContent loading={adminActionLoading === `project-assign-${p.id}`} loadingText="Updating..." icon={UserCog} iconSize={14}>Update Supervisor</ButtonContent></button>
-                <button className="warning compact-button min-button-width" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`project-unassign-${p.id}`, () => updateProject(p.id, { supervisor_name: 'Pending Assignment', supervisor_id: null, supervisor_email: '' }))}><ButtonContent loading={adminActionLoading === `project-unassign-${p.id}`} loadingText="Removing..." icon={XCircle} iconSize={14}>Remove Assignment</ButtonContent></button>
+                <button className="secondary compact-button min-button-width" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`project-assign-${p.id}`, () => handleProjectSupervisorAssign(p.id))}><ButtonContent loading={adminActionLoading === `project-assign-${p.id}`} loadingText="Assigning..." icon={UserCog} iconSize={14}>Assign Supervisor</ButtonContent></button>
+                <button className="warning compact-button min-button-width" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`project-unassign-${p.id}`, () => handleProjectSupervisorRemove(p.id))}><ButtonContent loading={adminActionLoading === `project-unassign-${p.id}`} loadingText="Removing..." icon={XCircle} iconSize={14}>Remove Supervisor</ButtonContent></button>
               </div>
             </div>
           )) : <EmptyState title="No matching assignments found." text="Try another student, supervisor, project, research group, or department keyword." icon={Search} />) : <EmptyState title="No projects to assign" text="Project assignments appear after students submit titles." icon={BookOpen} />}

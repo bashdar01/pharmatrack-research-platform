@@ -2672,8 +2672,10 @@ button:disabled {
     right: 12px !important;
   }
   .student-profile-menu.user-profile-menu .student-profile-trigger.redesigned {
-    width: 48px;
-    height: 48px;
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
   }
   .student-profile-menu.user-profile-menu .student-profile-dropdown {
     top: 56px !important;
@@ -4718,20 +4720,20 @@ button .button-spinner {
   .student-profile-trigger,
   .student-profile-trigger.redesigned,
   .user-profile-menu .student-profile-trigger.redesigned {
-    width: 34px !important;
-    height: 34px !important;
-    min-width: 34px !important;
-    min-height: 34px !important;
-    font-size: 14px !important;
-    border-width: 1px !important;
-    box-shadow: 0 8px 20px rgba(15, 23, 42, .13) !important;
+    width: 50px !important;
+    height: 50px !important;
+    min-width: 50px !important;
+    min-height: 50px !important;
+    font-size: 18px !important;
+    border-width: 2px !important;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, .16) !important;
   }
 
   .profile-online-dot {
-    width: 8px !important;
-    height: 8px !important;
-    right: 1px !important;
-    bottom: 1px !important;
+    width: 10px !important;
+    height: 10px !important;
+    right: 2px !important;
+    bottom: 2px !important;
     border-width: 2px !important;
   }
 
@@ -4739,8 +4741,8 @@ button .button-spinner {
   .student-profile-dropdown.redesigned-profile-card,
   .user-profile-menu .student-profile-dropdown.redesigned-profile-card,
   .student-profile-menu.user-profile-menu .student-profile-dropdown {
-    top: 42px !important;
-    width: min(220px, calc(100vw - 24px)) !important;
+    top: 58px !important;
+    width: min(230px, calc(100vw - 24px)) !important;
     border-radius: 18px !important;
     box-shadow: 0 16px 44px rgba(15, 23, 42, .17) !important;
   }
@@ -4754,11 +4756,11 @@ button .button-spinner {
   .student-profile-large,
   .student-profile-large.redesigned,
   .user-profile-menu .student-profile-large.redesigned {
-    width: 44px !important;
-    height: 44px !important;
-    font-size: 17px !important;
+    width: 58px !important;
+    height: 58px !important;
+    font-size: 21px !important;
     border-width: 3px !important;
-    box-shadow: 0 8px 22px rgba(15, 23, 42, .15) !important;
+    box-shadow: 0 10px 26px rgba(15, 23, 42, .16) !important;
   }
 
   .profile-avatar-shell {
@@ -4814,9 +4816,9 @@ button .button-spinner {
   }
 
   .admin-profile-mini .status-avatar {
-    width: 28px !important;
-    height: 28px !important;
-    font-size: 12px !important;
+    width: 42px !important;
+    height: 42px !important;
+    font-size: 16px !important;
   }
 
   .admin-profile-mini b {
@@ -4885,5 +4887,61 @@ button .button-spinner {
     max-height: none !important;
     min-height: 0 !important;
     overflow: visible !important;
+  }
+}
+
+/* Hero/Login background customization fix */
+@media screen {
+  .hero {
+    background-image: var(--hero-bg-image, url('/hero-page.png')) !important;
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+  }
+
+  .admin-portal-header {
+    background-image: var(--hero-bg-image, url('/hero-page.png')) !important;
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+  }
+
+  .admin-hero-preview,
+  .admin-image-preview {
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+  }
+
+  .auth-brand-panel,
+  .login-settings-preview {
+    background-image: var(--auth-bg-image, url('/hero-page.png')) !important;
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+    isolation: isolate;
+  }
+
+  .auth-brand-overlay,
+  .login-settings-preview::before {
+    z-index: 0 !important;
+    pointer-events: none;
+  }
+
+  .auth-circle,
+  .login-settings-preview .auth-circle {
+    z-index: 1 !important;
+  }
+
+  .auth-brand-content,
+  .login-settings-preview-content {
+    position: relative;
+    z-index: 2 !important;
+  }
+
+  .compact-actions {
+    margin-top: 12px;
+    gap: 10px;
+    flex-wrap: wrap;
   }
 }

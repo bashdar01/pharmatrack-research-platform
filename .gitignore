@@ -4,3 +4,12 @@ dist
 .env.local
 .DS_Store
 .vercel
+
+# local/temp files
+.DS_Store
+*.zip
+dist/
+node_modules/
+.env
+.env.local
+supabase/.temp/
