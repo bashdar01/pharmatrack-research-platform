@@ -14,6 +14,9 @@ create table if not exists public.profiles (
   assigned_supervisor_id uuid,
   assigned_supervisor_email text,
   assigned_supervisor_name text,
+  assigned_supervisor_email_sent_at timestamptz,
+  assigned_supervisor_email_supervisor_id uuid,
+  assigned_supervisor_email_supervisor_email text,
   created_at timestamptz default now()
 );
 
@@ -177,6 +180,9 @@ alter table public.profiles add column if not exists department text;
 alter table public.profiles add column if not exists assigned_supervisor_id uuid references public.profiles(id) on delete set null;
 alter table public.profiles add column if not exists assigned_supervisor_email text;
 alter table public.profiles add column if not exists assigned_supervisor_name text;
+alter table public.profiles add column if not exists assigned_supervisor_email_sent_at timestamptz;
+alter table public.profiles add column if not exists assigned_supervisor_email_supervisor_id uuid references public.profiles(id) on delete set null;
+alter table public.profiles add column if not exists assigned_supervisor_email_supervisor_email text;
 alter table public.research_projects add column if not exists supervisor_email text;
 alter table public.research_projects add column if not exists student_id uuid references public.profiles(id) on delete set null;
 alter table public.research_projects add column if not exists student_email text;
@@ -1568,3 +1574,6 @@ end;
 $$;
 
 grant execute on function public.get_pdf_report_students_for_supervisor(uuid, text) to authenticated;
+
+-- Latest supervisor deadline assigned-student targeting/RLS fix is available in:
+-- supabase/supervisor_deadline_assigned_students_fix.sql

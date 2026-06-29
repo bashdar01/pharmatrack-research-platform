@@ -4492,3 +4492,398 @@ button .button-spinner {
     min-width: 100%;
   }
 }
+
+/* Admin subdomain deletion/search usability fixes */
+.admin-assignment-controls {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.35fr) minmax(220px, 0.65fr);
+  gap: 0.85rem;
+  align-items: end;
+  margin-bottom: 0.85rem;
+  padding: 0.85rem;
+  border: 1px solid #dbe4ef;
+  border-radius: 18px;
+  background: #f8fafc;
+}
+
+.admin-assignment-controls .field {
+  margin: 0;
+}
+
+.admin-project-assignment-list {
+  max-height: 460px !important;
+  min-height: 260px;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+
+.admin-report-deletion-card,
+.admin-uploaded-document-card {
+  min-height: 0 !important;
+}
+
+.admin-management-alignment-grid > .admin-report-deletion-card .managed-list.admin-scrollable-delete-list,
+.admin-management-alignment-grid > .admin-uploaded-document-card .managed-list.admin-scrollable-delete-list,
+.admin-report-deletion-card .admin-scrollable-delete-list,
+.admin-uploaded-document-card .admin-scrollable-delete-list {
+  height: 430px;
+  max-height: 430px !important;
+  min-height: 300px;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  border: 1px solid #dbe4ef;
+  border-radius: 18px;
+  background: #f8fafc;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.admin-report-delete-item,
+.admin-document-delete-item {
+  align-items: flex-start;
+  gap: 0.9rem;
+}
+
+.admin-document-delete-item .report-attachment {
+  margin-top: 0.6rem;
+  padding: 0.7rem;
+}
+
+@media (max-width: 980px) {
+  .admin-assignment-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-management-alignment-grid > .admin-report-deletion-card .managed-list.admin-scrollable-delete-list,
+  .admin-management-alignment-grid > .admin-uploaded-document-card .managed-list.admin-scrollable-delete-list,
+  .admin-report-deletion-card .admin-scrollable-delete-list,
+  .admin-uploaded-document-card .admin-scrollable-delete-list {
+    height: 380px;
+    max-height: 380px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-management-alignment-grid > .admin-report-deletion-card .managed-list.admin-scrollable-delete-list,
+  .admin-management-alignment-grid > .admin-uploaded-document-card .managed-list.admin-scrollable-delete-list,
+  .admin-report-deletion-card .admin-scrollable-delete-list,
+  .admin-uploaded-document-card .admin-scrollable-delete-list,
+  .admin-project-assignment-list {
+    height: 360px;
+    max-height: 360px !important;
+  }
+}
+
+/* UI fixes: smaller profile, assigned-student deadline dropdown, taller report review, softer blue theme */
+@media screen {
+  :root {
+    --accent: #bae6fd;
+    --accent-strong: #7dd3fc;
+    --accent-soft: #f0f9ff;
+    --accent-soft-2: #e0f2fe;
+    --accent-text: #0f172a;
+    --shadow: rgba(14, 165, 233, .06);
+  }
+
+  .hero,
+  .admin-portal-header {
+    background-image:
+      linear-gradient(105deg, rgba(186, 230, 253, .86), rgba(224, 242, 254, .72) 54%, rgba(248, 250, 252, .40)),
+      url('/hero-page.png') !important;
+  }
+
+  .primary,
+  .role-button.active,
+  .tabs button.active,
+  .auth-switch button.active,
+  .admin-user-tabs button.active,
+  .admin-preview-link,
+  .total-box,
+  .icon-box.dark,
+  .auth-submit-button {
+    background: linear-gradient(135deg, #dbeafe, #bae6fd) !important;
+    color: #0f172a !important;
+    border-color: #7dd3fc !important;
+    box-shadow: 0 12px 26px rgba(14, 165, 233, .14) !important;
+  }
+
+  .primary:hover:not(:disabled),
+  .role-button.active:hover:not(:disabled),
+  .tabs button.active:hover:not(:disabled),
+  .admin-user-tabs button.active:hover:not(:disabled),
+  .auth-submit-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #bfdbfe, #93c5fd) !important;
+    color: #0f172a !important;
+  }
+
+  .success {
+    background: #dcfce7 !important;
+    color: #166534 !important;
+    border-color: #86efac !important;
+  }
+
+  .success:hover:not(:disabled) {
+    background: #bbf7d0 !important;
+    color: #14532d !important;
+    border-color: #4ade80 !important;
+  }
+
+  .message,
+  .auth-note-box,
+  .invitation-lock-note,
+  .compact-report-note,
+  .no-records-message,
+  .loading-state {
+    background: #f0f9ff !important;
+    border-color: #bae6fd !important;
+    color: #075985 !important;
+  }
+
+  .icon-box,
+  .status-avatar,
+  .admin-logo-mark,
+  .preview-logo-placeholder,
+  .student-option-check,
+  .pill.blue,
+  .tab-badge,
+  .selected-student-chip,
+  .admin-profile-mini {
+    background: #f0f9ff !important;
+    color: #075985 !important;
+    border-color: #bae6fd !important;
+  }
+
+  .progress div,
+  .preview-report-lines span,
+  .admin-side-nav button.active,
+  .admin-side-nav button:hover {
+    background: linear-gradient(90deg, #bae6fd, #93c5fd) !important;
+    color: #0f172a !important;
+    border-color: #7dd3fc !important;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus,
+  .auth-form-stack input:focus,
+  .auth-form-stack select:focus,
+  .auth-form-stack textarea:focus,
+  .modern-login-page .field input:focus,
+  .modern-login-page .field textarea:focus,
+  .modern-login-page .field select:focus,
+  .supervisor-feedback-textarea:focus {
+    border-color: #7dd3fc !important;
+    box-shadow: 0 0 0 4px rgba(125, 211, 252, .22) !important;
+  }
+
+  .profile-online-dot {
+    background: #7dd3fc !important;
+    box-shadow: 0 4px 10px rgba(14, 165, 233, .22) !important;
+  }
+
+  .profile-upload-button.redesigned {
+    background: #f0f9ff !important;
+    background-image: none !important;
+    color: #075985 !important;
+    border-color: #bae6fd !important;
+    box-shadow: none !important;
+  }
+
+  .auth-brand-panel,
+  .login-settings-preview,
+  .auth-brand-overlay,
+  .login-settings-preview::before {
+    background-image: linear-gradient(135deg, rgba(186, 230, 253, .94), rgba(224, 242, 254, .90)), var(--auth-bg-image) !important;
+    background-color: #e0f2fe !important;
+    color: #0f172a !important;
+  }
+
+  a,
+  .small a,
+  .auth-text-link,
+  .auth-text-link:hover {
+    color: #0369a1 !important;
+  }
+}
+
+/* Profile menu: about half the previous visual size, but still readable */
+@media screen {
+  .student-profile-menu.user-profile-menu {
+    top: 14px !important;
+    right: clamp(12px, 3vw, 34px) !important;
+  }
+
+  .student-profile-trigger,
+  .student-profile-trigger.redesigned,
+  .user-profile-menu .student-profile-trigger.redesigned {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+    font-size: 14px !important;
+    border-width: 1px !important;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, .13) !important;
+  }
+
+  .profile-online-dot {
+    width: 8px !important;
+    height: 8px !important;
+    right: 1px !important;
+    bottom: 1px !important;
+    border-width: 2px !important;
+  }
+
+  .student-profile-dropdown,
+  .student-profile-dropdown.redesigned-profile-card,
+  .user-profile-menu .student-profile-dropdown.redesigned-profile-card,
+  .student-profile-menu.user-profile-menu .student-profile-dropdown {
+    top: 42px !important;
+    width: min(220px, calc(100vw - 24px)) !important;
+    border-radius: 18px !important;
+    box-shadow: 0 16px 44px rgba(15, 23, 42, .17) !important;
+  }
+
+  .student-profile-dropdown.redesigned-profile-card .profile-card-body,
+  .user-profile-menu .student-profile-dropdown.redesigned-profile-card .profile-card-body,
+  .profile-card-body.simplified-profile-card {
+    padding: 10px 12px 12px !important;
+  }
+
+  .student-profile-large,
+  .student-profile-large.redesigned,
+  .user-profile-menu .student-profile-large.redesigned {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 17px !important;
+    border-width: 3px !important;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, .15) !important;
+  }
+
+  .profile-avatar-shell {
+    margin-top: 0 !important;
+  }
+
+  .profile-identity,
+  .simplified-profile-identity {
+    padding: 6px 4px 8px !important;
+  }
+
+  .profile-identity h3,
+  .simplified-profile-identity h3 {
+    font-size: 13px !important;
+    line-height: 1.15 !important;
+  }
+
+  .profile-identity p,
+  .simplified-profile-identity p {
+    margin-top: 3px !important;
+    max-width: 180px !important;
+    font-size: 10.5px !important;
+    line-height: 1.25 !important;
+  }
+
+  .profile-upload-button,
+  .profile-upload-button.redesigned,
+  .profile-menu-button,
+  .profile-menu-actions .profile-menu-button {
+    min-height: 30px !important;
+    border-radius: 10px !important;
+    padding: 6px 8px !important;
+    font-size: 11px !important;
+    gap: 5px !important;
+    margin-top: 5px !important;
+  }
+
+  .profile-upload-button svg,
+  .profile-menu-button svg {
+    width: 12px !important;
+    height: 12px !important;
+  }
+
+  .profile-menu-actions {
+    gap: 6px !important;
+    margin-top: 6px !important;
+  }
+
+  .admin-profile-mini {
+    padding: 8px !important;
+    gap: 7px !important;
+    border-radius: 14px !important;
+  }
+
+  .admin-profile-mini .status-avatar {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 12px !important;
+  }
+
+  .admin-profile-mini b {
+    font-size: 12px !important;
+  }
+
+  .admin-profile-mini p {
+    font-size: 10.5px !important;
+    margin-top: 1px !important;
+  }
+}
+
+/* Deadline recipient dropdown must be clear when no assigned students are available */
+.student-multiselect-trigger.disabled,
+.student-multiselect-trigger:disabled {
+  opacity: .68;
+  cursor: not-allowed;
+  background: #f8fafc !important;
+}
+
+.deadline-target-summary .form-error-text,
+.student-option-empty {
+  color: #b45309;
+  font-weight: 800;
+}
+
+/* Taller Review Weekly Reports scroll area so action buttons are not cut off */
+.supervisor-review-reports-card {
+  max-height: 900px !important;
+}
+
+.supervisor-review-reports-scroll-container {
+  height: 700px !important;
+  max-height: 700px !important;
+  min-height: 560px !important;
+  padding-bottom: 18px !important;
+}
+
+@media (max-width: 900px) {
+  .supervisor-review-reports-card {
+    max-height: none !important;
+  }
+
+  .supervisor-review-reports-scroll-container {
+    height: 620px !important;
+    max-height: 70vh !important;
+    min-height: 480px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .student-profile-menu.user-profile-menu {
+    top: 10px !important;
+    right: 12px !important;
+  }
+
+  .student-profile-dropdown,
+  .student-profile-dropdown.redesigned-profile-card,
+  .user-profile-menu .student-profile-dropdown.redesigned-profile-card {
+    width: min(220px, calc(100vw - 18px)) !important;
+    right: 0 !important;
+  }
+
+  .supervisor-review-reports-scroll-container {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+}

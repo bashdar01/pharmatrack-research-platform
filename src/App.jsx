@@ -824,6 +824,36 @@ function getAssignedSupervisorStudents(data, assignedProjects = [], reports = []
     .sort((a, b) => a.name.localeCompare(b.name))
 }
 
+function isStudentAssignedToSupervisorProfile(student = {}, supervisor = {}) {
+  if (!student || !supervisor) return false
+  return (
+    (!!student.assigned_supervisor_id && !!supervisor.id && String(student.assigned_supervisor_id) === String(supervisor.id)) ||
+    (!!student.assigned_supervisor_email && !!supervisor.email && normalizeText(student.assigned_supervisor_email) === normalizeText(supervisor.email)) ||
+    (!!student.assigned_supervisor_name && !!supervisor.full_name && normalizeText(student.assigned_supervisor_name) === normalizeText(supervisor.full_name))
+  )
+}
+
+function getDirectAssignedStudentsForSupervisor(data = {}, supervisor = {}) {
+  const students = new Map()
+  ;(data.profiles || [])
+    .filter((profile) => profile.role === 'student' && isStudentAssignedToSupervisorProfile(profile, supervisor))
+    .forEach((student) => {
+      upsertStudentOption(students, student, {
+        id: student.id || null,
+        email: student.email || '',
+        name: student.full_name || student.email || 'Student',
+        group: student.research_group || student.group_name || student.department || student.program || 'Assigned student',
+      })
+    })
+  return Array.from(students.values()).sort((a, b) => a.name.localeCompare(b.name))
+}
+
+function mergeStudentOptions(...groups) {
+  const students = new Map()
+  groups.flat().filter(Boolean).forEach((student) => upsertStudentOption(students, student, student))
+  return Array.from(students.values()).sort((a, b) => a.name.localeCompare(b.name))
+}
+
 function itemMatchesStudentOption(item = {}, student = {}) {
   if (!item || !student) return false
   const ids = [item.student_id, item.submitted_by_id, item.user_id, item.created_by, item.owner_id, item.uploaded_by]
@@ -2684,6 +2714,29 @@ export default function App() {
   }
 
 
+  async function sendSupervisorAssignmentEmails({ student, supervisor, linkedProjects = [], assignedAt }) {
+    if (!isSupabaseConfigured) throw new Error('Automatic email requires Supabase Edge Function send-platform-email.')
+    if (!student?.email) throw new Error('Student email address is missing.')
+    if (!supervisor?.email) throw new Error('Supervisor email address is missing.')
+
+    const projectIds = linkedProjects.map((project) => project.id).filter(Boolean)
+    const appUrl = window.location?.origin || ''
+    const { data: result, error } = await supabase.functions.invoke('send-platform-email', {
+      body: {
+        kind: 'assignment',
+        studentId: student.id,
+        supervisorId: supervisor.id,
+        projectIds,
+        assignmentDate: assignedAt,
+        appUrl,
+      },
+    })
+
+    if (error) throw new Error(error.message || 'Assignment email notification could not be sent.')
+    if (result?.error) throw new Error(result.error)
+    return result || { success: true }
+  }
+
   async function assignStudentToSupervisor(studentId, supervisorId) {
     if (!isAdminUser(currentUser)) return setMessage('You do not have permission to access this admin feature.')
     const student = data.profiles.find((user) => String(user.id) === String(studentId))
@@ -2706,6 +2759,20 @@ export default function App() {
       )
     })
 
+    const projectAlreadyAssignedToSupervisor = supervisor ? linkedProjects.some((project) => (
+      String(project.supervisor_id || '') === String(supervisor.id) ||
+      normalizeText(project.supervisor_email) === normalizeText(supervisor.email) ||
+      normalizeText(project.supervisor_name) === normalizeText(supervisor.full_name)
+    )) : false
+    const profileAlreadyAssignedToSupervisor = supervisor ? (
+      String(student.assigned_supervisor_id || '') === String(supervisor.id) ||
+      normalizeText(student.assigned_supervisor_email) === normalizeText(supervisor.email) ||
+      normalizeText(student.assigned_supervisor_name) === normalizeText(supervisor.full_name)
+    ) : false
+    const alreadyAssignedToSameSupervisor = Boolean(supervisor && (profileAlreadyAssignedToSupervisor || projectAlreadyAssignedToSupervisor))
+    const hasAnySupervisorAssignment = Boolean(student.assigned_supervisor_id || student.assigned_supervisor_email || student.assigned_supervisor_name || linkedProjects.some((project) => project.supervisor_id || project.supervisor_email || (project.supervisor_name && project.supervisor_name !== 'Pending Assignment')))
+    const removalWithoutChange = !supervisor && !hasAnySupervisorAssignment
+
     const profileUpdate = {
       assigned_supervisor_id: supervisor?.id || null,
       assigned_supervisor_email: supervisor?.email || '',
@@ -2718,6 +2785,10 @@ export default function App() {
     }
 
     try {
+      const assignedAt = new Date().toISOString()
+      let emailResult = null
+      let emailError = null
+
       if (isSupabaseConfigured) {
         const rpcResult = await supabase.rpc('admin_assign_student_to_supervisor', {
           target_student_id: student.id,
@@ -2735,6 +2806,15 @@ export default function App() {
           }
         }
 
+        if (supervisor && !alreadyAssignedToSameSupervisor) {
+          try {
+            emailResult = await sendSupervisorAssignmentEmails({ student, supervisor, linkedProjects, assignedAt })
+          } catch (notificationError) {
+            console.warn('Supervisor assignment email notification failed:', notificationError)
+            emailError = notificationError
+          }
+        }
+
         await addAudit(currentUser.full_name, supervisor ? 'assigned student to supervisor' : 'removed supervisor assignment for', `${student.full_name || student.email}${supervisor ? ` → ${supervisor.full_name || supervisor.email}` : ''}`)
         await loadFromSupabase(currentUser)
       } else {
@@ -2747,7 +2827,18 @@ export default function App() {
           auditLogs: [log, ...current.auditLogs],
         }))
       }
-      setMessage(supervisor ? `${student.full_name || student.email} was assigned to ${supervisor.full_name || supervisor.email}.` : `Supervisor assignment removed for ${student.full_name || student.email}.`)
+
+      if (!supervisor) {
+        setMessage(removalWithoutChange ? `No supervisor assignment was found for ${student.full_name || student.email}.` : `Supervisor assignment removed for ${student.full_name || student.email}.`)
+      } else if (alreadyAssignedToSameSupervisor || emailResult?.skipped) {
+        setMessage(`${student.full_name || student.email} is already assigned to ${supervisor.full_name || supervisor.email}. No duplicate email was sent.`)
+      } else if (emailError) {
+        setMessage(`Student assigned successfully, but email notification failed. ${emailError.message || 'Check Supabase Edge Function logs.'}`)
+      } else if (!isSupabaseConfigured) {
+        setMessage(`Student assigned successfully. Automatic email notifications require Supabase Edge Function deployment.`)
+      } else {
+        setMessage('Student assigned successfully and email notifications sent.')
+      }
     } catch (error) {
       setMessage(error.message?.toLowerCase?.().includes('permission') || error.message?.toLowerCase?.().includes('row-level security') ? 'You do not have permission to access this admin feature.' : (error.message || 'Could not update supervisor assignment.'))
     }
@@ -3072,7 +3163,9 @@ export default function App() {
     const assignedProjects = allowedRole === 'supervisor'
       ? getVisibleProjects(data.projects, 'supervisor', currentUser)
       : data.projects
-    const assignedStudents = getAssignedSupervisorStudents(data, assignedProjects, data.reports)
+    const assignedStudents = allowedRole === 'supervisor'
+      ? mergeStudentOptions(getAssignedSupervisorStudents(data, assignedProjects, data.reports), getDirectAssignedStudentsForSupervisor(data, currentUser))
+      : getAssignedSupervisorStudents(data, assignedProjects, data.reports)
     const selectedStudents = form.target_scope === 'all_assigned'
       ? assignedStudents
       : Array.isArray(form.selected_students) ? form.selected_students : []
@@ -4310,7 +4403,7 @@ function SupervisorDashboard({ data, projects, currentUser, dataLoading = false,
   const [reviewLoadingKey, setReviewLoadingKey] = useState('')
   const assignedProjects = useMemo(() => projects.filter((p) => isAssignedSupervisorProject(p, currentUser)), [projects, currentUser])
   const supervisorProgressProjects = useMemo(() => getSupervisorProgressProjects(data, assignedProjects), [data, assignedProjects])
-  const studentOptions = useMemo(() => getAssignedSupervisorStudents(data, assignedProjects, []), [data, assignedProjects])
+  const studentOptions = useMemo(() => mergeStudentOptions(getAssignedSupervisorStudents(data, assignedProjects, data.reports), getDirectAssignedStudentsForSupervisor(data, currentUser)), [data, assignedProjects, currentUser])
   const allowedReports = useMemo(() => getSupervisorAllowedReports(data, assignedProjects, currentUser), [data, assignedProjects, currentUser])
 
   const groupOptions = useMemo(() => {
@@ -4465,11 +4558,13 @@ function StudentMultiSelectDropdown({ students = [], targetScope, selectedKeys =
     ? students
     : students.filter((student) => selectedKeys.includes(student.key))
 
-  const summaryText = targetScope === 'all_assigned'
-    ? 'All Assigned Students'
-    : selectedStudents.length
-      ? selectedStudents.map((student) => student.name).join(', ')
-      : 'Select student(s)'
+  const summaryText = !students.length
+    ? 'No assigned students found'
+    : targetScope === 'all_assigned'
+      ? 'All Assigned Students'
+      : selectedStudents.length
+        ? selectedStudents.map((student) => student.name).join(', ')
+        : 'Select student(s)'
 
   function selectAllStudents() {
     onChange({ target_scope: 'all_assigned', selected_student_keys: [] })
@@ -4494,9 +4589,10 @@ function StudentMultiSelectDropdown({ students = [], targetScope, selectedKeys =
     <div className="field deadline-student-dropdown-field" ref={dropdownRef}>
       <span>Send deadline to</span>
       <button
-        className={`student-multiselect-trigger${open ? ' open' : ''}${error ? ' error' : ''}`}
+        className={`student-multiselect-trigger${open ? ' open' : ''}${error ? ' error' : ''}${!students.length ? ' disabled' : ''}`}
         type="button"
-        onClick={() => setOpen((value) => !value)}
+        disabled={!students.length}
+        onClick={() => students.length && setOpen((value) => !value)}
         aria-expanded={open}
       >
         <span className={selectedStudents.length ? 'student-multiselect-summary' : 'student-multiselect-placeholder'}>{summaryText}</span>
@@ -4519,10 +4615,12 @@ function StudentMultiSelectDropdown({ students = [], targetScope, selectedKeys =
             <Search size={15} />
             <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search by name or email" autoFocus />
           </div>
-          <button type="button" className={`student-option-row all-option${targetScope === 'all_assigned' ? ' selected' : ''}`} onClick={selectAllStudents}>
-            <span className="student-option-check">{targetScope === 'all_assigned' ? '✓' : ''}</span>
-            <span><b>All Assigned Students</b><small>Send only to your assigned students</small></span>
-          </button>
+          {students.length > 0 && (
+            <button type="button" className={`student-option-row all-option${targetScope === 'all_assigned' ? ' selected' : ''}`} onClick={selectAllStudents}>
+              <span className="student-option-check">{targetScope === 'all_assigned' ? '✓' : ''}</span>
+              <span><b>All Assigned Students</b><small>Send only to your assigned students</small></span>
+            </button>
+          )}
           <div className="student-options-scroll">
             {filteredStudents.length ? filteredStudents.map((student) => {
               const selected = targetScope === 'selected_students' && selectedKeys.includes(student.key)
@@ -4941,6 +5039,7 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
   const [userRoleFilter, setUserRoleFilter] = useState('all')
   const [userStatusFilter, setUserStatusFilter] = useState('all')
   const [userDepartmentFilter, setUserDepartmentFilter] = useState('all')
+  const [assignmentSearch, setAssignmentSearch] = useState('')
   const [adminActionLoading, setAdminActionLoading] = useState('')
 
   useEffect(() => {
@@ -5021,6 +5120,38 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
 
   const researchGroups = getProjectGroupSummaries(projects)
   const selectedProjectSupervisor = supervisors.find((supervisor) => String(supervisor.id) === String(projectSupervisorId))
+  const assignmentQuery = assignmentSearch.trim().toLowerCase()
+  const getProjectAssignedStudent = (project) => students.find((student) =>
+    String(project.student_id || project.created_by || '') === String(student.id) ||
+    normalizeText(project.student_email || project.created_by_email) === normalizeText(student.email) ||
+    getProjectStudents(project).map(normalizeText).includes(normalizeText(student.full_name))
+  )
+  const filteredAssignmentProjects = projects.filter((project) => {
+    if (!assignmentQuery) return true
+    const student = getProjectAssignedStudent(project)
+    const supervisor = supervisors.find((item) =>
+      String(item.id) === String(project.supervisor_id) ||
+      normalizeText(item.email) === normalizeText(project.supervisor_email) ||
+      normalizeText(item.full_name) === normalizeText(project.supervisor_name)
+    )
+    const searchable = [
+      project.title,
+      project.group_name,
+      project.area,
+      project.department,
+      project.student_email,
+      project.created_by_email,
+      project.supervisor_name,
+      project.supervisor_email,
+      getProjectStudents(project).join(' '),
+      student?.full_name,
+      student?.email,
+      getUserDepartment(student || {}),
+      supervisor?.full_name,
+      supervisor?.email,
+    ].join(' ').toLowerCase()
+    return searchable.includes(assignmentQuery)
+  })
 
   async function runAdminAction(key, action) {
     if (adminActionLoading) return
@@ -5041,9 +5172,17 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
     )
   }
 
-  function handleProjectSupervisorAssign(projectId) {
+  async function handleProjectSupervisorAssign(projectId) {
     const supervisor = selectedProjectSupervisor
-    updateProject(projectId, {
+    const project = projects.find((item) => String(item.id) === String(projectId))
+    const student = project ? getProjectAssignedStudent(project) : null
+
+    if (student?.id && assignStudentToSupervisor) {
+      await assignStudentToSupervisor(student.id, supervisor?.id || '')
+      return
+    }
+
+    await updateProject(projectId, {
       supervisor_name: supervisor?.full_name || 'Pending Assignment',
       supervisor_id: supervisor?.id || null,
       supervisor_email: supervisor?.email || '',
@@ -5159,15 +5298,25 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
 
       <div className="card admin-assignment-card">
         <SectionHeader icon={UserCog} title="Project Supervisor Assignment" subtitle="Assign or update supervisors for submitted research titles" />
-        <label className="field">
-          <span>Choose supervisor</span>
-          <select value={projectSupervisorId} onChange={(e) => setProjectSupervisorId(e.target.value)}>
-            <option value="">Pending Assignment / remove supervisor</option>
-            {supervisors.map((supervisor) => <option key={supervisor.id} value={supervisor.id}>{supervisor.full_name || supervisor.email}</option>)}
-          </select>
-        </label>
+        <div className="admin-assignment-controls">
+          <label className="field">
+            <span>Search assignment records</span>
+            <input
+              value={assignmentSearch}
+              onChange={(e) => setAssignmentSearch(e.target.value)}
+              placeholder="Search students, supervisors, projects, or research groups..."
+            />
+          </label>
+          <label className="field">
+            <span>Choose supervisor</span>
+            <select value={projectSupervisorId} onChange={(e) => setProjectSupervisorId(e.target.value)}>
+              <option value="">Pending Assignment / remove supervisor</option>
+              {supervisors.map((supervisor) => <option key={supervisor.id} value={supervisor.id}>{supervisor.full_name || supervisor.email}</option>)}
+            </select>
+          </label>
+        </div>
         <div className="managed-list compact-managed-list admin-project-assignment-list">
-          {projects.length ? projects.map((p) => (
+          {projects.length ? (filteredAssignmentProjects.length ? filteredAssignmentProjects.map((p) => (
             <div className="mini-card managed-item" key={p.id}>
               <div>
                 <b>{p.group_name}</b>
@@ -5180,7 +5329,7 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
                 <button className="warning compact-button min-button-width" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`project-unassign-${p.id}`, () => updateProject(p.id, { supervisor_name: 'Pending Assignment', supervisor_id: null, supervisor_email: '' }))}><ButtonContent loading={adminActionLoading === `project-unassign-${p.id}`} loadingText="Removing..." icon={XCircle} iconSize={14}>Remove Assignment</ButtonContent></button>
               </div>
             </div>
-          )) : <EmptyState title="No projects to assign" text="Project assignments appear after students submit titles." icon={BookOpen} />}
+          )) : <EmptyState title="No matching assignments found." text="Try another student, supervisor, project, research group, or department keyword." icon={Search} />) : <EmptyState title="No projects to assign" text="Project assignments appear after students submit titles." icon={BookOpen} />}
         </div>
         <button className="primary" onClick={exportCsv}><Download size={16} /> Export CSV Report</button>
       </div>
@@ -5228,38 +5377,41 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
 
         <div className="card admin-delete-management-card admin-report-deletion-card">
           <SectionHeader icon={Trash2} title="Report Deletion" subtitle="Admins can delete any weekly report" />
-          <div className="managed-list">
+          <div className="managed-list admin-scrollable-delete-list">
             {data.reports.length ? data.reports.map((report) => {
               const project = data.projects.find((p) => String(p.id) === String(report.project_id))
               return (
-                <div className="mini-card managed-item" key={report.id}>
+                <div className="mini-card managed-item admin-report-delete-item" key={report.id}>
                   <div>
-                    <b>Week {report.week_number} — {project?.title || 'Weekly Report'}</b>
-                    <p className="small muted">Submitted by: {report.submitted_by || 'Unknown'} • {String(report.submitted_at || '').slice(0, 10)}</p>
-                    <p className="small muted">Status: {report.status}</p>
+                    <b>Week {report.week_number || 'N/A'} — {project?.title || report.title || 'Weekly Report'}</b>
+                    <p className="small muted">Student: {report.submitted_by || report.student_email || report.created_by_email || 'Unknown student'}</p>
+                    <p className="small muted">Submitted date: {String(report.submitted_at || report.created_at || '').slice(0, 10) || 'N/A'} • Status: {report.status || 'Submitted'}</p>
                   </div>
                   {canDeleteReport(report, currentUser) && deleteWeeklyReport && <AdminPanelDeleteButton itemKey={`report-${report.id}`} label="Delete Report" onDelete={() => deleteWeeklyReport(report.id)} />}
                 </div>
               )
-            }) : <EmptyState title="No weekly reports" text="Submitted weekly reports will appear here." icon={MessageSquareText} />}
+            }) : <EmptyState title="No reports available." text="Submitted weekly reports will appear here." icon={MessageSquareText} />}
           </div>
         </div>
 
         <div className="card admin-delete-management-card admin-uploaded-document-card">
           <SectionHeader icon={FileText} title="Uploaded Document Deletion" subtitle="Admins can delete any uploaded file" />
-          <div className="managed-list">
+          <div className="managed-list admin-scrollable-delete-list">
             {data.uploadedFiles.length ? data.uploadedFiles.map((file) => {
               const report = data.reports.find((item) => String(item.id) === String(file.report_id))
+              const project = data.projects.find((item) => String(item.id) === String(file.project_id || report?.project_id))
+              const uploadedBy = file.uploaded_by_email || file.created_by_email || report?.student_email || report?.submitted_by || 'Unknown user'
               return (
-                <div className="mini-card managed-item" key={file.id}>
+                <div className="mini-card managed-item admin-document-delete-item" key={file.id}>
                   <div>
                     <b>{file.file_name || 'Uploaded document'}</b>
-                    <p className="small muted">{file.file_type || 'Document'} • Week {report?.week_number || 'N/A'} • {String(file.created_at || '').slice(0, 10)}</p>
+                    <p className="small muted">Uploaded by: {uploadedBy} • Uploaded date: {String(file.created_at || '').slice(0, 10) || 'N/A'}</p>
+                    <p className="small muted">Related: {project?.title || project?.group_name || `Week ${report?.week_number || 'N/A'}`} • {file.file_type || 'Document'}</p>
                     <ReportAttachmentBox attachment={file} canDelete={canDeleteUploadedFile(file, currentUser, data.reports)} onDelete={() => deleteUploadedFile(file.id)} />
                   </div>
                 </div>
               )
-            }) : <EmptyState title="No uploaded documents" text="Uploaded documents will appear here." icon={FileText} />}
+            }) : <EmptyState title="No uploaded documents available." text="Uploaded documents will appear here." icon={FileText} />}
           </div>
         </div>
       </div>
