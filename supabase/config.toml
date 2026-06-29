@@ -1,0 +1,18 @@
+# Supabase Edge Function settings.
+# verify_jwt is disabled at the gateway so browser CORS OPTIONS preflight requests are not blocked.
+# Each function still verifies the logged-in user/session inside the function before doing admin work.
+
+[functions.assign-supervisor]
+verify_jwt = false
+
+[functions.send-assignment-email]
+verify_jwt = false
+
+[functions.send-platform-email]
+verify_jwt = false
+
+[functions.send-invitation-email]
+verify_jwt = false
+
+[functions.email-weekly-report-to-me]
+verify_jwt = false

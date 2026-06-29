@@ -1,5 +1,5 @@
 // Pharmacy Research Platform generic platform email sender
-// Deploy with: supabase functions deploy send-platform-email
+// Deploy with: supabase functions deploy send-assignment-email --no-verify-jwt
 // Required custom secrets: RESEND_API_KEY and INVITE_FROM_EMAIL
 // Supabase hosted Edge Functions also provide SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.
 

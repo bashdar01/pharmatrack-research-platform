@@ -1,6 +1,6 @@
--- Global website, hero, and login-page settings.
+-- Global website/login-page settings for the admin subdomain control panel.
 -- Run this file in Supabase SQL Editor. It is safe to run multiple times.
--- This fixes app_settings RLS, website settings RPC, and Supabase Storage policies for uploaded backgrounds.
+-- It fixes app_settings RLS and adds a secure admin-only RPC used by the frontend.
 
 create table if not exists public.app_settings (
   key text primary key,
@@ -15,9 +15,9 @@ grant usage on schema public to anon, authenticated;
 grant select on public.app_settings to anon, authenticated;
 grant insert, update, delete on public.app_settings to authenticated;
 
--- Robust admin check for app_settings and storage policies.
--- Supports projects where profiles.id differs from auth.uid(), email-based profiles,
--- and role values stored in auth metadata.
+-- Robust admin check for app_settings.
+-- This supports projects where profiles.id is different from auth.uid(),
+-- checks the logged-in email, and accepts Active/Approved admin rows.
 create or replace function public.is_app_settings_admin()
 returns boolean
 language sql
@@ -25,6 +25,9 @@ security definer
 set search_path = public, auth
 stable
 as $$
+  -- Robust admin check for this project.
+  -- profiles.id may not equal auth.uid(), so email matching is included.
+  -- Status is intentionally permissive for legacy admin rows: only clearly blocked/rejected statuses are denied.
   with auth_context as (
     select
       auth.uid() as uid,
@@ -32,34 +35,24 @@ as $$
         auth.jwt() ->> 'email',
         (select au.email from auth.users au where au.id = auth.uid()),
         ''
-      ))) as email,
-      lower(trim(coalesce(auth.jwt() -> 'app_metadata' ->> 'role', ''))) as app_role,
-      lower(trim(coalesce(auth.jwt() -> 'user_metadata' ->> 'role', ''))) as user_role
+      ))) as email
   )
   select exists (
     select 1
-    from auth_context ac
-    where ac.uid is not null
+    from public.profiles p
+    cross join auth_context ac
+    where lower(trim(coalesce(p.role, ''))) in ('admin', 'admin/editor', 'administrator')
+      and coalesce(nullif(lower(trim(coalesce(p.status, ''))), ''), 'active') not in ('rejected', 'disabled', 'inactive', 'blocked', 'suspended')
       and (
-        ac.app_role in ('admin', 'administrator', 'admin/editor')
-        or ac.user_role in ('admin', 'administrator', 'admin/editor')
-        or exists (
-          select 1
-          from public.profiles p
-          where lower(trim(coalesce(p.role, ''))) in ('admin', 'administrator', 'admin/editor')
-            and coalesce(nullif(lower(trim(coalesce(p.status, ''))), ''), 'active') not in ('rejected', 'disabled', 'inactive', 'blocked', 'suspended')
-            and (
-              p.id = ac.uid
-              or (ac.email <> '' and lower(trim(coalesce(p.email, ''))) = ac.email)
-            )
-        )
+        (ac.uid is not null and p.id = ac.uid)
+        or (ac.email <> '' and lower(trim(coalesce(p.email, ''))) = ac.email)
       )
   );
 $$;
 
 grant execute on function public.is_app_settings_admin() to anon, authenticated;
 
--- Backward-compatible alias used by older PDF customization SQL.
+-- Backward-compatible alias for existing PDF customization SQL/functions.
 create or replace function public.is_pdf_customization_admin()
 returns boolean
 language sql
@@ -87,12 +80,14 @@ begin
   end loop;
 end $$;
 
+-- Public login/home pages need to read website settings before sign-in.
 create policy "app_settings_read_global"
   on public.app_settings
   for select
   to anon, authenticated
   using (true);
 
+-- Only approved admins can create/update/delete settings.
 create policy "app_settings_insert_admin_only"
   on public.app_settings
   for insert
@@ -112,11 +107,9 @@ create policy "app_settings_delete_admin_only"
   to authenticated
   using (public.is_app_settings_admin());
 
--- Remove older overloaded versions so PostgREST has one exact function signature to find.
-drop function if exists public.save_website_settings(jsonb);
-drop function if exists public.save_website_settings(jsonb, text);
-
-create or replace function public.save_website_settings(next_value jsonb, updated_by_value text)
+-- Secure backend save endpoint for website/login customization.
+-- The frontend uses this instead of direct app_settings.upsert(), avoiding RLS insert errors.
+create or replace function public.save_website_settings(next_value jsonb, updated_by_value text default null)
 returns jsonb
 language plpgsql
 security definer
@@ -152,7 +145,22 @@ $$;
 
 grant execute on function public.save_website_settings(jsonb, text) to authenticated;
 
--- Keep PDF report customization save function compatible if this SQL is run after PDF settings SQL.
+-- Compatibility overload for projects/clients that call the RPC with only next_value.
+create or replace function public.save_website_settings(next_value jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+begin
+  return public.save_website_settings(next_value, null);
+end;
+$$;
+
+grant execute on function public.save_website_settings(jsonb) to authenticated;
+
+
+-- Keep the PDF report save function available if this file is run after PDF settings SQL.
 create or replace function public.save_pdf_report_settings(next_value jsonb, updated_by_value text default null)
 returns jsonb
 language plpgsql
@@ -189,72 +197,13 @@ $$;
 
 grant execute on function public.save_pdf_report_settings(jsonb, text) to authenticated;
 
--- Public bucket for website/background/logo assets used by the frontend.
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values (
-  'app-assets',
-  'app-assets',
-  true,
-  10485760,
-  array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-)
-on conflict (id) do update set
-  public = true,
-  file_size_limit = 10485760,
-  allowed_mime_types = array['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-
-do $$
-declare
-  pol record;
-begin
-  for pol in
-    select policyname
-    from pg_policies
-    where schemaname = 'storage'
-      and tablename = 'objects'
-      and policyname in (
-        'app_assets_public_read',
-        'app_assets_admin_insert',
-        'app_assets_admin_update',
-        'app_assets_admin_delete'
-      )
-  loop
-    execute format('drop policy if exists %I on storage.objects', pol.policyname);
-  end loop;
-end $$;
-
-create policy "app_assets_public_read"
-  on storage.objects
-  for select
-  to anon, authenticated
-  using (bucket_id = 'app-assets');
-
-create policy "app_assets_admin_insert"
-  on storage.objects
-  for insert
-  to authenticated
-  with check (bucket_id = 'app-assets' and public.is_app_settings_admin());
-
-create policy "app_assets_admin_update"
-  on storage.objects
-  for update
-  to authenticated
-  using (bucket_id = 'app-assets' and public.is_app_settings_admin())
-  with check (bucket_id = 'app-assets' and public.is_app_settings_admin());
-
-create policy "app_assets_admin_delete"
-  on storage.objects
-  for delete
-  to authenticated
-  using (bucket_id = 'app-assets' and public.is_app_settings_admin());
-
 -- Default website settings row. Existing customized keys are preserved.
 insert into public.app_settings (key, value, updated_by, updated_at)
 values (
   'website',
   jsonb_build_object(
-    'siteName', 'Pharmacy Research Platform',
-    'adminPanelName', 'Pharmacy Research Platform Control Center',
+    'siteName', 'PharmaTrack Research Platform',
+    'adminPanelName', 'PharmaTrack Control Center',
     'homepageHeadline', 'A web-based Pharmacy Research Project Management System',
     'homepageSubtitle', 'For 5th-year students at Hawler Medical University, College of Pharmacy.',
     'heroImage', '/hero-page.png',
@@ -287,8 +236,7 @@ values (
     'loginShowGradientOverlay', true,
     'loginShowCircles', true,
     'adminWelcome', 'Manage website content, user access, deadlines, projects, database status, and audit activity from one admin control panel.',
-    'maintenanceNotice', '',
-    'assetUpdatedAt', ''
+    'maintenanceNotice', ''
   ),
   'system',
   now()
