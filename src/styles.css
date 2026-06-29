@@ -4434,3 +4434,61 @@ button:disabled {
     border-color: #fca5a5 !important;
   }
 }
+
+/* Global action loading states */
+.button-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 999px;
+  flex: 0 0 auto;
+  animation: action-spin 0.75s linear infinite;
+  vertical-align: -2px;
+}
+
+@keyframes action-spin {
+  to { transform: rotate(360deg); }
+}
+
+button:disabled,
+button[disabled] {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+button .button-spinner {
+  color: currentColor;
+}
+
+.min-button-width {
+  min-width: 118px;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 1rem;
+  border: 1px dashed rgba(37, 99, 235, 0.28);
+  border-radius: 14px;
+  background: rgba(37, 99, 235, 0.055);
+  color: #1e3a8a;
+  font-weight: 700;
+  text-align: center;
+}
+
+.loading-state .button-spinner {
+  color: #2563eb;
+}
+
+@media (max-width: 640px) {
+  .min-button-width {
+    min-width: 100%;
+  }
+}

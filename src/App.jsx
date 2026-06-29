@@ -1068,14 +1068,37 @@ function TextArea({ label, value, onChange, placeholder }) {
   )
 }
 
-function EmptyState({ title, text, icon: Icon = FileText }) {
+function EmptyState({ title = 'No records available.', text = 'No records available.', icon: Icon = FileText }) {
   return (
     <div className="empty-state">
       <Icon size={34} />
       <h3>{title}</h3>
-      <p>{text}</p>
+      <p>{text || 'No records available.'}</p>
     </div>
   )
+}
+
+function LoadingSpinner({ size = 14 }) {
+  return <span className="button-spinner" style={{ width: size, height: size }} aria-hidden="true" />
+}
+
+function LoadingBlock({ text = 'Loading records...' }) {
+  return <div className="loading-state"><LoadingSpinner size={18} /><span>{text}</span></div>
+}
+
+function ButtonContent({ loading = false, loadingText = 'Loading...', icon: Icon, iconSize = 16, children }) {
+  return <>{loading ? <LoadingSpinner size={iconSize} /> : Icon ? <Icon size={iconSize} /> : null}{loading ? loadingText : children}</>
+}
+
+function getActionLoadingText(key = '') {
+  const value = String(key).toLowerCase()
+  if (value.includes('delete') || value.includes('remove') || value.includes('cancel')) return 'Deleting...'
+  if (value.includes('reject')) return 'Rejecting...'
+  if (value.includes('accept') || value.includes('approve')) return 'Accepting...'
+  if (value.includes('revise') || value.includes('revision')) return 'Requesting...'
+  if (value.includes('send') || value.includes('invite') || value.includes('email') || value.includes('resend')) return 'Sending...'
+  if (value.includes('save')) return 'Saving...'
+  return 'Updating...'
 }
 
 function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = false, settings = defaultWebsiteSettings, invitation = null }) {
@@ -1364,6 +1387,7 @@ export default function App() {
   const [tab, setTab] = useState('dashboard')
   const [data, setData] = useState(loadLocalData)
   const [dataLoadError, setDataLoadError] = useState('')
+  const [dataLoading, setDataLoading] = useState(false)
   const [websiteSettings, setWebsiteSettings] = useState(loadWebsiteSettings)
   const [pdfReportSettings, setPdfReportSettings] = useState(loadPdfReportSettings)
   const [adminPanelTab, setAdminPanelTab] = useState(getInitialAdminPanelTab)
@@ -1439,6 +1463,7 @@ export default function App() {
 
   async function loadFromSupabase(userOverride = currentUser) {
     if (!isSupabaseConfigured) return
+    setDataLoading(true)
     try {
       const [profiles, projects, reports, uploadedFiles, deadlines, notifications, evaluations, auditLogs] = await Promise.all([
         supabase.from('profiles').select('*').order('created_at', { ascending: true }),
@@ -1482,6 +1507,8 @@ export default function App() {
     } catch (error) {
       setDataLoadError(error.message || 'Unknown database error')
       setMessage(`Database error: ${error.message}`)
+    } finally {
+      setDataLoading(false)
     }
   }
 
@@ -2008,11 +2035,18 @@ export default function App() {
   }
 
   async function createProject(form) {
-    if (!form.title?.trim()) return setMessage('Please write a research title first.')
-    if (!DEPARTMENT_OPTIONS.includes(form.area)) return setMessage('Please select a valid department.')
+    if (!form.title?.trim()) {
+      setMessage('Please write a research title first.')
+      return { ok: false, error: 'Please write a research title first.' }
+    }
+    if (!DEPARTMENT_OPTIONS.includes(form.area)) {
+      setMessage('Please select a valid department.')
+      return { ok: false, error: 'Please select a valid department.' }
+    }
     const studentAlreadySubmittedTitle = currentUser?.role === 'student' && data.projects.some((project) => isOwnStudentProject(project, currentUser))
     if (studentAlreadySubmittedTitle) {
-      return setMessage('You already submitted a research title. New research title submission is closed for your account.')
+      setMessage('You already submitted a research title. New research title submission is closed for your account.')
+      return { ok: false, error: 'You already submitted a research title.' }
     }
     const project = {
       id: crypto.randomUUID(),
@@ -2037,7 +2071,10 @@ export default function App() {
     if (isSupabaseConfigured) {
       const { id, ...projectForDb } = project
       const { error } = await supabase.from('research_projects').insert(projectForDb)
-      if (error) return setMessage(error.message)
+      if (error) {
+        setMessage(error.message)
+        return { ok: false, error: error.message }
+      }
       await addAudit(currentUser.full_name, 'submitted', 'new research title')
       await loadFromSupabase()
     } else {
@@ -2045,11 +2082,18 @@ export default function App() {
       setLocal((current) => ({ ...current, projects: [project, ...current.projects], auditLogs: [log, ...current.auditLogs] }))
     }
     setMessage('Research title submitted for committee review.')
+    return { ok: true, project }
   }
 
   async function createWeeklyReport(form, file) {
-    if (!form.project_id) return setMessage('Create or select a research project first.')
-    if (!form.completed_work?.trim()) return setMessage('Please write the work completed this week before submitting.')
+    if (!form.project_id) {
+      setMessage('Create or select a research project first.')
+      return { ok: false, error: 'Create or select a research project first.' }
+    }
+    if (!form.completed_work?.trim()) {
+      setMessage('Please write the work completed this week before submitting.')
+      return { ok: false, error: 'Please write the work completed this week before submitting.' }
+    }
     const nextWeek = Math.max(
       0,
       ...data.reports
@@ -2081,12 +2125,16 @@ export default function App() {
     if (isSupabaseConfigured) {
       const { id, ...reportForDb } = report
       const { data: inserted, error } = await supabase.from('weekly_reports').insert(reportForDb).select().single()
-      if (error) return setMessage(error.message)
+      if (error) {
+        setMessage(error.message)
+        return { ok: false, error: error.message }
+      }
       try {
         if (file) await uploadProjectFile(file, form.project_id, inserted.id, 'Weekly Report Evidence')
       } catch (uploadError) {
         await loadFromSupabase()
-        return setMessage(`Weekly report saved, but the attachment was not uploaded: ${uploadError.message}`)
+        setMessage(`Weekly report saved, but the attachment was not uploaded: ${uploadError.message}`)
+        return { ok: true, warning: uploadError.message }
       }
       try {
         await notifySupervisorAboutSubmittedReport({ ...inserted, id: inserted.id })
@@ -2126,6 +2174,7 @@ export default function App() {
       }))
     }
     setMessage(file ? 'Weekly report and attachment submitted successfully.' : 'Weekly report submitted successfully.')
+    return { ok: true, report }
   }
 
   async function uploadProjectFile(file, projectId, reportId, fileType) {
@@ -2291,7 +2340,10 @@ export default function App() {
 
     if (isSupabaseConfigured) {
       const { error } = await supabase.from('weekly_reports').update({ status, supervisor_feedback: feedback, score }).eq('id', reportId)
-      if (error) return setMessage(error.message)
+      if (error) {
+        setMessage(error.message)
+        return { ok: false, error: error.message }
+      }
 
       const progressUpdate = await supabase.from('research_projects').update({ progress: nextProgress }).eq('id', targetReport.project_id)
       if (progressUpdate.error) return setMessage(progressUpdate.error.message)
@@ -2981,12 +3033,18 @@ export default function App() {
   }
 
   async function createNotification(form) {
-    if (!form.title.trim() || !form.message.trim()) return setMessage('Please write notification title and message.')
+    if (!form.title.trim() || !form.message.trim()) {
+      setMessage('Please write notification title and message.')
+      return { ok: false, error: 'Please write notification title and message.' }
+    }
     const note = { id: crypto.randomUUID(), title: form.title, message: form.message, type: form.type, target_role: form.target_role, is_read: false, created_at: new Date().toISOString() }
     if (isSupabaseConfigured) {
       const { id, ...noteForDb } = note
       const { error } = await supabase.from('notifications').insert(noteForDb)
-      if (error) return setMessage(error.message)
+      if (error) {
+        setMessage(error.message)
+        return { ok: false, error: error.message }
+      }
       await addAudit(currentUser.full_name, 'created', 'notification/reminder')
       await loadFromSupabase()
     } else {
@@ -2994,6 +3052,7 @@ export default function App() {
       setLocal((current) => ({ ...current, notifications: [note, ...current.notifications], auditLogs: [log, ...current.auditLogs] }))
     }
     setMessage('Notification created.')
+    return { ok: true, notification: note }
   }
 
   async function createDeadline(form) {
@@ -3330,6 +3389,7 @@ export default function App() {
         deleteResearchGroup={deleteResearchGroup}
         deleteResearchProject={deleteResearchProject}
         loadError={dataLoadError}
+        dataLoading={dataLoading}
         assignStudentToSupervisor={assignStudentToSupervisor}
         createInvitation={createInvitation}
         resendInvitation={resendInvitation}
@@ -3376,15 +3436,15 @@ export default function App() {
 
             {allowedRole === 'supervisor' && <FilterBar filters={filters} setFilters={setFilters} projects={visibleProjects} />}
 
-            {allowedRole === 'student' && <StudentDashboard data={visibleData} projects={visibleProjects} currentUser={currentUser} createProject={createProject} createWeeklyReport={createWeeklyReport} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
-            {allowedRole === 'supervisor' && <SupervisorDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} reviewReport={reviewReport} createDeadline={createDeadline} removeDeadline={removeDeadline} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
-            {allowedRole === 'committee' && <CommitteeDashboard data={visibleData} projects={visibleProjects} updateProject={updateProject} saveEvaluation={saveEvaluation} />}
-            {allowedRole === 'admin' && <AdminDashboard data={visibleData} projects={visibleProjects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} assignStudentToSupervisor={assignStudentToSupervisor} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} loadError={dataLoadError} />}
+            {allowedRole === 'student' && <StudentDashboard data={visibleData} projects={visibleProjects} currentUser={currentUser} createProject={createProject} createWeeklyReport={createWeeklyReport} dataLoading={dataLoading} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
+            {allowedRole === 'supervisor' && <SupervisorDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} dataLoading={dataLoading} reviewReport={reviewReport} createDeadline={createDeadline} removeDeadline={removeDeadline} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
+            {allowedRole === 'committee' && <CommitteeDashboard data={visibleData} projects={visibleProjects} dataLoading={dataLoading} updateProject={updateProject} saveEvaluation={saveEvaluation} />}
+            {allowedRole === 'admin' && <AdminDashboard data={visibleData} projects={visibleProjects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} assignStudentToSupervisor={assignStudentToSupervisor} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} loadError={dataLoadError} dataLoading={dataLoading} />}
           </>
         )}
 
-        {tab === 'notifications' && <NotificationsTab data={data} role={allowedRole} currentUser={currentUser} createNotification={createNotification} markNotificationRead={markNotificationRead} removeNotification={removeNotification} />}
-        {tab === 'reports' && <ReportsTab data={visibleData} projects={filteredProjects} currentUser={currentUser} role={allowedRole} printPdfReport={printPdfReport} exportCsv={exportCsv} pdfReportSettings={pdfReportSettings} />}
+        {tab === 'notifications' && <NotificationsTab data={data} role={allowedRole} currentUser={currentUser} dataLoading={dataLoading} createNotification={createNotification} markNotificationRead={markNotificationRead} removeNotification={removeNotification} />}
+        {tab === 'reports' && <ReportsTab data={visibleData} projects={filteredProjects} currentUser={currentUser} role={allowedRole} printPdfReport={printPdfReport} exportCsv={exportCsv} pdfReportSettings={pdfReportSettings} dataLoading={dataLoading} />}
         {tab === 'database' && allowedRole === 'admin' && <DatabaseTab databaseMode={databaseMode} />}
         {tab === 'database' && allowedRole !== 'admin' && <div className="card"><SectionHeader icon={Lock} title="Database Access Locked" subtitle="Only Admin accounts can view database status" /><p className="muted">Please use your role dashboard, notifications, or reports page.</p></div>}
         {tab === 'audit' && allowedRole === 'admin' && <AuditTab logs={visibleData.auditLogs} />}
@@ -3496,9 +3556,11 @@ function AdminControlPanel({
   onLogout,
   message,
   loadError = '',
+  dataLoading = false,
 }) {
   const [draft, setDraft] = useState(settings)
   const [brandingError, setBrandingError] = useState('')
+  const [panelActionLoading, setPanelActionLoading] = useState('')
   useEffect(() => {
     setDraft(settings)
   }, [settings])
@@ -3532,13 +3594,14 @@ function AdminControlPanel({
   }
 
   async function handleImageUpload(key, file) {
-    if (!file) return
+    if (!file || panelActionLoading) return
     if (!file.type?.startsWith('image/')) {
       setBrandingError('Please choose a valid image file.')
       return
     }
 
     try {
+      setPanelActionLoading(`upload-${key}`)
       setBrandingError('Uploading image...')
       const isLogo = key === 'loginLogoImage'
       const outputType = isLogo && file.type === 'image/png' ? 'image/png' : 'image/jpeg'
@@ -3583,6 +3646,18 @@ function AdminControlPanel({
       } catch {
         setBrandingError(error.message || 'Could not upload the selected image. Try a smaller JPG or PNG file.')
       }
+    } finally {
+      setPanelActionLoading('')
+    }
+  }
+
+  async function runPanelAction(key, action) {
+    if (panelActionLoading) return
+    setPanelActionLoading(key)
+    try {
+      await action()
+    } finally {
+      setPanelActionLoading('')
     }
   }
 
@@ -3606,7 +3681,7 @@ function AdminControlPanel({
       window.alert('Please keep title size between 24–120 px, and description/feature text size between 12–60 px.')
       return
     }
-    updateSettings(draft)
+    return updateSettings(draft)
   }
 
   const pendingUsers = data.profiles.filter((u) => (u.status || 'Pending') === 'Pending').length
@@ -3654,6 +3729,7 @@ function AdminControlPanel({
         </header>
 
         {message && <div className="message no-print">{message}</div>}
+        {dataLoading && <LoadingBlock text="Loading admin records..." />}
 
         {adminPanelTab === 'overview' && (
           <div className="admin-panel-stack">
@@ -3728,8 +3804,8 @@ function AdminControlPanel({
               </div>
 
               <div className="settings-actions">
-                <button className="primary" onClick={() => updateSettings(draft)}><Save size={16} /> Save Website Settings</button>
-                <button className="secondary" onClick={resetSettings}>Reset Defaults</button>
+                <button className="primary min-button-width" disabled={Boolean(panelActionLoading)} onClick={() => runPanelAction('save-website', () => updateSettings(draft))}><ButtonContent loading={panelActionLoading === 'save-website'} loadingText="Saving..." icon={Save}>Save Website Settings</ButtonContent></button>
+                <button className="secondary min-button-width" disabled={Boolean(panelActionLoading)} onClick={() => runPanelAction('reset-website', resetSettings)}><ButtonContent loading={panelActionLoading === 'reset-website'} loadingText="Resetting..." icon={RefreshCw}>Reset Defaults</ButtonContent></button>
               </div>
             </div>
 
@@ -3798,7 +3874,7 @@ function AdminControlPanel({
               {brandingError && <div className="message">{brandingError}</div>}
 
               <div className="settings-actions">
-                <button className="primary" onClick={saveLoginPageSettings}><Save size={16} /> Save Login Page Settings</button>
+                <button className="primary min-button-width" disabled={Boolean(panelActionLoading)} onClick={() => runPanelAction('save-login', saveLoginPageSettings)}><ButtonContent loading={panelActionLoading === 'save-login'} loadingText="Saving..." icon={Save}>Save Login Page Settings</ButtonContent></button>
                 <button className="secondary" onClick={() => setDraft((current) => ({
                   ...current,
                   loginBackgroundImage: defaultWebsiteSettings.loginBackgroundImage,
@@ -3889,7 +3965,7 @@ function AdminControlPanel({
         {adminPanelTab === 'users' && <AdminDashboard data={data} projects={projects} currentUser={currentUser} loadError={loadError} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} assignStudentToSupervisor={assignStudentToSupervisor} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} />}
         {adminPanelTab === 'deadlines' && <DeadlineManager deadlines={data.deadlines} createDeadline={createDeadline} removeDeadline={removeDeadline} students={data.profiles.filter((profile) => profile.role === 'student').map((student) => ({ key: makeStudentOptionKey(student), id: student.id, name: student.full_name, email: student.email, group: student.department || student.area || 'Student' }))} currentUser={currentUser} />}
         {adminPanelTab === 'notifications' && <NotificationsTab data={data} role="admin" currentUser={currentUser} createNotification={createNotification} markNotificationRead={markNotificationRead} removeNotification={removeNotification} />}
-        {adminPanelTab === 'reports' && <ReportsTab data={data} projects={projects} currentUser={currentUser} role="admin" printPdfReport={printPdfReport} exportCsv={exportCsv} pdfReportSettings={pdfReportSettings} />}
+        {adminPanelTab === 'reports' && <ReportsTab data={data} projects={projects} currentUser={currentUser} role="admin" printPdfReport={printPdfReport} exportCsv={exportCsv} pdfReportSettings={pdfReportSettings} dataLoading={dataLoading} />}
         {adminPanelTab === 'pdf-report' && <PdfReportCustomizationPanel settings={pdfReportSettings} updateSettings={updatePdfReportSettings} uploadLogo={uploadPdfReportLogo} removeLogo={removePdfReportLogo} resetSettings={resetPdfReportSettings} data={data} projects={projects} currentUser={currentUser} printPdfReport={printPdfReport} />}
         {adminPanelTab === 'database' && <DatabaseTab databaseMode={databaseMode} />}
         {adminPanelTab === 'audit' && <AuditTab logs={auditLogs} />}
@@ -3911,6 +3987,7 @@ function InvitationManager({ invitations, settings, createInvitation, resendInvi
   })
   const [filters, setFilters] = useState({ search: '', role: 'all', status: 'all' })
   const [previewOpen, setPreviewOpen] = useState(true)
+  const [invitationActionLoading, setInvitationActionLoading] = useState('')
 
   function updateRole(role) {
     setForm((current) => ({
@@ -3950,9 +4027,30 @@ function InvitationManager({ invitations, settings, createInvitation, resendInvi
     return matchesSearch && matchesRole && matchesStatus
   })
 
+  async function runInvitationAction(key, action) {
+    if (invitationActionLoading) return
+    setInvitationActionLoading(key)
+    try {
+      await action()
+    } finally {
+      setInvitationActionLoading('')
+    }
+  }
+
   async function handleSendInvitation() {
-    const created = await createInvitation(form, { openEmail: !isSupabaseConfigured })
-    if (created) resetForm()
+    await runInvitationAction('send-invitation', async () => {
+      const created = await createInvitation(form, { openEmail: !isSupabaseConfigured })
+      if (created) resetForm()
+    })
+  }
+
+  async function handleResendInvitation(invitationId) {
+    await runInvitationAction(`resend-${invitationId}`, () => resendInvitation(invitationId))
+  }
+
+  async function handleCancelInvitation(invitationId) {
+    if (!window.confirm('Are you sure you want to cancel this invitation?')) return
+    await runInvitationAction(`cancel-${invitationId}`, () => cancelInvitation(invitationId))
   }
 
   return (
@@ -3973,7 +4071,7 @@ function InvitationManager({ invitations, settings, createInvitation, resendInvi
           </div>
           <div className="settings-actions">
             <button className="secondary" type="button" onClick={() => setPreviewOpen((current) => !current)}><Eye size={16} /> {previewOpen ? 'Hide Preview' : 'Preview Email'}</button>
-            <button className="primary" type="button" onClick={handleSendInvitation}><Send size={16} /> Send Invitation</button>
+            <button className="primary min-button-width" type="button" disabled={Boolean(invitationActionLoading)} onClick={handleSendInvitation}><ButtonContent loading={invitationActionLoading === 'send-invitation'} loadingText="Sending..." icon={Send}>Send Invitation</ButtonContent></button>
           </div>
         </div>
 
@@ -4013,8 +4111,8 @@ function InvitationManager({ invitations, settings, createInvitation, resendInvi
                     <td>
                       <div className="invitation-row-actions">
                         <button className="secondary compact-button" onClick={() => copyInvitationLink(item)}><Copy size={14} /> Copy</button>
-                        <button className="secondary compact-button" onClick={() => resendInvitation(item.id)}><RefreshCw size={14} /> Resend</button>
-                        {status === 'Pending' && <button className="danger compact-button" onClick={() => cancelInvitation(item.id)}><XCircle size={14} /> Cancel</button>}
+                        <button className="secondary compact-button min-button-width" disabled={Boolean(invitationActionLoading)} onClick={() => handleResendInvitation(item.id)}><ButtonContent loading={invitationActionLoading === `resend-${item.id}`} loadingText="Sending..." icon={RefreshCw} iconSize={14}>Resend</ButtonContent></button>
+                        {status === 'Pending' && <button className="danger compact-button min-button-width" disabled={Boolean(invitationActionLoading)} onClick={() => handleCancelInvitation(item.id)}><ButtonContent loading={invitationActionLoading === `cancel-${item.id}`} loadingText="Cancelling..." icon={XCircle} iconSize={14}>Cancel</ButtonContent></button>}
                       </div>
                     </td>
                   </tr>
@@ -4072,7 +4170,7 @@ function FilterBar({ filters, setFilters, projects }) {
   )
 }
 
-function StudentDashboard({ data, projects, currentUser, createProject, createWeeklyReport, sendWeeklyReportToMyEmail, emailSendingReports = {} }) {
+function StudentDashboard({ data, projects, currentUser, createProject, createWeeklyReport, dataLoading = false, sendWeeklyReportToMyEmail, emailSendingReports = {} }) {
   const ownProjects = projects.filter((p) => isOwnStudentProject(p, currentUser))
   const selectedProject = ownProjects[0] || data.projects.find((p) => isOwnStudentProject(p, currentUser))
   const hasSubmittedResearchTitle = Boolean(selectedProject)
@@ -4081,6 +4179,34 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
   const [titleForm, setTitleForm] = useState({ title: '', area: DEFAULT_DEPARTMENT, group_name: `${currentUser.full_name} Research Group`, final_due: '2026-06-20' })
   const [reportForm, setReportForm] = useState({ completed_work: '', challenges: '', next_week_plan: '', attendance: 'Attended' })
   const [file, setFile] = useState(null)
+  const [submittingReport, setSubmittingReport] = useState(false)
+  const [submittingTitle, setSubmittingTitle] = useState(false)
+
+  async function handleSubmitWeeklyReport() {
+    if (submittingReport) return
+    setSubmittingReport(true)
+    try {
+      const result = await createWeeklyReport({ ...reportForm, project_id: selectedProject.id, submitted_by: currentUser.full_name }, file)
+      if (result?.ok) {
+        setReportForm({ completed_work: '', challenges: '', next_week_plan: '', attendance: 'Attended' })
+        setFile(null)
+      }
+    } finally {
+      setSubmittingReport(false)
+    }
+  }
+
+  async function handleSubmitResearchTitle() {
+    if (submittingTitle) return
+    setSubmittingTitle(true)
+    try {
+      await createProject(titleForm)
+    } finally {
+      setSubmittingTitle(false)
+    }
+  }
+
+  if (dataLoading) return <LoadingBlock text="Loading student dashboard..." />
 
   return (
     <div className="stack student-dashboard-layout">
@@ -4126,7 +4252,7 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
                   </select>
                 </label>
               </div>
-              <button className="primary" onClick={() => createWeeklyReport({ ...reportForm, project_id: selectedProject.id, submitted_by: currentUser.full_name }, file)}><Upload size={16} /> Submit Weekly Report</button>
+              <button className="primary min-button-width" type="button" disabled={submittingReport} onClick={handleSubmitWeeklyReport}><ButtonContent loading={submittingReport} loadingText="Submitting..." icon={Upload}>Submit Weekly Report</ButtonContent></button>
             </>
           ) : <EmptyState title="Weekly reports locked" text="Create a research project first, then weekly report submission will be available." icon={Lock} />}
         </div>
@@ -4169,18 +4295,19 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
             <input value={titleForm.group_name} onChange={(e) => setTitleForm({ ...titleForm, group_name: e.target.value })} placeholder="Group name" />
             <input type="date" value={titleForm.final_due} onChange={(e) => setTitleForm({ ...titleForm, final_due: e.target.value })} />
           </div>
-          <button className="primary" onClick={() => createProject(titleForm)}>Submit Title</button>
+          <button className="primary min-button-width" type="button" disabled={submittingTitle} onClick={handleSubmitResearchTitle}><ButtonContent loading={submittingTitle} loadingText="Submitting..." icon={FileText}>Submit Title</ButtonContent></button>
         </div>
       )}
     </div>
   )
 }
 
-function SupervisorDashboard({ data, projects, currentUser, reviewReport, createDeadline, removeDeadline, sendWeeklyReportToMyEmail, emailSendingReports = {} }) {
+function SupervisorDashboard({ data, projects, currentUser, dataLoading = false, reviewReport, createDeadline, removeDeadline, sendWeeklyReportToMyEmail, emailSendingReports = {} }) {
   const [feedback, setFeedback] = useState({})
   const [selectedStudent, setSelectedStudent] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
   const [selectedGroup, setSelectedGroup] = useState('all')
+  const [reviewLoadingKey, setReviewLoadingKey] = useState('')
   const assignedProjects = useMemo(() => projects.filter((p) => isAssignedSupervisorProject(p, currentUser)), [projects, currentUser])
   const supervisorProgressProjects = useMemo(() => getSupervisorProgressProjects(data, assignedProjects), [data, assignedProjects])
   const studentOptions = useMemo(() => getAssignedSupervisorStudents(data, assignedProjects, []), [data, assignedProjects])
@@ -4205,6 +4332,19 @@ function SupervisorDashboard({ data, projects, currentUser, reviewReport, create
   })
 
   const selectedStudentName = selectedStudent === 'all' ? '' : studentOptions.find((student) => student.key === selectedStudent)?.name
+
+  async function handleReviewAction(reportId, status, fallbackFeedback) {
+    const key = `${reportId}-${status}`
+    if (reviewLoadingKey) return
+    setReviewLoadingKey(key)
+    try {
+      await reviewReport(reportId, status, feedback[reportId] || fallbackFeedback)
+    } finally {
+      setReviewLoadingKey('')
+    }
+  }
+
+  if (dataLoading) return <LoadingBlock text="Loading supervisor reports..." />
 
   return (
     <div className="stack">
@@ -4286,9 +4426,9 @@ function SupervisorDashboard({ data, projects, currentUser, reviewReport, create
                       placeholder="Supervisor feedback"
                     />
                     <div className="supervisor-feedback-actions">
-                      <button onClick={() => reviewReport(r.id, 'Accepted', feedback[r.id] || 'Accepted. Continue with the next milestone.')} className="success">Approve</button>
-                      <button onClick={() => reviewReport(r.id, 'Revision Required', feedback[r.id] || 'Revision required. Please add more detail.')} className="warning">Request Revision</button>
-                      <button onClick={() => reviewReport(r.id, 'Rejected', feedback[r.id] || 'Rejected. Please meet your supervisor for guidance.')} className="danger">Reject</button>
+                      <button onClick={() => handleReviewAction(r.id, 'Accepted', 'Accepted. Continue with the next milestone.')} disabled={Boolean(reviewLoadingKey)} className="success min-button-width"><ButtonContent loading={reviewLoadingKey === `${r.id}-Accepted`} loadingText="Accepting..." icon={CheckCircle2}>Approve</ButtonContent></button>
+                      <button onClick={() => handleReviewAction(r.id, 'Revision Required', 'Revision required. Please add more detail.')} disabled={Boolean(reviewLoadingKey)} className="warning min-button-width"><ButtonContent loading={reviewLoadingKey === `${r.id}-Revision Required`} loadingText="Requesting..." icon={RefreshCw}>Request Revision</ButtonContent></button>
+                      <button onClick={() => handleReviewAction(r.id, 'Rejected', 'Rejected. Please meet your supervisor for guidance.')} disabled={Boolean(reviewLoadingKey)} className="danger min-button-width"><ButtonContent loading={reviewLoadingKey === `${r.id}-Rejected`} loadingText="Rejecting..." icon={XCircle}>Reject</ButtonContent></button>
                     </div>
                   </div>
                 </div>
@@ -4418,6 +4558,7 @@ function DeadlineManager({ deadlines, createDeadline, removeDeadline, students =
   const [studentSelectError, setStudentSelectError] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
   const [savingDeadline, setSavingDeadline] = useState(false)
+  const [removingDeadlineId, setRemovingDeadlineId] = useState('')
 
   const selectedStudents = form.target_scope === 'all_assigned'
     ? students
@@ -4455,13 +4596,26 @@ function DeadlineManager({ deadlines, createDeadline, removeDeadline, students =
     if (savingDeadline) return
     if (!validateDeadlineForm()) return
     setSavingDeadline(true)
-    const result = await createDeadline({
-      ...form,
-      selected_students: selectedStudents,
-      target_scope: form.target_scope,
-    })
-    setSavingDeadline(false)
-    if (result?.ok) resetForm()
+    try {
+      const result = await createDeadline({
+        ...form,
+        selected_students: selectedStudents,
+        target_scope: form.target_scope,
+      })
+      if (result?.ok) resetForm()
+    } finally {
+      setSavingDeadline(false)
+    }
+  }
+
+  async function handleRemoveDeadline(deadlineId) {
+    if (removingDeadlineId) return
+    setRemovingDeadlineId(String(deadlineId))
+    try {
+      await removeDeadline(deadlineId)
+    } finally {
+      setRemovingDeadlineId('')
+    }
   }
 
   return (
@@ -4500,7 +4654,7 @@ function DeadlineManager({ deadlines, createDeadline, removeDeadline, students =
           <label className="field deadline-description-field"><span>Description</span><textarea value={form.description} onChange={(e) => updateFormField('description', e.target.value)} placeholder="Write deadline details or instructions" /></label>
           <div className="deadline-actions">
             <button className="primary" type="submit" disabled={savingDeadline || !hasValidDeadlineRecipients}>
-              <CalendarDays size={16} /> {savingDeadline ? 'Adding Deadline...' : 'Add Deadline'}
+              <ButtonContent loading={savingDeadline} loadingText="Adding..." icon={CalendarDays}>Add Deadline</ButtonContent>
             </button>
             {!hasValidDeadlineRecipients && <small className="form-error-text deadline-action-error">Please select at least one student.</small>}
           </div>
@@ -4516,7 +4670,7 @@ function DeadlineManager({ deadlines, createDeadline, removeDeadline, students =
               {hasDeadlineTargets(d) && <p className="small muted"><b>Students:</b> {listValue(d.target_student_names).join(', ') || listValue(d.target_student_emails).join(', ') || 'Selected students'}</p>}
               <Pill tone={d.status === 'Active' ? 'green' : d.status === 'Completed' ? 'blue' : 'slate'}>{d.status || 'Active'}</Pill>
             </div>
-            <button className="danger compact-button" type="button" onClick={() => removeDeadline(d.id)}>Remove</button>
+            <button className="danger compact-button min-button-width" type="button" disabled={Boolean(removingDeadlineId)} onClick={() => handleRemoveDeadline(d.id)}><ButtonContent loading={String(removingDeadlineId) === String(d.id)} loadingText="Removing..." icon={Trash2} iconSize={14}>Remove</ButtonContent></button>
           </div>
         )) : <EmptyState title="No deadlines" text="Add the first supervisor deadline using the form above." icon={CalendarDays} />}
       </div>
@@ -4583,7 +4737,7 @@ function ProjectProgressSection({ projects = [], reports = [], students = [] }) 
   )
 }
 
-function CommitteeDashboard({ data = emptyData, projects = [], updateProject, saveEvaluation }) {
+function CommitteeDashboard({ data = emptyData, projects = [], dataLoading = false, updateProject, saveEvaluation }) {
   const reports = Array.isArray(data?.reports) ? data.reports : []
   const evaluations = Array.isArray(data?.evaluations) ? data.evaluations : []
   const sourceProjects = Array.isArray(projects) ? projects : []
@@ -4685,11 +4839,16 @@ function CommitteeDashboard({ data = emptyData, projects = [], updateProject, sa
       return
     }
     setSavingEvaluation(true)
-    const result = await saveEvaluation({ ...evalForm, project_id: selectedProject.id })
-    setSavingEvaluation(false)
-    if (result?.ok) setEvalMessage('Final evaluation saved successfully.')
-    else setEvalMessage('Could not save final evaluation. Please check the message above and try again.')
+    try {
+      const result = await saveEvaluation({ ...evalForm, project_id: selectedProject.id })
+      if (result?.ok) setEvalMessage('Final evaluation saved successfully.')
+      else setEvalMessage('Could not save final evaluation. Please check the message above and try again.')
+    } finally {
+      setSavingEvaluation(false)
+    }
   }
+
+  if (dataLoading) return <LoadingBlock text="Loading research committee records..." />
 
   return (
     <div className="stack committee-dashboard-layout">
@@ -4745,7 +4904,7 @@ function CommitteeDashboard({ data = emptyData, projects = [], updateProject, sa
             <label className="field"><span>Comments</span><textarea value={evalForm.comments} onChange={(e) => setEvalForm((current) => ({ ...current, comments: e.target.value }))} placeholder="Final evaluation comments" /></label>
             <div className="final-evaluation-actions">
               <div className="total-box final-total-box"><p>Total</p><h2>{total}/50</h2></div>
-              <button className="primary" type="button" disabled={savingEvaluation || hasInvalidScore} onClick={submitFinalEvaluation}><CheckCircle2 size={16} /> {savingEvaluation ? 'Saving...' : existingEvaluation ? 'Update Final Evaluation' : 'Save Final Evaluation'}</button>
+              <button className="primary min-button-width" type="button" disabled={savingEvaluation || hasInvalidScore} onClick={submitFinalEvaluation}><ButtonContent loading={savingEvaluation} loadingText="Saving..." icon={CheckCircle2}>{existingEvaluation ? 'Update Final Evaluation' : 'Save Final Evaluation'}</ButtonContent></button>
             </div>
             {evalMessage && <div className={`message ${evalMessage.includes('success') ? 'success-message' : ''}`}>{evalMessage}</div>}
           </div>
@@ -4758,7 +4917,7 @@ function CommitteeDashboard({ data = emptyData, projects = [], updateProject, sa
 }
 
 
-function AdminDashboard({ data = emptyData, projects = [], currentUser, loadError = '', updateProject, updateUserRole, updateUserStatus, assignStudentToSupervisor, exportCsv, deleteWeeklyReport, deleteUploadedFile, deleteUserAccount, deleteResearchGroup, deleteResearchProject }) {
+function AdminDashboard({ data = emptyData, projects = [], currentUser, loadError = '', dataLoading = false, updateProject, updateUserRole, updateUserStatus, assignStudentToSupervisor, exportCsv, deleteWeeklyReport, deleteUploadedFile, deleteUserAccount, deleteResearchGroup, deleteResearchProject }) {
   const usersLoading = !data || !Array.isArray(data.profiles)
   data = cleanData({
     ...emptyData,
@@ -4876,8 +5035,8 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
   function AdminPanelDeleteButton({ itemKey, label, onDelete }) {
     const loading = adminActionLoading === itemKey
     return (
-      <button className="danger compact-button delete-item-button admin-panel-delete-button" type="button" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(itemKey, onDelete)}>
-        <Trash2 size={14} /> {loading ? 'Deleting...' : label}
+      <button className="danger compact-button delete-item-button admin-panel-delete-button min-button-width" type="button" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(itemKey, onDelete)}>
+        <ButtonContent loading={loading} loadingText="Deleting..." icon={Trash2} iconSize={14}>{label}</ButtonContent>
       </button>
     )
   }
@@ -4890,6 +5049,8 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
       supervisor_email: supervisor?.email || '',
     })
   }
+
+  if (dataLoading) return <LoadingBlock text="Loading users..." />
 
   return (
     <div className="admin-dashboard-grid full-admin-dashboard-grid">
@@ -4982,10 +5143,10 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
                     </label>
                   )}
 
-                  {userTab === 'pending' && !isCurrentAdmin && <button className="success compact-button" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`accept-${u.id}`, () => updateUserStatus(u.id, 'Active'))}>Accept</button>}
-                  {userTab === 'pending' && !isCurrentAdmin && <button className="danger compact-button" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`reject-${u.id}`, () => updateUserStatus(u.id, 'Rejected'))}>Reject</button>}
-                  {userTab === 'rejected' && !isCurrentAdmin && <button className="warning compact-button" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`pending-${u.id}`, () => updateUserStatus(u.id, 'Pending'))}>Move to Pending</button>}
-                  {userTab === 'rejected' && !isCurrentAdmin && <button className="success compact-button" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`accept-${u.id}`, () => updateUserStatus(u.id, 'Active'))}>Accept</button>}
+                  {userTab === 'pending' && !isCurrentAdmin && <button className="success compact-button min-button-width" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`accept-${u.id}`, () => updateUserStatus(u.id, 'Active'))}><ButtonContent loading={adminActionLoading === `accept-${u.id}`} loadingText="Accepting..." icon={CheckCircle2} iconSize={14}>Accept</ButtonContent></button>}
+                  {userTab === 'pending' && !isCurrentAdmin && <button className="danger compact-button min-button-width" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`reject-${u.id}`, () => updateUserStatus(u.id, 'Rejected'))}><ButtonContent loading={adminActionLoading === `reject-${u.id}`} loadingText="Rejecting..." icon={XCircle} iconSize={14}>Reject</ButtonContent></button>}
+                  {userTab === 'rejected' && !isCurrentAdmin && <button className="warning compact-button min-button-width" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`pending-${u.id}`, () => updateUserStatus(u.id, 'Pending'))}><ButtonContent loading={adminActionLoading === `pending-${u.id}`} loadingText="Updating..." icon={RefreshCw} iconSize={14}>Move to Pending</ButtonContent></button>}
+                  {userTab === 'rejected' && !isCurrentAdmin && <button className="success compact-button min-button-width" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`accept-${u.id}`, () => updateUserStatus(u.id, 'Active'))}><ButtonContent loading={adminActionLoading === `accept-${u.id}`} loadingText="Accepting..." icon={CheckCircle2} iconSize={14}>Accept</ButtonContent></button>}
                   {canDeleteUserAccount(u, currentUser) && deleteUserAccount && (
                     <AdminPanelDeleteButton itemKey={`user-${u.id}`} label="Delete Account" onDelete={() => deleteUserAccount(u.id)} />
                   )}
@@ -5015,8 +5176,8 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
                 <p className="small muted">Supervisor: {p.supervisor_name || 'Pending Assignment'}</p>
               </div>
               <div className="stacked-actions">
-                <button className="secondary compact-button" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`project-assign-${p.id}`, () => handleProjectSupervisorAssign(p.id))}>Update Supervisor</button>
-                <button className="warning compact-button" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`project-unassign-${p.id}`, () => updateProject(p.id, { supervisor_name: 'Pending Assignment', supervisor_id: null, supervisor_email: '' }))}>Remove Assignment</button>
+                <button className="secondary compact-button min-button-width" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`project-assign-${p.id}`, () => handleProjectSupervisorAssign(p.id))}><ButtonContent loading={adminActionLoading === `project-assign-${p.id}`} loadingText="Updating..." icon={UserCog} iconSize={14}>Update Supervisor</ButtonContent></button>
+                <button className="warning compact-button min-button-width" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`project-unassign-${p.id}`, () => updateProject(p.id, { supervisor_name: 'Pending Assignment', supervisor_id: null, supervisor_email: '' }))}><ButtonContent loading={adminActionLoading === `project-unassign-${p.id}`} loadingText="Removing..." icon={XCircle} iconSize={14}>Remove Assignment</ButtonContent></button>
               </div>
             </div>
           )) : <EmptyState title="No projects to assign" text="Project assignments appear after students submit titles." icon={BookOpen} />}
@@ -5124,14 +5285,46 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
 }
 
 function ProjectDecisionTable({ projects, updateProject }) {
+  const [decisionLoading, setDecisionLoading] = useState('')
+
+  async function runDecision(projectId, decision, fields) {
+    const key = `${projectId}-${decision}`
+    if (decisionLoading) return
+    setDecisionLoading(key)
+    try {
+      await updateProject(projectId, fields)
+    } finally {
+      setDecisionLoading('')
+    }
+  }
+
   return (
-    <div className="table-wrap"><table><thead><tr><th>Project</th><th>Area</th><th>Progress</th><th>Decision</th></tr></thead><tbody>{projects.map((p) => <tr key={p.id}><td><b>{p.group_name}</b><p>{p.title}</p></td><td>{p.area}</td><td><ProgressBar value={p.progress} /><p className="small muted">{formatProgress(p.progress)}%</p></td><td><button className="success" onClick={() => updateProject(p.id, { approval: 'Approved', status: 'Ongoing' })}>Approve</button><button className="warning" onClick={() => updateProject(p.id, { approval: 'Revision Required', status: 'Needs Attention' })}>Revise</button><button className="danger" onClick={() => updateProject(p.id, { approval: 'Rejected', status: 'Rejected' })}>Reject</button><br /><Pill tone={p.approval === 'Approved' ? 'green' : p.approval === 'Rejected' ? 'red' : 'amber'}>{p.approval}</Pill></td></tr>)}</tbody></table></div>
+    <div className="table-wrap"><table><thead><tr><th>Project</th><th>Area</th><th>Progress</th><th>Decision</th></tr></thead><tbody>{projects.map((p) => {
+      const approvedKey = `${p.id}-approve`
+      const reviseKey = `${p.id}-revise`
+      const rejectKey = `${p.id}-reject`
+      return (
+        <tr key={p.id}>
+          <td><b>{p.group_name}</b><p>{p.title}</p></td>
+          <td>{p.area}</td>
+          <td><ProgressBar value={p.progress} /><p className="small muted">{formatProgress(p.progress)}%</p></td>
+          <td>
+            <button className="success min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'approve', { approval: 'Approved', status: 'Ongoing' })}><ButtonContent loading={decisionLoading === approvedKey} loadingText="Accepting..." icon={CheckCircle2}>Approve</ButtonContent></button>
+            <button className="warning min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'revise', { approval: 'Revision Required', status: 'Needs Attention' })}><ButtonContent loading={decisionLoading === reviseKey} loadingText="Requesting..." icon={RefreshCw}>Revise</ButtonContent></button>
+            <button className="danger min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'reject', { approval: 'Rejected', status: 'Rejected' })}><ButtonContent loading={decisionLoading === rejectKey} loadingText="Rejecting..." icon={XCircle}>Reject</ButtonContent></button>
+            <br /><Pill tone={p.approval === 'Approved' ? 'green' : p.approval === 'Rejected' ? 'red' : 'amber'}>{p.approval}</Pill>
+          </td>
+        </tr>
+      )
+    })}</tbody></table></div>
   )
 }
 
-function NotificationsTab({ data, role, currentUser, createNotification, markNotificationRead, removeNotification }) {
+function NotificationsTab({ data, role, currentUser, dataLoading = false, createNotification, markNotificationRead, removeNotification }) {
   const [form, setForm] = useState({ title: '', message: '', type: 'Reminder', target_role: 'all' })
   const [removingNotificationId, setRemovingNotificationId] = useState('')
+  const [readingNotificationId, setReadingNotificationId] = useState('')
+  const [creatingNotification, setCreatingNotification] = useState(false)
   const visibleNotifications = data.notifications.filter((n) => notificationForUser(n, currentUser, role))
 
   async function handleRemoveNotification(notificationId) {
@@ -5144,6 +5337,30 @@ function NotificationsTab({ data, role, currentUser, createNotification, markNot
       setRemovingNotificationId('')
     }
   }
+
+
+  async function handleMarkNotificationRead(notificationId) {
+    if (readingNotificationId || removingNotificationId) return
+    setReadingNotificationId(notificationId)
+    try {
+      await markNotificationRead(notificationId)
+    } finally {
+      setReadingNotificationId('')
+    }
+  }
+
+  async function handleCreateNotification() {
+    if (creatingNotification) return
+    setCreatingNotification(true)
+    try {
+      const result = await createNotification(form)
+      if (result?.ok !== false) setForm({ title: '', message: '', type: 'Reminder', target_role: 'all' })
+    } finally {
+      setCreatingNotification(false)
+    }
+  }
+
+  if (dataLoading) return <LoadingBlock text="Loading notifications..." />
 
   return (
     <div className="grid two-one">
@@ -5162,9 +5379,9 @@ function NotificationsTab({ data, role, currentUser, createNotification, markNot
                     <p className="small muted">{n.type} • {String(n.created_at).slice(0, 16).replace('T', ' ')}</p>
                   </div>
                   <div className="notification-actions">
-                    <button type="button" onClick={() => markNotificationRead(n.id)} disabled={removing}>{n.is_read ? 'Read' : 'Mark read'}</button>
+                    <button type="button" className="min-button-width" onClick={() => handleMarkNotificationRead(n.id)} disabled={removing || Boolean(readingNotificationId) || n.is_read}><ButtonContent loading={String(readingNotificationId) === String(n.id)} loadingText="Updating...">{n.is_read ? 'Read' : 'Mark read'}</ButtonContent></button>
                     <button type="button" className="danger compact-button" onClick={() => handleRemoveNotification(n.id)} disabled={removing}>
-                      <Trash2 size={14} /> {removing ? 'Removing...' : 'Remove'}
+                      <ButtonContent loading={removing} loadingText="Removing..." icon={Trash2} iconSize={14}>Remove</ButtonContent>
                     </button>
                   </div>
                 </div>
@@ -5180,7 +5397,7 @@ function NotificationsTab({ data, role, currentUser, createNotification, markNot
           <label className="field"><span>Message</span><textarea value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="Write reminder message" /></label>
           <label className="field"><span>Type</span><select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}><option>Reminder</option><option>Feedback</option><option>Warning</option><option>Announcement</option></select></label>
           <label className="field"><span>Target role</span><select value={form.target_role} onChange={(e) => setForm({ ...form, target_role: e.target.value })}><option value="all">All users</option><option value="student">Students</option><option value="supervisor">Supervisors</option><option value="committee">Research Committee</option><option value="admin">Admins</option></select></label>
-          <button className="primary" onClick={() => { createNotification(form); setForm({ title: '', message: '', type: 'Reminder', target_role: 'all' }) }}>Create Notification</button>
+          <button className="primary min-button-width" disabled={creatingNotification} onClick={handleCreateNotification}><ButtonContent loading={creatingNotification} loadingText="Creating..." icon={Bell}>Create Notification</ButtonContent></button>
         </div>
       ) : (
         <div className="card no-print">
@@ -5361,7 +5578,7 @@ function buildStudentOptionGroups(data = {}, supervisorOptions = [], selectedSup
 
   return groups
 }
-function ReportsTab({ data, projects, currentUser, role, printPdfReport, exportCsv, pdfReportSettings = defaultPdfReportSettings }) {
+function ReportsTab({ data, projects, currentUser, role, printPdfReport, exportCsv, pdfReportSettings = defaultPdfReportSettings, dataLoading = false }) {
   const settings = normalizePdfReportSettings(pdfReportSettings)
   const generatedAt = new Date()
   const generatedLabel = generatedAt.toLocaleString()
@@ -5371,6 +5588,7 @@ function ReportsTab({ data, projects, currentUser, role, printPdfReport, exportC
   const [studentSearch, setStudentSearch] = useState('')
   const [reportFilters, setReportFilters] = useState({ group: 'All', title: '', progress: 'All', evaluation: 'All' })
   const [printMessage, setPrintMessage] = useState('')
+  const [printingReport, setPrintingReport] = useState(false)
   const isAdminLike = role === 'admin' || role === 'committee'
   const baseProjects = Array.isArray(projects) ? projects : []
   const allReports = Array.isArray(data.reports) ? data.reports : []
@@ -5506,6 +5724,9 @@ function ReportsTab({ data, projects, currentUser, role, printPdfReport, exportC
   }
 
   const handlePrint = async () => {
+    if (printingReport) return
+    setPrintingReport(true)
+    try {
     if (!canGenerateReport) {
       setPrintMessage('You do not have permission to generate this report.')
       return
@@ -5528,7 +5749,12 @@ function ReportsTab({ data, projects, currentUser, role, printPdfReport, exportC
 
     setPrintMessage('')
     printPdfReport()
+    } finally {
+      window.setTimeout(() => setPrintingReport(false), 500)
+    }
   }
+
+  if (dataLoading) return <LoadingBlock text="Loading reports..." />
 
   return (
     <div className="stack">
@@ -5591,7 +5817,7 @@ function ReportsTab({ data, projects, currentUser, role, printPdfReport, exportC
           <span><b>Final evaluations:</b> {scopedEvaluations.length}</span>
         </div>
         {printMessage && <div className="form-error-text">{printMessage}</div>}
-        <div className="action-row report-actions"><button className="primary" onClick={handlePrint}><Printer size={16} /> Print / Save as PDF</button><button className="secondary" onClick={exportCsv}><Download size={16} /> Export CSV</button></div>
+        <div className="action-row report-actions"><button className="primary min-button-width" disabled={printingReport} onClick={handlePrint}><ButtonContent loading={printingReport} loadingText="Preparing..." icon={Printer}>Print / Save as PDF</ButtonContent></button><button className="secondary" onClick={exportCsv}><Download size={16} /> Export CSV</button></div>
       </div>
 
       <div className="card print-report pdf-report-template">
@@ -5667,6 +5893,7 @@ function ReportsTab({ data, projects, currentUser, role, printPdfReport, exportC
 function PdfReportCustomizationPanel({ settings, updateSettings, uploadLogo, removeLogo, resetSettings, data, projects, currentUser, printPdfReport }) {
   const [draft, setDraft] = useState(() => normalizePdfReportSettings(settings))
   const [localMessage, setLocalMessage] = useState('')
+  const [pdfActionLoading, setPdfActionLoading] = useState('')
 
   useEffect(() => {
     setDraft(normalizePdfReportSettings(settings))
@@ -5678,6 +5905,16 @@ function PdfReportCustomizationPanel({ settings, updateSettings, uploadLogo, rem
 
   function updateSection(sectionKey, value) {
     setDraft((current) => ({ ...current, sections: { ...current.sections, [sectionKey]: value } }))
+  }
+
+  async function runPdfAction(key, action) {
+    if (pdfActionLoading) return
+    setPdfActionLoading(key)
+    try {
+      await action()
+    } finally {
+      setPdfActionLoading('')
+    }
   }
 
   async function saveDraft() {
@@ -5692,22 +5929,28 @@ function PdfReportCustomizationPanel({ settings, updateSettings, uploadLogo, rem
   async function handleLogoUpload(event) {
     const file = event.target.files?.[0]
     event.target.value = ''
-    if (!file) return
-    const result = await uploadLogo(file)
-    if (result?.logoUrl) {
-      setDraft((current) => ({ ...current, logoUrl: result.logoUrl, logoPath: result.logoPath || '' }))
-    }
+    if (!file || pdfActionLoading) return
+    await runPdfAction('upload-logo', async () => {
+      const result = await uploadLogo(file)
+      if (result?.logoUrl) {
+        setDraft((current) => ({ ...current, logoUrl: result.logoUrl, logoPath: result.logoPath || '' }))
+      }
+    })
   }
 
   async function handleRemoveLogo() {
-    await removeLogo()
-    setDraft((current) => ({ ...current, logoUrl: '', logoPath: '' }))
+    await runPdfAction('remove-logo', async () => {
+      await removeLogo()
+      setDraft((current) => ({ ...current, logoUrl: '', logoPath: '' }))
+    })
   }
 
   async function handleReset() {
-    await resetSettings()
-    setDraft(defaultPdfReportSettings)
-    setLocalMessage('PDF report settings reset to the default design.')
+    await runPdfAction('reset-pdf', async () => {
+      await resetSettings()
+      setDraft(defaultPdfReportSettings)
+      setLocalMessage('PDF report settings reset to the default design.')
+    })
   }
 
   return (
@@ -5723,8 +5966,8 @@ function PdfReportCustomizationPanel({ settings, updateSettings, uploadLogo, rem
           <label className="field wide-field"><span>Footer text</span><textarea value={draft.footerText || ''} onChange={(e) => updateDraft('footerText', e.target.value)} placeholder="Optional footer text shown at the bottom of printed/PDF reports" /></label>
         </div>
         <div className="settings-actions">
-          <button className="primary" onClick={saveDraft}><Save size={16} /> Save PDF Report Settings</button>
-          <button className="secondary" onClick={handleReset}><RefreshCw size={16} /> Reset Default PDF Design</button>
+          <button className="primary min-button-width" disabled={Boolean(pdfActionLoading)} onClick={() => runPdfAction('save-pdf', saveDraft)}><ButtonContent loading={pdfActionLoading === 'save-pdf'} loadingText="Saving..." icon={Save}>Save PDF Report Settings</ButtonContent></button>
+          <button className="secondary min-button-width" disabled={Boolean(pdfActionLoading)} onClick={handleReset}><ButtonContent loading={pdfActionLoading === 'reset-pdf'} loadingText="Resetting..." icon={RefreshCw}>Reset Default PDF Design</ButtonContent></button>
           <button className="secondary" onClick={printPdfReport}><Printer size={16} /> Preview by Print / Save as PDF</button>
         </div>
         {localMessage && <div className="message">{localMessage}</div>}
@@ -5737,8 +5980,8 @@ function PdfReportCustomizationPanel({ settings, updateSettings, uploadLogo, rem
           <label className="field"><span>Upload / replace logo</span><input type="file" accept="image/*" onChange={handleLogoUpload} /></label>
           {draft.logoUrl ? <div className="pdf-logo-preview"><img src={draft.logoUrl} alt="PDF report logo preview" /></div> : <div className="pdf-logo-preview empty"><span>No logo selected</span></div>}
           <div className="settings-actions">
-            <button className="secondary" onClick={() => updateSettings({ ...draft, logoUrl: draft.logoUrl, logoPath: draft.logoPath || '' })}><Save size={16} /> Save Logo Setting</button>
-            <button className="danger" onClick={handleRemoveLogo}><Trash2 size={16} /> Remove Logo</button>
+            <button className="secondary min-button-width" disabled={Boolean(pdfActionLoading)} onClick={() => runPdfAction('save-logo', () => updateSettings({ ...draft, logoUrl: draft.logoUrl, logoPath: draft.logoPath || '' }))}><ButtonContent loading={pdfActionLoading === 'save-logo'} loadingText="Saving..." icon={Save}>Save Logo Setting</ButtonContent></button>
+            <button className="danger min-button-width" disabled={Boolean(pdfActionLoading)} onClick={handleRemoveLogo}><ButtonContent loading={pdfActionLoading === 'remove-logo'} loadingText="Removing..." icon={Trash2}>Remove Logo</ButtonContent></button>
           </div>
           <div className="soft-box settings-note"><p>Uploaded logos use the existing Supabase Storage bucket <code>app-assets</code>. If storage is not configured, the logo still previews locally.</p></div>
         </div>
@@ -5802,6 +6045,7 @@ function ProjectCard({ project, reports = [] }) {
 function DatabaseTab({ databaseMode }) {
   const tables = ['profiles', 'research_projects', 'weekly_reports', 'uploaded_files', 'evaluations', 'deadlines', 'notifications', 'audit_logs']
   const connected = String(databaseMode || '').toLowerCase().includes('supabase')
+
   return (
     <div className="stack">
       <div className="card">
