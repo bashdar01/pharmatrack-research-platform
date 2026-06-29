@@ -539,6 +539,7 @@ const emptyData = {
   evaluations: [],
   auditLogs: [],
   invitations: [],
+  studentQuestions: [],
 }
 
 const sampleNames = ['Aveen Mohammed', 'Hemn Karim', 'Dr. Lara Ahmed', 'Dr. Rebaz Hassan', 'College Admin']
@@ -560,6 +561,7 @@ function cleanData(data) {
   cleaned.evaluations = cleaned.evaluations || []
   cleaned.auditLogs = cleaned.auditLogs || []
   cleaned.invitations = cleaned.invitations || []
+  cleaned.studentQuestions = cleaned.studentQuestions || []
   return cleaned
 }
 
@@ -1046,6 +1048,58 @@ function findSupervisorProfileForProject(data, project) {
     }
   }
   return null
+}
+
+
+function findAssignedSupervisorForStudent(data, studentUser) {
+  if (!studentUser) return null
+  const studentProfile = findProfileForUser(data, studentUser) || studentUser
+  const directSupervisor = (data.profiles || []).find((profile) =>
+    profile.role === 'supervisor' && isStudentAssignedToSupervisorProfile(studentProfile, profile)
+  )
+  if (directSupervisor) return directSupervisor
+
+  const project = (data.projects || []).find((item) => isOwnStudentProject(item, studentProfile))
+  const projectSupervisor = findSupervisorProfileForProject(data, project)
+  if (projectSupervisor) return projectSupervisor
+  return null
+}
+
+function questionOwnedByStudent(question = {}, studentUser = {}) {
+  if (!question || !studentUser) return false
+  return (
+    (!!question.student_id && !!studentUser.id && String(question.student_id) === String(studentUser.id)) ||
+    (!!question.student_email && !!studentUser.email && normalizeText(question.student_email) === normalizeText(studentUser.email)) ||
+    (!!question.student_name && !!studentUser.full_name && normalizeText(question.student_name) === normalizeText(studentUser.full_name))
+  )
+}
+
+function supervisorCanAccessQuestion(data, question = {}, supervisorUser = {}) {
+  if (!question || !supervisorUser || supervisorUser.role !== 'supervisor') return false
+  if (
+    (!!question.supervisor_id && !!supervisorUser.id && String(question.supervisor_id) === String(supervisorUser.id)) ||
+    (!!question.supervisor_email && !!supervisorUser.email && normalizeText(question.supervisor_email) === normalizeText(supervisorUser.email)) ||
+    (!!question.supervisor_name && !!supervisorUser.full_name && normalizeText(question.supervisor_name) === normalizeText(supervisorUser.full_name))
+  ) return true
+
+  const student = findProfileByIdentity(data, {
+    id: question.student_id,
+    email: question.student_email,
+    submitted_by: question.student_name,
+  })
+  return Boolean(student && isStudentAssignedToSupervisorProfile(student, supervisorUser))
+}
+
+function questionStudentLabel(data, question = {}) {
+  const student = findProfileByIdentity(data, {
+    id: question.student_id,
+    email: question.student_email,
+    submitted_by: question.student_name,
+  })
+  return {
+    name: student?.full_name || question.student_name || question.student_email || 'Student',
+    email: student?.email || question.student_email || '',
+  }
 }
 
 function canSendReportToSelf(report, project, user, data = null) {
@@ -1549,6 +1603,14 @@ export default function App() {
         invitationsData = []
       }
 
+      let studentQuestionsData = []
+      try {
+        const studentQuestions = await supabase.from('student_questions').select('*').order('created_at', { ascending: false })
+        if (!studentQuestions.error) studentQuestionsData = studentQuestions.data || []
+      } catch {
+        studentQuestionsData = []
+      }
+
       const reportsData = reports.data || []
       const projectsData = (projects.data || []).map((project) => ({
         ...project,
@@ -1566,6 +1628,7 @@ export default function App() {
         evaluations: evaluations.data || [],
         auditLogs: auditLogs.data || [],
         invitations: invitationsData,
+        studentQuestions: studentQuestionsData,
       }))
     } catch (error) {
       setDataLoadError(error.message || 'Unknown database error')
@@ -2384,20 +2447,17 @@ export default function App() {
     })
   }
 
-  async function notifyStudentAboutReviewedReport(report, status, feedback, score) {
+  async function notifyStudentAboutReviewedReport(report, status, feedback) {
     const project = data.projects.find((item) => String(item.id) === String(report.project_id))
     const student = findStudentProfileForReport(data, report)
     if (!student) return
     const statusLabel = getReviewStatusLabel(status)
-    const details = [
-      feedback ? `Feedback: ${feedback}` : '',
-      score !== null && score !== undefined ? `Score: ${score}/20` : '',
-    ].filter(Boolean).join(' ')
+    const details = feedback ? `Feedback: ${feedback}` : ''
     await createReportNotification({
       recipient: student,
       report,
       project,
-      notificationType: `weekly_report_review_${String(statusLabel).toLowerCase().replaceAll(' ', '_')}_${makeNotificationFingerprint(statusLabel, feedback, score)}`,
+      notificationType: `weekly_report_review_${String(statusLabel).toLowerCase().replaceAll(' ', '_')}_${makeNotificationFingerprint(statusLabel, feedback)}`,
       title: `Week ${report.week_number} Report ${statusLabel}`,
       message: `Your Week ${report.week_number} report has been ${statusLabel} by your supervisor.${details ? ` ${details}` : ''}`,
       includeEmail: true,
@@ -2438,16 +2498,15 @@ export default function App() {
       return setMessage('You do not have permission to view this report.')
     }
 
-    const score = status === 'Accepted' ? 18 : status === 'Rejected' ? 0 : 12
     const updatedReports = data.reports.map((report) =>
       String(report.id) === String(reportId)
-        ? { ...report, status, supervisor_feedback: feedback, score }
+        ? { ...report, status, supervisor_feedback: feedback }
         : report
     )
     const nextProgress = calculateProjectProgressFromReports(updatedReports, targetReport.project_id)
 
     if (isSupabaseConfigured) {
-      const { error } = await supabase.from('weekly_reports').update({ status, supervisor_feedback: feedback, score }).eq('id', reportId)
+      const { error } = await supabase.from('weekly_reports').update({ status, supervisor_feedback: feedback }).eq('id', reportId)
       if (error) {
         setMessage(error.message)
         return { ok: false, error: error.message }
@@ -2457,7 +2516,7 @@ export default function App() {
       if (progressUpdate.error) return setMessage(progressUpdate.error.message)
 
       try {
-        await notifyStudentAboutReviewedReport(targetReport, status, feedback, score)
+        await notifyStudentAboutReviewedReport(targetReport, status, feedback)
       } catch (notificationError) {
         console.warn('Weekly report review notification could not be created:', notificationError)
       }
@@ -2485,9 +2544,9 @@ export default function App() {
         sender_user_id: currentUser?.id || null,
         weekly_report_id: targetReport.id,
         project_id: project?.id || targetReport.project_id,
-        notification_type: `weekly_report_review_${String(statusLabel).toLowerCase().replaceAll(' ', '_')}_${makeNotificationFingerprint(statusLabel, feedback, score)}`,
+        notification_type: `weekly_report_review_${String(statusLabel).toLowerCase().replaceAll(' ', '_')}_${makeNotificationFingerprint(statusLabel, feedback)}`,
         title: `Week ${targetReport.week_number} Report ${statusLabel}`,
-        message: `Your Week ${targetReport.week_number} report has been ${statusLabel} by your supervisor.${feedback ? ` Feedback: ${feedback}` : ''} Score: ${score}/20`,
+        message: `Your Week ${targetReport.week_number} report has been ${statusLabel} by your supervisor.${feedback ? ` Feedback: ${feedback}` : ''}`,
         type: 'Weekly Report',
         target_role: 'student',
         is_read: false,
@@ -2495,13 +2554,223 @@ export default function App() {
       } : null
       setLocal((current) => ({
         ...current,
-        reports: current.reports.map((r) => r.id === reportId ? { ...r, status, supervisor_feedback: feedback, score } : r),
+        reports: current.reports.map((r) => r.id === reportId ? { ...r, status, supervisor_feedback: feedback } : r),
         projects: current.projects.map((p) => String(p.id) === String(targetReport.project_id) ? { ...p, progress: nextProgress } : p),
         notifications: notification ? [notification, ...(current.notifications || [])] : (current.notifications || []),
         auditLogs: [log, ...current.auditLogs],
       }))
     }
-    setMessage(`Supervisor review saved. Project progress is now ${formatProgress(nextProgress)}%.`)
+    setMessage(status === 'Accepted' ? 'Weekly report accepted successfully.' : `Supervisor review saved. Project progress is now ${formatProgress(nextProgress)}%.`)
+  }
+
+
+  async function sendQuestionEmail(kind, questionId) {
+    if (!isSupabaseConfigured || !supabase?.functions?.invoke) return { ok: false, error: 'Email sending requires Supabase Edge Functions.' }
+    const { data: result, error } = await supabase.functions.invoke('send-platform-email', {
+      body: {
+        kind,
+        questionId,
+        appUrl: typeof window !== 'undefined' ? window.location.origin : '',
+      },
+    })
+    if (error) throw new Error(error.message || 'Question email could not be sent.')
+    if (result?.error) throw new Error(result.error)
+    return { ok: true, result }
+  }
+
+  async function createQuestionNotification({ recipient, sender, question, title, message, targetRole }) {
+    if (!recipient || !question) return { ok: false }
+    const note = {
+      id: crypto.randomUUID(),
+      profile_id: recipient.id || null,
+      recipient_user_id: recipient.id || null,
+      recipient_email: recipient.email || '',
+      sender_user_id: sender?.id || null,
+      notification_type: `student_question_${question.id}_${targetRole || 'user'}`,
+      title,
+      message,
+      type: 'Student Question',
+      target_role: targetRole || recipient.role || 'all',
+      is_read: false,
+      created_at: new Date().toISOString(),
+    }
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.from('notifications').insert(note)
+      if (error) return { ok: false, error: error.message }
+      return { ok: true, notification: note }
+    }
+    return { ok: true, notification: note }
+  }
+
+  async function submitStudentQuestion(questionText) {
+    if (currentUser?.role !== 'student') {
+      setMessage('Only students can submit questions to supervisors.')
+      return { ok: false, error: 'Only students can submit questions.' }
+    }
+    const text = String(questionText || '').trim()
+    if (!text) {
+      setMessage('Please write your question before submitting.')
+      return { ok: false, error: 'Please write your question.' }
+    }
+    const supervisor = findAssignedSupervisorForStudent(data, currentUser)
+    if (!supervisor) {
+      setMessage('No supervisor assigned yet.')
+      return { ok: false, error: 'No supervisor assigned yet.' }
+    }
+
+    const question = {
+      id: crypto.randomUUID(),
+      student_id: currentUser?.id || null,
+      student_email: currentUser?.email || '',
+      student_name: currentUser?.full_name || currentUser?.email || 'Student',
+      supervisor_id: supervisor.id || null,
+      supervisor_email: supervisor.email || '',
+      supervisor_name: supervisor.full_name || supervisor.email || 'Supervisor',
+      question_text: text,
+      answer_text: '',
+      status: 'Pending',
+      created_at: new Date().toISOString(),
+      answered_at: null,
+      answered_by: null,
+    }
+
+    let savedQuestion = question
+    if (isSupabaseConfigured) {
+      const { id, ...questionForDb } = question
+      const { data: inserted, error } = await supabase.from('student_questions').insert(questionForDb).select().single()
+      if (error) {
+        const missingTable = String(error.message || '').toLowerCase().includes('student_questions') || String(error.message || '').toLowerCase().includes('relation')
+        const messageText = missingTable ? `${error.message}. Run supabase/student_questions.sql in Supabase SQL Editor, refresh, then try again.` : error.message
+        setMessage(messageText)
+        return { ok: false, error: messageText }
+      }
+      savedQuestion = inserted
+      await createQuestionNotification({
+        recipient: supervisor,
+        sender: currentUser,
+        question: savedQuestion,
+        title: 'New Student Question',
+        message: `New question from ${currentUser?.full_name || currentUser?.email || 'Student'}.`,
+        targetRole: 'supervisor',
+      })
+      try {
+        await sendQuestionEmail('student_question_submitted', savedQuestion.id)
+        await loadFromSupabase()
+        setMessage('Question submitted successfully and supervisor notified.')
+        return { ok: true, question: savedQuestion, emailSent: true }
+      } catch (emailError) {
+        console.warn('Question submitted, but email notification failed:', emailError)
+        await loadFromSupabase()
+        setMessage('Question submitted successfully, but email notification failed.')
+        return { ok: true, question: savedQuestion, emailSent: false, warning: emailError.message }
+      }
+    }
+
+    const notification = {
+      id: crypto.randomUUID(),
+      profile_id: supervisor.id || null,
+      recipient_user_id: supervisor.id || null,
+      recipient_email: supervisor.email || '',
+      sender_user_id: currentUser?.id || null,
+      notification_type: `student_question_${question.id}_supervisor`,
+      title: 'New Student Question',
+      message: `New question from ${currentUser?.full_name || currentUser?.email || 'Student'}.`,
+      type: 'Student Question',
+      target_role: 'supervisor',
+      is_read: false,
+      created_at: new Date().toISOString(),
+    }
+    setLocal((current) => ({
+      ...current,
+      studentQuestions: [question, ...(current.studentQuestions || [])],
+      notifications: [notification, ...(current.notifications || [])],
+    }))
+    setMessage('Question submitted successfully and supervisor notified locally.')
+    return { ok: true, question }
+  }
+
+  async function answerStudentQuestion(questionId, answerText) {
+    if (currentUser?.role !== 'supervisor') {
+      setMessage('Only supervisors can answer student questions.')
+      return { ok: false, error: 'Only supervisors can answer student questions.' }
+    }
+    const answer = String(answerText || '').trim()
+    if (!answer) {
+      setMessage('Please write an answer before submitting.')
+      return { ok: false, error: 'Please write an answer.' }
+    }
+    const question = (data.studentQuestions || []).find((item) => String(item.id) === String(questionId))
+    if (!question) {
+      setMessage('Question not found. Please refresh and try again.')
+      return { ok: false, error: 'Question not found.' }
+    }
+    if (!supervisorCanAccessQuestion(data, question, currentUser)) {
+      setMessage('You do not have permission to answer this question.')
+      return { ok: false, error: 'You do not have permission to answer this question.' }
+    }
+
+    const updates = {
+      answer_text: answer,
+      status: 'Answered',
+      answered_at: new Date().toISOString(),
+      answered_by: currentUser?.id || null,
+      answered_by_name: currentUser?.full_name || currentUser?.email || 'Supervisor',
+    }
+    const student = findProfileByIdentity(data, {
+      id: question.student_id,
+      email: question.student_email,
+      submitted_by: question.student_name,
+    }) || { id: question.student_id, email: question.student_email, full_name: question.student_name, role: 'student' }
+
+    if (isSupabaseConfigured) {
+      const { data: updated, error } = await supabase.from('student_questions').update(updates).eq('id', questionId).select().single()
+      if (error) {
+        setMessage(error.message)
+        return { ok: false, error: error.message }
+      }
+      await createQuestionNotification({
+        recipient: student,
+        sender: currentUser,
+        question: updated || { ...question, ...updates },
+        title: 'Supervisor Answered Your Question',
+        message: 'Your supervisor answered your question.',
+        targetRole: 'student',
+      })
+      try {
+        await sendQuestionEmail('student_question_answered', questionId)
+        await loadFromSupabase()
+        setMessage('Answer submitted successfully and student notified.')
+        return { ok: true, question: updated, emailSent: true }
+      } catch (emailError) {
+        console.warn('Answer submitted, but email notification failed:', emailError)
+        await loadFromSupabase()
+        setMessage('Answer submitted successfully, but email notification failed.')
+        return { ok: true, question: updated, emailSent: false, warning: emailError.message }
+      }
+    }
+
+    const updatedQuestion = { ...question, ...updates }
+    const notification = {
+      id: crypto.randomUUID(),
+      profile_id: student.id || null,
+      recipient_user_id: student.id || null,
+      recipient_email: student.email || '',
+      sender_user_id: currentUser?.id || null,
+      notification_type: `student_question_${question.id}_student`,
+      title: 'Supervisor Answered Your Question',
+      message: 'Your supervisor answered your question.',
+      type: 'Student Question',
+      target_role: 'student',
+      is_read: false,
+      created_at: new Date().toISOString(),
+    }
+    setLocal((current) => ({
+      ...current,
+      studentQuestions: (current.studentQuestions || []).map((item) => String(item.id) === String(questionId) ? updatedQuestion : item),
+      notifications: [notification, ...(current.notifications || [])],
+    }))
+    setMessage('Answer submitted successfully and student notified locally.')
+    return { ok: true, question: updatedQuestion }
   }
 
   async function removeStorageFiles(files = []) {
@@ -3676,6 +3945,8 @@ export default function App() {
           <button onClick={() => setTab('dashboard')} className={tab === 'dashboard' ? 'active' : ''}><LayoutDashboard size={16} /> {isAdminPortal ? 'Admin Dashboard' : 'Dashboard'}</button>
           <button onClick={() => setTab('notifications')} className={tab === 'notifications' ? 'active' : ''}><Bell size={16} /> Notifications {stats.unread > 0 && <span className="tab-badge">{stats.unread}</span>}</button>
           <button onClick={() => setTab('reports')} className={tab === 'reports' ? 'active' : ''}><Printer size={16} /> Print/PDF Reports</button>
+          {allowedRole === 'student' && <button onClick={() => setTab('questions')} className={tab === 'questions' ? 'active' : ''}><MessageSquareText size={16} /> Questions</button>}
+          {allowedRole === 'supervisor' && <button onClick={() => setTab('questions')} className={tab === 'questions' ? 'active' : ''}><MessageSquareText size={16} /> Student Questions</button>}
           {allowedRole === 'admin' && <button onClick={() => setTab('database')} className={tab === 'database' ? 'active' : ''}><Database size={16} /> Database</button>}
           {allowedRole === 'admin' && <button onClick={() => setTab('audit')} className={tab === 'audit' ? 'active' : ''}><ShieldCheck size={16} /> Audit Log</button>}
         </div>
@@ -3698,6 +3969,8 @@ export default function App() {
         )}
 
         {tab === 'notifications' && <NotificationsTab data={data} role={allowedRole} currentUser={currentUser} dataLoading={dataLoading} createNotification={createNotification} markNotificationRead={markNotificationRead} removeNotification={removeNotification} />}
+        {tab === 'questions' && allowedRole === 'student' && <StudentQuestionsTab data={data} currentUser={currentUser} dataLoading={dataLoading} submitStudentQuestion={submitStudentQuestion} />}
+        {tab === 'questions' && allowedRole === 'supervisor' && <SupervisorQuestionsTab data={data} currentUser={currentUser} dataLoading={dataLoading} answerStudentQuestion={answerStudentQuestion} />}
         {tab === 'reports' && <ReportsTab data={visibleData} projects={filteredProjects} currentUser={currentUser} role={allowedRole} printPdfReport={printPdfReport} exportCsv={exportCsv} pdfReportSettings={pdfReportSettings} dataLoading={dataLoading} />}
         {tab === 'database' && allowedRole === 'admin' && <DatabaseTab databaseMode={databaseMode} />}
         {tab === 'database' && allowedRole !== 'admin' && <div className="card"><SectionHeader icon={Lock} title="Database Access Locked" subtitle="Only Admin accounts can view database status" /><p className="muted">Please use your role dashboard, notifications, or reports page.</p></div>}
@@ -4549,7 +4822,6 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
                     </div>
                     <div className="supervisor-feedback-scroll-box student-feedback-box"><p>{r.supervisor_feedback || 'Waiting for supervisor review.'}</p></div>
                     <ReportAttachmentBox attachment={attachment} />
-                    <p className="muted small">Score: {r.score ?? 'Pending'}/20</p>
                   </div>
                 )
               })}
@@ -4716,6 +4988,156 @@ function SupervisorDashboard({ data, projects, currentUser, dataLoading = false,
   )
 }
 
+
+
+function QuestionStatusBadge({ status }) {
+  const normalized = String(status || 'Pending')
+  return <Pill tone={normalized === 'Answered' ? 'green' : 'amber'}>{normalized}</Pill>
+}
+
+function QuestionCard({ question, data, role, answerValue = '', onAnswerChange, onSubmitAnswer, answering = false }) {
+  const student = questionStudentLabel(data, question)
+  return (
+    <div className="question-card">
+      <div className="question-card-header">
+        <div>
+          <b>{role === 'supervisor' ? student.name : question.supervisor_name || question.supervisor_email || 'Assigned supervisor'}</b>
+          {role === 'supervisor' && student.email && <p className="muted small">{student.email}</p>}
+          {role === 'student' && question.supervisor_email && <p className="muted small">{question.supervisor_email}</p>}
+        </div>
+        <QuestionStatusBadge status={question.status} />
+      </div>
+      <div className="question-body">
+        <p className="question-label">Question</p>
+        <p>{question.question_text || 'No question text available.'}</p>
+      </div>
+      <p className="muted small">Submitted: {question.created_at ? new Date(question.created_at).toLocaleString() : '-'}</p>
+      {question.answer_text ? (
+        <div className="question-answer-box">
+          <p className="question-label">Supervisor answer</p>
+          <p>{question.answer_text}</p>
+          <p className="muted small">Answered: {question.answered_at ? new Date(question.answered_at).toLocaleString() : '-'}</p>
+        </div>
+      ) : role === 'student' ? (
+        <div className="question-answer-box pending-answer">Waiting for supervisor answer.</div>
+      ) : null}
+      {role === 'supervisor' && (
+        <div className="question-answer-form">
+          <label className="field wide-field">
+            <span>Answer</span>
+            <textarea value={answerValue} onChange={(e) => onAnswerChange(question.id, e.target.value)} placeholder="Write a clear answer for the student..." />
+          </label>
+          <button className="primary min-button-width" type="button" disabled={answering || !String(answerValue || '').trim()} onClick={() => onSubmitAnswer(question.id)}>
+            <ButtonContent loading={answering} loadingText="Sending answer..." icon={Send}>Submit Answer</ButtonContent>
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function StudentQuestionsTab({ data, currentUser, dataLoading = false, submitStudentQuestion }) {
+  const [questionText, setQuestionText] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const supervisor = findAssignedSupervisorForStudent(data, currentUser)
+  const questions = (data.studentQuestions || [])
+    .filter((question) => questionOwnedByStudent(question, currentUser))
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+
+  async function handleSubmit() {
+    if (submitting) return
+    setSubmitting(true)
+    try {
+      const result = await submitStudentQuestion(questionText)
+      if (result?.ok) setQuestionText('')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="questions-grid">
+      <div className="card question-form-card">
+        <SectionHeader icon={MessageSquareText} title="Questions" subtitle="Ask your assigned supervisor a research question" />
+        {!supervisor ? (
+          <EmptyState title="No supervisor assigned yet." text="You can ask questions after Admin assigns you to a supervisor." icon={Users} />
+        ) : (
+          <>
+            <div className="soft-box compact-supervisor-box">
+              <b>Assigned supervisor</b>
+              <p>{supervisor.full_name || supervisor.email}</p>
+              {supervisor.email && <p className="muted small">{supervisor.email}</p>}
+            </div>
+            <label className="field wide-field">
+              <span>Your question</span>
+              <textarea value={questionText} onChange={(e) => setQuestionText(e.target.value)} placeholder="Write your question for your supervisor..." />
+            </label>
+            <button className="primary min-button-width" type="button" disabled={submitting || !questionText.trim()} onClick={handleSubmit}>
+              <ButtonContent loading={submitting} loadingText="Submitting..." icon={Send}>Submit Question</ButtonContent>
+            </button>
+          </>
+        )}
+      </div>
+      <div className="card">
+        <SectionHeader icon={MessageSquareText} title="Previous Questions" subtitle="Track pending and answered questions" />
+        {dataLoading ? <LoadingBlock text="Loading questions..." /> : questions.length ? (
+          <div className="question-list">
+            {questions.map((question) => <QuestionCard key={question.id} question={question} data={data} role="student" />)}
+          </div>
+        ) : <EmptyState title="No questions yet." text="Your submitted questions and supervisor answers will appear here." icon={MessageSquareText} />}
+      </div>
+    </div>
+  )
+}
+
+function SupervisorQuestionsTab({ data, currentUser, dataLoading = false, answerStudentQuestion }) {
+  const [answers, setAnswers] = useState({})
+  const [answeringId, setAnsweringId] = useState('')
+  const questions = (data.studentQuestions || [])
+    .filter((question) => supervisorCanAccessQuestion(data, question, currentUser))
+    .sort((a, b) => {
+      const statusSort = String(a.status || 'Pending') === 'Pending' && String(b.status || 'Pending') !== 'Pending' ? -1 : String(b.status || 'Pending') === 'Pending' && String(a.status || 'Pending') !== 'Pending' ? 1 : 0
+      if (statusSort) return statusSort
+      return new Date(b.created_at || 0) - new Date(a.created_at || 0)
+    })
+
+  function updateAnswer(questionId, value) {
+    setAnswers((current) => ({ ...current, [questionId]: value }))
+  }
+
+  async function submitAnswer(questionId) {
+    if (answeringId) return
+    setAnsweringId(questionId)
+    try {
+      const result = await answerStudentQuestion(questionId, answers[questionId])
+      if (result?.ok) setAnswers((current) => ({ ...current, [questionId]: '' }))
+    } finally {
+      setAnsweringId('')
+    }
+  }
+
+  return (
+    <div className="card">
+      <SectionHeader icon={MessageSquareText} title="Student Questions" subtitle="Answer questions from your assigned students" />
+      {dataLoading ? <LoadingBlock text="Loading questions..." /> : questions.length ? (
+        <div className="question-list supervisor-question-list">
+          {questions.map((question) => (
+            <QuestionCard
+              key={question.id}
+              question={question}
+              data={data}
+              role="supervisor"
+              answerValue={answers[question.id] ?? question.answer_text ?? ''}
+              onAnswerChange={updateAnswer}
+              onSubmitAnswer={submitAnswer}
+              answering={String(answeringId) === String(question.id)}
+            />
+          ))}
+        </div>
+      ) : <EmptyState title="No student questions yet." text="Questions from your assigned students will appear here." icon={MessageSquareText} />}
+    </div>
+  )
+}
 
 
 function StudentMultiSelectDropdown({ students = [], targetScope, selectedKeys = [], onChange, error }) {

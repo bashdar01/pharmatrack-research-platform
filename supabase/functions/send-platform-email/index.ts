@@ -146,6 +146,28 @@ async function getProjectById(supabaseUrl: string, serviceRoleKey: string, id: s
   return projects?.[0] || null
 }
 
+async function getQuestionById(supabaseUrl: string, serviceRoleKey: string, id: string) {
+  const questions = await restFetch(
+    supabaseUrl,
+    serviceRoleKey,
+    `student_questions?id=eq.${encodeURIComponent(id)}&select=*`
+  )
+  return questions?.[0] || null
+}
+
+function userCanAccessQuestion(actor: AnyRecord, question: AnyRecord) {
+  if (!actor || !question || !isApprovedActiveStatus(actor.status)) return false
+  if (isAdminRole(actor.role)) return true
+  if (normalize(actor.role) === 'student') {
+    return String(question.student_id || '') === String(actor.id || '') || normalize(question.student_email) === normalize(actor.email)
+  }
+  if (normalize(actor.role) === 'supervisor') {
+    return String(question.supervisor_id || '') === String(actor.id || '') || normalize(question.supervisor_email) === normalize(actor.email) || normalize(question.supervisor_name) === normalize(actor.full_name)
+  }
+  return false
+}
+
+
 async function getProjectsForStudent(supabaseUrl: string, serviceRoleKey: string, student: AnyRecord, projectIds: string[] = []) {
   if (projectIds.length) {
     const ids = projectIds.map((id) => `id.eq.${id}`).join(',')
@@ -328,6 +350,78 @@ Deno.serve(async (req) => {
       })
 
       return jsonResponse({ success: true, supervisorEmailId: supervisorEmail?.id || null, studentEmailId: studentEmail?.id || null })
+    }
+
+
+    if (kind === 'student_question_submitted') {
+      const question = await getQuestionById(supabaseUrl, serviceRoleKey, String(payload.questionId || ''))
+      if (!question) throw new Error('Student question not found.')
+      if (!userCanAccessQuestion(actor, question)) return jsonResponse({ error: 'You do not have permission to send this question email.' }, 403)
+      const supervisor = question.supervisor_id ? await getProfileById(supabaseUrl, serviceRoleKey, question.supervisor_id) : await getProfileByEmail(supabaseUrl, serviceRoleKey, question.supervisor_email || '')
+      const student = question.student_id ? await getProfileById(supabaseUrl, serviceRoleKey, question.student_id) : await getProfileByEmail(supabaseUrl, serviceRoleKey, question.student_email || '')
+      if (!supervisor?.email) throw new Error('Supervisor email address is missing.')
+      const link = dashboardLink(appUrl, 'supervisor', { tab: 'questions', question: question.id || '' })
+      const submittedAt = question.created_at || new Date().toISOString()
+      const html = buildEmailWrapper(
+        'New Student Question',
+        `${question.student_name || student?.full_name || question.student_email || 'A student'} submitted a question for you.`,
+        `
+          <p><strong>Supervisor name:</strong> ${escapeHtml(supervisor.full_name || supervisor.email)}</p>
+          <p><strong>Student name:</strong> ${escapeHtml(student?.full_name || question.student_name || question.student_email || 'Student')}</p>
+          <p><strong>Student email:</strong> ${escapeHtml(student?.email || question.student_email || 'Not available')}</p>
+          <p><strong>Submitted date/time:</strong> ${escapeHtml(dateTime(submittedAt))}</p>
+          <p><strong>Question:</strong><br>${escapeHtml(question.question_text || '')}</p>
+        `,
+        link,
+        'Open student questions'
+      )
+      const text = [
+        'New Student Question',
+        `Supervisor: ${supervisor.full_name || supervisor.email}`,
+        `Student: ${student?.full_name || question.student_name || question.student_email || 'Student'}`,
+        `Student email: ${student?.email || question.student_email || 'Not available'}`,
+        `Submitted: ${dateTime(submittedAt)}`,
+        `Question: ${question.question_text || ''}`,
+        link ? `Dashboard link: ${link}` : '',
+      ].filter(Boolean).join('\n')
+      const email = await sendResendEmail({ resendApiKey, fromEmail, to: supervisor.email, subject: 'New Student Question', html, text })
+      return jsonResponse({ success: true, emailId: email?.id || null })
+    }
+
+    if (kind === 'student_question_answered') {
+      const question = await getQuestionById(supabaseUrl, serviceRoleKey, String(payload.questionId || ''))
+      if (!question) throw new Error('Student question not found.')
+      if (!userCanAccessQuestion(actor, question)) return jsonResponse({ error: 'You do not have permission to send this answer email.' }, 403)
+      const student = question.student_id ? await getProfileById(supabaseUrl, serviceRoleKey, question.student_id) : await getProfileByEmail(supabaseUrl, serviceRoleKey, question.student_email || '')
+      const supervisor = question.supervisor_id ? await getProfileById(supabaseUrl, serviceRoleKey, question.supervisor_id) : await getProfileByEmail(supabaseUrl, serviceRoleKey, question.supervisor_email || '')
+      if (!student?.email && !question.student_email) throw new Error('Student email address is missing.')
+      const toEmail = student?.email || question.student_email
+      const link = dashboardLink(appUrl, 'student', { tab: 'questions', question: question.id || '' })
+      const answeredAt = question.answered_at || new Date().toISOString()
+      const html = buildEmailWrapper(
+        'Your Supervisor Answered Your Question',
+        `${question.supervisor_name || supervisor?.full_name || 'Your supervisor'} answered your question.`,
+        `
+          <p><strong>Student name:</strong> ${escapeHtml(student?.full_name || question.student_name || question.student_email || 'Student')}</p>
+          <p><strong>Supervisor name:</strong> ${escapeHtml(supervisor?.full_name || question.supervisor_name || question.supervisor_email || 'Supervisor')}</p>
+          <p><strong>Original question:</strong><br>${escapeHtml(question.question_text || '')}</p>
+          <p><strong>Answer:</strong><br>${escapeHtml(question.answer_text || '')}</p>
+          <p><strong>Answered date/time:</strong> ${escapeHtml(dateTime(answeredAt))}</p>
+        `,
+        link,
+        'Open questions tab'
+      )
+      const text = [
+        'Your Supervisor Answered Your Question',
+        `Student: ${student?.full_name || question.student_name || question.student_email || 'Student'}`,
+        `Supervisor: ${supervisor?.full_name || question.supervisor_name || question.supervisor_email || 'Supervisor'}`,
+        `Question: ${question.question_text || ''}`,
+        `Answer: ${question.answer_text || ''}`,
+        `Answered: ${dateTime(answeredAt)}`,
+        link ? `Dashboard link: ${link}` : '',
+      ].filter(Boolean).join('\n')
+      const email = await sendResendEmail({ resendApiKey, fromEmail, to: toEmail, subject: 'Your Supervisor Answered Your Question', html, text })
+      return jsonResponse({ success: true, emailId: email?.id || null })
     }
 
     if (kind === 'project_accepted') {
