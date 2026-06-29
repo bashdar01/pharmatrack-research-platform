@@ -107,7 +107,7 @@ values (
     'loginFeatureFontFamily', '''Inter'', system-ui, -apple-system, BlinkMacSystemFont, ''Segoe UI'', sans-serif',
     'loginFeatureBold', true,
     'loginFeatureItalic', false,
-    'loginGradientStart', '#0d9488',
+    'loginGradientStart', '#1d4ed8',
     'loginGradientEnd', '#2563eb',
     'loginCircleColor', '#ffffff',
     'loginShowGradientOverlay', true,

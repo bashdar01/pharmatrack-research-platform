@@ -4111,3 +4111,266 @@ button:disabled {
     border-radius: 8px;
   }
 }
+
+/* Blue and white professional theme update */
+@media screen {
+  :root {
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --card-soft: #f8fafc;
+    --text: #0f172a;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --accent: #2563eb;
+    --accent-strong: #1d4ed8;
+    --accent-soft: #eff6ff;
+    --accent-soft-2: #dbeafe;
+    --accent-text: #ffffff;
+    --input: #ffffff;
+    --shadow: rgba(37, 99, 235, .08);
+  }
+
+  body,
+  .app,
+  .admin-app,
+  .admin-panel-shell,
+  .modern-login-page,
+  .auth-form-panel {
+    background: #f8fafc !important;
+  }
+
+  .hero,
+  .admin-portal-header {
+    background-image:
+      linear-gradient(105deg, rgba(29, 78, 216, .92), rgba(37, 99, 235, .76) 52%, rgba(219, 234, 254, .18)),
+      url('/hero-page.png') !important;
+  }
+
+  .primary,
+  .role-button.active,
+  .tabs button.active,
+  .auth-switch button.active,
+  .admin-user-tabs button.active,
+  .admin-preview-link,
+  .profile-menu-button.logout,
+  .profile-upload-button.redesigned,
+  .total-box,
+  .icon-box.dark {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+    color: #ffffff !important;
+    border-color: #2563eb !important;
+    box-shadow: 0 14px 30px rgba(37, 99, 235, .16);
+  }
+
+  .secondary,
+  .ghost-button,
+  .profile-menu-button.subtle,
+  .role-button,
+  .tabs button,
+  .admin-user-tabs,
+  .auth-switch {
+    background: #ffffff !important;
+    border-color: #dbeafe !important;
+  }
+
+  .card,
+  .login-card,
+  .admin-panel-topbar,
+  .admin-management-card,
+  .mini-card,
+  .review-card,
+  .soft-box,
+  .empty-state,
+  .project-progress-wide-card,
+  .project-progress-card-surface,
+  .table-wrap,
+  .invitation-table-wrap,
+  .pdf-logo-preview,
+  .pdf-template-preview {
+    border-color: #dbeafe !important;
+    box-shadow: 0 10px 30px rgba(37, 99, 235, .06) !important;
+  }
+
+  .icon-box,
+  .status-avatar,
+  .admin-logo-mark,
+  .preview-logo-placeholder,
+  .student-option-check {
+    background: #eff6ff !important;
+    color: #2563eb !important;
+  }
+
+  .progress,
+  .preview-report-lines span {
+    background: #e5edff !important;
+  }
+
+  .progress div {
+    background: linear-gradient(90deg, #2563eb, #1d4ed8) !important;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus,
+  .auth-form-stack input:focus,
+  .auth-form-stack select:focus,
+  .auth-form-stack textarea:focus,
+  .modern-login-page .field input:focus,
+  .modern-login-page .field textarea:focus,
+  .modern-login-page .field select:focus,
+  .supervisor-feedback-textarea:focus {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, .13) !important;
+  }
+
+  .admin-sidebar {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border-right: 1px solid #dbeafe !important;
+    box-shadow: 8px 0 30px rgba(37, 99, 235, .05);
+  }
+
+  .admin-brand-block,
+  .admin-profile-mini {
+    border-color: #dbeafe !important;
+  }
+
+  .admin-profile-mini {
+    background: #eff6ff !important;
+  }
+
+  .admin-brand-block p,
+  .admin-profile-mini p,
+  .admin-side-nav button,
+  .admin-logout {
+    color: #475569 !important;
+  }
+
+  .admin-side-nav button {
+    background: transparent !important;
+    border: 1px solid transparent;
+  }
+
+  .admin-side-nav button.active,
+  .admin-side-nav button:hover {
+    background: #2563eb !important;
+    color: #ffffff !important;
+    border-color: #2563eb !important;
+  }
+
+  .admin-logout {
+    background: #eff6ff !important;
+    border-color: #dbeafe !important;
+  }
+
+  .admin-logout:hover {
+    background: #dbeafe !important;
+    color: #1d4ed8 !important;
+  }
+
+  .admin-side-nav::-webkit-scrollbar-thumb {
+    background: rgba(37, 99, 235, .34) !important;
+  }
+
+  .message,
+  .auth-note-box,
+  .invitation-lock-note,
+  .compact-report-note,
+  .no-records-message {
+    background: #eff6ff !important;
+    border-color: #bfdbfe !important;
+    color: #1d4ed8 !important;
+  }
+
+  .pill.green,
+  .pill.blue,
+  .status-chip,
+  .role-chip,
+  .success-message {
+    background: #eff6ff !important;
+    color: #1d4ed8 !important;
+    border-color: #bfdbfe !important;
+  }
+
+  .success {
+    background: #2563eb !important;
+    color: #ffffff !important;
+  }
+
+  .success:hover:not(:disabled) {
+    background: #1d4ed8 !important;
+  }
+
+  .profile-online-dot {
+    background: #2563eb !important;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, .35) !important;
+  }
+
+  .profile-cover,
+  .auth-brand-panel,
+  .login-settings-preview {
+    background-image: linear-gradient(135deg, rgba(29, 78, 216, .94), rgba(37, 99, 235, .88)), var(--auth-bg-image) !important;
+    background-color: #2563eb !important;
+  }
+
+  .auth-brand-overlay,
+  .login-settings-preview::before {
+    background: linear-gradient(135deg, var(--login-bg-start, #1d4ed8), var(--login-bg-end, #2563eb)) !important;
+  }
+
+  .auth-submit-button {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+    box-shadow: 0 16px 35px rgba(37, 99, 235, .22) !important;
+  }
+
+  .auth-text-link,
+  .auth-text-link:hover {
+    color: #2563eb !important;
+  }
+
+  .auth-checkbox input,
+  .settings-toggle input {
+    accent-color: #2563eb !important;
+  }
+
+  .settings-toggle:hover {
+    border-color: #bfdbfe !important;
+    box-shadow: 0 18px 34px rgba(37, 99, 235, .08) !important;
+  }
+
+  .student-multiselect-trigger:hover,
+  .student-multiselect-trigger.open {
+    border-color: #2563eb !important;
+    box-shadow: 0 10px 22px rgba(37, 99, 235, .12) !important;
+  }
+
+  .student-option-row:hover,
+  .student-option-row.selected {
+    background: #eff6ff !important;
+  }
+
+  .selected-student-chip {
+    background: #eff6ff !important;
+    border-color: #bfdbfe !important;
+    color: #1d4ed8 !important;
+  }
+
+  .admin-logo-preview,
+  .admin-logo-preview-shell .admin-logo-preview {
+    background: #2563eb !important;
+    color: #ffffff !important;
+  }
+
+  .admin-panel-topbar h1,
+  .section-header h3,
+  .project-progress-card-surface h3,
+  .project-progress-wide-card h3,
+  .auth-heading-block h2 {
+    color: #0f172a !important;
+  }
+
+  a,
+  .small a {
+    color: #2563eb;
+  }
+}
