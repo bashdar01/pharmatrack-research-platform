@@ -1,15 +1,20 @@
--- Assignment/project email + admin.domain Users & Roles support
+-- Supervisor-student assignment email notifications
 -- Run once in Supabase SQL Editor after deploying the updated website.
+-- Safe to run multiple times.
 
 create extension if not exists "uuid-ossp";
 
-alter table public.research_projects add column if not exists acceptance_email_sent_at timestamptz;
-alter table public.research_projects add column if not exists acceptance_email_sent_by uuid references public.profiles(id) on delete set null;
+alter table public.profiles add column if not exists assigned_supervisor_id uuid references public.profiles(id) on delete set null;
+alter table public.profiles add column if not exists assigned_supervisor_email text;
+alter table public.profiles add column if not exists assigned_supervisor_name text;
+alter table public.profiles add column if not exists assigned_supervisor_email_sent_at timestamptz;
+alter table public.profiles add column if not exists assigned_supervisor_email_supervisor_id uuid references public.profiles(id) on delete set null;
+alter table public.profiles add column if not exists assigned_supervisor_email_supervisor_email text;
+
+alter table public.research_projects add column if not exists supervisor_email text;
 alter table public.research_projects add column if not exists updated_at timestamptz;
 
-alter table public.weekly_reports alter column department drop not null;
-
--- Helper used by admin-only RPC actions. Security definer avoids profile-policy recursion.
+-- Robust admin helper used by assignment RPC.
 create or replace function public.current_admin_profile_id()
 returns uuid
 language sql
@@ -20,8 +25,8 @@ as $$
   select p.id
   from public.profiles p
   where lower(p.email) = lower(auth.jwt() ->> 'email')
-    and coalesce(p.status, 'Pending') = 'Active'
-    and p.role = 'admin'
+    and lower(coalesce(p.role, '')) in ('admin', 'admin/editor')
+    and lower(coalesce(nullif(p.status, ''), 'active')) in ('active', 'approved')
   limit 1;
 $$;
 
@@ -43,6 +48,7 @@ declare
   admin_id uuid;
   student_record public.profiles%rowtype;
   supervisor_record public.profiles%rowtype;
+  same_supervisor boolean := false;
 begin
   admin_id := public.current_admin_profile_id();
   if admin_id is null then
@@ -65,12 +71,20 @@ begin
     if supervisor_record.id is null then
       raise exception 'Supervisor account not found.';
     end if;
+
+    same_supervisor :=
+      student_record.assigned_supervisor_id = supervisor_record.id
+      or lower(coalesce(student_record.assigned_supervisor_email, '')) = lower(coalesce(supervisor_record.email, ''))
+      or lower(coalesce(student_record.assigned_supervisor_name, '')) = lower(coalesce(supervisor_record.full_name, ''));
   end if;
 
   update public.profiles
   set assigned_supervisor_id = supervisor_record.id,
       assigned_supervisor_email = coalesce(supervisor_record.email, ''),
-      assigned_supervisor_name = coalesce(supervisor_record.full_name, '')
+      assigned_supervisor_name = coalesce(supervisor_record.full_name, ''),
+      assigned_supervisor_email_sent_at = case when same_supervisor then student_record.assigned_supervisor_email_sent_at else null end,
+      assigned_supervisor_email_supervisor_id = case when same_supervisor then student_record.assigned_supervisor_email_supervisor_id else null end,
+      assigned_supervisor_email_supervisor_email = case when same_supervisor then student_record.assigned_supervisor_email_supervisor_email else '' end
   where id = student_record.id;
 
   update public.research_projects
@@ -91,7 +105,10 @@ $$;
 
 grant execute on function public.admin_assign_student_to_supervisor(uuid, uuid) to authenticated;
 
--- Allow admins to run the assignment RPC and still keep normal app policies intact.
+-- Keep RLS enabled; allow approved admins to perform the assignment update through app UI/RPC fallbacks.
+alter table public.profiles enable row level security;
+alter table public.research_projects enable row level security;
+
 drop policy if exists "profiles_update_admin_assignment" on public.profiles;
 create policy "profiles_update_admin_assignment"
 on public.profiles

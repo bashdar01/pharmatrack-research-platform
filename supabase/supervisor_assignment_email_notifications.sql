@@ -1,15 +1,16 @@
--- Assignment/project email + admin.domain Users & Roles support
--- Run once in Supabase SQL Editor after deploying the updated website.
+-- Supervisor assignment button/email backend fix
+-- Safe to run multiple times in Supabase SQL Editor.
 
-create extension if not exists "uuid-ossp";
+alter table public.profiles add column if not exists assigned_supervisor_id uuid references public.profiles(id) on delete set null;
+alter table public.profiles add column if not exists assigned_supervisor_email text;
+alter table public.profiles add column if not exists assigned_supervisor_name text;
+alter table public.profiles add column if not exists assigned_supervisor_email_sent_at timestamptz;
+alter table public.profiles add column if not exists assigned_supervisor_email_supervisor_id uuid references public.profiles(id) on delete set null;
+alter table public.profiles add column if not exists assigned_supervisor_email_supervisor_email text;
 
-alter table public.research_projects add column if not exists acceptance_email_sent_at timestamptz;
-alter table public.research_projects add column if not exists acceptance_email_sent_by uuid references public.profiles(id) on delete set null;
+alter table public.research_projects add column if not exists supervisor_email text;
 alter table public.research_projects add column if not exists updated_at timestamptz;
 
-alter table public.weekly_reports alter column department drop not null;
-
--- Helper used by admin-only RPC actions. Security definer avoids profile-policy recursion.
 create or replace function public.current_admin_profile_id()
 returns uuid
 language sql
@@ -19,9 +20,9 @@ stable
 as $$
   select p.id
   from public.profiles p
-  where lower(p.email) = lower(auth.jwt() ->> 'email')
-    and coalesce(p.status, 'Pending') = 'Active'
-    and p.role = 'admin'
+  where lower(coalesce(p.email, '')) = lower(coalesce(auth.jwt() ->> 'email', ''))
+    and lower(coalesce(p.role, '')) in ('admin', 'admin/editor', 'administrator')
+    and lower(coalesce(nullif(p.status, ''), 'active')) in ('active', 'approved', 'accepted')
   limit 1;
 $$;
 
@@ -43,6 +44,7 @@ declare
   admin_id uuid;
   student_record public.profiles%rowtype;
   supervisor_record public.profiles%rowtype;
+  same_supervisor boolean := false;
 begin
   admin_id := public.current_admin_profile_id();
   if admin_id is null then
@@ -51,7 +53,7 @@ begin
 
   select * into student_record
   from public.profiles
-  where id = target_student_id and role = 'student';
+  where id = target_student_id and lower(coalesce(role, '')) = 'student';
 
   if student_record.id is null then
     raise exception 'Student account not found.';
@@ -60,17 +62,25 @@ begin
   if target_supervisor_id is not null then
     select * into supervisor_record
     from public.profiles
-    where id = target_supervisor_id and role = 'supervisor';
+    where id = target_supervisor_id and lower(coalesce(role, '')) = 'supervisor';
 
     if supervisor_record.id is null then
       raise exception 'Supervisor account not found.';
     end if;
+
+    same_supervisor :=
+      student_record.assigned_supervisor_id = supervisor_record.id
+      or lower(coalesce(student_record.assigned_supervisor_email, '')) = lower(coalesce(supervisor_record.email, ''))
+      or lower(coalesce(student_record.assigned_supervisor_name, '')) = lower(coalesce(supervisor_record.full_name, ''));
   end if;
 
   update public.profiles
   set assigned_supervisor_id = supervisor_record.id,
       assigned_supervisor_email = coalesce(supervisor_record.email, ''),
-      assigned_supervisor_name = coalesce(supervisor_record.full_name, '')
+      assigned_supervisor_name = coalesce(supervisor_record.full_name, ''),
+      assigned_supervisor_email_sent_at = case when same_supervisor then student_record.assigned_supervisor_email_sent_at else null end,
+      assigned_supervisor_email_supervisor_id = case when same_supervisor then student_record.assigned_supervisor_email_supervisor_id else null end,
+      assigned_supervisor_email_supervisor_email = case when same_supervisor then student_record.assigned_supervisor_email_supervisor_email else '' end
   where id = student_record.id;
 
   update public.research_projects
@@ -91,7 +101,9 @@ $$;
 
 grant execute on function public.admin_assign_student_to_supervisor(uuid, uuid) to authenticated;
 
--- Allow admins to run the assignment RPC and still keep normal app policies intact.
+alter table public.profiles enable row level security;
+alter table public.research_projects enable row level security;
+
 drop policy if exists "profiles_update_admin_assignment" on public.profiles;
 create policy "profiles_update_admin_assignment"
 on public.profiles

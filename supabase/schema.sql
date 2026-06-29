@@ -1577,3 +1577,331 @@ grant execute on function public.get_pdf_report_students_for_supervisor(uuid, te
 
 -- Latest supervisor deadline assigned-student targeting/RLS fix is available in:
 -- supabase/supervisor_deadline_assigned_students_fix.sql
+
+-- Website settings global save/RLS fix.
+-- Keeps app_settings RLS enabled and uses a secure admin-only RPC for website/login settings.
+
+create table if not exists public.app_settings (
+  key text primary key,
+  value jsonb not null default '{}'::jsonb,
+  updated_by text,
+  updated_at timestamptz default now()
+);
+
+alter table public.app_settings enable row level security;
+
+grant usage on schema public to anon, authenticated;
+grant select on public.app_settings to anon, authenticated;
+grant insert, update, delete on public.app_settings to authenticated;
+
+create or replace function public.is_app_settings_admin()
+returns boolean
+language sql
+security definer
+set search_path = public, auth
+stable
+as $$
+  -- Robust admin check for this project.
+  -- profiles.id may not equal auth.uid(), so email matching is included.
+  -- Status is intentionally permissive for legacy admin rows: only clearly blocked/rejected statuses are denied.
+  with auth_context as (
+    select
+      auth.uid() as uid,
+      lower(trim(coalesce(
+        auth.jwt() ->> 'email',
+        (select au.email from auth.users au where au.id = auth.uid()),
+        ''
+      ))) as email
+  )
+  select exists (
+    select 1
+    from public.profiles p
+    cross join auth_context ac
+    where lower(trim(coalesce(p.role, ''))) in ('admin', 'admin/editor', 'administrator')
+      and coalesce(nullif(lower(trim(coalesce(p.status, ''))), ''), 'active') not in ('rejected', 'disabled', 'inactive', 'blocked', 'suspended')
+      and (
+        (ac.uid is not null and p.id = ac.uid)
+        or (ac.email <> '' and lower(trim(coalesce(p.email, ''))) = ac.email)
+      )
+  );
+$$;
+
+grant execute on function public.is_app_settings_admin() to anon, authenticated;
+
+create or replace function public.is_pdf_customization_admin()
+returns boolean
+language sql
+security definer
+set search_path = public, auth
+stable
+as $$
+  select public.is_app_settings_admin();
+$$;
+
+grant execute on function public.is_pdf_customization_admin() to anon, authenticated;
+
+do $$
+declare
+  pol record;
+begin
+  for pol in
+    select policyname
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'app_settings'
+  loop
+    execute format('drop policy if exists %I on public.app_settings', pol.policyname);
+  end loop;
+end $$;
+
+create policy "app_settings_read_global"
+  on public.app_settings
+  for select
+  to anon, authenticated
+  using (true);
+
+create policy "app_settings_insert_admin_only"
+  on public.app_settings
+  for insert
+  to authenticated
+  with check (public.is_app_settings_admin());
+
+create policy "app_settings_update_admin_only"
+  on public.app_settings
+  for update
+  to authenticated
+  using (public.is_app_settings_admin())
+  with check (public.is_app_settings_admin());
+
+create policy "app_settings_delete_admin_only"
+  on public.app_settings
+  for delete
+  to authenticated
+  using (public.is_app_settings_admin());
+
+create or replace function public.save_website_settings(next_value jsonb, updated_by_value text default null)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+declare
+  saved_value jsonb;
+begin
+  if auth.uid() is null then
+    raise exception 'You must be logged in to save website settings.';
+  end if;
+
+  if not public.is_app_settings_admin() then
+    raise exception 'Only approved Admin accounts can edit website settings.';
+  end if;
+
+  insert into public.app_settings as s (key, value, updated_by, updated_at)
+  values (
+    'website',
+    coalesce(next_value, '{}'::jsonb),
+    coalesce(updated_by_value, auth.jwt() ->> 'email', 'admin'),
+    now()
+  )
+  on conflict (key) do update set
+    value = excluded.value,
+    updated_by = excluded.updated_by,
+    updated_at = now()
+  returning s.value into saved_value;
+
+  return saved_value;
+end;
+$$;
+
+grant execute on function public.save_website_settings(jsonb, text) to authenticated;
+
+-- Compatibility overload for projects/clients that call the RPC with only next_value.
+create or replace function public.save_website_settings(next_value jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+begin
+  return public.save_website_settings(next_value, null);
+end;
+$$;
+
+grant execute on function public.save_website_settings(jsonb) to authenticated;
+
+
+create or replace function public.save_pdf_report_settings(next_value jsonb, updated_by_value text default null)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+declare
+  saved_value jsonb;
+begin
+  if auth.uid() is null then
+    raise exception 'You must be logged in to save PDF report settings.';
+  end if;
+
+  if not public.is_app_settings_admin() then
+    raise exception 'Only approved Admin accounts can edit PDF report customization settings.';
+  end if;
+
+  insert into public.app_settings as s (key, value, updated_by, updated_at)
+  values (
+    'pdf_report',
+    coalesce(next_value, '{}'::jsonb),
+    coalesce(updated_by_value, auth.jwt() ->> 'email', 'admin'),
+    now()
+  )
+  on conflict (key) do update set
+    value = excluded.value,
+    updated_by = excluded.updated_by,
+    updated_at = now()
+  returning s.value into saved_value;
+
+  return saved_value;
+end;
+$$;
+
+grant execute on function public.save_pdf_report_settings(jsonb, text) to authenticated;
+
+-- 202606290012 Hero/Login background settings global save fix: run supabase/website_settings.sql for complete app_settings/storage policies.
+
+-- 202606290013 Supervisor assignment button/email backend fix:
+-- Run supabase/supervisor_assignment_email_backend_fix.sql and deploy send-platform-email Edge Function.
+-- Supervisor assignment Edge Function / email notification fix
+-- Safe to run multiple times in Supabase SQL Editor.
+
+alter table public.profiles add column if not exists assigned_supervisor_id uuid references public.profiles(id) on delete set null;
+alter table public.profiles add column if not exists assigned_supervisor_email text;
+alter table public.profiles add column if not exists assigned_supervisor_name text;
+alter table public.profiles add column if not exists assigned_supervisor_email_sent_at timestamptz;
+alter table public.profiles add column if not exists assigned_supervisor_email_supervisor_id uuid references public.profiles(id) on delete set null;
+alter table public.profiles add column if not exists assigned_supervisor_email_supervisor_email text;
+
+alter table public.research_projects add column if not exists supervisor_id uuid references public.profiles(id) on delete set null;
+alter table public.research_projects add column if not exists supervisor_email text;
+alter table public.research_projects add column if not exists supervisor_name text;
+alter table public.research_projects add column if not exists updated_at timestamptz;
+
+create index if not exists idx_profiles_assigned_supervisor_id on public.profiles(assigned_supervisor_id);
+create index if not exists idx_research_projects_supervisor_id on public.research_projects(supervisor_id);
+
+create or replace function public.current_admin_profile_id()
+returns uuid
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select p.id
+  from public.profiles p
+  where (
+      p.id = auth.uid()
+      or lower(coalesce(p.email, '')) = lower(coalesce(auth.jwt() ->> 'email', ''))
+    )
+    and lower(coalesce(p.role, '')) in ('admin', 'admin/editor', 'administrator')
+    and lower(coalesce(nullif(p.status, ''), 'active')) in ('active', 'approved', 'accepted')
+  limit 1;
+$$;
+
+grant execute on function public.current_admin_profile_id() to authenticated;
+
+-- Drop the old function first because PostgreSQL cannot change a function return type with CREATE OR REPLACE.
+drop function if exists public.admin_assign_student_to_supervisor(uuid, uuid);
+
+create or replace function public.admin_assign_student_to_supervisor(
+  target_student_id uuid,
+  target_supervisor_id uuid default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  admin_id uuid;
+  student_record public.profiles%rowtype;
+  supervisor_record public.profiles%rowtype;
+  same_supervisor boolean := false;
+begin
+  admin_id := public.current_admin_profile_id();
+  if admin_id is null then
+    raise exception 'You do not have permission to access this admin feature.';
+  end if;
+
+  select * into student_record
+  from public.profiles
+  where id = target_student_id and lower(coalesce(role, '')) = 'student';
+
+  if student_record.id is null then
+    raise exception 'Student account not found.';
+  end if;
+
+  if target_supervisor_id is not null then
+    select * into supervisor_record
+    from public.profiles
+    where id = target_supervisor_id and lower(coalesce(role, '')) = 'supervisor';
+
+    if supervisor_record.id is null then
+      raise exception 'Supervisor account not found.';
+    end if;
+
+    same_supervisor :=
+      student_record.assigned_supervisor_id = supervisor_record.id
+      or lower(coalesce(student_record.assigned_supervisor_email, '')) = lower(coalesce(supervisor_record.email, ''))
+      or lower(coalesce(student_record.assigned_supervisor_name, '')) = lower(coalesce(supervisor_record.full_name, ''));
+  end if;
+
+  update public.profiles
+  set assigned_supervisor_id = case when target_supervisor_id is null then null else supervisor_record.id end,
+      assigned_supervisor_email = case when target_supervisor_id is null then '' else coalesce(supervisor_record.email, '') end,
+      assigned_supervisor_name = case when target_supervisor_id is null then '' else coalesce(supervisor_record.full_name, '') end,
+      assigned_supervisor_email_sent_at = case when same_supervisor then student_record.assigned_supervisor_email_sent_at else null end,
+      assigned_supervisor_email_supervisor_id = case when same_supervisor then student_record.assigned_supervisor_email_supervisor_id else null end,
+      assigned_supervisor_email_supervisor_email = case when same_supervisor then student_record.assigned_supervisor_email_supervisor_email else '' end
+  where id = student_record.id;
+
+  update public.research_projects
+  set supervisor_id = case when target_supervisor_id is null then null else supervisor_record.id end,
+      supervisor_email = case when target_supervisor_id is null then '' else coalesce(supervisor_record.email, '') end,
+      supervisor_name = case when target_supervisor_id is null then 'Pending Assignment' else coalesce(supervisor_record.full_name, 'Pending Assignment') end,
+      updated_at = now()
+  where student_id = student_record.id
+     or created_by = student_record.id
+     or lower(coalesce(student_email, '')) = lower(coalesce(student_record.email, ''))
+     or lower(coalesce(created_by_email, '')) = lower(coalesce(student_record.email, ''))
+     or lower(coalesce(group_name, '')) = lower(coalesce(student_record.full_name, ''))
+     or lower(coalesce(student_record.full_name, '')) = any(select lower(unnest(coalesce(students, array[]::text[]))));
+
+  return jsonb_build_object(
+    'success', true,
+    'assignmentSaved', true,
+    'sameSupervisor', same_supervisor,
+    'studentId', student_record.id,
+    'supervisorId', case when target_supervisor_id is null then null else supervisor_record.id end
+  );
+end;
+$$;
+
+grant execute on function public.admin_assign_student_to_supervisor(uuid, uuid) to authenticated;
+
+alter table public.profiles enable row level security;
+alter table public.research_projects enable row level security;
+
+drop policy if exists "profiles_update_admin_assignment" on public.profiles;
+create policy "profiles_update_admin_assignment"
+on public.profiles
+for update
+to authenticated
+using (public.current_admin_profile_id() is not null)
+with check (public.current_admin_profile_id() is not null);
+
+drop policy if exists "projects_update_admin_assignment" on public.research_projects;
+create policy "projects_update_admin_assignment"
+on public.research_projects
+for update
+to authenticated
+using (public.current_admin_profile_id() is not null)
+with check (public.current_admin_profile_id() is not null);
