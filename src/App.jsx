@@ -618,7 +618,7 @@ function cleanData(data) {
     progress: getProjectProgress(project, cleaned.reports),
   }))
   cleaned.uploadedFiles = cleaned.uploadedFiles || []
-  cleaned.deadlines = cleaned.deadlines?.length ? cleaned.deadlines : emptyData.deadlines
+  cleaned.deadlines = cleaned.deadlines || []
   cleaned.notifications = cleaned.notifications || []
   cleaned.evaluations = cleaned.evaluations || []
   cleaned.auditLogs = cleaned.auditLogs || []
@@ -1889,7 +1889,7 @@ export default function App() {
         projects: projectsData,
         reports: reportsData,
         uploadedFiles: uploadedFiles.data || [],
-        deadlines: deadlines.data?.length ? deadlines.data : emptyData.deadlines,
+        deadlines: deadlines.data || [],
         notifications: notifications.data || [],
         evaluations: evaluations.data || [],
         auditLogs: auditLogs.data || [],
@@ -3600,12 +3600,16 @@ export default function App() {
           uploadedFiles: current.uploadedFiles.filter((file) => String(file.project_id) !== String(projectId) && !linkedReportIds.includes(String(file.report_id))),
           notifications: current.notifications.filter((notification) => String(notification.project_id) !== String(projectId) && !linkedReportIds.includes(String(notification.weekly_report_id))),
           evaluations: current.evaluations.filter((evaluation) => String(evaluation.project_id) !== String(projectId)),
+          groupJoinRequests: (current.groupJoinRequests || []).filter((request) => String(request.requested_group_id) !== String(projectId) && String(request.current_group_id) !== String(projectId)),
+          groupMembers: (current.groupMembers || []).filter((member) => String(member.group_id || member.project_id || member.research_project_id || '') !== String(projectId)),
+          deadlines: (current.deadlines || []).filter((deadline) => ![deadline.project_id, deadline.research_project_id, deadline.target_project_id, deadline.group_id].some((value) => String(value || '') === String(projectId))),
+          profiles: (current.profiles || []).map((profile) => [profile.current_research_group_id, profile.research_group_id, profile.group_id, profile.project_id, profile.research_title_id].some((value) => String(value || '') === String(projectId)) ? { ...profile, current_research_group_id: null, current_research_group_name: '', research_group_id: null, group_id: null, project_id: null, research_title_id: null } : profile),
           auditLogs: [log, ...current.auditLogs],
         }))
       }
       setMessage('Research title deleted successfully.')
     } catch (error) {
-      setMessage(error.message?.toLowerCase?.().includes('permission') || error.message?.toLowerCase?.().includes('row-level security') ? 'You do not have permission to perform this action.' : (error.message || 'Could not delete this research title.'))
+      setMessage(error.message?.toLowerCase?.().includes('permission') || error.message?.toLowerCase?.().includes('row-level security') ? 'You do not have permission to perform this action.' : (error.message || 'Failed to delete research title.'))
     }
   }
 
@@ -3639,12 +3643,16 @@ export default function App() {
           uploadedFiles: current.uploadedFiles.filter((file) => !groupProjectIds.includes(String(file.project_id)) && !linkedReportIds.includes(String(file.report_id))),
           notifications: current.notifications.filter((notification) => !groupProjectIds.includes(String(notification.project_id)) && !linkedReportIds.includes(String(notification.weekly_report_id))),
           evaluations: current.evaluations.filter((evaluation) => !groupProjectIds.includes(String(evaluation.project_id))),
+          groupJoinRequests: (current.groupJoinRequests || []).filter((request) => !groupProjectIds.includes(String(request.requested_group_id)) && !groupProjectIds.includes(String(request.current_group_id)) && normalizeText(request.requested_group_name) !== normalizeText(normalizedGroup)),
+          groupMembers: (current.groupMembers || []).filter((member) => !groupProjectIds.includes(String(member.group_id || member.project_id || member.research_project_id || ''))),
+          deadlines: (current.deadlines || []).filter((deadline) => ![deadline.project_id, deadline.research_project_id, deadline.target_project_id, deadline.group_id].some((value) => groupProjectIds.includes(String(value || '')))),
+          profiles: (current.profiles || []).map((profile) => groupProjectIds.includes(String(profile.current_research_group_id || profile.research_group_id || profile.group_id || profile.project_id || profile.research_title_id || '')) || normalizeText(profile.current_research_group_name) === normalizeText(normalizedGroup) ? { ...profile, current_research_group_id: null, current_research_group_name: '', research_group_id: null, group_id: null, project_id: null, research_title_id: null } : profile),
           auditLogs: [log, ...current.auditLogs],
         }))
       }
       setMessage('Research group deleted successfully.')
     } catch (error) {
-      setMessage(error.message?.toLowerCase?.().includes('permission') || error.message?.toLowerCase?.().includes('row-level security') ? 'You do not have permission to perform this action.' : (error.message || 'Could not delete this research group.'))
+      setMessage(error.message?.toLowerCase?.().includes('permission') || error.message?.toLowerCase?.().includes('row-level security') ? 'You do not have permission to perform this action.' : (error.message || 'Failed to delete project.'))
     }
   }
 
@@ -4652,7 +4660,7 @@ export default function App() {
               {statCards.map((card) => <StatCard key={card.title} {...card} />)}
             </section>
 
-            {allowedRole === 'supervisor' && <FilterBar filters={filters} setFilters={setFilters} projects={visibleProjects} />}
+
 
             {allowedRole === 'student' && <StudentDashboard data={visibleData} projects={visibleProjects} currentUser={currentUser} createProject={createProject} createWeeklyReport={createWeeklyReport} dataLoading={dataLoading} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
             {allowedRole === 'supervisor' && <SupervisorDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} dataLoading={dataLoading} reviewReport={reviewReport} createDeadline={createDeadline} removeDeadline={removeDeadline} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
