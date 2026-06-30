@@ -1306,8 +1306,10 @@ function getResearchGroupOptions(data = {}, currentUser = null) {
     })
   })
   const currentGroup = currentUser ? getStudentCurrentResearchGroup(data, currentUser) : null
+  // Students who already belong to a research group should not see or request other groups.
+  // The current project/group is shown in the student dashboard instead.
+  if (currentUser?.role === 'student' && currentGroup) return []
   return Array.from(seen.values())
-    .filter((group) => !currentGroup?.id || String(group.id) !== String(currentGroup.id))
     .sort((a, b) => String(a.group_name).localeCompare(String(b.group_name)))
 }
 
@@ -4501,6 +4503,16 @@ export default function App() {
     groupMembers: data.groupMembers || [],
   }), [data, allowedRole, visibleProjects, visibleReports, visibleDeadlines])
 
+  const studentCurrentResearchGroup = useMemo(() => (
+    allowedRole === 'student' ? getStudentCurrentResearchGroup(data, currentUser) : null
+  ), [allowedRole, data, currentUser])
+
+  useEffect(() => {
+    if (allowedRole === 'student' && tab === 'join-group' && studentCurrentResearchGroup && !dataLoading) {
+      setTab('dashboard')
+    }
+  }, [allowedRole, tab, studentCurrentResearchGroup, dataLoading])
+
   const stats = useMemo(() => {
     const approved = visibleProjects.filter((p) => p.approval === 'Approved').length
     const pendingReports = visibleReports.filter((r) => ['Submitted', 'Revision Required'].includes(r.status)).length
@@ -4625,7 +4637,7 @@ export default function App() {
           <button onClick={() => setTab('notifications')} className={tab === 'notifications' ? 'active' : ''}><Bell size={16} /> Notifications {stats.unread > 0 && <span className="tab-badge">{stats.unread}</span>}</button>
           <button onClick={() => setTab('reports')} className={tab === 'reports' ? 'active' : ''}><Printer size={16} /> Print/PDF Reports</button>
           {allowedRole === 'student' && <button onClick={() => setTab('questions')} className={tab === 'questions' ? 'active' : ''}><MessageSquareText size={16} /> Questions</button>}
-          {allowedRole === 'student' && <button onClick={() => setTab('join-group')} className={tab === 'join-group' ? 'active' : ''}><Users size={16} /> Join Research Group</button>}
+          {allowedRole === 'student' && !studentCurrentResearchGroup && <button onClick={() => setTab('join-group')} className={tab === 'join-group' ? 'active' : ''}><Users size={16} /> Join Research Group</button>}
           {allowedRole === 'supervisor' && <button onClick={() => setTab('questions')} className={tab === 'questions' ? 'active' : ''}><MessageSquareText size={16} /> Student Questions</button>}
           {allowedRole === 'supervisor' && <button onClick={() => setTab('groups')} className={tab === 'groups' ? 'active' : ''}><Users size={16} /> Research Groups</button>}
           {allowedRole === 'admin' && <button onClick={() => setTab('database')} className={tab === 'database' ? 'active' : ''}><Database size={16} /> Database</button>}
@@ -4652,7 +4664,7 @@ export default function App() {
         {tab === 'notifications' && <NotificationsTab data={data} role={allowedRole} currentUser={currentUser} dataLoading={dataLoading} createNotification={createNotification} markNotificationRead={markNotificationRead} removeNotification={removeNotification} />}
         {tab === 'questions' && allowedRole === 'student' && <StudentQuestionsTab data={data} currentUser={currentUser} dataLoading={dataLoading} submitStudentQuestion={submitStudentQuestion} />}
         {tab === 'questions' && allowedRole === 'supervisor' && <SupervisorQuestionsTab data={data} currentUser={currentUser} dataLoading={dataLoading} answerStudentQuestion={answerStudentQuestion} />}
-        {tab === 'join-group' && allowedRole === 'student' && <StudentJoinResearchGroupTab data={data} currentUser={currentUser} dataLoading={dataLoading} submitGroupJoinRequest={submitGroupJoinRequest} />}
+        {tab === 'join-group' && allowedRole === 'student' && !studentCurrentResearchGroup && <StudentJoinResearchGroupTab data={data} currentUser={currentUser} dataLoading={dataLoading} submitGroupJoinRequest={submitGroupJoinRequest} />}
         {tab === 'groups' && allowedRole === 'supervisor' && <SupervisorResearchGroupManagementTab data={data} currentUser={currentUser} dataLoading={dataLoading} supervisorAddStudentsToGroup={supervisorAddStudentsToGroup} decideGroupJoinRequest={decideGroupJoinRequest} />}
         {tab === 'reports' && <ReportsTab data={data} projects={filteredProjects} currentUser={currentUser} role={allowedRole} printPdfReport={printPdfReport} exportCsv={exportCsv} pdfReportSettings={getPdfReportSettingsForRole(allowedRole, pdfReportSettingsByRole, pdfReportSettings)} dataLoading={dataLoading} />}
         {tab === 'database' && allowedRole === 'admin' && <DatabaseTab databaseMode={databaseMode} />}
@@ -5845,6 +5857,33 @@ function StudentJoinResearchGroupTab({ data, currentUser, dataLoading = false, s
   const [messageText, setMessageText] = useState('')
   const [submittingId, setSubmittingId] = useState('')
   const currentGroup = getStudentCurrentResearchGroup(data, currentUser)
+
+  if (currentGroup) {
+    const memberProfiles = getResearchGroupMemberProfiles(data, currentGroup)
+    const members = uniqueTextList([
+      ...memberProfiles.map((profile) => profile.full_name || profile.email).filter(Boolean),
+      ...getProjectStudents(currentGroup).filter((member) => !String(member || '').includes('@')),
+    ])
+    return (
+      <div className="admin-panel-stack group-join-page">
+        <div className="card combined-group-join-card">
+          <SectionHeader icon={Users} title="Current Research Group" subtitle="You are already assigned to a research project, so joining other groups is disabled" />
+          <div className="notice info compact-notice">
+            <b>You are already assigned to a research group.</b>
+            <p>The Join Research Group feature is hidden once your group membership is active.</p>
+          </div>
+          <div className="soft-box project-progress-card-surface">
+            <p className="muted small bold">{currentGroup.group_name || 'Research Group'}</p>
+            <h3>{currentGroup.title || 'Research project'}</h3>
+            <p className="muted small">Supervisor: {currentGroup.supervisor_name || 'Pending Assignment'}{currentGroup.supervisor_email ? ` • ${currentGroup.supervisor_email}` : ''}</p>
+            {members.length ? <p className="muted small">Group members: {members.join(', ')}</p> : null}
+            <p className="muted small">Open the Dashboard to view project progress, deadlines, and Submit Weekly Report.</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const requests = (data.groupJoinRequests || [])
     .filter((request) => requestOwnedByStudent(request, currentUser))
     .sort((a, b) => new Date(b.requested_at || 0) - new Date(a.requested_at || 0))
