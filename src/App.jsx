@@ -1189,7 +1189,7 @@ function getStudentCurrentResearchGroup(data = {}, studentUser = {}) {
     const project = (data.projects || []).find((item) => normalizeText(item.group_name) === normalizeText(groupName))
     return project || { id: null, group_name: groupName }
   }
-  return (data.projects || []).find((project) => projectStudentIdentityMatches(project, profile)) || null
+  return null
 }
 
 function getResearchGroupOptions(data = {}, currentUser = null) {
@@ -5678,18 +5678,43 @@ function GroupRequestStatusBadge({ status }) {
 
 function StudentJoinResearchGroupTab({ data, currentUser, dataLoading = false, submitGroupJoinRequest }) {
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [messageText, setMessageText] = useState('')
   const [submittingId, setSubmittingId] = useState('')
   const currentGroup = getStudentCurrentResearchGroup(data, currentUser)
-  const requests = (data.groupJoinRequests || []).filter((request) => requestOwnedByStudent(request, currentUser)).sort((a, b) => new Date(b.requested_at || 0) - new Date(a.requested_at || 0))
-  const hasPending = requests.some((request) => String(request.status || '').toLowerCase() === 'pending')
-  const groups = getResearchGroupOptions(data, currentUser).filter((group) => {
-    const haystack = `${group.group_name || ''} ${group.title || ''} ${group.supervisor_name || ''} ${(group.students || []).join(' ')}`.toLowerCase()
-    return haystack.includes(search.trim().toLowerCase())
+  const requests = (data.groupJoinRequests || [])
+    .filter((request) => requestOwnedByStudent(request, currentUser))
+    .sort((a, b) => new Date(b.requested_at || 0) - new Date(a.requested_at || 0))
+  const latestRequestForGroup = (group) => requests.find((request) => requestMatchesGroup(request, group))
+  const normalizedSearch = search.trim().toLowerCase()
+  const allGroups = getResearchGroupOptions(data, currentUser)
+  const filteredGroups = allGroups.filter((group) => {
+    const request = latestRequestForGroup(group)
+    const requestStatus = String(request?.status || 'Available').toLowerCase()
+    const statusMatch =
+      statusFilter === 'all' ||
+      (statusFilter === 'available' && !request) ||
+      (statusFilter === 'pending' && requestStatus === 'pending') ||
+      (statusFilter === 'accepted' && requestStatus === 'accepted') ||
+      (statusFilter === 'rejected' && requestStatus === 'rejected')
+    if (!statusMatch) return false
+    if (!normalizedSearch) return true
+    const haystack = [
+      group.group_name,
+      group.title,
+      group.area,
+      group.supervisor_name,
+      group.supervisor_email,
+      ...(group.students || []),
+    ].join(' ').toLowerCase()
+    return haystack.includes(normalizedSearch)
   })
 
   async function handleRequest(groupId) {
-    if (submittingId || hasPending || currentGroup) return
+    if (submittingId || currentGroup) return
+    const group = allGroups.find((item) => String(item.id) === String(groupId))
+    const existingRequest = group ? latestRequestForGroup(group) : null
+    if (existingRequest && String(existingRequest.status || '').toLowerCase() === 'pending') return
     setSubmittingId(groupId)
     try {
       const result = await submitGroupJoinRequest(groupId, messageText)
@@ -5699,58 +5724,77 @@ function StudentJoinResearchGroupTab({ data, currentUser, dataLoading = false, s
     }
   }
 
+  function renderAction(group) {
+    const request = latestRequestForGroup(group)
+    const status = String(request?.status || '').toLowerCase()
+    if (currentGroup) return <button className="secondary min-button-width" type="button" disabled>You are already assigned</button>
+    if (status === 'pending') return <button className="secondary min-button-width" type="button" disabled>Request Pending</button>
+    if (status === 'accepted') return <button className="success min-button-width" type="button" disabled>Accepted</button>
+    if (status === 'rejected') return <button className="danger ghost min-button-width" type="button" disabled>Rejected</button>
+    return (
+      <button className="primary min-button-width" type="button" disabled={Boolean(submittingId)} onClick={() => handleRequest(group.id)}>
+        <ButtonContent loading={submittingId === group.id} loadingText="Submitting request..." icon={Send}>Request to Join</ButtonContent>
+      </button>
+    )
+  }
+
   return (
     <div className="admin-panel-stack group-join-page">
-      <div className="card">
-        <SectionHeader icon={Users} title="Join Research Group" subtitle="Request to join another student research group" />
-        {currentGroup ? (
-          <EmptyState title="You are already assigned to a research group." text={`${currentGroup.group_name || currentGroup.title || 'Your current group'} is linked to your account.`} icon={Users} />
-        ) : hasPending ? (
-          <EmptyState title="Your request is pending." text="You can submit another request after the current request is accepted or rejected." icon={Clock} />
-        ) : (
-          <div className="form-grid">
-            <label className="field"><span>Search groups</span><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search research groups, title, supervisor, or students..." /></label>
-            <label className="field wide-field"><span>Request message</span><textarea value={messageText} onChange={(e) => setMessageText(e.target.value)} placeholder="Optional message for the supervisor/admin..." /></label>
+      <div className="card combined-group-join-card">
+        <SectionHeader icon={Users} title="Join Research Group" subtitle="Search available research groups and request to join from one place" />
+        {currentGroup && (
+          <div className="notice info compact-notice">
+            <b>You are already assigned to a research group.</b>
+            <p>{currentGroup.group_name || currentGroup.title || 'Your current group'} is linked to your account.</p>
           </div>
         )}
-      </div>
-      <div className="card">
-        <SectionHeader icon={BookOpen} title="Available Research Groups" subtitle="Only request groups you are allowed to join" />
-        {dataLoading ? <LoadingBlock text="Loading groups..." /> : currentGroup || hasPending ? null : groups.length ? (
-          <div className="group-card-grid">
-            {groups.map((group) => (
-              <div className="mini-card group-card" key={group.id || group.group_name}>
-                <div className="split">
-                  <div>
-                    <b>{group.group_name}</b>
-                    <p className="muted small">{group.title || 'No research title'} • {group.area || 'No department'}</p>
-                    <p className="muted small">Supervisor: {group.supervisor_name || 'Pending Assignment'}</p>
-                    <p className="muted small">Members: {(group.students || []).join(', ') || 'No listed members yet'}</p>
+        <div className="form-grid group-join-filter-grid">
+          <label className="field wide-field"><span>Search</span><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search research groups, projects, supervisors, or students..." /></label>
+          <label className="field"><span>Filter</span><select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="all">All groups</option>
+            <option value="available">Available groups</option>
+            <option value="pending">My pending requests</option>
+            <option value="accepted">Accepted</option>
+            <option value="rejected">Rejected</option>
+          </select></label>
+          {!currentGroup && <label className="field wide-field"><span>Request message</span><textarea value={messageText} onChange={(e) => setMessageText(e.target.value)} placeholder="Optional message for the supervisor/admin..." /></label>}
+        </div>
+
+        {dataLoading ? <LoadingBlock text="Loading available research groups..." /> : filteredGroups.length ? (
+          <div className="group-card-grid joined-group-list">
+            {filteredGroups.map((group) => {
+              const request = latestRequestForGroup(group)
+              const status = request?.status || 'Available'
+              return (
+                <div className="mini-card group-card" key={group.id || group.group_name}>
+                  <div className="split">
+                    <div>
+                      <div className="question-card-header">
+                        <div>
+                          <b>{group.group_name || 'Research Group'}</b>
+                          <p className="muted small">{group.title || 'No research title/project'} • {group.area || 'No department/program'}</p>
+                        </div>
+                        {request ? <GroupRequestStatusBadge status={status} /> : <Pill tone="blue">Available</Pill>}
+                      </div>
+                      <p className="muted small">Supervisor: {group.supervisor_name || 'Pending Assignment'}{group.supervisor_email ? ` • ${group.supervisor_email}` : ''}</p>
+                      <p className="muted small">Members: {(group.students || []).join(', ') || 'No listed members yet'}</p>
+                      {request?.request_message && <p className="muted small">Your request: {request.request_message}</p>}
+                      {request?.decision_message && <div className="question-answer-box"><p className="question-label">Decision comment</p><p>{request.decision_message}</p></div>}
+                      {request?.requested_at && <p className="muted small">Requested: {new Date(request.requested_at).toLocaleString()}</p>}
+                    </div>
+                    <div className="group-card-actions">{renderAction(group)}</div>
                   </div>
-                  <button className="primary min-button-width" type="button" disabled={Boolean(submittingId)} onClick={() => handleRequest(group.id)}>
-                    <ButtonContent loading={submittingId === group.id} loadingText="Submitting request..." icon={Send}>Request to Join</ButtonContent>
-                  </button>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : <EmptyState title="No research groups found." text="Try another group name, research title, supervisor, or student keyword." icon={Search} />}
-      </div>
-      <div className="card">
-        <SectionHeader icon={Clock} title="My Join Requests" subtitle="Track your pending, accepted, and rejected requests" />
-        {requests.length ? (
-          <div className="question-list">
-            {requests.map((request) => {
-              const label = groupJoinRequestLabel(data, request)
-              return <div className="question-card" key={request.id}>
-                <div className="question-card-header"><div><b>{label.groupName}</b><p className="muted small">{label.projectTitle || 'No research title'}</p></div><GroupRequestStatusBadge status={request.status} /></div>
-                {request.request_message && <p className="muted small">Message: {request.request_message}</p>}
-                {request.decision_message && <div className="question-answer-box"><p className="question-label">Decision comment</p><p>{request.decision_message}</p></div>}
-                <p className="muted small">Requested: {request.requested_at ? new Date(request.requested_at).toLocaleString() : '-'}</p>
-              </div>
+              )
             })}
           </div>
-        ) : <EmptyState title="No group join requests yet." text="Your research group join requests will appear here." icon={Users} />}
+        ) : (
+          <EmptyState
+            title={normalizedSearch ? 'No matching research groups found.' : 'No available research groups found.'}
+            text={normalizedSearch ? 'Try another group name, project title, supervisor, student, or department keyword.' : 'No research groups/projects are currently available to join.'}
+            icon={Search}
+          />
+        )}
       </div>
     </div>
   )

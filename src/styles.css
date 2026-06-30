@@ -5108,3 +5108,46 @@ button .button-spinner {
     grid-template-columns: 1fr;
   }
 }
+
+/* Combined student research group join section */
+.combined-group-join-card {
+  display: grid;
+  gap: 0.95rem;
+}
+.group-join-filter-grid {
+  align-items: end;
+}
+.compact-notice {
+  margin: 0;
+  padding: 0.8rem 0.95rem;
+  border-radius: 14px;
+}
+.compact-notice p {
+  margin: 0.25rem 0 0;
+}
+.joined-group-list {
+  margin-top: 0.15rem;
+}
+.group-card-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  min-width: 160px;
+}
+.group-card .question-card-header {
+  gap: 0.75rem;
+  margin-bottom: 0.3rem;
+}
+.group-card .question-answer-box {
+  margin-top: 0.5rem;
+  padding: 0.65rem 0.75rem;
+}
+@media (max-width: 760px) {
+  .group-card-actions {
+    justify-content: stretch;
+    min-width: 0;
+  }
+  .group-card-actions button {
+    width: 100%;
+  }
+}

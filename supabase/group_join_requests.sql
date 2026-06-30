@@ -155,3 +155,17 @@ select
 from public.group_join_requests gjr
 left join public.research_projects rp on rp.id = gjr.requested_group_id
 left join public.profiles p on p.id = gjr.student_id;
+
+-- Allow students to view available research projects/groups for the Join Research Group page.
+-- Existing role-scoped project policies still control editing; this only grants read access.
+drop policy if exists "projects_select_student_joinable_groups" on public.research_projects;
+create policy "projects_select_student_joinable_groups"
+on public.research_projects
+for select
+to authenticated
+using (
+  exists (
+    select 1 from public.current_profile_for_rls() p
+    where p.role = 'student'
+  )
+);

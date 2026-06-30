@@ -2472,3 +2472,16 @@ select
 from public.group_join_requests gjr
 left join public.research_projects rp on rp.id = gjr.requested_group_id
 left join public.profiles p on p.id = gjr.student_id;
+
+-- Student Join Research Group visibility fix: students must be able to read joinable groups/projects.
+drop policy if exists "projects_select_student_joinable_groups" on public.research_projects;
+create policy "projects_select_student_joinable_groups"
+on public.research_projects
+for select
+to authenticated
+using (
+  exists (
+    select 1 from public.current_profile_for_rls() p
+    where p.role = 'student'
+  )
+);
