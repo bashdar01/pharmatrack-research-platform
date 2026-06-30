@@ -5046,3 +5046,21 @@ button .button-spinner {
     overflow: visible;
   }
 }
+
+/* Role-specific PDF customization controls */
+.pdf-role-selector-grid {
+  align-items: end;
+  margin-bottom: 14px;
+}
+.pdf-role-selector-grid .settings-note {
+  min-height: auto;
+  padding: 12px 14px;
+}
+.logo-toggle {
+  margin-bottom: 12px;
+}
+@media (max-width: 760px) {
+  .pdf-role-selector-grid {
+    grid-template-columns: 1fr;
+  }
+}

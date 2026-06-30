@@ -184,7 +184,6 @@ function buildReportEmailHtml(args: {
           <p><strong>Submitted:</strong> ${escapeHtml(dateTime(report.submitted_at))}</p>
           ${isReview ? `<p><strong>Reviewed:</strong> ${escapeHtml(nowDateTime())}</p>` : ''}
           <p><strong>Status:</strong> ${escapeHtml(report.status || 'Submitted')}</p>
-          <p><strong>Score:</strong> ${report.score === null || report.score === undefined ? 'Pending' : `${escapeHtml(report.score)}/20`}</p>
           ${attachmentBlock}
         </div>
         <h3 style="font-size:18px;margin:20px 0 8px;">Weekly report content</h3>
@@ -216,7 +215,6 @@ function buildReportText(report: AnyRecord, project: AnyRecord, attachment: AnyR
     `Submitted: ${dateTime(report.submitted_at)}`,
     kind === 'review' ? `Reviewed: ${nowDateTime()}` : '',
     `Status: ${report.status || 'Submitted'}`,
-    `Score: ${report.score === null || report.score === undefined ? 'Pending' : `${report.score}/20`}`,
     `Attachment: ${attachment ? `${attachment.file_name || 'Attached file'} ${attachmentUrl || ''}` : 'No attachment uploaded.'}`,
     actionLink ? `Dashboard link: ${actionLink}` : '',
     '',

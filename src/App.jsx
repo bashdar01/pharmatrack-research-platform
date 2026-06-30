@@ -289,6 +289,36 @@ const defaultWebsiteSettings = {
 
 
 const PDF_REPORT_SETTINGS_KEY = 'pdf_report'
+const PDF_REPORT_ROLE_KEYS = {
+  student: 'pdf_report_customization_student',
+  supervisor: 'pdf_report_customization_supervisor',
+  admin: 'pdf_report_customization_admin',
+  committee: 'pdf_report_customization_research_committee',
+}
+
+const pdfReportRoleOptions = [
+  { value: 'student', label: 'Student' },
+  { value: 'supervisor', label: 'Supervisor' },
+  { value: 'admin', label: 'Admin' },
+  { value: 'committee', label: 'Research Committee' },
+]
+
+function normalizePdfReportRole(role) {
+  const value = String(role || 'student').toLowerCase().replace(/[\s-]+/g, '_')
+  if (['research_committee', 'committee', 'researchcommittee'].includes(value)) return 'committee'
+  if (['admin', 'administrator'].includes(value)) return 'admin'
+  if (['supervisor', 'advisor'].includes(value)) return 'supervisor'
+  return 'student'
+}
+
+function getPdfReportRoleLabel(role) {
+  const normalized = normalizePdfReportRole(role)
+  return pdfReportRoleOptions.find((item) => item.value === normalized)?.label || 'Student'
+}
+
+function getPdfReportSettingsKey(role) {
+  return PDF_REPORT_ROLE_KEYS[normalizePdfReportRole(role)] || PDF_REPORT_ROLE_KEYS.student
+}
 
 const defaultPdfReportSections = {
   userInformation: true,
@@ -308,6 +338,7 @@ const defaultPdfReportSections = {
 const defaultPdfReportSettings = {
   logoUrl: '',
   logoPath: '',
+  showLogo: true,
   reportTitle: 'Pharmacy Research Project Management Report',
   headerText: 'Hawler Medical University – College of Pharmacy',
   universityName: 'Hawler Medical University',
@@ -351,6 +382,31 @@ function loadPdfReportSettings() {
 
 function savePdfReportSettingsLocal(settings) {
   localStorage.setItem('pharmatrack-pdf-report-settings', JSON.stringify(normalizePdfReportSettings(settings)))
+}
+
+function loadPdfReportSettingsForRole(role, fallback = defaultPdfReportSettings) {
+  try {
+    const normalizedRole = normalizePdfReportRole(role)
+    const saved = localStorage.getItem(`pharmatrack-pdf-report-settings-${normalizedRole}`)
+    return saved ? normalizePdfReportSettings(JSON.parse(saved)) : normalizePdfReportSettings(fallback)
+  } catch {
+    return normalizePdfReportSettings(fallback)
+  }
+}
+
+function savePdfReportSettingsForRoleLocal(role, settings) {
+  const normalizedRole = normalizePdfReportRole(role)
+  localStorage.setItem(`pharmatrack-pdf-report-settings-${normalizedRole}`, JSON.stringify(normalizePdfReportSettings(settings)))
+}
+
+function loadPdfReportSettingsByRole() {
+  const globalSettings = loadPdfReportSettings()
+  return Object.fromEntries(pdfReportRoleOptions.map(({ value }) => [value, loadPdfReportSettingsForRole(value, globalSettings)]))
+}
+
+function getPdfReportSettingsForRole(role, roleSettings = {}, globalSettings = defaultPdfReportSettings) {
+  const normalizedRole = normalizePdfReportRole(role)
+  return normalizePdfReportSettings(roleSettings?.[normalizedRole] || globalSettings || defaultPdfReportSettings)
 }
 
 function normalizeSettings(settings) {
@@ -1507,6 +1563,7 @@ export default function App() {
   const [dataLoading, setDataLoading] = useState(false)
   const [websiteSettings, setWebsiteSettings] = useState(loadWebsiteSettings)
   const [pdfReportSettings, setPdfReportSettings] = useState(loadPdfReportSettings)
+  const [pdfReportSettingsByRole, setPdfReportSettingsByRole] = useState(loadPdfReportSettingsByRole)
   const [adminPanelTab, setAdminPanelTab] = useState(getInitialAdminPanelTab)
   const [currentUser, setCurrentUser] = useState(loadCurrentUser)
   const [message, setMessage] = useState('')
@@ -1701,17 +1758,28 @@ export default function App() {
   async function loadPdfReportSettingsFromSupabase() {
     if (!isSupabaseConfigured) return
     try {
-      const { data: row, error } = await supabase
+      const keys = [PDF_REPORT_SETTINGS_KEY, ...Object.values(PDF_REPORT_ROLE_KEYS)]
+      const { data: rows, error } = await supabase
         .from('app_settings')
-        .select('value')
-        .eq('key', PDF_REPORT_SETTINGS_KEY)
-        .maybeSingle()
+        .select('key, value')
+        .in('key', keys)
       if (error) return
-      if (row?.value) {
-        const settings = normalizePdfReportSettings(row.value)
-        setPdfReportSettings(settings)
-        savePdfReportSettingsLocal(settings)
-      }
+
+      const rowMap = new Map((rows || []).map((row) => [row.key, row.value]))
+      const globalSettings = rowMap.has(PDF_REPORT_SETTINGS_KEY)
+        ? normalizePdfReportSettings(rowMap.get(PDF_REPORT_SETTINGS_KEY))
+        : loadPdfReportSettings()
+
+      setPdfReportSettings(globalSettings)
+      savePdfReportSettingsLocal(globalSettings)
+
+      const nextRoleSettings = Object.fromEntries(pdfReportRoleOptions.map(({ value }) => {
+        const roleValue = rowMap.get(getPdfReportSettingsKey(value))
+        const settings = roleValue ? normalizePdfReportSettings(roleValue) : normalizePdfReportSettings(globalSettings)
+        savePdfReportSettingsForRoleLocal(value, settings)
+        return [value, settings]
+      }))
+      setPdfReportSettingsByRole(nextRoleSettings)
     } catch {
       // The default PDF design still works if the optional settings row is not created yet.
     }
@@ -1723,48 +1791,73 @@ export default function App() {
       return { ok: false }
     }
 
-    const nextSettings = normalizePdfReportSettings({ ...pdfReportSettings, ...nextValues })
-    setPdfReportSettings(nextSettings)
-    savePdfReportSettingsLocal(nextSettings)
+    const targetRole = options.role ? normalizePdfReportRole(options.role) : null
+    const baseSettings = targetRole
+      ? getPdfReportSettingsForRole(targetRole, pdfReportSettingsByRole, pdfReportSettings)
+      : pdfReportSettings
+    const nextSettings = normalizePdfReportSettings({ ...baseSettings, ...nextValues })
+
+    if (targetRole) {
+      setPdfReportSettingsByRole((current) => ({ ...current, [targetRole]: nextSettings }))
+      savePdfReportSettingsForRoleLocal(targetRole, nextSettings)
+    } else {
+      setPdfReportSettings(nextSettings)
+      savePdfReportSettingsLocal(nextSettings)
+    }
 
     if (isSupabaseConfigured) {
       try {
-        const { data: savedValue, error } = await supabase.rpc('save_pdf_report_settings', {
-          next_value: nextSettings,
-          updated_by_value: currentUser?.email || currentUser?.full_name || 'admin',
-        })
+        const rpcName = targetRole ? 'save_pdf_report_role_settings' : 'save_pdf_report_settings'
+        const rpcArgs = targetRole
+          ? {
+              next_value: nextSettings,
+              role_value: targetRole,
+              updated_by_value: currentUser?.email || currentUser?.full_name || 'admin',
+            }
+          : {
+              next_value: nextSettings,
+              updated_by_value: currentUser?.email || currentUser?.full_name || 'admin',
+            }
+
+        const { data: savedValue, error } = await supabase.rpc(rpcName, rpcArgs)
 
         if (error) {
           const missingRpc = String(error.message || '').toLowerCase().includes('function') || String(error.message || '').toLowerCase().includes('schema cache')
           throw new Error(
             missingRpc
-              ? `${error.message}. The database function is not installed yet. Run supabase/pdf_report_customization_update.sql in Supabase SQL Editor, refresh the website, then save again.`
+              ? `${error.message}. Run supabase/pdf_report_role_customization_update.sql in Supabase SQL Editor, refresh the website, then save again.`
               : error.message
           )
         }
 
         const savedSettings = normalizePdfReportSettings(savedValue || nextSettings)
-        setPdfReportSettings(savedSettings)
-        savePdfReportSettingsLocal(savedSettings)
+        if (targetRole) {
+          setPdfReportSettingsByRole((current) => ({ ...current, [targetRole]: savedSettings }))
+          savePdfReportSettingsForRoleLocal(targetRole, savedSettings)
+        } else {
+          setPdfReportSettings(savedSettings)
+          savePdfReportSettingsLocal(savedSettings)
+        }
 
         if (!options.silent) {
-          await addAudit(currentUser.full_name, 'updated', 'PDF report customization settings')
-          setMessage('PDF report settings saved successfully.')
+          await addAudit(currentUser.full_name, 'updated', targetRole ? `PDF report customization settings for ${getPdfReportRoleLabel(targetRole)}` : 'PDF report customization settings')
+          setMessage(targetRole ? `PDF settings for ${getPdfReportRoleLabel(targetRole)} saved successfully.` : 'PDF report settings saved successfully.')
         }
         return { ok: true, settings: savedSettings }
       } catch (error) {
-        setMessage(`PDF settings were kept locally for preview, but global database save failed: ${error.message}. Run the latest supabase/pdf_report_customization_update.sql in Supabase SQL Editor, refresh, then log out and log in again with the approved Admin email before saving.`)
+        const roleText = targetRole ? ` for ${getPdfReportRoleLabel(targetRole)}` : ''
+        setMessage(`PDF settings${roleText} were kept locally for preview, but global database save failed: ${error.message}. Run the latest supabase/pdf_report_role_customization_update.sql in Supabase SQL Editor, refresh, then save again.`)
         return { ok: false, error }
       }
     }
 
     if (!options.silent) {
-      setMessage('PDF report customization saved locally for preview. Connect Supabase and run supabase/pdf_report_customization_update.sql to save globally.')
+      setMessage(targetRole ? `PDF report customization for ${getPdfReportRoleLabel(targetRole)} saved locally for preview. Connect Supabase and run supabase/pdf_report_role_customization_update.sql to save globally.` : 'PDF report customization saved locally for preview. Connect Supabase and run supabase/pdf_report_role_customization_update.sql to save globally.')
     }
     return { ok: true, settings: nextSettings }
   }
 
-  async function uploadPdfReportLogo(file) {
+  async function uploadPdfReportLogo(file, options = {}) {
     if (currentUser?.role !== 'admin') {
       setMessage('Only Admin accounts can upload PDF report logos.')
       return { ok: false }
@@ -1798,13 +1891,13 @@ export default function App() {
         logoUrl = publicData?.publicUrl || dataUrl
       }
 
-      await updatePdfReportSettings({ logoUrl, logoPath }, { silent: true })
+      await updatePdfReportSettings({ logoUrl, logoPath }, { silent: true, role: options.role })
       setMessage(isSupabaseConfigured ? 'PDF report logo uploaded. Click Save PDF Report Settings to confirm other changes.' : 'PDF report logo loaded locally for preview.')
       return { ok: true, logoUrl, logoPath }
     } catch (error) {
       try {
         const fallback = await fileToDataUrl(file)
-        await updatePdfReportSettings({ logoUrl: fallback, logoPath: '' }, { silent: true })
+        await updatePdfReportSettings({ logoUrl: fallback, logoPath: '' }, { silent: true, role: options.role })
         setMessage(`Logo preview loaded locally, but Supabase upload failed: ${error.message}. Run the updated supabase/pdf_report_customization_update.sql, then upload again.`)
         return { ok: true, logoUrl: fallback }
       } catch {
@@ -1814,14 +1907,15 @@ export default function App() {
     }
   }
 
-  async function removePdfReportLogo() {
+  async function removePdfReportLogo(options = {}) {
     if (currentUser?.role !== 'admin') {
       setMessage('Only Admin accounts can remove PDF report logos.')
       return { ok: false }
     }
 
-    const oldPath = pdfReportSettings.logoPath
-    await updatePdfReportSettings({ logoUrl: '', logoPath: '' }, { silent: true })
+    const targetRole = options.role ? normalizePdfReportRole(options.role) : null
+    const oldPath = targetRole ? getPdfReportSettingsForRole(targetRole, pdfReportSettingsByRole, pdfReportSettings).logoPath : pdfReportSettings.logoPath
+    await updatePdfReportSettings({ logoUrl: '', logoPath: '' }, { silent: true, role: targetRole })
     if (isSupabaseConfigured && oldPath) {
       try {
         await supabase.storage.from('app-assets').remove([oldPath])
@@ -1833,8 +1927,8 @@ export default function App() {
     return { ok: true }
   }
 
-  async function resetPdfReportSettings() {
-    return updatePdfReportSettings(defaultPdfReportSettings)
+  async function resetPdfReportSettings(options = {}) {
+    return updatePdfReportSettings(defaultPdfReportSettings, { role: options.role })
   }
 
   async function updateWebsiteSettings(nextValues, options = {}) {
@@ -3888,7 +3982,9 @@ export default function App() {
     return (
       <AdminControlPanel
         settings={websiteSettings}
-        pdfReportSettings={pdfReportSettings}
+        pdfReportSettings={getPdfReportSettingsForRole('admin', pdfReportSettingsByRole, pdfReportSettings)}
+        pdfReportSettingsByRole={pdfReportSettingsByRole}
+        globalPdfReportSettings={pdfReportSettings}
         adminPanelTab={adminPanelTab}
         setAdminPanelTab={setAdminPanelTab}
         updateSettings={updateWebsiteSettings}
@@ -3971,7 +4067,7 @@ export default function App() {
         {tab === 'notifications' && <NotificationsTab data={data} role={allowedRole} currentUser={currentUser} dataLoading={dataLoading} createNotification={createNotification} markNotificationRead={markNotificationRead} removeNotification={removeNotification} />}
         {tab === 'questions' && allowedRole === 'student' && <StudentQuestionsTab data={data} currentUser={currentUser} dataLoading={dataLoading} submitStudentQuestion={submitStudentQuestion} />}
         {tab === 'questions' && allowedRole === 'supervisor' && <SupervisorQuestionsTab data={data} currentUser={currentUser} dataLoading={dataLoading} answerStudentQuestion={answerStudentQuestion} />}
-        {tab === 'reports' && <ReportsTab data={visibleData} projects={filteredProjects} currentUser={currentUser} role={allowedRole} printPdfReport={printPdfReport} exportCsv={exportCsv} pdfReportSettings={pdfReportSettings} dataLoading={dataLoading} />}
+        {tab === 'reports' && <ReportsTab data={visibleData} projects={filteredProjects} currentUser={currentUser} role={allowedRole} printPdfReport={printPdfReport} exportCsv={exportCsv} pdfReportSettings={getPdfReportSettingsForRole(allowedRole, pdfReportSettingsByRole, pdfReportSettings)} dataLoading={dataLoading} />}
         {tab === 'database' && allowedRole === 'admin' && <DatabaseTab databaseMode={databaseMode} />}
         {tab === 'database' && allowedRole !== 'admin' && <div className="card"><SectionHeader icon={Lock} title="Database Access Locked" subtitle="Only Admin accounts can view database status" /><p className="muted">Please use your role dashboard, notifications, or reports page.</p></div>}
         {tab === 'audit' && allowedRole === 'admin' && <AuditTab logs={visibleData.auditLogs} />}
@@ -4047,6 +4143,8 @@ function UserProfileMenu({ currentUser, onLogout }) {
 function AdminControlPanel({
   settings,
   pdfReportSettings = defaultPdfReportSettings,
+  pdfReportSettingsByRole = {},
+  globalPdfReportSettings = defaultPdfReportSettings,
   adminPanelTab,
   setAdminPanelTab,
   updateSettings,
@@ -4513,8 +4611,8 @@ function AdminControlPanel({
         {adminPanelTab === 'users' && <AdminDashboard data={data} projects={projects} currentUser={currentUser} loadError={loadError} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} assignStudentToSupervisor={assignStudentToSupervisor} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} />}
         {adminPanelTab === 'deadlines' && <DeadlineManager deadlines={data.deadlines} createDeadline={createDeadline} removeDeadline={removeDeadline} students={data.profiles.filter((profile) => profile.role === 'student').map((student) => ({ key: makeStudentOptionKey(student), id: student.id, name: student.full_name, email: student.email, group: student.department || student.area || 'Student' }))} currentUser={currentUser} />}
         {adminPanelTab === 'notifications' && <NotificationsTab data={data} role="admin" currentUser={currentUser} createNotification={createNotification} markNotificationRead={markNotificationRead} removeNotification={removeNotification} />}
-        {adminPanelTab === 'reports' && <ReportsTab data={data} projects={projects} currentUser={currentUser} role="admin" printPdfReport={printPdfReport} exportCsv={exportCsv} pdfReportSettings={pdfReportSettings} dataLoading={dataLoading} />}
-        {adminPanelTab === 'pdf-report' && <PdfReportCustomizationPanel settings={pdfReportSettings} updateSettings={updatePdfReportSettings} uploadLogo={uploadPdfReportLogo} removeLogo={removePdfReportLogo} resetSettings={resetPdfReportSettings} data={data} projects={projects} currentUser={currentUser} printPdfReport={printPdfReport} />}
+        {adminPanelTab === 'reports' && <ReportsTab data={data} projects={projects} currentUser={currentUser} role="admin" printPdfReport={printPdfReport} exportCsv={exportCsv} pdfReportSettings={getPdfReportSettingsForRole('admin', pdfReportSettingsByRole, globalPdfReportSettings)} dataLoading={dataLoading} />}
+        {adminPanelTab === 'pdf-report' && <PdfReportCustomizationPanel settingsByRole={pdfReportSettingsByRole} globalSettings={globalPdfReportSettings} updateSettings={updatePdfReportSettings} uploadLogo={uploadPdfReportLogo} removeLogo={removePdfReportLogo} resetSettings={resetPdfReportSettings} data={data} projects={projects} currentUser={currentUser} printPdfReport={printPdfReport} />}
         {adminPanelTab === 'database' && <DatabaseTab databaseMode={databaseMode} />}
         {adminPanelTab === 'audit' && <AuditTab logs={auditLogs} />}
       </main>
@@ -6594,7 +6692,7 @@ function ReportsTab({ data, projects, currentUser, role, printPdfReport, exportC
 
       <div className="card print-report pdf-report-template">
         <div className="report-header pdf-report-header">
-          {settings.logoUrl ? <img className="pdf-report-logo" src={settings.logoUrl} alt="Report logo" /> : null}
+          {settings.showLogo !== false && settings.logoUrl ? <img className="pdf-report-logo" src={settings.logoUrl} alt="Report logo" /> : null}
           <div>
             <h2>{settings.headerText || departmentLine || defaultPdfReportSettings.headerText}</h2>
             <h1>{settings.reportTitle || defaultPdfReportSettings.reportTitle}</h1>
@@ -6633,7 +6731,7 @@ function ReportsTab({ data, projects, currentUser, role, printPdfReport, exportC
         </PdfReportSection>
 
         <PdfReportSection settings={settings} sectionKey="weeklyReports" title="Weekly Reports">
-          {scopedReports.length ? <ReportTable><thead><tr><th>Week</th><th>Project</th><th>Student</th><th>Status</th><th>Score</th><th>Submitted</th></tr></thead><tbody>{scopedReports.map((report) => { const project = getReportProject({ ...data, projects: studentFilteredProjects }, report); return <tr key={report.id}><td>{report.week_number || '-'}</td><td>{project?.title || 'Weekly Report'}</td><td>{getReportStudentLabel(report, data)}</td><td>{report.status || 'Submitted'}</td><td>{report.score ?? '-'}</td><td>{report.submitted_at ? new Date(report.submitted_at).toLocaleDateString() : '-'}</td></tr> })}</tbody></ReportTable> : <NoRecords />}
+          {scopedReports.length ? <ReportTable><thead><tr><th>Week</th><th>Project</th><th>Student</th><th>Status</th><th>Submitted</th></tr></thead><tbody>{scopedReports.map((report) => { const project = getReportProject({ ...data, projects: studentFilteredProjects }, report); return <tr key={report.id}><td>{report.week_number || '-'}</td><td>{project?.title || 'Weekly Report'}</td><td>{getReportStudentLabel(report, data)}</td><td>{report.status || 'Submitted'}</td><td>{report.submitted_at ? new Date(report.submitted_at).toLocaleDateString() : '-'}</td></tr> })}</tbody></ReportTable> : <NoRecords />}
         </PdfReportSection>
 
         <PdfReportSection settings={settings} sectionKey="feedback" title="Feedback">
@@ -6662,14 +6760,24 @@ function ReportsTab({ data, projects, currentUser, role, printPdfReport, exportC
   )
 }
 
-function PdfReportCustomizationPanel({ settings, updateSettings, uploadLogo, removeLogo, resetSettings, data, projects, currentUser, printPdfReport }) {
-  const [draft, setDraft] = useState(() => normalizePdfReportSettings(settings))
+function PdfReportCustomizationPanel({ settingsByRole = {}, globalSettings = defaultPdfReportSettings, updateSettings, uploadLogo, removeLogo, resetSettings, data, projects, currentUser, printPdfReport }) {
+  const [selectedRole, setSelectedRole] = useState('student')
+  const [draft, setDraft] = useState(() => getPdfReportSettingsForRole('student', settingsByRole, globalSettings))
   const [localMessage, setLocalMessage] = useState('')
   const [pdfActionLoading, setPdfActionLoading] = useState('')
 
   useEffect(() => {
-    setDraft(normalizePdfReportSettings(settings))
-  }, [settings])
+    setPdfActionLoading('load-role-settings')
+    setLocalMessage('Loading role PDF settings...')
+    const timer = window.setTimeout(() => {
+      setDraft(getPdfReportSettingsForRole(selectedRole, settingsByRole, globalSettings))
+      setPdfActionLoading('')
+      setLocalMessage('')
+    }, 120)
+    return () => window.clearTimeout(timer)
+  }, [selectedRole, settingsByRole, globalSettings])
+
+  const roleLabel = getPdfReportRoleLabel(selectedRole)
 
   function updateDraft(key, value) {
     setDraft((current) => ({ ...current, [key]: value }))
@@ -6694,8 +6802,9 @@ function PdfReportCustomizationPanel({ settings, updateSettings, uploadLogo, rem
       setLocalMessage('Please write a report header/title text before saving.')
       return
     }
-    const result = await updateSettings(draft)
-    setLocalMessage(result?.ok === false ? 'Global database save failed. Run supabase/pdf_report_customization_update.sql in Supabase SQL Editor, refresh, then save again.' : 'PDF report settings saved successfully.')
+    setLocalMessage(`Saving role PDF settings for ${roleLabel}...`)
+    const result = await updateSettings(draft, { role: selectedRole })
+    setLocalMessage(result?.ok === false ? `Failed to save PDF settings for ${roleLabel}.` : `PDF settings for ${roleLabel} saved successfully.`)
   }
 
   async function handleLogoUpload(event) {
@@ -6703,7 +6812,7 @@ function PdfReportCustomizationPanel({ settings, updateSettings, uploadLogo, rem
     event.target.value = ''
     if (!file || pdfActionLoading) return
     await runPdfAction('upload-logo', async () => {
-      const result = await uploadLogo(file)
+      const result = await uploadLogo(file, { role: selectedRole })
       if (result?.logoUrl) {
         setDraft((current) => ({ ...current, logoUrl: result.logoUrl, logoPath: result.logoPath || '' }))
       }
@@ -6712,23 +6821,29 @@ function PdfReportCustomizationPanel({ settings, updateSettings, uploadLogo, rem
 
   async function handleRemoveLogo() {
     await runPdfAction('remove-logo', async () => {
-      await removeLogo()
+      await removeLogo({ role: selectedRole })
       setDraft((current) => ({ ...current, logoUrl: '', logoPath: '' }))
+      setLocalMessage(`Logo removed from ${roleLabel} PDF settings.`)
     })
   }
 
   async function handleReset() {
     await runPdfAction('reset-pdf', async () => {
-      await resetSettings()
+      await resetSettings({ role: selectedRole })
       setDraft(defaultPdfReportSettings)
-      setLocalMessage('PDF report settings reset to the default design.')
+      setLocalMessage(`${roleLabel} PDF settings reset to the default design.`)
     })
   }
 
   return (
     <div className="admin-panel-stack pdf-customization-page">
       <div className="card">
-        <SectionHeader icon={FileText} title="PDF Report Customization" subtitle="Customize the existing Print/PDF Report template used by student, supervisor, admin, and research committee reports" />
+        <SectionHeader icon={FileText} title="PDF Report Customization" subtitle="Customize the existing Print/PDF Report template separately for each role" />
+        <div className="form-grid pdf-role-selector-grid">
+          <label className="field"><span>Customize PDF for Role</span><select value={selectedRole} onChange={(e) => { setSelectedRole(e.target.value); setLocalMessage('Loading role PDF settings...') }} disabled={Boolean(pdfActionLoading)}>{pdfReportRoleOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+          <div className="soft-box settings-note wide-field"><p>These settings apply only to the selected role. Student, Supervisor, Admin, and Research Committee PDFs can now use different layouts.</p></div>
+        </div>
+        {pdfActionLoading === 'load-role-settings' ? <LoadingBlock text="Loading role PDF settings..." /> : null}
         <div className="form-grid">
           <label className="field wide-field"><span>Report header/title text</span><input value={draft.reportTitle || ''} onChange={(e) => updateDraft('reportTitle', e.target.value)} placeholder="Pharmacy Research Project Management Report" /></label>
           <label className="field"><span>Header line</span><input value={draft.headerText || ''} onChange={(e) => updateDraft('headerText', e.target.value)} placeholder="Hawler Medical University – College of Pharmacy" /></label>
@@ -6738,8 +6853,8 @@ function PdfReportCustomizationPanel({ settings, updateSettings, uploadLogo, rem
           <label className="field wide-field"><span>Footer text</span><textarea value={draft.footerText || ''} onChange={(e) => updateDraft('footerText', e.target.value)} placeholder="Optional footer text shown at the bottom of printed/PDF reports" /></label>
         </div>
         <div className="settings-actions">
-          <button className="primary min-button-width" disabled={Boolean(pdfActionLoading)} onClick={() => runPdfAction('save-pdf', saveDraft)}><ButtonContent loading={pdfActionLoading === 'save-pdf'} loadingText="Saving..." icon={Save}>Save PDF Report Settings</ButtonContent></button>
-          <button className="secondary min-button-width" disabled={Boolean(pdfActionLoading)} onClick={handleReset}><ButtonContent loading={pdfActionLoading === 'reset-pdf'} loadingText="Resetting..." icon={RefreshCw}>Reset Default PDF Design</ButtonContent></button>
+          <button className="primary min-button-width" disabled={Boolean(pdfActionLoading)} onClick={() => runPdfAction('save-pdf', saveDraft)}><ButtonContent loading={pdfActionLoading === 'save-pdf'} loadingText="Saving role PDF settings..." icon={Save}>Save {roleLabel} PDF Settings</ButtonContent></button>
+          <button className="secondary min-button-width" disabled={Boolean(pdfActionLoading)} onClick={handleReset}><ButtonContent loading={pdfActionLoading === 'reset-pdf'} loadingText="Resetting..." icon={RefreshCw}>Reset {roleLabel} Default</ButtonContent></button>
           <button className="secondary" onClick={printPdfReport}><Printer size={16} /> Preview by Print / Save as PDF</button>
         </div>
         {localMessage && <div className="message">{localMessage}</div>}
@@ -6747,21 +6862,25 @@ function PdfReportCustomizationPanel({ settings, updateSettings, uploadLogo, rem
 
       <div className="admin-split-layout">
         <div className="card">
-          <SectionHeader icon={ImageIcon} title="Report Logo" subtitle="Upload, replace, or remove the logo used in the existing PDF report template" />
+          <SectionHeader icon={ImageIcon} title="Report Logo" subtitle={`Upload, replace, or remove the logo used in ${roleLabel} PDF reports`} />
+          <label className="settings-toggle logo-toggle">
+            <input type="checkbox" checked={draft.showLogo !== false} onChange={(e) => updateDraft('showLogo', e.target.checked)} />
+            <span><b>Show logo</b><small>{draft.showLogo !== false ? 'Logo will appear when a logo URL exists.' : 'Logo is hidden for this role.'}</small></span>
+          </label>
           <label className="field"><span>Logo URL</span><input value={draft.logoUrl || ''} onChange={(e) => updateDraft('logoUrl', e.target.value)} placeholder="Paste hosted logo URL or upload below" /></label>
           <label className="field"><span>Upload / replace logo</span><input type="file" accept="image/*" onChange={handleLogoUpload} /></label>
-          {draft.logoUrl ? <div className="pdf-logo-preview"><img src={draft.logoUrl} alt="PDF report logo preview" /></div> : <div className="pdf-logo-preview empty"><span>No logo selected</span></div>}
+          {draft.showLogo !== false && draft.logoUrl ? <div className="pdf-logo-preview"><img src={draft.logoUrl} alt="PDF report logo preview" /></div> : <div className="pdf-logo-preview empty"><span>{draft.showLogo === false ? 'Logo hidden for this role' : 'No logo selected'}</span></div>}
           <div className="settings-actions">
-            <button className="secondary min-button-width" disabled={Boolean(pdfActionLoading)} onClick={() => runPdfAction('save-logo', () => updateSettings({ ...draft, logoUrl: draft.logoUrl, logoPath: draft.logoPath || '' }))}><ButtonContent loading={pdfActionLoading === 'save-logo'} loadingText="Saving..." icon={Save}>Save Logo Setting</ButtonContent></button>
+            <button className="secondary min-button-width" disabled={Boolean(pdfActionLoading)} onClick={() => runPdfAction('save-logo', () => updateSettings({ ...draft, logoUrl: draft.logoUrl, logoPath: draft.logoPath || '' }, { role: selectedRole }))}><ButtonContent loading={pdfActionLoading === 'save-logo'} loadingText="Saving..." icon={Save}>Save Logo Setting</ButtonContent></button>
             <button className="danger min-button-width" disabled={Boolean(pdfActionLoading)} onClick={handleRemoveLogo}><ButtonContent loading={pdfActionLoading === 'remove-logo'} loadingText="Removing..." icon={Trash2}>Remove Logo</ButtonContent></button>
           </div>
           <div className="soft-box settings-note"><p>Uploaded logos use the existing Supabase Storage bucket <code>app-assets</code>. If storage is not configured, the logo still previews locally.</p></div>
         </div>
 
         <div className="card">
-          <SectionHeader icon={Eye} title="Template Preview" subtitle="The existing Print/PDF button uses these saved settings globally" />
+          <SectionHeader icon={Eye} title="Template Preview" subtitle={`Preview of the ${roleLabel} PDF template settings`} />
           <div className="pdf-template-preview">
-            {draft.logoUrl ? <img src={draft.logoUrl} alt="Logo preview" /> : <div className="preview-logo-placeholder">Logo</div>}
+            {draft.showLogo !== false && draft.logoUrl ? <img src={draft.logoUrl} alt="Logo preview" /> : <div className="preview-logo-placeholder">Logo</div>}
             <h4>{draft.headerText || defaultPdfReportSettings.headerText}</h4>
             <h3>{draft.reportTitle || defaultPdfReportSettings.reportTitle}</h3>
             <p>{[draft.universityName, draft.collegeName, draft.departmentName].filter(Boolean).join(' • ')}</p>
@@ -6772,12 +6891,12 @@ function PdfReportCustomizationPanel({ settings, updateSettings, uploadLogo, rem
       </div>
 
       <div className="card">
-        <SectionHeader icon={SlidersHorizontal} title="Show / Hide Report Sections" subtitle="Control which sections appear in printed/PDF reports across all roles" />
+        <SectionHeader icon={SlidersHorizontal} title="Show / Hide Report Sections" subtitle={`Control which sections appear in ${roleLabel} printed/PDF reports`} />
         <div className="pdf-toggle-grid">
           {pdfReportSectionLabels.map(([key, label]) => (
             <label className="settings-toggle" key={key}>
               <input type="checkbox" checked={draft.sections[key] !== false} onChange={(e) => updateSection(key, e.target.checked)} />
-              <span><b>{label}</b><small>{draft.sections[key] !== false ? 'Shown in reports when data exists.' : 'Hidden from reports.'}</small></span>
+              <span><b>{label}</b><small>{draft.sections[key] !== false ? `Shown in ${roleLabel} reports when data exists.` : `Hidden from ${roleLabel} reports.`}</small></span>
             </label>
           ))}
           <label className="settings-toggle">
@@ -6789,7 +6908,7 @@ function PdfReportCustomizationPanel({ settings, updateSettings, uploadLogo, rem
             <span><b>Generated date/time</b><small>Show generated date/time in the header.</small></span>
           </label>
         </div>
-        <div className="soft-box settings-note"><p>Students, supervisors, and research committee users cannot edit these settings; they only use the saved template when pressing the existing Print/PDF button.</p></div>
+        <div className="soft-box settings-note"><p>Students, supervisors, and research committee users cannot edit these settings; they only use the saved role-specific template when pressing the existing Print/PDF button.</p></div>
       </div>
     </div>
   )
