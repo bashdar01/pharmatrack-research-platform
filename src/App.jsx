@@ -600,6 +600,7 @@ const emptyData = {
   invitations: [],
   studentQuestions: [],
   groupJoinRequests: [],
+  groupMembers: [],
 }
 
 const sampleNames = ['Aveen Mohammed', 'Hemn Karim', 'Dr. Lara Ahmed', 'Dr. Rebaz Hassan', 'College Admin']
@@ -611,7 +612,8 @@ function cleanData(data) {
     (u) => !sampleNames.includes(u.full_name) && !sampleEmails.includes(u.email)
   )
   cleaned.reports = cleaned.reports || []
-  cleaned.projects = (cleaned.projects || []).map((project) => ({
+  cleaned.groupMembers = cleaned.groupMembers || []
+  cleaned.projects = enrichProjectsWithGroupMembers(cleaned.projects || [], cleaned.profiles || [], cleaned.groupMembers || []).map((project) => ({
     ...project,
     progress: getProjectProgress(project, cleaned.reports),
   }))
@@ -673,10 +675,81 @@ function normalizeText(value) {
   return String(value || '').trim().toLowerCase()
 }
 
+function uniqueTextList(values = []) {
+  const seen = new Set()
+  return values
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)
+    .filter((value) => {
+      const key = normalizeText(value)
+      if (!key || seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+}
+
 function getProjectStudents(project) {
-  if (Array.isArray(project?.students)) return project.students
-  if (typeof project?.students === 'string') return project.students.split(',').map((name) => name.trim()).filter(Boolean)
-  return []
+  const baseStudents = Array.isArray(project?.students)
+    ? project.students
+    : typeof project?.students === 'string'
+      ? project.students.split(',').map((name) => name.trim()).filter(Boolean)
+      : []
+  return uniqueTextList([
+    ...baseStudents,
+    ...listValue(project?.member_names),
+    ...listValue(project?.member_emails),
+  ])
+}
+
+function getResearchGroupMemberRecords(groupMembers = [], project = {}) {
+  if (!project?.id) return []
+  return (groupMembers || []).filter((member) => {
+    if (member.status && member.status !== 'Active') return false
+    return String(member.group_id || member.project_id || member.research_project_id || '') === String(project.id)
+  })
+}
+
+function getResearchGroupMemberProfiles(data = {}, project = {}) {
+  const profiles = data.profiles || []
+  const records = getResearchGroupMemberRecords(data.groupMembers || [], project)
+  const profileMap = new Map()
+
+  records.forEach((member) => {
+    const matched = profiles.find((profile) =>
+      (!!member.student_id && String(profile.id) === String(member.student_id)) ||
+      (!!member.student_email && normalizeText(profile.email) === normalizeText(member.student_email)) ||
+      (!!member.student_name && normalizeText(profile.full_name) === normalizeText(member.student_name))
+    )
+    const profile = matched || {
+      id: member.student_id || null,
+      full_name: member.student_name || member.student_email || 'Student',
+      email: member.student_email || '',
+      role: 'student',
+    }
+    const key = profile.id || normalizeText(profile.email) || normalizeText(profile.full_name)
+    if (key && !profileMap.has(key)) profileMap.set(key, profile)
+  })
+
+  return Array.from(profileMap.values())
+}
+
+function getResearchGroupMemberLabels(data = {}, project = {}) {
+  return getResearchGroupMemberProfiles(data, project).flatMap((profile) => [profile.full_name, profile.email]).filter(Boolean)
+}
+
+function enrichProjectsWithGroupMembers(projects = [], profiles = [], groupMembers = []) {
+  const data = { profiles, groupMembers }
+  return (projects || []).map((project) => {
+    const memberProfiles = getResearchGroupMemberProfiles(data, project)
+    const memberNames = uniqueTextList(memberProfiles.map((profile) => profile.full_name).filter(Boolean))
+    const memberEmails = uniqueTextList(memberProfiles.map((profile) => profile.email).filter(Boolean))
+    const students = uniqueTextList([
+      ...getProjectStudents(project),
+      ...memberNames,
+      ...memberEmails,
+    ])
+    return { ...project, students, member_names: memberNames, member_emails: memberEmails, member_profiles: memberProfiles }
+  })
 }
 
 function isOwnStudentProject(project, user) {
@@ -695,6 +768,11 @@ function isOwnStudentProject(project, user) {
 
   if (userId && studentIds.includes(userId)) return true
   if (userEmail && studentEmails.includes(userEmail)) return true
+  if (user?.current_research_group_id && String(user.current_research_group_id) === String(project.id)) return true
+  if (user?.research_group_id && String(user.research_group_id) === String(project.id)) return true
+  if (user?.group_id && String(user.group_id) === String(project.id)) return true
+  if (userName && students.includes(userName)) return true
+  if (userEmail && students.includes(userEmail)) return true
 
   // Legacy support for older projects created before user IDs were saved.
   // This fallback is intentionally exact to avoid one student matching another student's data.
@@ -722,10 +800,17 @@ function isAssignedSupervisorProject(project, user) {
   )
 }
 
-function getVisibleProjects(projects, role, user) {
+function getVisibleProjects(projects, role, user, data = null) {
   if (role === 'admin' || role === 'committee') return projects
   if (role === 'supervisor') return projects.filter((project) => isAssignedSupervisorProject(project, user))
-  if (role === 'student') return projects.filter((project) => isOwnStudentProject(project, user))
+  if (role === 'student') {
+    const profile = data ? (findProfileForUser(data, user) || user) : user
+    const currentGroup = data ? getStudentCurrentResearchGroup(data, user) : null
+    return projects.filter((project) =>
+      isOwnStudentProject(project, profile || user) ||
+      (!!currentGroup?.id && String(project.id) === String(currentGroup.id))
+    )
+  }
   return []
 }
 
@@ -1120,7 +1205,7 @@ function findAssignedSupervisorForStudent(data, studentUser) {
   )
   if (directSupervisor) return directSupervisor
 
-  const project = (data.projects || []).find((item) => isOwnStudentProject(item, studentProfile))
+  const project = getStudentCurrentResearchGroup(data, studentProfile) || (data.projects || []).find((item) => isOwnStudentProject(item, studentProfile))
   const projectSupervisor = findSupervisorProfileForProject(data, project)
   if (projectSupervisor) return projectSupervisor
   return null
@@ -1170,6 +1255,9 @@ function projectStudentIdentityMatches(project = {}, student = {}) {
   const studentName = normalizeText(student.full_name || student.name)
   const projectStudents = getProjectStudents(project).map(normalizeText)
   return (
+    (!!student?.current_research_group_id && String(student.current_research_group_id) === String(project.id)) ||
+    (!!student?.research_group_id && String(student.research_group_id) === String(project.id)) ||
+    (!!student?.group_id && String(student.group_id) === String(project.id)) ||
     (!!studentId && [project.student_id, project.created_by, project.owner_id].map(normalizeText).includes(studentId)) ||
     (!!studentEmail && [project.student_email, project.created_by_email, project.owner_email].map(normalizeText).includes(studentEmail)) ||
     (!!studentName && (normalizeText(project.student_name) === studentName || normalizeText(project.group_name) === studentName || projectStudents.includes(studentName))) ||
@@ -1188,6 +1276,13 @@ function getStudentCurrentResearchGroup(data = {}, studentUser = {}) {
     const groupName = profile.current_research_group_name || profile.research_group || profile.group_name
     const project = (data.projects || []).find((item) => normalizeText(item.group_name) === normalizeText(groupName))
     return project || { id: null, group_name: groupName }
+  }
+  const memberProject = (data.projects || []).find((project) => projectStudentIdentityMatches(project, profile))
+  if (memberProject) return memberProject
+  const acceptedRequest = (data.groupJoinRequests || []).find((request) => requestOwnedByStudent(request, profile) && request.status === 'Accepted')
+  if (acceptedRequest) {
+    const project = (data.projects || []).find((item) => String(item.id) === String(acceptedRequest.requested_group_id))
+    if (project) return project
   }
   return null
 }
@@ -1772,8 +1867,16 @@ export default function App() {
         groupJoinRequestsData = []
       }
 
+      let groupMembersData = []
+      try {
+        const groupMembers = await supabase.from('research_group_members').select('*').order('joined_at', { ascending: false })
+        if (!groupMembers.error) groupMembersData = groupMembers.data || []
+      } catch {
+        groupMembersData = []
+      }
+
       const reportsData = reports.data || []
-      const projectsData = (projects.data || []).map((project) => ({
+      const projectsData = enrichProjectsWithGroupMembers(projects.data || [], profiles.data || [], groupMembersData).map((project) => ({
         ...project,
         progress: getProjectProgress(project, reportsData),
       }))
@@ -1791,6 +1894,7 @@ export default function App() {
         invitations: invitationsData,
         studentQuestions: studentQuestionsData,
         groupJoinRequests: groupJoinRequestsData,
+        groupMembers: groupMembersData,
       }))
     } catch (error) {
       setDataLoadError(error.message || 'Unknown database error')
@@ -3177,11 +3281,43 @@ export default function App() {
 
         if (normalizedStatus === 'Accepted') {
           const existingStudents = listValue(group.students)
-          const memberLabel = student.full_name || student.email
-          const nextStudents = Array.from(new Set([...existingStudents, memberLabel].filter(Boolean)))
+          const memberLabels = [student.full_name, student.email].filter(Boolean)
+          const nextStudents = uniqueTextList([...existingStudents, ...memberLabels])
           const projectUpdate = await supabase.from('research_projects').update({ students: nextStudents }).eq('id', group.id)
           if (projectUpdate.error) throw projectUpdate.error
-          const profileUpdate = await supabase.from('profiles').update({ current_research_group_id: group.id, current_research_group_name: group.group_name || group.title || 'Research Group' }).eq('id', student.id)
+
+          const membershipRow = {
+            group_id: group.id,
+            project_id: group.id,
+            student_id: student.id || null,
+            student_email: student.email || request.student_email || null,
+            student_name: student.full_name || request.student_name || student.email || 'Student',
+            supervisor_id: group.supervisor_id || request.supervisor_id || null,
+            supervisor_email: group.supervisor_email || request.supervisor_email || '',
+            supervisor_name: group.supervisor_name || request.supervisor_name || '',
+            joined_via_request_id: requestId,
+            status: 'Active',
+            added_by: currentUser?.id || null,
+          }
+          try {
+            const membershipUpdate = await supabase.from('research_group_members').upsert(membershipRow, { onConflict: student.id ? 'group_id,student_id' : 'group_id,student_email' })
+            if (membershipUpdate.error) throw membershipUpdate.error
+          } catch (membershipError) {
+            const missingMembershipTable = String(membershipError.message || '').toLowerCase().includes('research_group_members') || String(membershipError.message || '').toLowerCase().includes('relation')
+            if (!missingMembershipTable) throw membershipError
+            console.warn('research_group_members table is not available yet. Run supabase/group_join_requests.sql to enable official group membership records.', membershipError)
+          }
+
+          const profileUpdate = await supabase
+            .from('profiles')
+            .update({
+              current_research_group_id: group.id,
+              current_research_group_name: group.group_name || group.title || 'Research Group',
+              assigned_supervisor_id: group.supervisor_id || student.assigned_supervisor_id || null,
+              assigned_supervisor_email: group.supervisor_email || student.assigned_supervisor_email || '',
+              assigned_supervisor_name: group.supervisor_name || student.assigned_supervisor_name || '',
+            })
+            .eq('id', student.id)
           if (profileUpdate.error) throw profileUpdate.error
         }
 
@@ -3190,7 +3326,7 @@ export default function App() {
           sender: currentUser,
           request: { ...request, ...decisionUpdates },
           title: normalizedStatus === 'Accepted' ? 'Research Group Join Request Accepted' : 'Research Group Join Request Rejected',
-          message: normalizedStatus === 'Accepted' ? 'Your research group join request was accepted.' : 'Your research group join request was rejected.',
+          message: normalizedStatus === 'Accepted' ? `You have joined ${group.group_name || group.title || 'your research group'}. You can now submit weekly reports.` : 'Your research group join request was rejected.',
           targetRole: 'student',
         })
         try {
@@ -3202,8 +3338,8 @@ export default function App() {
         await loadFromSupabase(currentUser)
       } else {
         const existingStudents = listValue(group.students)
-        const memberLabel = student.full_name || student.email
-        const nextStudents = normalizedStatus === 'Accepted' ? Array.from(new Set([...existingStudents, memberLabel].filter(Boolean))) : existingStudents
+        const memberLabels = [student.full_name, student.email].filter(Boolean)
+        const nextStudents = normalizedStatus === 'Accepted' ? uniqueTextList([...existingStudents, ...memberLabels]) : existingStudents
         const notification = {
           id: crypto.randomUUID(),
           profile_id: student.id || null,
@@ -3213,7 +3349,7 @@ export default function App() {
           project_id: group.id,
           notification_type: `group_join_${request.id}_${normalizedStatus.toLowerCase()}`,
           title: normalizedStatus === 'Accepted' ? 'Research Group Join Request Accepted' : 'Research Group Join Request Rejected',
-          message: normalizedStatus === 'Accepted' ? 'Your research group join request was accepted.' : 'Your research group join request was rejected.',
+          message: normalizedStatus === 'Accepted' ? `You have joined ${group.group_name || group.title || 'your research group'}. You can now submit weekly reports.` : 'Your research group join request was rejected.',
           type: 'Research Group Request',
           target_role: 'student',
           is_read: false,
@@ -3223,7 +3359,8 @@ export default function App() {
           ...current,
           groupJoinRequests: (current.groupJoinRequests || []).map((item) => String(item.id) === String(requestId) ? { ...item, ...decisionUpdates } : item),
           projects: (current.projects || []).map((project) => String(project.id) === String(group.id) ? { ...project, students: nextStudents } : project),
-          profiles: (current.profiles || []).map((profile) => String(profile.id) === String(student.id) ? { ...profile, current_research_group_id: normalizedStatus === 'Accepted' ? group.id : profile.current_research_group_id, current_research_group_name: normalizedStatus === 'Accepted' ? group.group_name : profile.current_research_group_name } : profile),
+          profiles: (current.profiles || []).map((profile) => String(profile.id) === String(student.id) ? { ...profile, current_research_group_id: normalizedStatus === 'Accepted' ? group.id : profile.current_research_group_id, current_research_group_name: normalizedStatus === 'Accepted' ? group.group_name : profile.current_research_group_name, assigned_supervisor_id: normalizedStatus === 'Accepted' ? (group.supervisor_id || profile.assigned_supervisor_id || null) : profile.assigned_supervisor_id, assigned_supervisor_email: normalizedStatus === 'Accepted' ? (group.supervisor_email || profile.assigned_supervisor_email || '') : profile.assigned_supervisor_email, assigned_supervisor_name: normalizedStatus === 'Accepted' ? (group.supervisor_name || profile.assigned_supervisor_name || '') : profile.assigned_supervisor_name } : profile),
+          groupMembers: normalizedStatus === 'Accepted' ? [{ id: crypto.randomUUID(), group_id: group.id, project_id: group.id, student_id: student.id || null, student_email: student.email || null, student_name: student.full_name || student.email || 'Student', supervisor_id: group.supervisor_id || null, supervisor_email: group.supervisor_email || '', supervisor_name: group.supervisor_name || '', status: 'Active', joined_at: decidedAt }, ...(current.groupMembers || [])] : (current.groupMembers || []),
           notifications: [notification, ...(current.notifications || [])],
         }))
       }
@@ -3255,14 +3392,34 @@ export default function App() {
       return { ok: false }
     }
     const existingStudents = listValue(group.students)
-    const nextStudentLabels = Array.from(new Set([...existingStudents, ...selectedStudents.map((student) => student.name || student.email)].filter(Boolean)))
+    const nextStudentLabels = uniqueTextList([...existingStudents, ...selectedStudents.flatMap((student) => [student.name, student.email]).filter(Boolean)])
     try {
       if (isSupabaseConfigured) {
         const projectUpdate = await supabase.from('research_projects').update({ students: nextStudentLabels }).eq('id', group.id)
         if (projectUpdate.error) throw projectUpdate.error
         for (const student of selectedStudents) {
+          if (!student.id && !student.email) continue
+          try {
+            const membershipUpdate = await supabase.from('research_group_members').upsert({
+              group_id: group.id,
+              project_id: group.id,
+              student_id: student.id || null,
+              student_email: student.email || null,
+              student_name: student.name || student.email || 'Student',
+              supervisor_id: group.supervisor_id || currentUser?.id || null,
+              supervisor_email: group.supervisor_email || currentUser?.email || '',
+              supervisor_name: group.supervisor_name || currentUser?.full_name || '',
+              status: 'Active',
+              added_by: currentUser?.id || null,
+            }, { onConflict: student.id ? 'group_id,student_id' : 'group_id,student_email' })
+            if (membershipUpdate.error) throw membershipUpdate.error
+          } catch (membershipError) {
+            const missingMembershipTable = String(membershipError.message || '').toLowerCase().includes('research_group_members') || String(membershipError.message || '').toLowerCase().includes('relation')
+            if (!missingMembershipTable) throw membershipError
+            console.warn('research_group_members table is not available yet. Run supabase/group_join_requests.sql to enable official group membership records.', membershipError)
+          }
           if (!student.id) continue
-          const profileUpdate = await supabase.from('profiles').update({ current_research_group_id: group.id, current_research_group_name: group.group_name || group.title || 'Research Group' }).eq('id', student.id)
+          const profileUpdate = await supabase.from('profiles').update({ current_research_group_id: group.id, current_research_group_name: group.group_name || group.title || 'Research Group', assigned_supervisor_id: group.supervisor_id || currentUser?.id || null, assigned_supervisor_email: group.supervisor_email || currentUser?.email || '', assigned_supervisor_name: group.supervisor_name || currentUser?.full_name || '' }).eq('id', student.id)
           if (profileUpdate.error) throw profileUpdate.error
           const profile = findProfileByIdentity(data, { id: student.id, email: student.email }) || { id: student.id, email: student.email, full_name: student.name, role: 'student' }
           await createGroupJoinNotification({
@@ -3279,7 +3436,8 @@ export default function App() {
         setLocal((current) => ({
           ...current,
           projects: current.projects.map((project) => String(project.id) === String(group.id) ? { ...project, students: nextStudentLabels } : project),
-          profiles: current.profiles.map((profile) => selectedStudents.some((student) => String(student.id) === String(profile.id)) ? { ...profile, current_research_group_id: group.id, current_research_group_name: group.group_name || group.title || 'Research Group' } : profile),
+          profiles: current.profiles.map((profile) => selectedStudents.some((student) => String(student.id) === String(profile.id)) ? { ...profile, current_research_group_id: group.id, current_research_group_name: group.group_name || group.title || 'Research Group', assigned_supervisor_id: group.supervisor_id || currentUser?.id || null, assigned_supervisor_email: group.supervisor_email || currentUser?.email || '', assigned_supervisor_name: group.supervisor_name || currentUser?.full_name || '' } : profile),
+          groupMembers: [...selectedStudents.map((student) => ({ id: crypto.randomUUID(), group_id: group.id, project_id: group.id, student_id: student.id || null, student_email: student.email || null, student_name: student.name || student.email || 'Student', supervisor_id: group.supervisor_id || currentUser?.id || null, supervisor_email: group.supervisor_email || currentUser?.email || '', supervisor_name: group.supervisor_name || currentUser?.full_name || '', status: 'Active', joined_at: new Date().toISOString() })), ...(current.groupMembers || [])],
         }))
       }
       setMessage('Students added to research group successfully.')
@@ -4108,7 +4266,7 @@ export default function App() {
     }
 
     const assignedProjects = allowedRole === 'supervisor'
-      ? getVisibleProjects(data.projects, 'supervisor', currentUser)
+      ? getVisibleProjects(data.projects, 'supervisor', currentUser, data)
       : data.projects
     const assignedStudents = allowedRole === 'supervisor'
       ? mergeStudentOptions(getAssignedSupervisorStudents(data, assignedProjects, data.reports), getDirectAssignedStudentsForSupervisor(data, currentUser))
@@ -4315,7 +4473,7 @@ export default function App() {
     addAudit(currentUser.full_name, 'printed', 'PDF report')
   }
 
-  const visibleProjects = useMemo(() => getVisibleProjects(data.projects, allowedRole, currentUser), [data.projects, allowedRole, currentUser])
+  const visibleProjects = useMemo(() => getVisibleProjects(data.projects, allowedRole, currentUser, data), [data, allowedRole, currentUser])
 
   const filteredProjects = useMemo(() => {
     const q = filters.search.trim().toLowerCase()
@@ -4333,13 +4491,14 @@ export default function App() {
 
   const visibleData = useMemo(() => ({
     ...data,
-    profiles: allowedRole === 'admin' ? data.profiles : [],
+    profiles: data.profiles,
     projects: visibleProjects,
     reports: visibleReports,
     deadlines: visibleDeadlines,
-    evaluations: allowedRole === 'student' ? [] : data.evaluations,
+    evaluations: allowedRole === 'student' ? data.evaluations.filter((evaluation) => visibleProjects.some((project) => String(project.id) === String(evaluation.project_id))) : data.evaluations,
     auditLogs: allowedRole === 'admin' ? data.auditLogs : [],
     invitations: allowedRole === 'admin' ? data.invitations : [],
+    groupMembers: data.groupMembers || [],
   }), [data, allowedRole, visibleProjects, visibleReports, visibleDeadlines])
 
   const stats = useMemo(() => {
@@ -4382,7 +4541,7 @@ export default function App() {
     }
 
     return [
-      { icon: BookOpen, title: 'My research projects', value: visibleProjects.length, detail: 'Only your submitted project records' },
+      { icon: BookOpen, title: 'My research projects', value: visibleProjects.length, detail: 'Your joined or assigned project records' },
       { icon: MessageSquareText, title: 'My weekly reports', value: visibleReports.length, detail: 'Only reports from your project' },
       { icon: CheckCircle2, title: 'My progress', value: `${stats.averageProgress}%`, detail: 'Based on your project progress' },
       { icon: CalendarDays, title: 'Deadlines', value: data.deadlines.length, detail: 'Upcoming course milestones' },
@@ -5248,10 +5407,13 @@ function FilterBar({ filters, setFilters, projects }) {
 }
 
 function StudentDashboard({ data, projects, currentUser, createProject, createWeeklyReport, dataLoading = false, sendWeeklyReportToMyEmail, emailSendingReports = {} }) {
-  const ownProjects = projects.filter((p) => isOwnStudentProject(p, currentUser))
-  const selectedProject = ownProjects[0] || data.projects.find((p) => isOwnStudentProject(p, currentUser))
+  const studentProfile = findProfileForUser(data, currentUser) || currentUser
+  const joinedProject = getStudentCurrentResearchGroup(data, studentProfile)
+  const ownProjects = projects.filter((p) => isOwnStudentProject(p, studentProfile))
+  const selectedProject = joinedProject || ownProjects[0] || data.projects.find((p) => isOwnStudentProject(p, studentProfile))
   const hasSubmittedResearchTitle = Boolean(selectedProject)
   const reports = data.reports.filter((r) => String(r.project_id) === String(selectedProject?.id) && reportOwnedByUser(r, currentUser))
+  const groupMembers = selectedProject ? uniqueTextList([...listValue(selectedProject.member_names), ...getProjectStudents(selectedProject).filter((member) => !String(member || '').includes('@'))]) : []
   const projectProgress = selectedProject ? getProjectProgress(selectedProject, data.reports) : 0
   const [titleForm, setTitleForm] = useState({ title: '', area: DEFAULT_DEPARTMENT, group_name: `${currentUser.full_name} Research Group`, final_due: '2026-06-20' })
   const [reportForm, setReportForm] = useState({ completed_work: '', challenges: '', next_week_plan: '', attendance: 'Attended' })
@@ -5289,7 +5451,7 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
     <div className="stack student-dashboard-layout">
       <div className="grid two-one student-dashboard-row student-dashboard-top-row">
         <div className="card student-project-card">
-          <SectionHeader icon={BookOpen} title="My Research Project" subtitle="Your submitted project and progress" />
+          <SectionHeader icon={BookOpen} title="My Research Project" subtitle="Your joined or assigned project and progress" />
           {selectedProject ? (
             <div className="soft-box project-progress-card-surface">
               <div className="split project-progress-header">
@@ -5297,14 +5459,15 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
                   <p className="muted small bold">{selectedProject.group_name}</p>
                   <h3>{selectedProject.area}</h3>
                   <p className="muted">{selectedProject.title}</p>
-                  <p className="muted small">Supervisor: {selectedProject.supervisor_name}</p>
+                  <p className="muted small">Supervisor: {selectedProject.supervisor_name || 'Pending Assignment'}</p>
+                  {groupMembers.length ? <p className="muted small">Group members: {groupMembers.join(', ')}</p> : null}
                 </div>
                 <Pill tone={selectedProject.approval === 'Approved' ? 'green' : 'amber'}>{selectedProject.approval}</Pill>
               </div>
               <div className="progress-row"><span>Progress</span><span>{formatProgress(projectProgress)}%</span></div>
               <ProgressBar value={projectProgress} />
             </div>
-          ) : <EmptyState title="No project yet" text="Submit a research title below to create your first project." />}
+          ) : <EmptyState title="No research project assigned yet." text="Join or submit a research project to see progress and weekly report access." />}
         </div>
 
         <div className="student-dashboard-side-top">
@@ -5331,7 +5494,7 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
               </div>
               <button className="primary min-button-width" type="button" disabled={submittingReport} onClick={handleSubmitWeeklyReport}><ButtonContent loading={submittingReport} loadingText="Submitting..." icon={Upload}>Submit Weekly Report</ButtonContent></button>
             </>
-          ) : <EmptyState title="Weekly reports locked" text="Create a research project first, then weekly report submission will be available." icon={Lock} />}
+          ) : <EmptyState title="Weekly reports locked" text="You must join or be assigned to a research project before submitting weekly reports." icon={Lock} />}
         </div>
 
         <div className="card supervisor-feedback-card-fixed student-feedback-aligned-card">
@@ -6417,6 +6580,8 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
     evaluations: Array.isArray(data?.evaluations) ? data.evaluations : [],
     auditLogs: Array.isArray(data?.auditLogs) ? data.auditLogs : [],
     invitations: Array.isArray(data?.invitations) ? data.invitations : [],
+    groupJoinRequests: Array.isArray(data?.groupJoinRequests) ? data.groupJoinRequests : [],
+    groupMembers: Array.isArray(data?.groupMembers) ? data.groupMembers : [],
   })
   projects = Array.isArray(projects) ? projects : []
   const supervisors = data.profiles.filter((u) => u.role === 'supervisor')
@@ -7219,7 +7384,7 @@ function ReportsTab({ data, projects, currentUser, role, printPdfReport, exportC
     : selectableStudentOptions.find((student) => student.key === selectedStudentKey) || null
 
   const studentFilteredProjects = useMemo(() => {
-    if (role === 'student') return projectFilteredProjects.filter((project) => isOwnStudentProject(project, currentUser))
+    if (role === 'student') return projectFilteredProjects.filter((project) => isOwnStudentProject(project, findProfileForUser(data, currentUser) || currentUser))
     if (selectedStudentKey === 'all') return projectFilteredProjects
     if (!selectedStudent) return []
     return projectFilteredProjects.filter((project) => projectMatchesStudentOption(project, selectedStudent, allReports))
