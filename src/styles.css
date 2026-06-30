@@ -5064,3 +5064,47 @@ button .button-spinner {
     grid-template-columns: 1fr;
   }
 }
+
+/* Research group join/request system */
+.group-join-page .group-card-grid,
+.group-requests-admin-page .group-card-grid {
+  display: grid;
+  gap: 0.85rem;
+}
+.group-card,
+.group-request-row {
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 14px;
+  background: #fff;
+}
+.group-request-scroll-box {
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 0.35rem;
+}
+.compact-decision-field {
+  margin-top: 0.65rem;
+}
+.pdf-checklist-card .checklist-role-selector {
+  margin: 0.5rem 0 1rem;
+  align-items: end;
+}
+.checklist-save-actions {
+  margin-top: 1rem;
+}
+.group-join-page select[multiple] {
+  min-height: 132px;
+  padding: 0.65rem;
+}
+.question-card .inline-actions,
+.group-request-row .inline-actions {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+@media (max-width: 760px) {
+  .group-request-scroll-box { max-height: 420px; }
+  .group-card .split,
+  .group-request-row.managed-item {
+    grid-template-columns: 1fr;
+  }
+}

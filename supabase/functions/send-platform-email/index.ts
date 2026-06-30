@@ -155,6 +155,15 @@ async function getQuestionById(supabaseUrl: string, serviceRoleKey: string, id: 
   return questions?.[0] || null
 }
 
+async function getGroupJoinRequestById(supabaseUrl: string, serviceRoleKey: string, id: string) {
+  const requests = await restFetch(
+    supabaseUrl,
+    serviceRoleKey,
+    `group_join_requests?id=eq.${encodeURIComponent(id)}&select=*`
+  )
+  return requests?.[0] || null
+}
+
 function userCanAccessQuestion(actor: AnyRecord, question: AnyRecord) {
   if (!actor || !question || !isApprovedActiveStatus(actor.status)) return false
   if (isAdminRole(actor.role)) return true
@@ -421,6 +430,92 @@ Deno.serve(async (req) => {
         link ? `Dashboard link: ${link}` : '',
       ].filter(Boolean).join('\n')
       const email = await sendResendEmail({ resendApiKey, fromEmail, to: toEmail, subject: 'Your Supervisor Answered Your Question', html, text })
+      return jsonResponse({ success: true, emailId: email?.id || null })
+    }
+
+
+    if (kind === 'group_join_request_submitted') {
+      const request = await getGroupJoinRequestById(supabaseUrl, serviceRoleKey, String(payload.requestId || ''))
+      if (!request) throw new Error('Group join request not found.')
+      const student = request.student_id ? await getProfileById(supabaseUrl, serviceRoleKey, request.student_id) : await getProfileByEmail(supabaseUrl, serviceRoleKey, request.student_email || '')
+      const supervisor = request.supervisor_id ? await getProfileById(supabaseUrl, serviceRoleKey, request.supervisor_id) : request.supervisor_email ? await getProfileByEmail(supabaseUrl, serviceRoleKey, request.supervisor_email) : null
+      const admins = await restFetch(supabaseUrl, serviceRoleKey, `profiles?role=eq.admin&select=*`)
+      const recipients = [supervisor, ...(Array.isArray(admins) ? admins : [])].filter((item, index, arr) => item?.email && arr.findIndex((candidate) => normalize(candidate?.email) === normalize(item.email)) === index)
+      if (!recipients.length) return jsonResponse({ success: true, skipped: true, reason: 'No admin or supervisor email recipients were found.' })
+      const requestedAt = request.requested_at || new Date().toISOString()
+      const link = dashboardLink(appUrl, 'admin', { panel: 'group-requests', request: request.id || '' })
+      const html = buildEmailWrapper(
+        'New Research Group Join Request',
+        `${student?.full_name || request.student_name || request.student_email || 'A student'} requested to join a research group.`,
+        `
+          <p><strong>Student name:</strong> ${escapeHtml(student?.full_name || request.student_name || request.student_email || 'Student')}</p>
+          <p><strong>Student email:</strong> ${escapeHtml(student?.email || request.student_email || 'Not available')}</p>
+          <p><strong>Requested group:</strong> ${escapeHtml(request.requested_group_name || 'Research group')}</p>
+          <p><strong>Research title/project:</strong> ${escapeHtml(request.requested_project_title || 'Not available')}</p>
+          <p><strong>Request message:</strong> ${escapeHtml(request.request_message || 'No message provided.')}</p>
+          <p><strong>Submitted date/time:</strong> ${escapeHtml(dateTime(requestedAt))}</p>
+        `,
+        link,
+        'Review group request'
+      )
+      const text = [
+        'New Research Group Join Request',
+        `Student: ${student?.full_name || request.student_name || request.student_email || 'Student'}`,
+        `Student email: ${student?.email || request.student_email || 'Not available'}`,
+        `Requested group: ${request.requested_group_name || 'Research group'}`,
+        `Project: ${request.requested_project_title || 'Not available'}`,
+        `Message: ${request.request_message || 'No message provided.'}`,
+        `Submitted: ${dateTime(requestedAt)}`,
+        link ? `Review link: ${link}` : '',
+      ].filter(Boolean).join('\n')
+      const sends = []
+      for (const recipient of recipients) {
+        sends.push(await sendResendEmail({ resendApiKey, fromEmail, to: recipient.email, subject: 'New Research Group Join Request', html, text }))
+      }
+      return jsonResponse({ success: true, emailCount: sends.length })
+    }
+
+    if (kind === 'group_join_decision') {
+      const request = await getGroupJoinRequestById(supabaseUrl, serviceRoleKey, String(payload.requestId || ''))
+      if (!request) throw new Error('Group join request not found.')
+      if (!isAdminRole(actor.role) && normalize(actor.role) !== 'supervisor') return jsonResponse({ error: 'You do not have permission to send this group join decision email.' }, 403)
+      const student = request.student_id ? await getProfileById(supabaseUrl, serviceRoleKey, request.student_id) : await getProfileByEmail(supabaseUrl, serviceRoleKey, request.student_email || '')
+      const toEmail = student?.email || request.student_email
+      if (!toEmail) throw new Error('Student email address is missing.')
+      if (request.decision_email_sent_at) return jsonResponse({ success: true, skipped: true, reason: 'Decision email already sent.' })
+      const accepted = String(request.status || payload.decision || '').toLowerCase() === 'accepted'
+      const subject = accepted ? 'Research Group Join Request Accepted' : 'Research Group Join Request Rejected'
+      const decidedAt = request.decided_at || new Date().toISOString()
+      const link = dashboardLink(appUrl, 'student', { tab: 'join-group', request: request.id || '' })
+      const html = buildEmailWrapper(
+        subject,
+        accepted ? `Your request to join ${request.requested_group_name || 'the research group'} has been accepted.` : `Your request to join ${request.requested_group_name || 'the research group'} has been rejected.`,
+        `
+          <p><strong>Student name:</strong> ${escapeHtml(student?.full_name || request.student_name || request.student_email || 'Student')}</p>
+          <p><strong>Research group:</strong> ${escapeHtml(request.requested_group_name || 'Research group')}</p>
+          <p><strong>Research title/project:</strong> ${escapeHtml(request.requested_project_title || 'Not available')}</p>
+          <p><strong>Supervisor:</strong> ${escapeHtml(request.supervisor_name || request.supervisor_email || 'Not available')}</p>
+          <p><strong>Decision date/time:</strong> ${escapeHtml(dateTime(decidedAt))}</p>
+          ${request.decision_message ? `<p><strong>Decision comment:</strong> ${escapeHtml(request.decision_message)}</p>` : ''}
+        `,
+        link,
+        'Open student dashboard'
+      )
+      const text = [
+        subject,
+        `Student: ${student?.full_name || request.student_name || request.student_email || 'Student'}`,
+        `Research group: ${request.requested_group_name || 'Research group'}`,
+        `Project: ${request.requested_project_title || 'Not available'}`,
+        `Supervisor: ${request.supervisor_name || request.supervisor_email || 'Not available'}`,
+        `Decision date/time: ${dateTime(decidedAt)}`,
+        request.decision_message ? `Comment: ${request.decision_message}` : '',
+        link ? `Dashboard link: ${link}` : '',
+      ].filter(Boolean).join('\n')
+      const email = await sendResendEmail({ resendApiKey, fromEmail, to: toEmail, subject, html, text })
+      await restFetch(supabaseUrl, serviceRoleKey, `group_join_requests?id=eq.${encodeURIComponent(request.id)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ decision_email_sent_at: new Date().toISOString() }),
+      })
       return jsonResponse({ success: true, emailId: email?.id || null })
     }
 

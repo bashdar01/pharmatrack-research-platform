@@ -511,7 +511,7 @@ function optimizeImageFile(file, options = {}) {
   })
 }
 
-const adminPanelTabs = ['overview', 'branding', 'login-settings', 'users', 'invitations', 'deadlines', 'notifications', 'reports', 'pdf-report', 'database', 'audit']
+const adminPanelTabs = ['overview', 'branding', 'login-settings', 'users', 'invitations', 'deadlines', 'notifications', 'reports', 'pdf-report', 'group-requests', 'database', 'audit']
 
 const adminPanelPathAliases = {
   '': 'overview',
@@ -539,6 +539,9 @@ const adminPanelPathAliases = {
   'pdf-report-customization': 'pdf-report',
   print: 'pdf-report',
   'print-pdf': 'pdf-report',
+  'group-requests': 'group-requests',
+  'research-group-requests': 'group-requests',
+  'group-join-requests': 'group-requests',
   database: 'database',
   audit: 'audit',
   'audit-log': 'audit',
@@ -596,6 +599,7 @@ const emptyData = {
   auditLogs: [],
   invitations: [],
   studentQuestions: [],
+  groupJoinRequests: [],
 }
 
 const sampleNames = ['Aveen Mohammed', 'Hemn Karim', 'Dr. Lara Ahmed', 'Dr. Rebaz Hassan', 'College Admin']
@@ -618,6 +622,7 @@ function cleanData(data) {
   cleaned.auditLogs = cleaned.auditLogs || []
   cleaned.invitations = cleaned.invitations || []
   cleaned.studentQuestions = cleaned.studentQuestions || []
+  cleaned.groupJoinRequests = cleaned.groupJoinRequests || []
   return cleaned
 }
 
@@ -1158,6 +1163,97 @@ function questionStudentLabel(data, question = {}) {
   }
 }
 
+
+function projectStudentIdentityMatches(project = {}, student = {}) {
+  const studentId = normalizeText(student.id)
+  const studentEmail = normalizeText(student.email)
+  const studentName = normalizeText(student.full_name || student.name)
+  const projectStudents = getProjectStudents(project).map(normalizeText)
+  return (
+    (!!studentId && [project.student_id, project.created_by, project.owner_id].map(normalizeText).includes(studentId)) ||
+    (!!studentEmail && [project.student_email, project.created_by_email, project.owner_email].map(normalizeText).includes(studentEmail)) ||
+    (!!studentName && (normalizeText(project.student_name) === studentName || normalizeText(project.group_name) === studentName || projectStudents.includes(studentName))) ||
+    (!!studentEmail && projectStudents.includes(studentEmail))
+  )
+}
+
+function getStudentCurrentResearchGroup(data = {}, studentUser = {}) {
+  const profile = findProfileForUser(data, studentUser) || studentUser || {}
+  const profileGroupId = profile.current_research_group_id || profile.research_group_id || profile.group_id
+  if (profileGroupId) {
+    const project = (data.projects || []).find((item) => String(item.id) === String(profileGroupId))
+    return project || { id: profileGroupId, group_name: profile.current_research_group_name || profile.research_group || profile.group_name || 'Research group' }
+  }
+  if (profile.current_research_group_name || profile.research_group || profile.group_name) {
+    const groupName = profile.current_research_group_name || profile.research_group || profile.group_name
+    const project = (data.projects || []).find((item) => normalizeText(item.group_name) === normalizeText(groupName))
+    return project || { id: null, group_name: groupName }
+  }
+  return (data.projects || []).find((project) => projectStudentIdentityMatches(project, profile)) || null
+}
+
+function getResearchGroupOptions(data = {}, currentUser = null) {
+  const seen = new Map()
+  ;(data.projects || []).forEach((project) => {
+    const key = project.id || normalizeText(project.group_name || project.title)
+    if (!key || seen.has(String(key))) return
+    const supervisor = findSupervisorProfileForProject(data, project)
+    seen.set(String(key), {
+      id: project.id,
+      group_name: project.group_name || project.title || 'Research Group',
+      title: project.title || 'Untitled project',
+      supervisor_id: project.supervisor_id || supervisor?.id || null,
+      supervisor_email: project.supervisor_email || supervisor?.email || '',
+      supervisor_name: project.supervisor_name || supervisor?.full_name || 'Pending Assignment',
+      area: project.area || '',
+      students: getProjectStudents(project),
+      raw: project,
+    })
+  })
+  const currentGroup = currentUser ? getStudentCurrentResearchGroup(data, currentUser) : null
+  return Array.from(seen.values())
+    .filter((group) => !currentGroup?.id || String(group.id) !== String(currentGroup.id))
+    .sort((a, b) => String(a.group_name).localeCompare(String(b.group_name)))
+}
+
+function requestMatchesGroup(request = {}, group = {}) {
+  return String(request.requested_group_id || '') === String(group.id || '') || normalizeText(request.requested_group_name) === normalizeText(group.group_name)
+}
+
+function requestOwnedByStudent(request = {}, studentUser = {}) {
+  return (
+    (!!request.student_id && !!studentUser.id && String(request.student_id) === String(studentUser.id)) ||
+    (!!request.student_email && !!studentUser.email && normalizeText(request.student_email) === normalizeText(studentUser.email))
+  )
+}
+
+function requestVisibleToSupervisor(data = {}, request = {}, supervisorUser = {}) {
+  if (!request || !supervisorUser) return false
+  if (request.supervisor_id && supervisorUser.id && String(request.supervisor_id) === String(supervisorUser.id)) return true
+  if (request.supervisor_email && supervisorUser.email && normalizeText(request.supervisor_email) === normalizeText(supervisorUser.email)) return true
+  const group = (data.projects || []).find((project) => String(project.id) === String(request.requested_group_id))
+  return Boolean(group && isAssignedSupervisorProject(group, supervisorUser))
+}
+
+function groupJoinRequestLabel(data = {}, request = {}) {
+  const group = (data.projects || []).find((project) => String(project.id) === String(request.requested_group_id))
+  const student = findProfileByIdentity(data, { id: request.student_id, email: request.student_email, submitted_by: request.student_name })
+  const currentGroup = request.current_group_id ? (data.projects || []).find((project) => String(project.id) === String(request.current_group_id)) : null
+  return {
+    studentName: student?.full_name || request.student_name || request.student_email || 'Student',
+    studentEmail: student?.email || request.student_email || '',
+    groupName: group?.group_name || request.requested_group_name || 'Research Group',
+    projectTitle: group?.title || request.requested_project_title || '',
+    supervisorName: group?.supervisor_name || request.supervisor_name || 'Pending Assignment',
+    currentSupervisor: student?.assigned_supervisor_name || request.current_supervisor_name || '',
+    currentGroup: currentGroup?.group_name || request.current_group_name || '',
+  }
+}
+
+function supervisorCanManageGroup(project = {}, supervisorUser = {}) {
+  return Boolean(project && supervisorUser?.role === 'supervisor' && isAssignedSupervisorProject(project, supervisorUser))
+}
+
 function canSendReportToSelf(report, project, user, data = null) {
   if (!report || !user) return false
   if (isAdminUser(user)) return true
@@ -1668,6 +1764,14 @@ export default function App() {
         studentQuestionsData = []
       }
 
+      let groupJoinRequestsData = []
+      try {
+        const groupJoinRequests = await supabase.from('group_join_requests').select('*').order('requested_at', { ascending: false })
+        if (!groupJoinRequests.error) groupJoinRequestsData = groupJoinRequests.data || []
+      } catch {
+        groupJoinRequestsData = []
+      }
+
       const reportsData = reports.data || []
       const projectsData = (projects.data || []).map((project) => ({
         ...project,
@@ -1686,6 +1790,7 @@ export default function App() {
         auditLogs: auditLogs.data || [],
         invitations: invitationsData,
         studentQuestions: studentQuestionsData,
+        groupJoinRequests: groupJoinRequestsData,
       }))
     } catch (error) {
       setDataLoadError(error.message || 'Unknown database error')
@@ -2867,6 +2972,324 @@ export default function App() {
     return { ok: true, question: updatedQuestion }
   }
 
+
+  async function sendGroupJoinEmail(kind, requestId, decision = '') {
+    if (!isSupabaseConfigured || !supabase?.functions?.invoke) return { ok: false, error: 'Email sending requires Supabase Edge Functions.' }
+    const { data: result, error } = await supabase.functions.invoke('send-platform-email', {
+      body: {
+        kind,
+        requestId,
+        decision,
+        appUrl: typeof window !== 'undefined' ? window.location.origin : '',
+      },
+    })
+    if (error) throw new Error(error.message || 'Group join email could not be sent.')
+    if (result?.error) throw new Error(result.error)
+    return { ok: true, result }
+  }
+
+  async function createGroupJoinNotification({ recipient, sender, request, title, message, targetRole }) {
+    if (!recipient || !request) return { ok: false }
+    const note = {
+      id: crypto.randomUUID(),
+      profile_id: recipient.id || null,
+      recipient_user_id: recipient.id || null,
+      recipient_email: recipient.email || '',
+      sender_user_id: sender?.id || null,
+      project_id: request.requested_group_id || null,
+      notification_type: `group_join_${request.id}_${String(title || targetRole || 'notice').toLowerCase().replace(/[^a-z0-9]+/g, '_')}`,
+      title,
+      message,
+      type: 'Research Group Request',
+      target_role: targetRole || recipient.role || 'all',
+      is_read: false,
+      created_at: new Date().toISOString(),
+    }
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.from('notifications').insert(note)
+      if (error) return { ok: false, error: error.message }
+      return { ok: true, notification: note }
+    }
+    return { ok: true, notification: note }
+  }
+
+  async function submitGroupJoinRequest(groupId, requestMessage = '') {
+    if (currentUser?.role !== 'student') {
+      setMessage('Only students can request to join research groups.')
+      return { ok: false }
+    }
+    const group = (data.projects || []).find((project) => String(project.id) === String(groupId))
+    if (!group) {
+      setMessage('Research group not found. Please refresh and try again.')
+      return { ok: false }
+    }
+    const currentGroup = getStudentCurrentResearchGroup(data, currentUser)
+    if (currentGroup) {
+      setMessage('You are already assigned to a research group.')
+      return { ok: false }
+    }
+    const existingPending = (data.groupJoinRequests || []).find((request) =>
+      requestOwnedByStudent(request, currentUser) &&
+      String(request.requested_group_id || '') === String(group.id) &&
+      String(request.status || '').toLowerCase() === 'pending'
+    )
+    if (existingPending) {
+      setMessage('Your request is pending.')
+      return { ok: false }
+    }
+
+    const supervisor = findSupervisorProfileForProject(data, group)
+    const request = {
+      id: crypto.randomUUID(),
+      student_id: currentUser.id || null,
+      student_email: currentUser.email || '',
+      student_name: currentUser.full_name || currentUser.email || 'Student',
+      requested_group_id: group.id,
+      requested_group_name: group.group_name || group.title || 'Research Group',
+      requested_project_title: group.title || '',
+      current_group_id: currentGroup?.id || null,
+      current_group_name: currentGroup?.group_name || '',
+      supervisor_id: supervisor?.id || group.supervisor_id || null,
+      supervisor_email: supervisor?.email || group.supervisor_email || '',
+      supervisor_name: supervisor?.full_name || group.supervisor_name || '',
+      status: 'Pending',
+      request_message: String(requestMessage || '').trim(),
+      decision_message: '',
+      requested_at: new Date().toISOString(),
+      decided_at: null,
+      decided_by: null,
+      decided_by_name: '',
+      decision_email_sent_at: null,
+    }
+
+    let savedRequest = request
+    if (isSupabaseConfigured) {
+      const { id, ...requestForDb } = request
+      const { data: inserted, error } = await supabase.from('group_join_requests').insert(requestForDb).select().single()
+      if (error) {
+        const missingTable = String(error.message || '').toLowerCase().includes('group_join_requests') || String(error.message || '').toLowerCase().includes('relation')
+        const messageText = missingTable ? `${error.message}. Run supabase/group_join_requests.sql in Supabase SQL Editor, refresh, then try again.` : error.message
+        setMessage(messageText)
+        return { ok: false, error: messageText }
+      }
+      savedRequest = inserted
+      const admins = (data.profiles || []).filter((profile) => profile.role === 'admin')
+      for (const admin of admins) {
+        await createGroupJoinNotification({
+          recipient: admin,
+          sender: currentUser,
+          request: savedRequest,
+          title: 'New Research Group Join Request',
+          message: `${currentUser.full_name || currentUser.email || 'A student'} requested to join ${group.group_name || group.title || 'a research group'}.`,
+          targetRole: 'admin',
+        })
+      }
+      if (supervisor) {
+        await createGroupJoinNotification({
+          recipient: supervisor,
+          sender: currentUser,
+          request: savedRequest,
+          title: 'New Research Group Join Request',
+          message: `${currentUser.full_name || currentUser.email || 'A student'} requested to join ${group.group_name || group.title || 'your research group'}.`,
+          targetRole: 'supervisor',
+        })
+      }
+      try {
+        await sendGroupJoinEmail('group_join_request_submitted', savedRequest.id)
+      } catch (emailError) {
+        console.warn('Group join request email could not be sent:', emailError)
+      }
+      await loadFromSupabase(currentUser)
+    } else {
+      const admins = (data.profiles || []).filter((profile) => profile.role === 'admin')
+      const notices = admins.map((admin) => ({
+        id: crypto.randomUUID(),
+        profile_id: admin.id,
+        recipient_user_id: admin.id,
+        recipient_email: admin.email || '',
+        sender_user_id: currentUser?.id || null,
+        project_id: group.id,
+        notification_type: `group_join_${request.id}_admin`,
+        title: 'New Research Group Join Request',
+        message: `${currentUser.full_name || currentUser.email || 'A student'} requested to join ${group.group_name || group.title || 'a research group'}.`,
+        type: 'Research Group Request',
+        target_role: 'admin',
+        is_read: false,
+        created_at: new Date().toISOString(),
+      }))
+      setLocal((current) => ({
+        ...current,
+        groupJoinRequests: [request, ...(current.groupJoinRequests || [])],
+        notifications: [...notices, ...(current.notifications || [])],
+      }))
+    }
+    setMessage('Research group join request submitted successfully.')
+    return { ok: true, request: savedRequest }
+  }
+
+  async function decideGroupJoinRequest(requestId, status, decisionMessage = '') {
+    const request = (data.groupJoinRequests || []).find((item) => String(item.id) === String(requestId))
+    if (!request) {
+      setMessage('Group join request not found. Please refresh and try again.')
+      return { ok: false }
+    }
+    const normalizedStatus = status === 'Accepted' ? 'Accepted' : 'Rejected'
+    if (!isAdminUser(currentUser) && !requestVisibleToSupervisor(data, request, currentUser)) {
+      setMessage('You do not have permission to manage this group join request.')
+      return { ok: false }
+    }
+    if (request.status && request.status !== 'Pending') {
+      setMessage(`This request is already ${request.status}.`)
+      return { ok: false, alreadyDecided: true }
+    }
+    const group = (data.projects || []).find((project) => String(project.id) === String(request.requested_group_id))
+    const student = findProfileByIdentity(data, { id: request.student_id, email: request.student_email, submitted_by: request.student_name })
+    if (!group || !student) {
+      setMessage('Student or research group was not found. Please refresh and try again.')
+      return { ok: false }
+    }
+
+    const decidedAt = new Date().toISOString()
+    const decisionUpdates = {
+      status: normalizedStatus,
+      decision_message: String(decisionMessage || '').trim(),
+      decided_at: decidedAt,
+      decided_by: currentUser?.id || null,
+      decided_by_name: currentUser?.full_name || currentUser?.email || 'Admin',
+    }
+    let emailFailed = false
+
+    try {
+      if (isSupabaseConfigured) {
+        const { data: updated, error } = await supabase
+          .from('group_join_requests')
+          .update(decisionUpdates)
+          .eq('id', requestId)
+          .eq('status', 'Pending')
+          .select()
+          .maybeSingle()
+        if (error) throw error
+        if (!updated) {
+          setMessage('This request has already been decided. Refresh the page to see the latest status.')
+          await loadFromSupabase(currentUser)
+          return { ok: false }
+        }
+
+        if (normalizedStatus === 'Accepted') {
+          const existingStudents = listValue(group.students)
+          const memberLabel = student.full_name || student.email
+          const nextStudents = Array.from(new Set([...existingStudents, memberLabel].filter(Boolean)))
+          const projectUpdate = await supabase.from('research_projects').update({ students: nextStudents }).eq('id', group.id)
+          if (projectUpdate.error) throw projectUpdate.error
+          const profileUpdate = await supabase.from('profiles').update({ current_research_group_id: group.id, current_research_group_name: group.group_name || group.title || 'Research Group' }).eq('id', student.id)
+          if (profileUpdate.error) throw profileUpdate.error
+        }
+
+        await createGroupJoinNotification({
+          recipient: student,
+          sender: currentUser,
+          request: { ...request, ...decisionUpdates },
+          title: normalizedStatus === 'Accepted' ? 'Research Group Join Request Accepted' : 'Research Group Join Request Rejected',
+          message: normalizedStatus === 'Accepted' ? 'Your research group join request was accepted.' : 'Your research group join request was rejected.',
+          targetRole: 'student',
+        })
+        try {
+          await sendGroupJoinEmail('group_join_decision', requestId, normalizedStatus)
+        } catch (emailError) {
+          console.warn('Group join decision email failed:', emailError)
+          emailFailed = true
+        }
+        await loadFromSupabase(currentUser)
+      } else {
+        const existingStudents = listValue(group.students)
+        const memberLabel = student.full_name || student.email
+        const nextStudents = normalizedStatus === 'Accepted' ? Array.from(new Set([...existingStudents, memberLabel].filter(Boolean))) : existingStudents
+        const notification = {
+          id: crypto.randomUUID(),
+          profile_id: student.id || null,
+          recipient_user_id: student.id || null,
+          recipient_email: student.email || '',
+          sender_user_id: currentUser?.id || null,
+          project_id: group.id,
+          notification_type: `group_join_${request.id}_${normalizedStatus.toLowerCase()}`,
+          title: normalizedStatus === 'Accepted' ? 'Research Group Join Request Accepted' : 'Research Group Join Request Rejected',
+          message: normalizedStatus === 'Accepted' ? 'Your research group join request was accepted.' : 'Your research group join request was rejected.',
+          type: 'Research Group Request',
+          target_role: 'student',
+          is_read: false,
+          created_at: decidedAt,
+        }
+        setLocal((current) => ({
+          ...current,
+          groupJoinRequests: (current.groupJoinRequests || []).map((item) => String(item.id) === String(requestId) ? { ...item, ...decisionUpdates } : item),
+          projects: (current.projects || []).map((project) => String(project.id) === String(group.id) ? { ...project, students: nextStudents } : project),
+          profiles: (current.profiles || []).map((profile) => String(profile.id) === String(student.id) ? { ...profile, current_research_group_id: normalizedStatus === 'Accepted' ? group.id : profile.current_research_group_id, current_research_group_name: normalizedStatus === 'Accepted' ? group.group_name : profile.current_research_group_name } : profile),
+          notifications: [notification, ...(current.notifications || [])],
+        }))
+      }
+      if (normalizedStatus === 'Accepted') {
+        setMessage(emailFailed ? 'Request accepted, but email notification failed.' : 'Request accepted and student notified by email.')
+      } else {
+        setMessage(emailFailed ? 'Request rejected, but email notification failed.' : 'Request rejected and student notified by email.')
+      }
+      return { ok: true, emailSent: !emailFailed }
+    } catch (error) {
+      setMessage(error.message || `Failed to ${normalizedStatus === 'Accepted' ? 'accept' : 'reject'} group join request.`)
+      return { ok: false, error: error.message }
+    }
+  }
+
+  async function supervisorAddStudentsToGroup(projectId, studentKeys = []) {
+    const group = (data.projects || []).find((project) => String(project.id) === String(projectId))
+    if (!group || !supervisorCanManageGroup(group, currentUser)) {
+      setMessage('You do not have permission to manage this research group.')
+      return { ok: false }
+    }
+    const assignedStudents = mergeStudentOptions(
+      getAssignedSupervisorStudents(data, [group], data.reports),
+      getDirectAssignedStudentsForSupervisor(data, currentUser)
+    )
+    const selectedStudents = assignedStudents.filter((student) => studentKeys.includes(student.key))
+    if (!selectedStudents.length) {
+      setMessage('Please select at least one assigned student.')
+      return { ok: false }
+    }
+    const existingStudents = listValue(group.students)
+    const nextStudentLabels = Array.from(new Set([...existingStudents, ...selectedStudents.map((student) => student.name || student.email)].filter(Boolean)))
+    try {
+      if (isSupabaseConfigured) {
+        const projectUpdate = await supabase.from('research_projects').update({ students: nextStudentLabels }).eq('id', group.id)
+        if (projectUpdate.error) throw projectUpdate.error
+        for (const student of selectedStudents) {
+          if (!student.id) continue
+          const profileUpdate = await supabase.from('profiles').update({ current_research_group_id: group.id, current_research_group_name: group.group_name || group.title || 'Research Group' }).eq('id', student.id)
+          if (profileUpdate.error) throw profileUpdate.error
+          const profile = findProfileByIdentity(data, { id: student.id, email: student.email }) || { id: student.id, email: student.email, full_name: student.name, role: 'student' }
+          await createGroupJoinNotification({
+            recipient: profile,
+            sender: currentUser,
+            request: { id: `${group.id}-${student.id}`, requested_group_id: group.id },
+            title: 'Added to Research Group',
+            message: `You were added to ${group.group_name || group.title || 'a research group'} by your supervisor.`,
+            targetRole: 'student',
+          })
+        }
+        await loadFromSupabase(currentUser)
+      } else {
+        setLocal((current) => ({
+          ...current,
+          projects: current.projects.map((project) => String(project.id) === String(group.id) ? { ...project, students: nextStudentLabels } : project),
+          profiles: current.profiles.map((profile) => selectedStudents.some((student) => String(student.id) === String(profile.id)) ? { ...profile, current_research_group_id: group.id, current_research_group_name: group.group_name || group.title || 'Research Group' } : profile),
+        }))
+      }
+      setMessage('Students added to research group successfully.')
+      return { ok: true }
+    } catch (error) {
+      setMessage(error.message || 'Could not add students to research group.')
+      return { ok: false, error: error.message }
+    }
+  }
+
   async function removeStorageFiles(files = []) {
     if (!isSupabaseConfigured) return
     const paths = files.map((file) => file?.file_path).filter(Boolean)
@@ -4022,6 +4445,7 @@ export default function App() {
         auditLogs={visibleData.auditLogs}
         onLogout={logout}
         message={message}
+        decideGroupJoinRequest={decideGroupJoinRequest}
       />
     )
   }
@@ -4042,7 +4466,9 @@ export default function App() {
           <button onClick={() => setTab('notifications')} className={tab === 'notifications' ? 'active' : ''}><Bell size={16} /> Notifications {stats.unread > 0 && <span className="tab-badge">{stats.unread}</span>}</button>
           <button onClick={() => setTab('reports')} className={tab === 'reports' ? 'active' : ''}><Printer size={16} /> Print/PDF Reports</button>
           {allowedRole === 'student' && <button onClick={() => setTab('questions')} className={tab === 'questions' ? 'active' : ''}><MessageSquareText size={16} /> Questions</button>}
+          {allowedRole === 'student' && <button onClick={() => setTab('join-group')} className={tab === 'join-group' ? 'active' : ''}><Users size={16} /> Join Research Group</button>}
           {allowedRole === 'supervisor' && <button onClick={() => setTab('questions')} className={tab === 'questions' ? 'active' : ''}><MessageSquareText size={16} /> Student Questions</button>}
+          {allowedRole === 'supervisor' && <button onClick={() => setTab('groups')} className={tab === 'groups' ? 'active' : ''}><Users size={16} /> Research Groups</button>}
           {allowedRole === 'admin' && <button onClick={() => setTab('database')} className={tab === 'database' ? 'active' : ''}><Database size={16} /> Database</button>}
           {allowedRole === 'admin' && <button onClick={() => setTab('audit')} className={tab === 'audit' ? 'active' : ''}><ShieldCheck size={16} /> Audit Log</button>}
         </div>
@@ -4067,7 +4493,9 @@ export default function App() {
         {tab === 'notifications' && <NotificationsTab data={data} role={allowedRole} currentUser={currentUser} dataLoading={dataLoading} createNotification={createNotification} markNotificationRead={markNotificationRead} removeNotification={removeNotification} />}
         {tab === 'questions' && allowedRole === 'student' && <StudentQuestionsTab data={data} currentUser={currentUser} dataLoading={dataLoading} submitStudentQuestion={submitStudentQuestion} />}
         {tab === 'questions' && allowedRole === 'supervisor' && <SupervisorQuestionsTab data={data} currentUser={currentUser} dataLoading={dataLoading} answerStudentQuestion={answerStudentQuestion} />}
-        {tab === 'reports' && <ReportsTab data={visibleData} projects={filteredProjects} currentUser={currentUser} role={allowedRole} printPdfReport={printPdfReport} exportCsv={exportCsv} pdfReportSettings={getPdfReportSettingsForRole(allowedRole, pdfReportSettingsByRole, pdfReportSettings)} dataLoading={dataLoading} />}
+        {tab === 'join-group' && allowedRole === 'student' && <StudentJoinResearchGroupTab data={data} currentUser={currentUser} dataLoading={dataLoading} submitGroupJoinRequest={submitGroupJoinRequest} />}
+        {tab === 'groups' && allowedRole === 'supervisor' && <SupervisorResearchGroupManagementTab data={data} currentUser={currentUser} dataLoading={dataLoading} supervisorAddStudentsToGroup={supervisorAddStudentsToGroup} decideGroupJoinRequest={decideGroupJoinRequest} />}
+        {tab === 'reports' && <ReportsTab data={data} projects={filteredProjects} currentUser={currentUser} role={allowedRole} printPdfReport={printPdfReport} exportCsv={exportCsv} pdfReportSettings={getPdfReportSettingsForRole(allowedRole, pdfReportSettingsByRole, pdfReportSettings)} dataLoading={dataLoading} />}
         {tab === 'database' && allowedRole === 'admin' && <DatabaseTab databaseMode={databaseMode} />}
         {tab === 'database' && allowedRole !== 'admin' && <div className="card"><SectionHeader icon={Lock} title="Database Access Locked" subtitle="Only Admin accounts can view database status" /><p className="muted">Please use your role dashboard, notifications, or reports page.</p></div>}
         {tab === 'audit' && allowedRole === 'admin' && <AuditTab logs={visibleData.auditLogs} />}
@@ -4180,6 +4608,7 @@ function AdminControlPanel({
   auditLogs,
   onLogout,
   message,
+  decideGroupJoinRequest,
   loadError = '',
   dataLoading = false,
 }) {
@@ -4200,6 +4629,7 @@ function AdminControlPanel({
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'reports', label: 'Reports', icon: Printer },
     { id: 'pdf-report', label: 'PDF Report Customization', icon: FileText },
+    { id: 'group-requests', label: 'Group Join Requests', icon: Users },
     { id: 'database', label: 'Database', icon: Database },
     { id: 'audit', label: 'Audit Log', icon: ShieldCheck },
   ]
@@ -4360,7 +4790,7 @@ function AdminControlPanel({
         <header className="admin-panel-topbar no-print">
           <div>
             <p className="eyebrow"><UserCog size={16} /> Admin subdomain</p>
-            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Notifications' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'pdf-report' ? 'PDF Report Customization' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : 'Control Center'}</h1>
+            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Notifications' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'pdf-report' ? 'PDF Report Customization' : adminPanelTab === 'group-requests' ? 'Group Join Requests' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : 'Control Center'}</h1>
             <p>{settings.adminWelcome}</p>
           </div>
           <a className="admin-preview-link" href="/" target="_blank" rel="noreferrer">Open main website</a>
@@ -4612,6 +5042,7 @@ function AdminControlPanel({
         {adminPanelTab === 'deadlines' && <DeadlineManager deadlines={data.deadlines} createDeadline={createDeadline} removeDeadline={removeDeadline} students={data.profiles.filter((profile) => profile.role === 'student').map((student) => ({ key: makeStudentOptionKey(student), id: student.id, name: student.full_name, email: student.email, group: student.department || student.area || 'Student' }))} currentUser={currentUser} />}
         {adminPanelTab === 'notifications' && <NotificationsTab data={data} role="admin" currentUser={currentUser} createNotification={createNotification} markNotificationRead={markNotificationRead} removeNotification={removeNotification} />}
         {adminPanelTab === 'reports' && <ReportsTab data={data} projects={projects} currentUser={currentUser} role="admin" printPdfReport={printPdfReport} exportCsv={exportCsv} pdfReportSettings={getPdfReportSettingsForRole('admin', pdfReportSettingsByRole, globalPdfReportSettings)} dataLoading={dataLoading} />}
+        {adminPanelTab === 'group-requests' && <AdminGroupJoinRequestsTab data={data} currentUser={currentUser} dataLoading={dataLoading} decideGroupJoinRequest={decideGroupJoinRequest} />}
         {adminPanelTab === 'pdf-report' && <PdfReportCustomizationPanel settingsByRole={pdfReportSettingsByRole} globalSettings={globalPdfReportSettings} updateSettings={updatePdfReportSettings} uploadLogo={uploadPdfReportLogo} removeLogo={removePdfReportLogo} resetSettings={resetPdfReportSettings} data={data} projects={projects} currentUser={currentUser} printPdfReport={printPdfReport} />}
         {adminPanelTab === 'database' && <DatabaseTab databaseMode={databaseMode} />}
         {adminPanelTab === 'audit' && <AuditTab logs={auditLogs} />}
@@ -5237,6 +5668,217 @@ function SupervisorQuestionsTab({ data, currentUser, dataLoading = false, answer
   )
 }
 
+
+
+function GroupRequestStatusBadge({ status }) {
+  const normalized = String(status || 'Pending')
+  const tone = normalized === 'Accepted' ? 'green' : normalized === 'Rejected' ? 'red' : 'amber'
+  return <Pill tone={tone}>{normalized}</Pill>
+}
+
+function StudentJoinResearchGroupTab({ data, currentUser, dataLoading = false, submitGroupJoinRequest }) {
+  const [search, setSearch] = useState('')
+  const [messageText, setMessageText] = useState('')
+  const [submittingId, setSubmittingId] = useState('')
+  const currentGroup = getStudentCurrentResearchGroup(data, currentUser)
+  const requests = (data.groupJoinRequests || []).filter((request) => requestOwnedByStudent(request, currentUser)).sort((a, b) => new Date(b.requested_at || 0) - new Date(a.requested_at || 0))
+  const hasPending = requests.some((request) => String(request.status || '').toLowerCase() === 'pending')
+  const groups = getResearchGroupOptions(data, currentUser).filter((group) => {
+    const haystack = `${group.group_name || ''} ${group.title || ''} ${group.supervisor_name || ''} ${(group.students || []).join(' ')}`.toLowerCase()
+    return haystack.includes(search.trim().toLowerCase())
+  })
+
+  async function handleRequest(groupId) {
+    if (submittingId || hasPending || currentGroup) return
+    setSubmittingId(groupId)
+    try {
+      const result = await submitGroupJoinRequest(groupId, messageText)
+      if (result?.ok) setMessageText('')
+    } finally {
+      setSubmittingId('')
+    }
+  }
+
+  return (
+    <div className="admin-panel-stack group-join-page">
+      <div className="card">
+        <SectionHeader icon={Users} title="Join Research Group" subtitle="Request to join another student research group" />
+        {currentGroup ? (
+          <EmptyState title="You are already assigned to a research group." text={`${currentGroup.group_name || currentGroup.title || 'Your current group'} is linked to your account.`} icon={Users} />
+        ) : hasPending ? (
+          <EmptyState title="Your request is pending." text="You can submit another request after the current request is accepted or rejected." icon={Clock} />
+        ) : (
+          <div className="form-grid">
+            <label className="field"><span>Search groups</span><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search research groups, title, supervisor, or students..." /></label>
+            <label className="field wide-field"><span>Request message</span><textarea value={messageText} onChange={(e) => setMessageText(e.target.value)} placeholder="Optional message for the supervisor/admin..." /></label>
+          </div>
+        )}
+      </div>
+      <div className="card">
+        <SectionHeader icon={BookOpen} title="Available Research Groups" subtitle="Only request groups you are allowed to join" />
+        {dataLoading ? <LoadingBlock text="Loading groups..." /> : currentGroup || hasPending ? null : groups.length ? (
+          <div className="group-card-grid">
+            {groups.map((group) => (
+              <div className="mini-card group-card" key={group.id || group.group_name}>
+                <div className="split">
+                  <div>
+                    <b>{group.group_name}</b>
+                    <p className="muted small">{group.title || 'No research title'} • {group.area || 'No department'}</p>
+                    <p className="muted small">Supervisor: {group.supervisor_name || 'Pending Assignment'}</p>
+                    <p className="muted small">Members: {(group.students || []).join(', ') || 'No listed members yet'}</p>
+                  </div>
+                  <button className="primary min-button-width" type="button" disabled={Boolean(submittingId)} onClick={() => handleRequest(group.id)}>
+                    <ButtonContent loading={submittingId === group.id} loadingText="Submitting request..." icon={Send}>Request to Join</ButtonContent>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : <EmptyState title="No research groups found." text="Try another group name, research title, supervisor, or student keyword." icon={Search} />}
+      </div>
+      <div className="card">
+        <SectionHeader icon={Clock} title="My Join Requests" subtitle="Track your pending, accepted, and rejected requests" />
+        {requests.length ? (
+          <div className="question-list">
+            {requests.map((request) => {
+              const label = groupJoinRequestLabel(data, request)
+              return <div className="question-card" key={request.id}>
+                <div className="question-card-header"><div><b>{label.groupName}</b><p className="muted small">{label.projectTitle || 'No research title'}</p></div><GroupRequestStatusBadge status={request.status} /></div>
+                {request.request_message && <p className="muted small">Message: {request.request_message}</p>}
+                {request.decision_message && <div className="question-answer-box"><p className="question-label">Decision comment</p><p>{request.decision_message}</p></div>}
+                <p className="muted small">Requested: {request.requested_at ? new Date(request.requested_at).toLocaleString() : '-'}</p>
+              </div>
+            })}
+          </div>
+        ) : <EmptyState title="No group join requests yet." text="Your research group join requests will appear here." icon={Users} />}
+      </div>
+    </div>
+  )
+}
+
+function SupervisorResearchGroupManagementTab({ data, currentUser, dataLoading = false, supervisorAddStudentsToGroup, decideGroupJoinRequest }) {
+  const assignedProjects = (data.projects || []).filter((project) => supervisorCanManageGroup(project, currentUser))
+  const assignedStudents = mergeStudentOptions(getAssignedSupervisorStudents(data, assignedProjects, data.reports), getDirectAssignedStudentsForSupervisor(data, currentUser))
+  const [selectedGroupId, setSelectedGroupId] = useState(assignedProjects[0]?.id || '')
+  const [selectedKeys, setSelectedKeys] = useState([])
+  const [adding, setAdding] = useState(false)
+  const [decisionLoading, setDecisionLoading] = useState('')
+  const pendingRequests = (data.groupJoinRequests || []).filter((request) => requestVisibleToSupervisor(data, request, currentUser)).sort((a, b) => new Date(b.requested_at || 0) - new Date(a.requested_at || 0))
+
+  useEffect(() => {
+    if (!selectedGroupId && assignedProjects[0]?.id) setSelectedGroupId(assignedProjects[0].id)
+  }, [assignedProjects, selectedGroupId])
+
+  async function handleAddStudents() {
+    if (adding) return
+    setAdding(true)
+    try {
+      const result = await supervisorAddStudentsToGroup(selectedGroupId, selectedKeys)
+      if (result?.ok) setSelectedKeys([])
+    } finally {
+      setAdding(false)
+    }
+  }
+
+  async function handleDecision(requestId, status) {
+    if (decisionLoading) return
+    setDecisionLoading(`${requestId}-${status}`)
+    try {
+      await decideGroupJoinRequest(requestId, status, '')
+    } finally {
+      setDecisionLoading('')
+    }
+  }
+
+  return (
+    <div className="admin-panel-stack group-join-page">
+      <div className="card">
+        <SectionHeader icon={Users} title="Research Group Membership" subtitle="Add your assigned students into your research groups" />
+        {dataLoading ? <LoadingBlock text="Loading groups..." /> : assignedProjects.length ? (
+          <div className="form-grid">
+            <label className="field"><span>Select research group</span><select value={selectedGroupId} onChange={(e) => setSelectedGroupId(e.target.value)}>{assignedProjects.map((project) => <option key={project.id} value={project.id}>{project.group_name || project.title} — {project.title}</option>)}</select></label>
+            <label className="field wide-field"><span>Select assigned students</span><select multiple value={selectedKeys} onChange={(e) => setSelectedKeys(Array.from(e.target.selectedOptions).map((option) => option.value))}>{assignedStudents.map((student) => <option key={student.key} value={student.key}>{student.name}{student.email ? ` — ${student.email}` : ''}</option>)}</select><small className="muted">Hold Command/Ctrl to select multiple students.</small></label>
+            <button className="primary min-button-width" type="button" disabled={adding || !selectedGroupId || !selectedKeys.length} onClick={handleAddStudents}><ButtonContent loading={adding} loadingText="Adding students..." icon={UserPlus}>Add Students to Group</ButtonContent></button>
+          </div>
+        ) : <EmptyState title="No supervised research groups found." text="Groups appear here after you are assigned as supervisor." icon={Users} />}
+      </div>
+      <div className="card">
+        <SectionHeader icon={Clock} title="Group Join Requests" subtitle="Approve or reject requests for groups you supervise" />
+        {dataLoading ? <LoadingBlock text="Loading group join requests..." /> : pendingRequests.length ? (
+          <div className="question-list">
+            {pendingRequests.map((request) => {
+              const label = groupJoinRequestLabel(data, request)
+              const isPending = String(request.status || 'Pending') === 'Pending'
+              return <div className="question-card" key={request.id}>
+                <div className="question-card-header"><div><b>{label.studentName}</b><p className="muted small">{label.studentEmail || 'No email'} • Requested group: {label.groupName}</p></div><GroupRequestStatusBadge status={request.status} /></div>
+                {request.request_message && <p>{request.request_message}</p>}
+                <p className="muted small">Requested: {request.requested_at ? new Date(request.requested_at).toLocaleString() : '-'}</p>
+                {isPending && <div className="inline-actions"><button className="success min-button-width" disabled={Boolean(decisionLoading)} onClick={() => handleDecision(request.id, 'Accepted')}><ButtonContent loading={decisionLoading === `${request.id}-Accepted`} loadingText="Approving..." icon={CheckCircle2}>Accept</ButtonContent></button><button className="danger min-button-width" disabled={Boolean(decisionLoading)} onClick={() => handleDecision(request.id, 'Rejected')}><ButtonContent loading={decisionLoading === `${request.id}-Rejected`} loadingText="Rejecting..." icon={XCircle}>Reject</ButtonContent></button></div>}
+              </div>
+            })}
+          </div>
+        ) : <EmptyState title="No group join requests found." text="Requests for your supervised groups will appear here." icon={Users} />}
+      </div>
+    </div>
+  )
+}
+
+function AdminGroupJoinRequestsTab({ data, currentUser, dataLoading = false, decideGroupJoinRequest }) {
+  const [search, setSearch] = useState('')
+  const [status, setStatus] = useState('Pending')
+  const [decisionMessages, setDecisionMessages] = useState({})
+  const [loadingKey, setLoadingKey] = useState('')
+  const requests = (data.groupJoinRequests || []).filter((request) => {
+    const label = groupJoinRequestLabel(data, request)
+    const matchesStatus = status === 'All' || String(request.status || 'Pending') === status
+    const q = search.trim().toLowerCase()
+    const haystack = `${label.studentName} ${label.studentEmail} ${label.groupName} ${label.projectTitle} ${label.currentSupervisor} ${label.supervisorName} ${request.request_message || ''}`.toLowerCase()
+    return matchesStatus && (!q || haystack.includes(q))
+  }).sort((a, b) => new Date(b.requested_at || 0) - new Date(a.requested_at || 0))
+
+  async function handleDecision(requestId, nextStatus) {
+    if (loadingKey) return
+    setLoadingKey(`${requestId}-${nextStatus}`)
+    try {
+      await decideGroupJoinRequest(requestId, nextStatus, decisionMessages[requestId] || '')
+    } finally {
+      setLoadingKey('')
+    }
+  }
+
+  return (
+    <div className="admin-panel-stack group-requests-admin-page">
+      <div className="card">
+        <SectionHeader icon={Users} title="Group Join Requests" subtitle="Review, approve, or reject student research group join requests" />
+        <div className="form-grid">
+          <label className="field"><span>Search requests</span><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search student, email, requested group, project, supervisor..." /></label>
+          <label className="field"><span>Status</span><select value={status} onChange={(e) => setStatus(e.target.value)}><option value="All">All</option><option value="Pending">Pending</option><option value="Accepted">Accepted</option><option value="Rejected">Rejected</option></select></label>
+        </div>
+      </div>
+      <div className="card">
+        {dataLoading ? <LoadingBlock text="Loading group join requests..." /> : requests.length ? (
+          <div className="admin-scroll-box group-request-scroll-box">
+            {requests.map((request) => {
+              const label = groupJoinRequestLabel(data, request)
+              const isPending = String(request.status || 'Pending') === 'Pending'
+              return <div className="mini-card managed-item group-request-row" key={request.id}>
+                <div>
+                  <div className="question-card-header"><div><b>{label.studentName}</b><p className="muted small">{label.studentEmail || 'No email'} • Requested: {label.groupName}</p></div><GroupRequestStatusBadge status={request.status} /></div>
+                  <p className="muted small">Research title/project: {label.projectTitle || 'Not available'}</p>
+                  <p className="muted small">Current supervisor: {label.currentSupervisor || 'Not available'} • Group supervisor: {label.supervisorName || 'Not available'}</p>
+                  {request.request_message && <p className="muted small">Request message: {request.request_message}</p>}
+                  <p className="muted small">Request date: {request.requested_at ? new Date(request.requested_at).toLocaleString() : '-'}</p>
+                  {isPending && <label className="field wide-field compact-decision-field"><span>Optional rejection/decision comment</span><input value={decisionMessages[request.id] || ''} onChange={(e) => setDecisionMessages((current) => ({ ...current, [request.id]: e.target.value }))} placeholder="Optional comment for student" /></label>}
+                </div>
+                {isPending && <div className="inline-actions"><button className="success min-button-width" disabled={Boolean(loadingKey)} onClick={() => handleDecision(request.id, 'Accepted')}><ButtonContent loading={loadingKey === `${request.id}-Accepted`} loadingText="Accepting..." icon={CheckCircle2}>Accept</ButtonContent></button><button className="danger min-button-width" disabled={Boolean(loadingKey)} onClick={() => handleDecision(request.id, 'Rejected')}><ButtonContent loading={loadingKey === `${request.id}-Rejected`} loadingText="Rejecting..." icon={XCircle}>Reject</ButtonContent></button></div>}
+              </div>
+            })}
+          </div>
+        ) : <EmptyState title={search ? 'No matching requests found.' : 'No group join requests found.'} text="Student research group join requests will appear here." icon={Users} />}
+      </div>
+    </div>
+  )
+}
 
 function StudentMultiSelectDropdown({ students = [], targetScope, selectedKeys = [], onChange, error }) {
   const [open, setOpen] = useState(false)
@@ -6568,12 +7210,14 @@ function ReportsTab({ data, projects, currentUser, role, printPdfReport, exportC
     if (selectedStudentKey !== 'all' && selectedStudent) return [studentOptionToProfile(selectedStudent)]
     return selectableStudentOptions.map(studentOptionToProfile)
   }, [role, currentUser, selectedStudentKey, selectedStudent, selectableStudentOptions])
+  const studentAssignedSupervisor = useMemo(() => role === 'student' ? findAssignedSupervisorForStudent(data, currentUser) : null, [role, data, currentUser])
   const scopedSupervisors = useMemo(() => {
+    if (role === 'student') return studentAssignedSupervisor ? [studentAssignedSupervisor] : []
     if (role === 'supervisor') return [currentUser]
     if (!isAdminLike) return []
     if (selectedSupervisorKey === 'all') return supervisorOptions
     return supervisorOptions.filter((supervisor) => supervisor.key === selectedSupervisorKey)
-  }, [role, currentUser, isAdminLike, selectedSupervisorKey, supervisorOptions])
+  }, [role, currentUser, isAdminLike, selectedSupervisorKey, supervisorOptions, studentAssignedSupervisor])
 
   const hasProjects = studentFilteredProjects.length > 0
   const showGeneratedAt = settings.showGeneratedDateTime !== false && reportSectionVisible(settings, 'generatedDateTime')
@@ -6718,7 +7362,11 @@ function ReportsTab({ data, projects, currentUser, role, printPdfReport, exportC
 
         <PdfReportSection settings={settings} sectionKey="supervisorInformation" title="Supervisor Information">
           {scopedSupervisors.length ? (
-            <ReportTable><thead><tr><th>Supervisor</th><th>Email</th><th>Assigned students</th><th>Assigned projects</th></tr></thead><tbody>{scopedSupervisors.map((supervisor) => { const supervisorProjects = role === 'supervisor' ? studentFilteredProjects : studentFilteredProjects.filter((project) => projectMatchesSupervisorOption(project, supervisor)); const assignedStudents = getAssignedSupervisorStudents(data, supervisorProjects, scopedReports); return <tr key={supervisor.id || supervisor.email || supervisor.key}><td>{supervisor.full_name || supervisor.name}</td><td>{supervisor.email || '-'}</td><td>{assignedStudents.length}</td><td>{supervisorProjects.length}</td></tr> })}</tbody></ReportTable>
+            role === 'student' ? (
+              <ReportTable><thead><tr><th>Supervisor</th><th>Email</th><th>Department/program</th><th>Assigned date</th><th>Research group/title</th></tr></thead><tbody>{scopedSupervisors.map((supervisor) => { const studentProfile = findProfileForUser(data, currentUser) || currentUser; const assignedProject = studentFilteredProjects.find((project) => findSupervisorProfileForProject(data, project)); return <tr key={supervisor.id || supervisor.email || supervisor.full_name}><td>{supervisor.full_name || supervisor.name || 'Supervisor'}</td><td>{supervisor.email || '-'}</td><td>{supervisor.department || studentProfile?.department || assignedProject?.area || '-'}</td><td>{studentProfile?.assigned_supervisor_assigned_at ? new Date(studentProfile.assigned_supervisor_assigned_at).toLocaleDateString() : (assignedProject?.created_at ? new Date(assignedProject.created_at).toLocaleDateString() : '-')}</td><td>{assignedProject ? `${assignedProject.group_name || 'Research group'} — ${assignedProject.title || 'Untitled project'}` : getStudentResearchLabel({ id: currentUser?.id, email: currentUser?.email, name: currentUser?.full_name }, studentFilteredProjects, scopedReports)}</td></tr> })}</tbody></ReportTable>
+            ) : (
+              <ReportTable><thead><tr><th>Supervisor</th><th>Email</th><th>Assigned students</th><th>Assigned projects</th></tr></thead><tbody>{scopedSupervisors.map((supervisor) => { const supervisorProjects = role === 'supervisor' ? studentFilteredProjects : studentFilteredProjects.filter((project) => projectMatchesSupervisorOption(project, supervisor)); const assignedStudents = getAssignedSupervisorStudents(data, supervisorProjects, scopedReports); return <tr key={supervisor.id || supervisor.email || supervisor.key}><td>{supervisor.full_name || supervisor.name}</td><td>{supervisor.email || '-'}</td><td>{assignedStudents.length}</td><td>{supervisorProjects.length}</td></tr> })}</tbody></ReportTable>
+            )
           ) : <NoRecords />}
         </PdfReportSection>
 
@@ -6807,6 +7455,12 @@ function PdfReportCustomizationPanel({ settingsByRole = {}, globalSettings = def
     setLocalMessage(result?.ok === false ? `Failed to save PDF settings for ${roleLabel}.` : `PDF settings for ${roleLabel} saved successfully.`)
   }
 
+  async function saveChecklistDraft() {
+    setLocalMessage('Saving checklist settings...')
+    const result = await updateSettings(draft, { role: selectedRole })
+    setLocalMessage(result?.ok === false ? `Failed to save PDF settings for ${roleLabel}.` : `Checklist PDF settings saved successfully for ${roleLabel}.`)
+  }
+
   async function handleLogoUpload(event) {
     const file = event.target.files?.[0]
     event.target.value = ''
@@ -6839,10 +7493,6 @@ function PdfReportCustomizationPanel({ settingsByRole = {}, globalSettings = def
     <div className="admin-panel-stack pdf-customization-page">
       <div className="card">
         <SectionHeader icon={FileText} title="PDF Report Customization" subtitle="Customize the existing Print/PDF Report template separately for each role" />
-        <div className="form-grid pdf-role-selector-grid">
-          <label className="field"><span>Customize PDF for Role</span><select value={selectedRole} onChange={(e) => { setSelectedRole(e.target.value); setLocalMessage('Loading role PDF settings...') }} disabled={Boolean(pdfActionLoading)}>{pdfReportRoleOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-          <div className="soft-box settings-note wide-field"><p>These settings apply only to the selected role. Student, Supervisor, Admin, and Research Committee PDFs can now use different layouts.</p></div>
-        </div>
         {pdfActionLoading === 'load-role-settings' ? <LoadingBlock text="Loading role PDF settings..." /> : null}
         <div className="form-grid">
           <label className="field wide-field"><span>Report header/title text</span><input value={draft.reportTitle || ''} onChange={(e) => updateDraft('reportTitle', e.target.value)} placeholder="Pharmacy Research Project Management Report" /></label>
@@ -6890,8 +7540,12 @@ function PdfReportCustomizationPanel({ settingsByRole = {}, globalSettings = def
         </div>
       </div>
 
-      <div className="card">
+      <div className="card pdf-checklist-card">
         <SectionHeader icon={SlidersHorizontal} title="Show / Hide Report Sections" subtitle={`Control which sections appear in ${roleLabel} printed/PDF reports`} />
+        <div className="form-grid pdf-role-selector-grid checklist-role-selector">
+          <label className="field"><span>Customize PDF for Role</span><select value={selectedRole} onChange={(e) => { setSelectedRole(e.target.value); setLocalMessage('Loading role PDF settings...') }} disabled={Boolean(pdfActionLoading)}>{pdfReportRoleOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+          <div className="soft-box settings-note wide-field"><p>These checklist settings apply only to the selected role and will not change other role PDF layouts.</p></div>
+        </div>
         <div className="pdf-toggle-grid">
           {pdfReportSectionLabels.map(([key, label]) => (
             <label className="settings-toggle" key={key}>
@@ -6907,6 +7561,9 @@ function PdfReportCustomizationPanel({ settingsByRole = {}, globalSettings = def
             <input type="checkbox" checked={draft.showGeneratedDateTime !== false} onChange={(e) => updateDraft('showGeneratedDateTime', e.target.checked)} />
             <span><b>Generated date/time</b><small>Show generated date/time in the header.</small></span>
           </label>
+        </div>
+        <div className="settings-actions checklist-save-actions">
+          <button className="primary min-button-width" disabled={Boolean(pdfActionLoading)} onClick={() => runPdfAction('save-checklist', saveChecklistDraft)}><ButtonContent loading={pdfActionLoading === 'save-checklist'} loadingText="Saving checklist settings..." icon={Save}>Save Checklist Settings</ButtonContent></button>
         </div>
         <div className="soft-box settings-note"><p>Students, supervisors, and research committee users cannot edit these settings; they only use the saved role-specific template when pressing the existing Print/PDF button.</p></div>
       </div>
