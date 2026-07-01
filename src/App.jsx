@@ -912,6 +912,14 @@ function isAdminUser(user) {
   return user?.role === 'admin'
 }
 
+function isResearchCommitteeUser(user) {
+  return user?.role === 'committee'
+}
+
+function canManageAllGroupMemberships(user) {
+  return isAdminUser(user) || isResearchCommitteeUser(user)
+}
+
 function userTextMatches(value, user) {
   const target = normalizeText(value)
   if (!target || !user) return false
@@ -3262,15 +3270,15 @@ export default function App() {
         return { ok: false, error: messageText }
       }
       savedRequest = inserted
-      const admins = (data.profiles || []).filter((profile) => profile.role === 'admin')
-      for (const admin of admins) {
+      const groupManagers = (data.profiles || []).filter((profile) => profile.role === 'admin' || profile.role === 'committee')
+      for (const manager of groupManagers) {
         await createGroupJoinNotification({
-          recipient: admin,
+          recipient: manager,
           sender: currentUser,
           request: savedRequest,
           title: 'New Research Group Join Request',
           message: `${currentUser.full_name || currentUser.email || 'A student'} requested to join ${group.group_name || group.title || 'a research group'}.`,
-          targetRole: 'admin',
+          targetRole: manager.role || 'admin',
         })
       }
       if (supervisor) {
@@ -3290,19 +3298,19 @@ export default function App() {
       }
       await loadFromSupabase(currentUser)
     } else {
-      const admins = (data.profiles || []).filter((profile) => profile.role === 'admin')
-      const notices = admins.map((admin) => ({
+      const groupManagers = (data.profiles || []).filter((profile) => profile.role === 'admin' || profile.role === 'committee')
+      const notices = groupManagers.map((manager) => ({
         id: crypto.randomUUID(),
-        profile_id: admin.id,
-        recipient_user_id: admin.id,
-        recipient_email: admin.email || '',
+        profile_id: manager.id,
+        recipient_user_id: manager.id,
+        recipient_email: manager.email || '',
         sender_user_id: currentUser?.id || null,
         project_id: group.id,
-        notification_type: `group_join_${request.id}_admin`,
+        notification_type: `group_join_${request.id}_${manager.role || 'manager'}`,
         title: 'New Research Group Join Request',
         message: `${currentUser.full_name || currentUser.email || 'A student'} requested to join ${group.group_name || group.title || 'a research group'}.`,
         type: 'Research Group Request',
-        target_role: 'admin',
+        target_role: manager.role || 'admin',
         is_read: false,
         created_at: new Date().toISOString(),
       }))
@@ -3323,7 +3331,7 @@ export default function App() {
       return { ok: false }
     }
     const normalizedStatus = status === 'Accepted' ? 'Accepted' : 'Rejected'
-    if (!isAdminUser(currentUser) && !requestVisibleToSupervisor(data, request, currentUser)) {
+    if (!canManageAllGroupMemberships(currentUser) && !requestVisibleToSupervisor(data, request, currentUser)) {
       setMessage('You do not have permission to manage this group join request.')
       return { ok: false }
     }
@@ -3344,7 +3352,7 @@ export default function App() {
       decision_message: String(decisionMessage || '').trim(),
       decided_at: decidedAt,
       decided_by: currentUser?.id || null,
-      decided_by_name: currentUser?.full_name || currentUser?.email || 'Admin',
+      decided_by_name: currentUser?.full_name || currentUser?.email || (isResearchCommitteeUser(currentUser) ? 'Research Committee' : 'Admin'),
     }
     let emailFailed = false
 
@@ -3457,6 +3465,149 @@ export default function App() {
       return { ok: true, emailSent: !emailFailed }
     } catch (error) {
       setMessage(error.message || `Failed to ${normalizedStatus === 'Accepted' ? 'accept' : 'reject'} group join request.`)
+      return { ok: false, error: error.message }
+    }
+  }
+
+
+  async function sendDirectGroupAddEmail(groupId, student) {
+    if (!isSupabaseConfigured || !supabase?.functions?.invoke) return { ok: false, error: 'Email sending requires Supabase Edge Functions.' }
+    const { data: result, error } = await supabase.functions.invoke('send-platform-email', {
+      body: {
+        kind: 'group_member_added_directly',
+        groupId,
+        studentId: student?.id || null,
+        studentEmail: student?.email || '',
+        addedByRole: isResearchCommitteeUser(currentUser) ? 'Research Committee' : isAdminUser(currentUser) ? 'Admin' : 'Supervisor',
+        appUrl: typeof window !== 'undefined' ? window.location.origin : '',
+      },
+    })
+    if (error) throw new Error(error.message || 'Student group email could not be sent.')
+    if (result?.error) throw new Error(result.error)
+    return { ok: true, result }
+  }
+
+  async function directAddStudentsToGroup(projectId, studentKeys = []) {
+    const group = (data.projects || []).find((project) => String(project.id) === String(projectId))
+    if (!group || !canManageAllGroupMemberships(currentUser)) {
+      setMessage('You do not have permission to add students to this research group.')
+      return { ok: false }
+    }
+    const selectedStudents = (data.profiles || [])
+      .filter((profile) => profile.role === 'student')
+      .map((student) => ({
+        key: makeStudentOptionKey(student),
+        id: student.id,
+        email: student.email || '',
+        name: student.full_name || student.email || 'Student',
+        currentGroup: getStudentCurrentResearchGroup(data, student),
+        assignedSupervisor: student.assigned_supervisor_name || student.assigned_supervisor_email || '',
+      }))
+      .filter((student) => studentKeys.includes(student.key))
+
+    if (!selectedStudents.length) {
+      setMessage('Please select at least one student.')
+      return { ok: false }
+    }
+
+    const blockedStudent = selectedStudents.find((student) => student.currentGroup?.id && String(student.currentGroup.id) !== String(group.id))
+    if (blockedStudent) {
+      setMessage('This student is already assigned to a research group.')
+      return { ok: false, blocked: true }
+    }
+
+    const alreadyInGroup = new Set(getProjectMemberProfiles(data, group, data.reports || []).map((member) => member.id || normalizeText(member.email) || normalizeText(member.full_name)).filter(Boolean))
+    const studentsToAdd = selectedStudents.filter((student) => !alreadyInGroup.has(student.id || normalizeText(student.email) || normalizeText(student.name)))
+    if (!studentsToAdd.length) {
+      setMessage('Selected student is already in this research group.')
+      return { ok: false, alreadyMember: true }
+    }
+
+    const existingStudents = listValue(group.students)
+    const nextStudentLabels = uniqueTextList([...existingStudents, ...studentsToAdd.flatMap((student) => [student.name, student.email]).filter(Boolean)])
+    const now = new Date().toISOString()
+    let emailFailed = false
+
+    try {
+      if (isSupabaseConfigured) {
+        const projectUpdate = await supabase.from('research_projects').update({ students: nextStudentLabels }).eq('id', group.id)
+        if (projectUpdate.error) throw projectUpdate.error
+
+        for (const student of studentsToAdd) {
+          const membershipUpdate = await supabase.from('research_group_members').upsert({
+            group_id: group.id,
+            project_id: group.id,
+            student_id: student.id || null,
+            student_email: student.email || null,
+            student_name: student.name || student.email || 'Student',
+            supervisor_id: group.supervisor_id || null,
+            supervisor_email: group.supervisor_email || '',
+            supervisor_name: group.supervisor_name || '',
+            status: 'Active',
+            joined_at: now,
+            added_by: currentUser?.id || null,
+          }, { onConflict: student.id ? 'group_id,student_id' : 'group_id,student_email' })
+          if (membershipUpdate.error) throw membershipUpdate.error
+
+          if (student.id) {
+            const profileUpdate = await supabase.from('profiles').update({
+              current_research_group_id: group.id,
+              current_research_group_name: group.group_name || group.title || 'Research Group',
+              assigned_supervisor_id: group.supervisor_id || null,
+              assigned_supervisor_email: group.supervisor_email || '',
+              assigned_supervisor_name: group.supervisor_name || '',
+            }).eq('id', student.id)
+            if (profileUpdate.error) throw profileUpdate.error
+          }
+
+          const profile = findProfileByIdentity(data, { id: student.id, email: student.email }) || { id: student.id, email: student.email, full_name: student.name, role: 'student' }
+          await createGroupJoinNotification({
+            recipient: profile,
+            sender: currentUser,
+            request: { id: `direct-${group.id}-${student.id || student.email}`, requested_group_id: group.id },
+            title: 'Added to Research Group',
+            message: `You were added to ${group.group_name || group.title || 'a research group'} by ${isResearchCommitteeUser(currentUser) ? 'Research Committee' : 'Admin'}. You can now submit weekly reports.`,
+            targetRole: 'student',
+          })
+
+          try {
+            await sendDirectGroupAddEmail(group.id, student)
+          } catch (emailError) {
+            console.warn('Direct group add email failed:', emailError)
+            emailFailed = true
+          }
+        }
+        await loadFromSupabase(currentUser)
+      } else {
+        const notifications = studentsToAdd.map((student) => ({
+          id: crypto.randomUUID(),
+          profile_id: student.id || null,
+          recipient_user_id: student.id || null,
+          recipient_email: student.email || '',
+          sender_user_id: currentUser?.id || null,
+          project_id: group.id,
+          notification_type: `group_direct_add_${group.id}_${student.id || normalizeText(student.email)}`,
+          title: 'Added to Research Group',
+          message: `You were added to ${group.group_name || group.title || 'a research group'}. You can now submit weekly reports.`,
+          type: 'Research Group Membership',
+          target_role: 'student',
+          is_read: false,
+          created_at: now,
+        }))
+        setLocal((current) => ({
+          ...current,
+          projects: current.projects.map((project) => String(project.id) === String(group.id) ? { ...project, students: nextStudentLabels } : project),
+          profiles: current.profiles.map((profile) => studentsToAdd.some((student) => String(student.id) === String(profile.id)) ? { ...profile, current_research_group_id: group.id, current_research_group_name: group.group_name || group.title || 'Research Group', assigned_supervisor_id: group.supervisor_id || null, assigned_supervisor_email: group.supervisor_email || '', assigned_supervisor_name: group.supervisor_name || '' } : profile),
+          groupMembers: [...studentsToAdd.map((student) => ({ id: crypto.randomUUID(), group_id: group.id, project_id: group.id, student_id: student.id || null, student_email: student.email || null, student_name: student.name || student.email || 'Student', supervisor_id: group.supervisor_id || null, supervisor_email: group.supervisor_email || '', supervisor_name: group.supervisor_name || '', status: 'Active', joined_at: now, added_by: currentUser?.id || null })), ...(current.groupMembers || [])],
+          notifications: [...notifications, ...(current.notifications || [])],
+        }))
+      }
+
+      const successMessage = studentsToAdd.length === 1 ? 'Student added to research group successfully.' : 'Students added to research group successfully.'
+      setMessage(emailFailed ? 'Student added successfully, but email notification failed.' : successMessage)
+      return { ok: true, emailSent: !emailFailed }
+    } catch (error) {
+      setMessage(error.message || 'Could not add students to research group.')
       return { ok: false, error: error.message }
     }
   }
@@ -4651,6 +4802,10 @@ export default function App() {
     ]
   }, [allowedRole, data, stats, visibleProjects, visibleReports])
 
+  useEffect(() => {
+    if (tab === 'notifications') setTab('dashboard')
+  }, [tab])
+
   if (passwordRecoveryMode) {
     return <ResetPasswordPage onUpdatePassword={handleUpdatePassword} onBackToLogin={() => { setPasswordRecoveryMode(false); window.history.replaceState({}, document.title, window.location.pathname); setMessage('') }} message={message} loading={passwordResetLoading} settings={websiteSettings} />
   }
@@ -4708,25 +4863,23 @@ export default function App() {
         onLogout={logout}
         message={message}
         decideGroupJoinRequest={decideGroupJoinRequest}
+        directAddStudentsToGroup={directAddStudentsToGroup}
       />
     )
   }
 
-  const roleLabel = ({ student: 'PharmD Student', supervisor: 'Supervisor', admin: 'Admin', committee: 'Research Committee' }[allowedRole]) || 'User'
+  const roleLabel = ({ student: 'BSc Student', supervisor: 'Supervisor', admin: 'Admin', committee: 'Research Committee' }[allowedRole]) || 'User'
   const mainNavItems = [
     { id: 'dashboard', label: allowedRole === 'admin' ? 'Admin Dashboard' : 'Dashboard', icon: LayoutDashboard, show: true },
     { id: 'reports', label: 'Print/PDF Reports', icon: Printer, show: true },
     { id: 'questions', label: allowedRole === 'supervisor' ? 'Student Questions' : 'Questions', icon: MessageSquareText, show: allowedRole === 'student' || allowedRole === 'supervisor' },
     { id: 'join-group', label: 'Join Research Group', icon: Users, show: allowedRole === 'student' && !studentCurrentResearchGroup },
     { id: 'groups', label: 'Research Groups', icon: Users, show: allowedRole === 'supervisor' },
+    { id: 'group-requests', label: 'Group Requests', icon: Users, show: allowedRole === 'admin' || allowedRole === 'committee' },
     { id: 'database', label: 'Database', icon: Database, show: allowedRole === 'admin' },
     { id: 'audit', label: 'Audit Log', icon: ShieldCheck, show: allowedRole === 'admin' },
   ].filter((item) => item.show)
   const activeNavItem = mainNavItems.find((item) => item.id === tab) || mainNavItems[0]
-
-  useEffect(() => {
-    if (tab === 'notifications') setTab('dashboard')
-  }, [tab])
 
   return (
     <div className={`app app-main-shell main-dashboard-no-sidebar role-${allowedRole}`}>
@@ -4791,6 +4944,7 @@ export default function App() {
         {tab === 'questions' && allowedRole === 'supervisor' && <SupervisorQuestionsTab data={data} currentUser={currentUser} dataLoading={dataLoading} answerStudentQuestion={answerStudentQuestion} />}
         {tab === 'join-group' && allowedRole === 'student' && !studentCurrentResearchGroup && <StudentJoinResearchGroupTab data={data} currentUser={currentUser} dataLoading={dataLoading} submitGroupJoinRequest={submitGroupJoinRequest} />}
         {tab === 'groups' && allowedRole === 'supervisor' && <SupervisorResearchGroupManagementTab data={data} currentUser={currentUser} dataLoading={dataLoading} supervisorAddStudentsToGroup={supervisorAddStudentsToGroup} decideGroupJoinRequest={decideGroupJoinRequest} />}
+        {tab === 'group-requests' && (allowedRole === 'admin' || allowedRole === 'committee') && <AdminGroupJoinRequestsTab data={data} currentUser={currentUser} dataLoading={dataLoading} decideGroupJoinRequest={decideGroupJoinRequest} directAddStudentsToGroup={directAddStudentsToGroup} />}
         {tab === 'reports' && <ReportsTab data={data} projects={filteredProjects} currentUser={currentUser} role={allowedRole} printPdfReport={printPdfReport} exportCsv={exportCsv} pdfReportSettings={getPdfReportSettingsForRole(allowedRole, pdfReportSettingsByRole, pdfReportSettings)} dataLoading={dataLoading} />}
         {tab === 'database' && allowedRole === 'admin' && <DatabaseTab databaseMode={databaseMode} />}
         {tab === 'database' && allowedRole !== 'admin' && <div className="card"><SectionHeader icon={Lock} title="Database Access Locked" subtitle="Only Admin accounts can view database status" /><p className="muted">Please use your role dashboard, notifications, or reports page.</p></div>}
@@ -5040,6 +5194,7 @@ function AdminControlPanel({
   onLogout,
   message,
   decideGroupJoinRequest,
+  directAddStudentsToGroup,
   loadError = '',
   dataLoading = false,
 }) {
@@ -5473,7 +5628,7 @@ function AdminControlPanel({
         {adminPanelTab === 'deadlines' && <DeadlineManager deadlines={data.deadlines} createDeadline={createDeadline} removeDeadline={removeDeadline} students={data.profiles.filter((profile) => profile.role === 'student').map((student) => ({ key: makeStudentOptionKey(student), id: student.id, name: student.full_name, email: student.email, group: student.department || student.area || 'Student' }))} currentUser={currentUser} />}
         {adminPanelTab === 'notifications' && <NotificationsTab data={data} role="admin" currentUser={currentUser} createNotification={createNotification} markNotificationRead={markNotificationRead} removeNotification={removeNotification} />}
         {adminPanelTab === 'reports' && <ReportsTab data={data} projects={projects} currentUser={currentUser} role="admin" printPdfReport={printPdfReport} exportCsv={exportCsv} pdfReportSettings={getPdfReportSettingsForRole('admin', pdfReportSettingsByRole, globalPdfReportSettings)} dataLoading={dataLoading} />}
-        {adminPanelTab === 'group-requests' && <AdminGroupJoinRequestsTab data={data} currentUser={currentUser} dataLoading={dataLoading} decideGroupJoinRequest={decideGroupJoinRequest} />}
+        {adminPanelTab === 'group-requests' && <AdminGroupJoinRequestsTab data={data} currentUser={currentUser} dataLoading={dataLoading} decideGroupJoinRequest={decideGroupJoinRequest} directAddStudentsToGroup={directAddStudentsToGroup} />}
         {adminPanelTab === 'pdf-report' && <PdfReportCustomizationPanel settingsByRole={pdfReportSettingsByRole} globalSettings={globalPdfReportSettings} updateSettings={updatePdfReportSettings} uploadLogo={uploadPdfReportLogo} removeLogo={removePdfReportLogo} resetSettings={resetPdfReportSettings} data={data} projects={projects} currentUser={currentUser} printPdfReport={printPdfReport} />}
         {adminPanelTab === 'database' && <DatabaseTab databaseMode={databaseMode} />}
         {adminPanelTab === 'audit' && <AuditTab logs={auditLogs} />}
@@ -6334,11 +6489,38 @@ function SupervisorResearchGroupManagementTab({ data, currentUser, dataLoading =
   )
 }
 
-function AdminGroupJoinRequestsTab({ data, currentUser, dataLoading = false, decideGroupJoinRequest }) {
+function AdminGroupJoinRequestsTab({ data, currentUser, dataLoading = false, decideGroupJoinRequest, directAddStudentsToGroup }) {
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('Pending')
   const [decisionMessages, setDecisionMessages] = useState({})
   const [loadingKey, setLoadingKey] = useState('')
+  const [selectedGroupId, setSelectedGroupId] = useState('')
+  const [selectedStudentKeys, setSelectedStudentKeys] = useState([])
+  const [studentSearch, setStudentSearch] = useState('')
+  const [addingStudents, setAddingStudents] = useState(false)
+  const manageableGroups = (data.projects || []).sort((a, b) => String(a.group_name || a.title || '').localeCompare(String(b.group_name || b.title || '')))
+  const directAddStudentOptions = (data.profiles || []).filter((profile) => profile.role === 'student').map((student) => {
+    const currentGroup = getStudentCurrentResearchGroup(data, student)
+    return {
+      key: makeStudentOptionKey(student),
+      id: student.id,
+      name: student.full_name || student.email || 'Student',
+      email: student.email || '',
+      group: currentGroup?.group_name || currentGroup?.title || 'No current group',
+      supervisor: student.assigned_supervisor_name || student.assigned_supervisor_email || '',
+    }
+  })
+  const filteredDirectAddStudents = directAddStudentOptions.filter((student) => {
+    const q = studentSearch.trim().toLowerCase()
+    const haystack = `${student.name} ${student.email} ${student.group} ${student.supervisor}`.toLowerCase()
+    return !q || haystack.includes(q)
+  })
+  const selectedGroup = manageableGroups.find((group) => String(group.id) === String(selectedGroupId)) || manageableGroups[0] || null
+
+  useEffect(() => {
+    if (!selectedGroupId && selectedGroup?.id) setSelectedGroupId(selectedGroup.id)
+  }, [selectedGroupId, selectedGroup?.id])
+
   const requests = (data.groupJoinRequests || []).filter((request) => {
     const label = groupJoinRequestLabel(data, request)
     const matchesStatus = status === 'All' || String(request.status || 'Pending') === status
@@ -6357,8 +6539,33 @@ function AdminGroupJoinRequestsTab({ data, currentUser, dataLoading = false, dec
     }
   }
 
+  async function handleDirectAdd() {
+    if (!directAddStudentsToGroup || addingStudents || !selectedGroupId || !selectedStudentKeys.length) return
+    setAddingStudents(true)
+    try {
+      const result = await directAddStudentsToGroup(selectedGroupId, selectedStudentKeys)
+      if (result?.ok) setSelectedStudentKeys([])
+    } finally {
+      setAddingStudents(false)
+    }
+  }
+
   return (
     <div className="admin-panel-stack group-requests-admin-page">
+      {(isAdminUser(currentUser) || isResearchCommitteeUser(currentUser)) && directAddStudentsToGroup && (
+        <div className="card direct-group-add-card">
+          <SectionHeader icon={UserPlus} title="Direct Group Membership" subtitle="Add students to a research group without a pending request" />
+          {dataLoading ? <LoadingBlock text="Loading groups..." /> : manageableGroups.length ? (
+            <div className="form-grid">
+              <label className="field"><span>Select Research Group</span><select value={selectedGroupId} onChange={(e) => setSelectedGroupId(e.target.value)}>{manageableGroups.map((group) => <option key={group.id} value={group.id}>{group.group_name || group.title || 'Research Group'} — {group.title || 'No title'} — {group.supervisor_name || 'No supervisor'}</option>)}</select></label>
+              <label className="field"><span>Search students</span><input value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} placeholder="Search student name, email, group, or supervisor..." /></label>
+              <label className="field wide-field"><span>Select Student(s)</span><select multiple value={selectedStudentKeys} onChange={(e) => setSelectedStudentKeys(Array.from(e.target.selectedOptions).map((option) => option.value))}>{filteredDirectAddStudents.map((student) => <option key={student.key} value={student.key}>{student.name}{student.email ? ` — ${student.email}` : ''} — {student.group}{student.supervisor ? ` — Supervisor: ${student.supervisor}` : ''}</option>)}</select><small className="muted">Hold Command/Ctrl to select multiple students.</small></label>
+              {selectedGroup && <div className="soft-box wide-field compact-group-details"><b>{selectedGroup.group_name || selectedGroup.title || 'Research Group'}</b><p className="muted small">Project: {selectedGroup.title || 'Not available'} • Supervisor: {selectedGroup.supervisor_name || selectedGroup.supervisor_email || 'Not assigned'}</p><ProjectMembersCompact members={getProjectMemberProfiles(data, selectedGroup, data.reports || [])} /></div>}
+              <button className="primary min-button-width" type="button" disabled={addingStudents || !selectedGroupId || !selectedStudentKeys.length} onClick={handleDirectAdd}><ButtonContent loading={addingStudents} loadingText={selectedStudentKeys.length > 1 ? 'Adding students...' : 'Adding student...'} icon={UserPlus}>{selectedStudentKeys.length > 1 ? 'Add Students to Group' : 'Add Student to Group'}</ButtonContent></button>
+            </div>
+          ) : <EmptyState title="No research groups found." text="Create or approve a research project/group before adding students." icon={Users} />}
+        </div>
+      )}
       <div className="card">
         <SectionHeader icon={Users} title="Group Join Requests" subtitle="Review, approve, or reject student research group join requests" />
         <div className="form-grid">
