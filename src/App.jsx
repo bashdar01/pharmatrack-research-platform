@@ -702,10 +702,14 @@ function getProjectStudents(project) {
 }
 
 function getResearchGroupMemberRecords(groupMembers = [], project = {}) {
-  if (!project?.id) return []
+  if (!project) return []
+  const projectIds = [project.id, project.group_id, project.project_id, project.research_project_id].map((value) => String(value || '')).filter(Boolean)
+  const projectNames = [project.group_name, project.title].map(normalizeText).filter(Boolean)
   return (groupMembers || []).filter((member) => {
-    if (member.status && member.status !== 'Active') return false
-    return String(member.group_id || member.project_id || member.research_project_id || '') === String(project.id)
+    if (member.status && normalizeText(member.status) !== 'active') return false
+    const memberIds = [member.group_id, member.project_id, member.research_project_id, member.requested_group_id].map((value) => String(value || '')).filter(Boolean)
+    const memberNames = [member.group_name, member.project_name, member.research_group_name].map(normalizeText).filter(Boolean)
+    return memberIds.some((id) => projectIds.includes(id)) || memberNames.some((name) => projectNames.includes(name))
   })
 }
 
@@ -735,6 +739,60 @@ function getResearchGroupMemberProfiles(data = {}, project = {}) {
 
 function getResearchGroupMemberLabels(data = {}, project = {}) {
   return getResearchGroupMemberProfiles(data, project).flatMap((profile) => [profile.full_name, profile.email]).filter(Boolean)
+}
+
+function memberRecordMatchesStudent(member = {}, student = {}) {
+  if (!member || !student) return false
+  const studentId = normalizeText(student.id)
+  const studentEmail = normalizeText(student.email)
+  const studentName = normalizeText(student.full_name || student.name)
+  return (
+    (!!studentId && normalizeText(member.student_id) === studentId) ||
+    (!!studentEmail && normalizeText(member.student_email) === studentEmail) ||
+    (!!studentName && normalizeText(member.student_name) === studentName)
+  )
+}
+
+function getStudentMembershipRecords(data = {}, student = {}) {
+  return (data.groupMembers || []).filter((member) => {
+    if (member.status && normalizeText(member.status) !== 'active') return false
+    return memberRecordMatchesStudent(member, student)
+  })
+}
+
+function getProjectByMembershipRecord(data = {}, member = {}) {
+  if (!member) return null
+  const memberIds = [member.group_id, member.project_id, member.research_project_id, member.requested_group_id]
+    .map((value) => String(value || ''))
+    .filter(Boolean)
+  const project = (data.projects || []).find((item) => memberIds.includes(String(item.id)))
+  if (project) return project
+  const memberNames = [member.group_name, member.project_name, member.research_group_name, member.requested_group_name]
+    .map(normalizeText)
+    .filter(Boolean)
+  return (data.projects || []).find((item) => [item.group_name, item.title].map(normalizeText).some((name) => memberNames.includes(name))) || null
+}
+
+function getProjectContext(data = {}, project = null) {
+  const group = project ? ((data.projects || []).find((item) => String(item.id) === String(project.id)) || project) : null
+  const reports = group ? (data.reports || []).filter((report) => String(report.project_id) === String(group.id)) : []
+  const members = group ? getProjectMemberProfiles(data, group, reports) : []
+  const supervisor = group ? findSupervisorProfileForProject(data, group) : null
+  const deadlines = group ? getDeadlinesForProject(data.deadlines || [], group, members) : []
+  const evaluations = group ? (data.evaluations || []).filter((evaluation) => String(evaluation.project_id) === String(group.id)) : []
+  return { group, project: group, reports, members, supervisor, deadlines, evaluations, progress: group ? getProjectProgress(group, data.reports || []) : 0 }
+}
+
+function getStudentProjectContext(data = {}, student = {}) {
+  const profile = findProfileForUser(data, student) || student || {}
+  const group = getStudentCurrentResearchGroup(data, profile)
+  if (!group) return { student: profile, group: null, project: null, supervisor: null, members: [], progress: 0, deadlines: [], reports: [], evaluations: [] }
+  return { student: profile, ...getProjectContext(data, group) }
+}
+
+function getSupervisorProjectStudents(data = {}, supervisor = {}) {
+  const projects = (data.projects || []).filter((project) => isAssignedSupervisorProject(project, supervisor))
+  return getAssignedSupervisorStudents(data, projects, data.reports || [])
 }
 
 function getProjectMemberProfiles(data = {}, project = {}, reports = []) {
@@ -889,8 +947,8 @@ function getVisibleProjects(projects, role, user, data = null) {
     const profile = data ? (findProfileForUser(data, user) || user) : user
     const currentGroup = data ? getStudentCurrentResearchGroup(data, user) : null
     return projects.filter((project) =>
-      isOwnStudentProject(project, profile || user) ||
-      (!!currentGroup?.id && String(project.id) === String(currentGroup.id))
+      (!!currentGroup?.id && String(project.id) === String(currentGroup.id)) ||
+      (isOwnStudentProject(project, profile || user) && isApprovedResearchProject(project))
     )
   }
   return []
@@ -918,6 +976,15 @@ function isResearchCommitteeUser(user) {
 
 function canManageAllGroupMemberships(user) {
   return isAdminUser(user) || isResearchCommitteeUser(user)
+}
+
+function isApprovedResearchProject(project = {}) {
+  const approval = normalizeText(project.approval || project.approval_status || project.committee_status || project.status)
+  return ['approved', 'accepted'].includes(approval) || normalizeText(project.status) === 'ongoing'
+}
+
+function canSubmitSupervisorProject(user) {
+  return Boolean(user && ['supervisor', 'admin', 'committee'].includes(user.role))
 }
 
 function userTextMatches(value, user) {
@@ -1046,6 +1113,15 @@ function getAssignedSupervisorStudents(data, assignedProjects = [], reports = []
   const studentProfiles = (data.profiles || []).filter((profile) => profile.role === 'student')
 
   assignedProjectList.forEach((project) => {
+    getResearchGroupMemberProfiles(data, project).forEach((memberProfile) => {
+      upsertStudentOption(students, memberProfile, {
+        id: memberProfile.id || null,
+        email: memberProfile.email || '',
+        name: memberProfile.full_name || memberProfile.email || 'Student',
+        group: project.group_name || project.title || 'Research group',
+      })
+    })
+
     const explicitStudent = findProfileByIdentity(data, {
       id: project.student_id || project.created_by,
       email: project.student_email || project.created_by_email,
@@ -1145,6 +1221,12 @@ function itemMatchesStudentOption(item = {}, student = {}) {
 
 function projectMatchesStudentOption(project = {}, student = {}, reports = []) {
   if (itemMatchesStudentOption(project, student)) return true
+  const studentId = normalizeText(student.id)
+  const studentEmail = normalizeText(student.email)
+  const studentName = normalizeText(student.name || student.full_name)
+  const projectStudentLabels = getProjectStudents(project).map(normalizeText)
+  if ((studentEmail && projectStudentLabels.includes(studentEmail)) || (studentName && projectStudentLabels.includes(studentName))) return true
+  if (studentId && [project.student_id, project.created_by, project.owner_id].map(normalizeText).includes(studentId)) return true
   const projectReports = (reports || []).filter((report) => String(report.project_id) === String(project.id))
   return projectReports.some((report) => itemMatchesStudentOption(report, student))
 }
@@ -1168,29 +1250,55 @@ function hasDeadlineTargets(deadline = {}) {
   return [deadline.target_student_ids, deadline.target_student_emails, deadline.target_student_keys, deadline.target_student_names].some((value) => listValue(value).length)
 }
 
-function deadlineVisibleToUser(deadline, role, user) {
+function getDeadlineProjectIds(deadline = {}) {
+  return [deadline.project_id, deadline.research_project_id, deadline.target_project_id, deadline.group_id, deadline.research_group_id]
+    .map((value) => String(value || ''))
+    .filter(Boolean)
+}
+
+function deadlineLinkedToProject(deadline = {}, project = {}) {
+  if (!deadline || !project) return false
+  const ids = getDeadlineProjectIds(deadline)
+  if (ids.includes(String(project.id))) return true
+  const deadlineGroupText = normalizeText(deadline.group_name || deadline.research_group_name || deadline.project_name || deadline.project_title)
+  return !!deadlineGroupText && [project.group_name, project.title].map(normalizeText).includes(deadlineGroupText)
+}
+
+function getDeadlinesForProject(deadlines = [], project = {}, members = []) {
+  return (deadlines || []).filter((deadline) => {
+    if (deadlineLinkedToProject(deadline, project)) return true
+    if (!getDeadlineProjectIds(deadline).length && !hasDeadlineTargets(deadline)) return true
+    return (members || []).some((member) => deadlineTargetsStudent(deadline, { id: member.id, email: member.email, full_name: member.full_name || member.name }))
+  })
+}
+
+function deadlineVisibleToUser(deadline, role, user, data = {}) {
   if (!deadline || !user) return false
   if (role === 'admin' || role === 'committee') return true
   if (role === 'student') {
-    if (hasDeadlineTargets(deadline)) return deadlineTargetsStudent(deadline, user)
-    return true
+    const context = getStudentProjectContext(data, user)
+    if (hasDeadlineTargets(deadline)) return deadlineTargetsStudent(deadline, context.student || user)
+    if (context.project && deadlineLinkedToProject(deadline, context.project)) return true
+    return !getDeadlineProjectIds(deadline).length
   }
   if (role === 'supervisor') {
     const userId = normalizeText(user.id)
     const userEmail = normalizeText(user.email)
+    const supervisedProjects = (data.projects || []).filter((project) => isAssignedSupervisorProject(project, user))
     return (
       (!!userId && normalizeText(deadline.created_by) === userId) ||
       (!!userId && normalizeText(deadline.supervisor_id) === userId) ||
       (!!userEmail && normalizeText(deadline.created_by_email) === userEmail) ||
       (!!userEmail && normalizeText(deadline.supervisor_email) === userEmail) ||
-      !hasDeadlineTargets(deadline)
+      supervisedProjects.some((project) => deadlineLinkedToProject(deadline, project)) ||
+      (!hasDeadlineTargets(deadline) && !getDeadlineProjectIds(deadline).length)
     )
   }
   return false
 }
 
-function getVisibleDeadlines(deadlines = [], role, user) {
-  return (deadlines || []).filter((deadline) => deadlineVisibleToUser(deadline, role, user))
+function getVisibleDeadlines(deadlines = [], role, user, data = {}) {
+  return (deadlines || []).filter((deadline) => deadlineVisibleToUser(deadline, role, user, data))
 }
 
 function findProfileForUser(data, user) {
@@ -1357,6 +1465,10 @@ function projectStudentIdentityMatches(project = {}, student = {}) {
 
 function getStudentCurrentResearchGroup(data = {}, studentUser = {}) {
   const profile = findProfileForUser(data, studentUser) || studentUser || {}
+  const activeMembershipProject = getStudentMembershipRecords(data, profile)
+    .map((member) => getProjectByMembershipRecord(data, member))
+    .find(Boolean)
+  if (activeMembershipProject) return activeMembershipProject
   const profileGroupId = profile.current_research_group_id || profile.research_group_id || profile.group_id
   if (profileGroupId) {
     const project = (data.projects || []).find((item) => String(item.id) === String(profileGroupId))
@@ -1380,6 +1492,7 @@ function getStudentCurrentResearchGroup(data = {}, studentUser = {}) {
 function getResearchGroupOptions(data = {}, currentUser = null) {
   const seen = new Map()
   ;(data.projects || []).forEach((project) => {
+    if (!isApprovedResearchProject(project)) return
     const key = project.id || normalizeText(project.group_name || project.title)
     if (!key || seen.has(String(key))) return
     const supervisor = findSupervisorProfileForProject(data, project)
@@ -2601,7 +2714,26 @@ export default function App() {
     setMessage('You have logged out.')
   }
 
+  async function sendSupervisorProjectWorkflowEmail(kind, projectId, decision = '') {
+    if (!isSupabaseConfigured || !supabase?.functions?.invoke) return { ok: false, error: 'Email sending requires Supabase Edge Functions.' }
+    const { data: result, error } = await supabase.functions.invoke('send-platform-email', {
+      body: {
+        kind,
+        projectId,
+        decision,
+        appUrl: typeof window !== 'undefined' ? window.location.origin : '',
+      },
+    })
+    if (error) throw new Error(error.message || 'Project workflow email could not be sent.')
+    if (result?.error) throw new Error(result.error)
+    return { ok: true, result }
+  }
+
   async function createProject(form) {
+    if (!canSubmitSupervisorProject(currentUser)) {
+      setMessage('Students cannot submit research titles or research groups. Please request to join an approved project after Research Committee approval.')
+      return { ok: false, error: 'Students cannot submit research titles or research groups.' }
+    }
     if (!form.title?.trim()) {
       setMessage('Please write a research title first.')
       return { ok: false, error: 'Please write a research title first.' }
@@ -2610,46 +2742,94 @@ export default function App() {
       setMessage('Please select a valid department.')
       return { ok: false, error: 'Please select a valid department.' }
     }
-    const studentAlreadySubmittedTitle = currentUser?.role === 'student' && data.projects.some((project) => isOwnStudentProject(project, currentUser))
-    if (studentAlreadySubmittedTitle) {
-      setMessage('You already submitted a research title. New research title submission is closed for your account.')
-      return { ok: false, error: 'You already submitted a research title.' }
-    }
+    const now = new Date().toISOString()
     const project = {
       id: crypto.randomUUID(),
-      group_name: form.group_name || `${currentUser?.full_name || 'Student'} Project`,
+      group_name: form.group_name || `${currentUser?.full_name || 'Supervisor'} Research Group`,
       title: form.title,
       area: normalizeDepartment(form.area),
-      supervisor_name: 'Pending Assignment',
-      supervisor_id: null,
-      supervisor_email: '',
-      student_id: currentUser?.id || null,
-      student_email: currentUser?.email || '',
+      project_description: form.project_description || form.description || '',
+      expected_members: form.expected_members ? Number(form.expected_members) : null,
+      start_date: form.start_date || null,
+      end_date: form.end_date || form.final_due || null,
+      supervisor_name: currentUser?.full_name || currentUser?.email || 'Supervisor',
+      supervisor_id: currentUser?.id || null,
+      supervisor_email: currentUser?.email || '',
+      student_id: null,
+      student_email: '',
       created_by: currentUser?.id || null,
       created_by_email: currentUser?.email || '',
+      created_by_role: currentUser?.role || 'supervisor',
+      submitted_by_role: currentUser?.role || 'supervisor',
+      submitted_by_name: currentUser?.full_name || currentUser?.email || 'Supervisor',
+      submitted_at: now,
       approval: 'Pending Committee Review',
       status: 'Pending',
       progress: 0,
-      final_due: form.final_due || '2026-06-20',
-      students: [currentUser?.full_name || 'Student'],
-      created_at: new Date().toISOString(),
+      final_due: form.final_due || form.end_date || '',
+      students: [],
+      created_at: now,
     }
 
+    let savedProject = project
+    let emailFailed = false
     if (isSupabaseConfigured) {
       const { id, ...projectForDb } = project
-      const { error } = await supabase.from('research_projects').insert(projectForDb)
+      const { data: inserted, error } = await supabase.from('research_projects').insert(projectForDb).select().single()
       if (error) {
         setMessage(error.message)
         return { ok: false, error: error.message }
       }
-      await addAudit(currentUser.full_name, 'submitted', 'new research title')
-      await loadFromSupabase()
+      savedProject = inserted || project
+      const committeeUsers = (data.profiles || []).filter((profile) => profile.role === 'committee')
+      const notices = committeeUsers.map((committee) => ({
+        profile_id: committee.id || null,
+        recipient_user_id: committee.id || null,
+        recipient_email: committee.email || '',
+        sender_user_id: currentUser?.id || null,
+        project_id: savedProject.id || null,
+        notification_type: `supervisor_project_${savedProject.id}_submitted_${committee.id || committee.email}`,
+        title: 'New Supervisor Project Submission',
+        message: `${currentUser?.full_name || currentUser?.email || 'A supervisor'} submitted ${savedProject.title || 'a research project'} for Research Committee review.`,
+        type: 'Supervisor Project Submission',
+        target_role: 'committee',
+        is_read: false,
+        created_at: now,
+      }))
+      if (notices.length) {
+        const noticeResult = await supabase.from('notifications').insert(notices)
+        if (noticeResult.error) console.warn('Project submission notification failed:', noticeResult.error)
+      }
+      try {
+        await sendSupervisorProjectWorkflowEmail('supervisor_project_submitted', savedProject.id)
+      } catch (emailError) {
+        console.warn('Supervisor project submission email failed:', emailError)
+        emailFailed = true
+      }
+      await addAudit(currentUser.full_name, 'submitted', 'supervisor research project')
+      await loadFromSupabase(currentUser)
     } else {
-      const log = makeAudit(currentUser.full_name, 'submitted', 'new research title')
-      setLocal((current) => ({ ...current, projects: [project, ...current.projects], auditLogs: [log, ...current.auditLogs] }))
+      const committeeUsers = (data.profiles || []).filter((profile) => profile.role === 'committee')
+      const notices = committeeUsers.map((committee) => ({
+        id: crypto.randomUUID(),
+        profile_id: committee.id || null,
+        recipient_user_id: committee.id || null,
+        recipient_email: committee.email || '',
+        sender_user_id: currentUser?.id || null,
+        project_id: project.id,
+        notification_type: `supervisor_project_${project.id}_submitted_${committee.id || committee.email}`,
+        title: 'New Supervisor Project Submission',
+        message: `${currentUser?.full_name || currentUser?.email || 'A supervisor'} submitted ${project.title || 'a research project'} for Research Committee review.`,
+        type: 'Supervisor Project Submission',
+        target_role: 'committee',
+        is_read: false,
+        created_at: now,
+      }))
+      const log = makeAudit(currentUser.full_name, 'submitted', 'supervisor research project')
+      setLocal((current) => ({ ...current, projects: [project, ...current.projects], notifications: [...notices, ...current.notifications], auditLogs: [log, ...current.auditLogs] }))
     }
-    setMessage('Research title submitted for committee review.')
-    return { ok: true, project }
+    setMessage(emailFailed ? 'Research project submitted successfully, but email notification failed.' : 'Research project submitted to Research Committee successfully.')
+    return { ok: true, project: savedProject, emailSent: !emailFailed }
   }
 
   async function createWeeklyReport(form, file) {
@@ -3220,6 +3400,10 @@ export default function App() {
       setMessage('Research group not found. Please refresh and try again.')
       return { ok: false }
     }
+    if (!isApprovedResearchProject(group)) {
+      setMessage('This research group is not approved yet and cannot accept join requests.')
+      return { ok: false }
+    }
     const currentGroup = getStudentCurrentResearchGroup(data, currentUser)
     if (currentGroup) {
       setMessage('You are already assigned to a research group.')
@@ -3345,6 +3529,10 @@ export default function App() {
       setMessage('Student or research group was not found. Please refresh and try again.')
       return { ok: false }
     }
+    if (normalizedStatus === 'Accepted' && !isApprovedResearchProject(group)) {
+      setMessage('This project is not approved by the Research Committee yet. Students can only join approved projects.')
+      return { ok: false }
+    }
 
     const decidedAt = new Date().toISOString()
     const decisionUpdates = {
@@ -3422,6 +3610,25 @@ export default function App() {
           message: normalizedStatus === 'Accepted' ? `You have joined ${group.group_name || group.title || 'your research group'}. You can now submit weekly reports.` : 'Your research group join request was rejected.',
           targetRole: 'student',
         })
+        if (normalizedStatus === 'Accepted') {
+          const supervisor = findSupervisorProfileForProject(data, group)
+          if (supervisor?.id || supervisor?.email) {
+            await createGroupJoinNotification({
+              recipient: supervisor,
+              sender: currentUser,
+              request: { ...request, ...decisionUpdates },
+              title: 'Student Joined Research Group',
+              message: `${student.full_name || student.email || 'A student'} joined ${group.group_name || group.title || 'your research group'}.`,
+              targetRole: 'supervisor',
+            })
+            try {
+              await sendSupervisorGroupMemberEmail(group.id, { id: student.id, email: student.email, name: student.full_name })
+            } catch (supervisorEmailError) {
+              console.warn('Supervisor group membership email failed:', supervisorEmailError)
+              emailFailed = true
+            }
+          }
+        }
         try {
           await sendGroupJoinEmail('group_join_decision', requestId, normalizedStatus)
         } catch (emailError) {
@@ -3487,10 +3694,31 @@ export default function App() {
     return { ok: true, result }
   }
 
+  async function sendSupervisorGroupMemberEmail(groupId, student) {
+    if (!isSupabaseConfigured || !supabase?.functions?.invoke) return { ok: false, error: 'Email sending requires Supabase Edge Functions.' }
+    const { data: result, error } = await supabase.functions.invoke('send-platform-email', {
+      body: {
+        kind: 'group_member_added_supervisor_notice',
+        groupId,
+        studentId: student?.id || null,
+        studentEmail: student?.email || '',
+        addedByRole: isResearchCommitteeUser(currentUser) ? 'Research Committee' : isAdminUser(currentUser) ? 'Admin' : 'Supervisor',
+        appUrl: typeof window !== 'undefined' ? window.location.origin : '',
+      },
+    })
+    if (error) throw new Error(error.message || 'Supervisor group email could not be sent.')
+    if (result?.error) throw new Error(result.error)
+    return { ok: true, result }
+  }
+
   async function directAddStudentsToGroup(projectId, studentKeys = []) {
     const group = (data.projects || []).find((project) => String(project.id) === String(projectId))
     if (!group || !canManageAllGroupMemberships(currentUser)) {
       setMessage('You do not have permission to add students to this research group.')
+      return { ok: false }
+    }
+    if (!isApprovedResearchProject(group)) {
+      setMessage('Students can only be added to projects approved by the Research Committee.')
       return { ok: false }
     }
     const selectedStudents = (data.profiles || [])
@@ -3576,6 +3804,24 @@ export default function App() {
             console.warn('Direct group add email failed:', emailError)
             emailFailed = true
           }
+
+          const supervisor = findSupervisorProfileForProject(data, group)
+          if (supervisor?.id || supervisor?.email) {
+            await createGroupJoinNotification({
+              recipient: supervisor,
+              sender: currentUser,
+              request: { id: `direct-supervisor-${group.id}-${student.id || student.email}`, requested_group_id: group.id },
+              title: 'Student Added to Research Group',
+              message: `${student.name || student.email || 'A student'} was added to ${group.group_name || group.title || 'your research group'}.`,
+              targetRole: 'supervisor',
+            })
+            try {
+              await sendSupervisorGroupMemberEmail(group.id, student)
+            } catch (supervisorEmailError) {
+              console.warn('Supervisor group add email failed:', supervisorEmailError)
+              emailFailed = true
+            }
+          }
         }
         await loadFromSupabase(currentUser)
       } else {
@@ -3616,6 +3862,10 @@ export default function App() {
     const group = (data.projects || []).find((project) => String(project.id) === String(projectId))
     if (!group || !supervisorCanManageGroup(group, currentUser)) {
       setMessage('You do not have permission to manage this research group.')
+      return { ok: false }
+    }
+    if (!isApprovedResearchProject(group)) {
+      setMessage('Students can only be added to projects approved by the Research Committee.')
       return { ok: false }
     }
     const assignedStudents = mergeStudentOptions(
@@ -3891,20 +4141,59 @@ export default function App() {
   }
 
   async function updateProject(projectId, fields) {
+    const targetProject = (data.projects || []).find((project) => String(project.id) === String(projectId)) || {}
+    const nextFields = { ...fields }
+    const approvalChanged = Object.prototype.hasOwnProperty.call(nextFields, 'approval') && String(targetProject.approval || '') !== String(nextFields.approval || '')
+    if (approvalChanged) {
+      nextFields.reviewed_at = new Date().toISOString()
+      nextFields.reviewed_by = currentUser?.id || null
+      nextFields.reviewed_by_name = currentUser?.full_name || currentUser?.email || ''
+      if (nextFields.approval === 'Approved') nextFields.accepted_at = nextFields.reviewed_at
+    }
+    let emailFailed = false
     if (isSupabaseConfigured) {
-      const { error } = await supabase.from('research_projects').update(fields).eq('id', projectId)
+      const { error } = await supabase.from('research_projects').update(nextFields).eq('id', projectId)
       if (error) return setMessage(error.message)
+      if (approvalChanged) {
+        const supervisor = findSupervisorProfileForProject(data, targetProject) || { id: targetProject.supervisor_id, email: targetProject.supervisor_email, full_name: targetProject.supervisor_name, role: 'supervisor' }
+        if (supervisor?.id || supervisor?.email) {
+          const note = {
+            profile_id: supervisor.id || null,
+            recipient_user_id: supervisor.id || null,
+            recipient_email: supervisor.email || '',
+            sender_user_id: currentUser?.id || null,
+            project_id: projectId,
+            notification_type: `supervisor_project_${projectId}_${String(nextFields.approval).toLowerCase().replace(/[^a-z0-9]+/g, '_')}`,
+            title: nextFields.approval === 'Approved' ? 'Research Project Accepted' : nextFields.approval === 'Rejected' ? 'Research Project Rejected' : 'Research Project Revision Requested',
+            message: nextFields.approval === 'Approved'
+              ? `${targetProject.title || 'Your research project'} was approved and is now available for students to request joining.`
+              : `${targetProject.title || 'Your research project'} status changed to ${nextFields.approval}.`,
+            type: 'Supervisor Project Review',
+            target_role: 'supervisor',
+            is_read: false,
+            created_at: nextFields.reviewed_at,
+          }
+          const noticeResult = await supabase.from('notifications').insert(note)
+          if (noticeResult.error) console.warn('Project review notification failed:', noticeResult.error)
+        }
+        try {
+          await sendSupervisorProjectWorkflowEmail('supervisor_project_reviewed', projectId, nextFields.approval)
+        } catch (emailError) {
+          console.warn('Project review email failed:', emailError)
+          emailFailed = true
+        }
+      }
       await addAudit(currentUser.full_name, 'updated', `project ${projectId}`)
-      await loadFromSupabase()
+      await loadFromSupabase(currentUser)
     } else {
       const log = makeAudit(currentUser.full_name, 'updated', `project ${projectId}`)
       setLocal((current) => ({
         ...current,
-        projects: current.projects.map((p) => p.id === projectId ? { ...p, ...fields } : p),
+        projects: current.projects.map((p) => p.id === projectId ? { ...p, ...nextFields } : p),
         auditLogs: [log, ...current.auditLogs],
       }))
     }
-    setMessage('Project updated.')
+    setMessage(approvalChanged && emailFailed ? 'Project updated, but email notification failed.' : 'Project updated.')
   }
 
   function isMissingRpcFunction(error) {
@@ -4731,7 +5020,7 @@ export default function App() {
 
   const visibleReports = useMemo(() => getVisibleReports(data.reports, visibleProjects, allowedRole, currentUser), [data.reports, visibleProjects, allowedRole, currentUser])
 
-  const visibleDeadlines = useMemo(() => getVisibleDeadlines(data.deadlines, allowedRole, currentUser), [data.deadlines, allowedRole, currentUser])
+  const visibleDeadlines = useMemo(() => getVisibleDeadlines(data.deadlines, allowedRole, currentUser, data), [data, allowedRole, currentUser])
 
   const visibleData = useMemo(() => ({
     ...data,
@@ -4933,8 +5222,8 @@ export default function App() {
 
 
 
-            {allowedRole === 'student' && <StudentDashboard data={visibleData} projects={visibleProjects} currentUser={currentUser} createProject={createProject} createWeeklyReport={createWeeklyReport} dataLoading={dataLoading} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
-            {allowedRole === 'supervisor' && <SupervisorDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} dataLoading={dataLoading} reviewReport={reviewReport} createDeadline={createDeadline} removeDeadline={removeDeadline} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
+            {allowedRole === 'student' && <StudentDashboard data={visibleData} projects={visibleProjects} currentUser={currentUser} createWeeklyReport={createWeeklyReport} dataLoading={dataLoading} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
+            {allowedRole === 'supervisor' && <SupervisorDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} dataLoading={dataLoading} reviewReport={reviewReport} createProject={createProject} createDeadline={createDeadline} removeDeadline={removeDeadline} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
             {allowedRole === 'committee' && <CommitteeDashboard data={visibleData} projects={visibleProjects} dataLoading={dataLoading} updateProject={updateProject} saveEvaluation={saveEvaluation} />}
             {allowedRole === 'admin' && <AdminDashboard data={visibleData} projects={visibleProjects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} assignStudentToSupervisor={assignStudentToSupervisor} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} loadError={dataLoadError} dataLoading={dataLoading} />}
           </>
@@ -5833,20 +6122,20 @@ function FilterBar({ filters, setFilters, projects }) {
   )
 }
 
-function StudentDashboard({ data, projects, currentUser, createProject, createWeeklyReport, dataLoading = false, sendWeeklyReportToMyEmail, emailSendingReports = {} }) {
+function StudentDashboard({ data, projects, currentUser, createWeeklyReport, dataLoading = false, sendWeeklyReportToMyEmail, emailSendingReports = {} }) {
   const studentProfile = findProfileForUser(data, currentUser) || currentUser
-  const joinedProject = getStudentCurrentResearchGroup(data, studentProfile)
-  const ownProjects = projects.filter((p) => isOwnStudentProject(p, studentProfile))
-  const selectedProject = joinedProject || ownProjects[0] || data.projects.find((p) => isOwnStudentProject(p, studentProfile))
-  const hasSubmittedResearchTitle = Boolean(selectedProject)
+  const studentProjectContext = getStudentProjectContext(data, studentProfile)
+  const joinedProject = studentProjectContext.project
+  const ownProjects = projects.filter((p) => isOwnStudentProject(p, studentProfile) && isApprovedResearchProject(p))
+  const selectedProject = joinedProject || ownProjects[0] || data.projects.find((p) => isOwnStudentProject(p, studentProfile) && isApprovedResearchProject(p))
+  const selectedProjectContext = selectedProject ? getProjectContext(data, selectedProject) : studentProjectContext
   const reports = data.reports.filter((r) => String(r.project_id) === String(selectedProject?.id) && reportOwnedByUser(r, currentUser))
-  const groupMemberProfiles = selectedProject ? getProjectMemberProfiles(data, selectedProject, data.reports) : []
-  const projectProgress = selectedProject ? getProjectProgress(selectedProject, data.reports) : 0
-  const [titleForm, setTitleForm] = useState({ title: '', area: DEFAULT_DEPARTMENT, group_name: `${currentUser.full_name} Research Group`, final_due: '2026-06-20' })
+  const groupMemberProfiles = selectedProjectContext.members || []
+  const projectProgress = selectedProjectContext.progress || 0
+  const projectDeadlines = selectedProject ? getDeadlinesForProject(data.deadlines || [], selectedProject, groupMemberProfiles) : []
   const [reportForm, setReportForm] = useState({ completed_work: '', challenges: '', next_week_plan: '', attendance: 'Attended' })
   const [file, setFile] = useState(null)
   const [submittingReport, setSubmittingReport] = useState(false)
-  const [submittingTitle, setSubmittingTitle] = useState(false)
 
   async function handleSubmitWeeklyReport() {
     if (submittingReport) return
@@ -5862,15 +6151,6 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
     }
   }
 
-  async function handleSubmitResearchTitle() {
-    if (submittingTitle) return
-    setSubmittingTitle(true)
-    try {
-      await createProject(titleForm)
-    } finally {
-      setSubmittingTitle(false)
-    }
-  }
 
   if (dataLoading) return <LoadingBlock text="Loading student dashboard..." />
 
@@ -5894,11 +6174,11 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
               <ProgressBar value={projectProgress} />
               <ProjectMembersCompact members={groupMemberProfiles} />
             </div>
-          ) : <EmptyState title="No research project assigned yet." text="Join or submit a research project to see progress and weekly report access." />}
+          ) : <EmptyState title="No research project assigned yet." text="Request to join an approved supervisor project to see progress and weekly report access." />}
         </div>
 
         <div className="student-dashboard-side-top">
-          <DeadlinesCard deadlines={data.deadlines} />
+          <DeadlinesCard deadlines={projectDeadlines.length || selectedProject ? projectDeadlines : data.deadlines} />
         </div>
       </div>
 
@@ -5954,35 +6234,23 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
         </div>
       </div>
 
-
-      {!hasSubmittedResearchTitle && (
-        <div className="card">
-          <SectionHeader icon={FileText} title="Submit New Research Title" subtitle="Create a new project for committee review" />
-          <div className="form-grid compact">
-            <input value={titleForm.title} onChange={(e) => setTitleForm({ ...titleForm, title: e.target.value })} placeholder="Research title" />
-            <select value={titleForm.area} onChange={(e) => setTitleForm({ ...titleForm, area: e.target.value })}>
-              {DEPARTMENT_OPTIONS.map((department) => <option key={department} value={department}>{department}</option>)}
-            </select>
-            <input value={titleForm.group_name} onChange={(e) => setTitleForm({ ...titleForm, group_name: e.target.value })} placeholder="Group name" />
-            <input type="date" value={titleForm.final_due} onChange={(e) => setTitleForm({ ...titleForm, final_due: e.target.value })} />
-          </div>
-          <button className="primary min-button-width" type="button" disabled={submittingTitle} onClick={handleSubmitResearchTitle}><ButtonContent loading={submittingTitle} loadingText="Submitting..." icon={FileText}>Submit Title</ButtonContent></button>
-        </div>
-      )}
     </div>
   )
 }
 
-function SupervisorDashboard({ data, projects, currentUser, dataLoading = false, reviewReport, createDeadline, removeDeadline, sendWeeklyReportToMyEmail, emailSendingReports = {} }) {
+function SupervisorDashboard({ data, projects, currentUser, dataLoading = false, reviewReport, createProject, createDeadline, removeDeadline, sendWeeklyReportToMyEmail, emailSendingReports = {} }) {
   const [feedback, setFeedback] = useState({})
   const [selectedStudent, setSelectedStudent] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
   const [selectedGroup, setSelectedGroup] = useState('all')
   const [reviewLoadingKey, setReviewLoadingKey] = useState('')
+  const [projectForm, setProjectForm] = useState({ title: '', group_name: `${currentUser.full_name || 'Supervisor'} Research Group`, area: DEFAULT_DEPARTMENT, project_description: '', expected_members: '', start_date: '', end_date: '', final_due: '' })
+  const [submittingProject, setSubmittingProject] = useState(false)
   const assignedProjects = useMemo(() => projects.filter((p) => isAssignedSupervisorProject(p, currentUser)), [projects, currentUser])
-  const supervisorProgressProjects = useMemo(() => getSupervisorProgressProjects(data, assignedProjects), [data, assignedProjects])
-  const studentOptions = useMemo(() => mergeStudentOptions(getAssignedSupervisorStudents(data, assignedProjects, data.reports), getDirectAssignedStudentsForSupervisor(data, currentUser)), [data, assignedProjects, currentUser])
-  const allowedReports = useMemo(() => getSupervisorAllowedReports(data, assignedProjects, currentUser), [data, assignedProjects, currentUser])
+  const approvedAssignedProjects = useMemo(() => assignedProjects.filter(isApprovedResearchProject), [assignedProjects])
+  const supervisorProgressProjects = useMemo(() => getSupervisorProgressProjects(data, approvedAssignedProjects.length ? approvedAssignedProjects : assignedProjects), [data, approvedAssignedProjects, assignedProjects])
+  const studentOptions = useMemo(() => mergeStudentOptions(getAssignedSupervisorStudents(data, approvedAssignedProjects.length ? approvedAssignedProjects : assignedProjects, data.reports), getDirectAssignedStudentsForSupervisor(data, currentUser)), [data, approvedAssignedProjects, assignedProjects, currentUser])
+  const allowedReports = useMemo(() => getSupervisorAllowedReports(data, approvedAssignedProjects.length ? approvedAssignedProjects : assignedProjects, currentUser), [data, approvedAssignedProjects, assignedProjects, currentUser])
 
   const groupOptions = useMemo(() => {
     return Array.from(new Set(assignedProjects.map((project) => project.group_name || 'No research group'))).sort((a, b) => a.localeCompare(b))
@@ -6015,11 +6283,45 @@ function SupervisorDashboard({ data, projects, currentUser, dataLoading = false,
     }
   }
 
+  async function handleSubmitSupervisorProject() {
+    if (submittingProject || !createProject) return
+    setSubmittingProject(true)
+    try {
+      const result = await createProject(projectForm)
+      if (result?.ok) {
+        setProjectForm({ title: '', group_name: `${currentUser.full_name || 'Supervisor'} Research Group`, area: DEFAULT_DEPARTMENT, project_description: '', expected_members: '', start_date: '', end_date: '', final_due: '' })
+      }
+    } finally {
+      setSubmittingProject(false)
+    }
+  }
+
   if (dataLoading) return <LoadingBlock text="Loading supervisor reports..." />
 
   return (
-    <div className="stack">
-      {supervisorProgressProjects.length ? <ProjectProgressSection projects={supervisorProgressProjects} reports={allowedReports} students={studentOptions} data={data} /> : <div className="card"><EmptyState title="No assigned projects" text="Ask the admin to assign projects to your exact login name, or assign yourself from the Admin view for testing." icon={Users} /></div>}
+    <div className="stack supervisor-dashboard-layout">
+      <div className="card supervisor-submit-project-card">
+        <SectionHeader icon={FileText} title="Submit Research Project" subtitle="Supervisor projects are reviewed by the Research Committee before students can join" />
+        <div className="form-grid supervisor-project-form-grid">
+          <label className="field wide-field"><span>Research title/project title</span><input value={projectForm.title} onChange={(e) => setProjectForm({ ...projectForm, title: e.target.value })} placeholder="Write the research project title" /></label>
+          <label className="field"><span>Research group name</span><input value={projectForm.group_name} onChange={(e) => setProjectForm({ ...projectForm, group_name: e.target.value })} placeholder="Research group name" /></label>
+          <label className="field"><span>Department / research area</span><select value={projectForm.area} onChange={(e) => setProjectForm({ ...projectForm, area: e.target.value })}>{DEPARTMENT_OPTIONS.map((department) => <option key={department} value={department}>{department}</option>)}</select></label>
+          <label className="field"><span>Expected members</span><input type="number" min="1" value={projectForm.expected_members} onChange={(e) => setProjectForm({ ...projectForm, expected_members: e.target.value })} placeholder="e.g. 4" /></label>
+          <label className="field"><span>Start date</span><input type="date" value={projectForm.start_date} onChange={(e) => setProjectForm({ ...projectForm, start_date: e.target.value })} /></label>
+          <label className="field"><span>Expected end date</span><input type="date" value={projectForm.end_date} onChange={(e) => setProjectForm({ ...projectForm, end_date: e.target.value, final_due: e.target.value })} /></label>
+          <label className="field wide-field"><span>Description / abstract</span><textarea value={projectForm.project_description} onChange={(e) => setProjectForm({ ...projectForm, project_description: e.target.value })} placeholder="Brief project description or abstract for Research Committee review" /></label>
+        </div>
+        <div className="inline-actions"><button className="primary min-button-width" type="button" disabled={submittingProject} onClick={handleSubmitSupervisorProject}><ButtonContent loading={submittingProject} loadingText="Submitting..." icon={Send}>Submit to Research Committee</ButtonContent></button></div>
+      </div>
+
+      <div className="card supervisor-submissions-card">
+        <SectionHeader icon={ClipboardCheck} title="My Submitted Projects" subtitle="Committee status, comments, and availability for student joining" />
+        {assignedProjects.length ? (
+          <div className="table-wrap compact-table-wrap"><table><thead><tr><th>Project</th><th>Group</th><th>Area</th><th>Status</th><th>Committee comment</th><th>Reviewed</th></tr></thead><tbody>{assignedProjects.map((project) => <tr key={project.id}><td><b>{project.title || 'Untitled project'}</b><p className="muted small">{project.project_description || 'No description'}</p></td><td>{project.group_name || 'Research Group'}</td><td>{project.area || '-'}</td><td><Pill tone={project.approval === 'Approved' ? 'green' : project.approval === 'Rejected' ? 'red' : 'amber'}>{project.approval || 'Pending Committee Review'}</Pill></td><td>{project.committee_comments || project.decision_message || project.admin_comment || '-'}</td><td>{project.reviewed_at ? new Date(project.reviewed_at).toLocaleDateString() : '-'}</td></tr>)}</tbody></table></div>
+        ) : <EmptyState title="No project submissions yet." text="Submit a research project above so the Research Committee can review it." icon={FileText} />}
+      </div>
+
+      {supervisorProgressProjects.length ? <ProjectProgressSection projects={supervisorProgressProjects} reports={allowedReports} students={studentOptions} data={data} /> : <div className="card"><EmptyState title="No approved supervised projects yet" text="Project progress appears after the Research Committee approves your submitted project or an approved project is assigned to you." icon={Users} /></div>}
       <DeadlineManager deadlines={data.deadlines} createDeadline={createDeadline} removeDeadline={removeDeadline} students={studentOptions} currentUser={currentUser} />
 
       <div className="card supervisor-review-reports-card">
@@ -6423,7 +6725,7 @@ function StudentJoinResearchGroupTab({ data, currentUser, dataLoading = false, s
 }
 
 function SupervisorResearchGroupManagementTab({ data, currentUser, dataLoading = false, supervisorAddStudentsToGroup, decideGroupJoinRequest }) {
-  const assignedProjects = (data.projects || []).filter((project) => supervisorCanManageGroup(project, currentUser))
+  const assignedProjects = (data.projects || []).filter((project) => supervisorCanManageGroup(project, currentUser) && isApprovedResearchProject(project))
   const assignedStudents = mergeStudentOptions(getAssignedSupervisorStudents(data, assignedProjects, data.reports), getDirectAssignedStudentsForSupervisor(data, currentUser))
   const [selectedGroupId, setSelectedGroupId] = useState(assignedProjects[0]?.id || '')
   const [selectedKeys, setSelectedKeys] = useState([])
@@ -6498,7 +6800,7 @@ function AdminGroupJoinRequestsTab({ data, currentUser, dataLoading = false, dec
   const [selectedStudentKeys, setSelectedStudentKeys] = useState([])
   const [studentSearch, setStudentSearch] = useState('')
   const [addingStudents, setAddingStudents] = useState(false)
-  const manageableGroups = (data.projects || []).sort((a, b) => String(a.group_name || a.title || '').localeCompare(String(b.group_name || b.title || '')))
+  const manageableGroups = (data.projects || []).filter(isApprovedResearchProject).sort((a, b) => String(a.group_name || a.title || '').localeCompare(String(b.group_name || b.title || '')))
   const directAddStudentOptions = (data.profiles || []).filter((profile) => profile.role === 'student').map((student) => {
     const currentGroup = getStudentCurrentResearchGroup(data, student)
     return {
@@ -7021,7 +7323,7 @@ function CommitteeDashboard({ data = emptyData, projects = [], dataLoading = fal
           <label className="field"><span>Department</span><select value={reviewDepartment} onChange={(e) => setReviewDepartment(e.target.value)}><option value="all">All departments</option>{DEPARTMENT_OPTIONS.map((department) => <option key={department} value={department}>{department}</option>)}</select></label>
           <label className="field"><span>Research group</span><select value={reviewGroup} onChange={(e) => setReviewGroup(e.target.value)}><option value="all">All groups</option>{reviewGroupOptions.filter((item) => item !== 'all').map((group) => <option key={group} value={group}>{group}</option>)}</select></label>
         </div>
-        {reviewProjects.length ? <ProjectDecisionTable projects={reviewProjects} updateProject={updateProject} data={data} reports={reports} /> : <EmptyState title="No matching projects" text="Try changing the filters or wait for students to submit research titles." icon={Search} />}
+        {reviewProjects.length ? <ProjectDecisionTable projects={reviewProjects} updateProject={updateProject} data={data} reports={reports} /> : <EmptyState title="No matching projects" text="Try changing the filters or wait for supervisors to submit research projects." icon={Search} />}
       </div>
 
       <div className="card final-evaluation-card">
@@ -7521,9 +7823,22 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
 function ProjectDecisionTable({ projects, updateProject, data = emptyData, reports = [] }) {
   const [decisionLoading, setDecisionLoading] = useState('')
 
-  async function runDecision(projectId, decision, fields) {
+  async function runDecision(projectId, decision) {
     const key = `${projectId}-${decision}`
     if (decisionLoading) return
+    const project = projects.find((item) => String(item.id) === String(projectId)) || {}
+    let comment = ''
+    if (decision !== 'Approved') {
+      comment = window.prompt(decision === 'Revision Required' ? 'Write revision request/comment for the supervisor:' : 'Write rejection reason/comment for the supervisor:', project.committee_comments || '') || ''
+    } else {
+      comment = window.prompt('Optional acceptance comment for the supervisor:', project.committee_comments || '') || ''
+    }
+    const fields = {
+      approval: decision,
+      status: decision === 'Approved' ? 'Ongoing' : decision === 'Rejected' ? 'Rejected' : 'Needs Attention',
+      committee_comments: comment.trim(),
+      decision_message: comment.trim(),
+    }
     setDecisionLoading(key)
     try {
       await updateProject(projectId, fields)
@@ -7533,27 +7848,31 @@ function ProjectDecisionTable({ projects, updateProject, data = emptyData, repor
   }
 
   return (
-    <div className="table-wrap"><table><thead><tr><th>Project</th><th>Area</th><th>Members</th><th>Progress</th><th>Decision</th></tr></thead><tbody>{projects.map((p) => {
-      const approvedKey = `${p.id}-approve`
-      const reviseKey = `${p.id}-revise`
-      const rejectKey = `${p.id}-reject`
+    <div className="table-wrap"><table><thead><tr><th>Supervisor project</th><th>Area</th><th>Members</th><th>Progress</th><th>Committee decision</th></tr></thead><tbody>{projects.map((p) => {
+      const approvedKey = `${p.id}-Approved`
+      const reviseKey = `${p.id}-Revision Required`
+      const rejectKey = `${p.id}-Rejected`
       return (
         <tr key={p.id}>
-          <td><b>{p.group_name}</b><p>{p.title}</p></td>
+          <td><b>{p.group_name || 'Research Group'}</b><p>{p.title}</p><p className="muted small">Supervisor: {p.supervisor_name || p.supervisor_email || 'Not assigned'}{p.submitted_at ? ` • Submitted ${new Date(p.submitted_at).toLocaleDateString()}` : ''}</p>{p.project_description && <p className="muted small">{p.project_description}</p>}</td>
           <td>{p.area}</td>
           <td><ProjectMembersCompact members={getProjectMemberProfiles(data, p, reports)} /></td>
           <td><ProgressBar value={getProjectProgress(p, reports)} /><p className="small muted">{formatProgress(getProjectProgress(p, reports))}%</p></td>
           <td>
-            <button className="success min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'approve', { approval: 'Approved', status: 'Ongoing' })}><ButtonContent loading={decisionLoading === approvedKey} loadingText="Accepting..." icon={CheckCircle2}>Approve</ButtonContent></button>
-            <button className="warning min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'revise', { approval: 'Revision Required', status: 'Needs Attention' })}><ButtonContent loading={decisionLoading === reviseKey} loadingText="Requesting..." icon={RefreshCw}>Revise</ButtonContent></button>
-            <button className="danger min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'reject', { approval: 'Rejected', status: 'Rejected' })}><ButtonContent loading={decisionLoading === rejectKey} loadingText="Rejecting..." icon={XCircle}>Reject</ButtonContent></button>
-            <br /><Pill tone={p.approval === 'Approved' ? 'green' : p.approval === 'Rejected' ? 'red' : 'amber'}>{p.approval}</Pill>
+            <div className="inline-actions decision-actions">
+              <button className="success min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'Approved')}><ButtonContent loading={decisionLoading === approvedKey} loadingText="Accepting..." icon={CheckCircle2}>Accept</ButtonContent></button>
+              <button className="warning min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'Revision Required')}><ButtonContent loading={decisionLoading === reviseKey} loadingText="Requesting..." icon={RefreshCw}>Revision</ButtonContent></button>
+              <button className="danger min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'Rejected')}><ButtonContent loading={decisionLoading === rejectKey} loadingText="Rejecting..." icon={XCircle}>Reject</ButtonContent></button>
+            </div>
+            <Pill tone={p.approval === 'Approved' ? 'green' : p.approval === 'Rejected' ? 'red' : 'amber'}>{p.approval || 'Pending Committee Review'}</Pill>
+            {p.committee_comments && <p className="muted small">Comment: {p.committee_comments}</p>}
           </td>
         </tr>
       )
     })}</tbody></table></div>
   )
 }
+
 
 function NotificationsTab({ data, role, currentUser, dataLoading = false, createNotification, markNotificationRead, removeNotification }) {
   const [form, setForm] = useState({ title: '', message: '', type: 'Reminder', target_role: 'all' })
@@ -7898,11 +8217,19 @@ function ReportsTab({ data, projects, currentUser, role, printPdfReport, exportC
     : selectableStudentOptions.find((student) => student.key === selectedStudentKey) || null
 
   const studentFilteredProjects = useMemo(() => {
-    if (role === 'student') return projectFilteredProjects.filter((project) => isOwnStudentProject(project, findProfileForUser(data, currentUser) || currentUser))
+    if (role === 'student') {
+      const studentProfile = findProfileForUser(data, currentUser) || currentUser
+      const contextProject = getStudentCurrentResearchGroup(data, studentProfile)
+      return projectFilteredProjects.filter((project) =>
+        isOwnStudentProject(project, studentProfile) ||
+        projectMatchesStudentOption(project, studentProfile, allReports) ||
+        (!!contextProject?.id && String(project.id) === String(contextProject.id))
+      )
+    }
     if (selectedStudentKey === 'all') return projectFilteredProjects
     if (!selectedStudent) return []
     return projectFilteredProjects.filter((project) => projectMatchesStudentOption(project, selectedStudent, allReports))
-  }, [role, projectFilteredProjects, selectedStudentKey, selectedStudent, allReports, currentUser])
+  }, [role, projectFilteredProjects, selectedStudentKey, selectedStudent, allReports, currentUser, data])
 
   const selectedProjectIds = useMemo(() => new Set(studentFilteredProjects.map((project) => String(project.id))), [studentFilteredProjects])
 
@@ -7918,14 +8245,15 @@ function ReportsTab({ data, projects, currentUser, role, printPdfReport, exportC
 
   const scopedDeadlines = useMemo(() => {
     return allDeadlines.filter((deadline) => {
-      if (role === 'student') return deadlineVisibleToUser(deadline, 'student', currentUser)
+      if (role === 'student') return deadlineVisibleToUser(deadline, 'student', currentUser, data)
       if (selectedStudentKey !== 'all' && selectedStudent) {
-        return !hasDeadlineTargets(deadline) || deadlineTargetsStudentOption(deadline, selectedStudent)
+        const selectedProjects = studentFilteredProjects || []
+        return !hasDeadlineTargets(deadline) || deadlineTargetsStudentOption(deadline, selectedStudent) || selectedProjects.some((project) => deadlineLinkedToProject(deadline, project))
       }
-      if (role === 'supervisor') return deadlineVisibleToUser(deadline, 'supervisor', currentUser)
+      if (role === 'supervisor') return deadlineVisibleToUser(deadline, 'supervisor', currentUser, data)
       return true
     })
-  }, [allDeadlines, role, currentUser, selectedStudentKey, selectedStudent])
+  }, [allDeadlines, role, currentUser, selectedStudentKey, selectedStudent, data, studentFilteredProjects])
 
   const scopedEvaluations = useMemo(() => allEvaluations.filter((evaluation) => selectedProjectIds.has(String(evaluation.project_id))), [allEvaluations, selectedProjectIds])
   const scopedStudents = useMemo(() => {

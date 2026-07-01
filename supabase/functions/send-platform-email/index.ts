@@ -40,6 +40,14 @@ function isAdminRole(value: unknown) {
   return ['admin', 'admin/editor', 'administrator'].includes(normalize(value))
 }
 
+function isResearchCommitteeRole(value: unknown) {
+  return ['committee', 'research committee', 'research committee member'].includes(normalize(value))
+}
+
+function isGroupManagerRole(value: unknown) {
+  return isAdminRole(value) || isResearchCommitteeRole(value)
+}
+
 function getFromEmail() {
   return Deno.env.get('FROM_EMAIL') || Deno.env.get('INVITE_FROM_EMAIL') || Deno.env.get('PLATFORM_FROM_EMAIL') || Deno.env.get('RESEND_FROM_EMAIL') || ''
 }
@@ -67,7 +75,7 @@ function dateTime(value: unknown) {
   })
 }
 
-function dashboardLink(appUrl: string, role: 'student' | 'supervisor' | 'admin', params: Record<string, string>) {
+function dashboardLink(appUrl: string, role: 'student' | 'supervisor' | 'admin' | 'committee', params: Record<string, string>) {
   if (!appUrl) return ''
   try {
     const url = new URL(appUrl)
@@ -440,8 +448,9 @@ Deno.serve(async (req) => {
       const student = request.student_id ? await getProfileById(supabaseUrl, serviceRoleKey, request.student_id) : await getProfileByEmail(supabaseUrl, serviceRoleKey, request.student_email || '')
       const supervisor = request.supervisor_id ? await getProfileById(supabaseUrl, serviceRoleKey, request.supervisor_id) : request.supervisor_email ? await getProfileByEmail(supabaseUrl, serviceRoleKey, request.supervisor_email) : null
       const admins = await restFetch(supabaseUrl, serviceRoleKey, `profiles?role=eq.admin&select=*`)
-      const recipients = [supervisor, ...(Array.isArray(admins) ? admins : [])].filter((item, index, arr) => item?.email && arr.findIndex((candidate) => normalize(candidate?.email) === normalize(item.email)) === index)
-      if (!recipients.length) return jsonResponse({ success: true, skipped: true, reason: 'No admin or supervisor email recipients were found.' })
+      const committees = await restFetch(supabaseUrl, serviceRoleKey, `profiles?role=eq.committee&select=*`)
+      const recipients = [supervisor, ...(Array.isArray(admins) ? admins : []), ...(Array.isArray(committees) ? committees : [])].filter((item, index, arr) => item?.email && arr.findIndex((candidate) => normalize(candidate?.email) === normalize(item.email)) === index)
+      if (!recipients.length) return jsonResponse({ success: true, skipped: true, reason: 'No admin, research committee, or supervisor email recipients were found.' })
       const requestedAt = request.requested_at || new Date().toISOString()
       const link = dashboardLink(appUrl, 'admin', { panel: 'group-requests', request: request.id || '' })
       const html = buildEmailWrapper(
@@ -478,7 +487,7 @@ Deno.serve(async (req) => {
     if (kind === 'group_join_decision') {
       const request = await getGroupJoinRequestById(supabaseUrl, serviceRoleKey, String(payload.requestId || ''))
       if (!request) throw new Error('Group join request not found.')
-      if (!isAdminRole(actor.role) && normalize(actor.role) !== 'supervisor') return jsonResponse({ error: 'You do not have permission to send this group join decision email.' }, 403)
+      if (!isGroupManagerRole(actor.role) && normalize(actor.role) !== 'supervisor') return jsonResponse({ error: 'You do not have permission to send this group join decision email.' }, 403)
       const student = request.student_id ? await getProfileById(supabaseUrl, serviceRoleKey, request.student_id) : await getProfileByEmail(supabaseUrl, serviceRoleKey, request.student_email || '')
       const toEmail = student?.email || request.student_email
       if (!toEmail) throw new Error('Student email address is missing.')
@@ -515,6 +524,184 @@ Deno.serve(async (req) => {
       await restFetch(supabaseUrl, serviceRoleKey, `group_join_requests?id=eq.${encodeURIComponent(request.id)}`, {
         method: 'PATCH',
         body: JSON.stringify({ decision_email_sent_at: new Date().toISOString() }),
+      })
+      return jsonResponse({ success: true, emailId: email?.id || null })
+    }
+
+    if (kind === 'group_member_added_directly') {
+      if (!isGroupManagerRole(actor.role) && normalize(actor.role) !== 'supervisor') return jsonResponse({ error: 'You do not have permission to send this group membership email.' }, 403)
+      const group = await getProjectById(supabaseUrl, serviceRoleKey, String(payload.groupId || ''))
+      if (!group) throw new Error('Research group was not found.')
+      const student = payload.studentId ? await getProfileById(supabaseUrl, serviceRoleKey, String(payload.studentId)) : await getProfileByEmail(supabaseUrl, serviceRoleKey, String(payload.studentEmail || ''))
+      const toEmail = student?.email || payload.studentEmail
+      if (!toEmail) throw new Error('Student email address is missing.')
+      const addedAt = new Date().toISOString()
+      const addedByRole = payload.addedByRole || (isResearchCommitteeRole(actor.role) ? 'Research Committee' : isAdminRole(actor.role) ? 'Admin' : 'Supervisor')
+      const link = dashboardLink(appUrl, 'student', { tab: 'dashboard', group: group.id || '' })
+      const subject = 'Added to Research Group'
+      const html = buildEmailWrapper(
+        subject,
+        `You were added to ${group.group_name || group.title || 'a research group'}.`,
+        `
+          <p><strong>Student name:</strong> ${escapeHtml(student?.full_name || student?.email || payload.studentEmail || 'Student')}</p>
+          <p><strong>Research group:</strong> ${escapeHtml(group.group_name || group.title || 'Research Group')}</p>
+          <p><strong>Research title/project:</strong> ${escapeHtml(group.title || 'Not available')}</p>
+          <p><strong>Supervisor:</strong> ${escapeHtml(group.supervisor_name || group.supervisor_email || 'Not available')}</p>
+          <p><strong>Added by:</strong> ${escapeHtml(addedByRole)}</p>
+          <p><strong>Date/time:</strong> ${escapeHtml(dateTime(addedAt))}</p>
+        `,
+        link,
+        'Open student dashboard'
+      )
+      const text = [
+        subject,
+        `Student: ${student?.full_name || student?.email || payload.studentEmail || 'Student'}`,
+        `Research group: ${group.group_name || group.title || 'Research Group'}`,
+        `Project: ${group.title || 'Not available'}`,
+        `Supervisor: ${group.supervisor_name || group.supervisor_email || 'Not available'}`,
+        `Added by: ${addedByRole}`,
+        `Date/time: ${dateTime(addedAt)}`,
+        link ? `Dashboard link: ${link}` : '',
+      ].filter(Boolean).join('\n')
+      const email = await sendResendEmail({ resendApiKey, fromEmail, to: toEmail, subject, html, text })
+      return jsonResponse({ success: true, emailId: email?.id || null })
+    }
+
+    if (kind === 'group_member_added_supervisor_notice') {
+      if (!isGroupManagerRole(actor.role) && normalize(actor.role) !== 'supervisor') return jsonResponse({ error: 'You do not have permission to send this group supervisor email.' }, 403)
+      const group = await getProjectById(supabaseUrl, serviceRoleKey, String(payload.groupId || ''))
+      if (!group) throw new Error('Research group was not found.')
+      const supervisor = group.supervisor_id ? await getProfileById(supabaseUrl, serviceRoleKey, group.supervisor_id) : group.supervisor_email ? await getProfileByEmail(supabaseUrl, serviceRoleKey, group.supervisor_email) : null
+      const student = payload.studentId ? await getProfileById(supabaseUrl, serviceRoleKey, String(payload.studentId)) : await getProfileByEmail(supabaseUrl, serviceRoleKey, String(payload.studentEmail || ''))
+      const toEmail = supervisor?.email || group.supervisor_email
+      if (!toEmail) return jsonResponse({ success: true, skipped: true, reason: 'No supervisor email found.' })
+      const addedAt = new Date().toISOString()
+      const addedByRole = payload.addedByRole || (isResearchCommitteeRole(actor.role) ? 'Research Committee' : isAdminRole(actor.role) ? 'Admin' : 'Supervisor')
+      const subject = 'Student Joined Your Research Group'
+      const link = dashboardLink(appUrl, 'supervisor', { tab: 'dashboard', group: group.id || '' })
+      const html = buildEmailWrapper(
+        subject,
+        `${student?.full_name || student?.email || payload.studentEmail || 'A student'} joined ${group.group_name || group.title || 'your research group'}.`,
+        `
+          <p><strong>Student name:</strong> ${escapeHtml(student?.full_name || student?.email || payload.studentEmail || 'Student')}</p>
+          <p><strong>Student email:</strong> ${escapeHtml(student?.email || payload.studentEmail || 'Not available')}</p>
+          <p><strong>Research group:</strong> ${escapeHtml(group.group_name || group.title || 'Research Group')}</p>
+          <p><strong>Research title/project:</strong> ${escapeHtml(group.title || 'Not available')}</p>
+          <p><strong>Added by:</strong> ${escapeHtml(addedByRole)}</p>
+          <p><strong>Date/time:</strong> ${escapeHtml(dateTime(addedAt))}</p>
+        `,
+        link,
+        'Open supervisor dashboard'
+      )
+      const text = [
+        subject,
+        `Student: ${student?.full_name || student?.email || payload.studentEmail || 'Student'}`,
+        `Student email: ${student?.email || payload.studentEmail || 'Not available'}`,
+        `Research group: ${group.group_name || group.title || 'Research Group'}`,
+        `Project: ${group.title || 'Not available'}`,
+        `Added by: ${addedByRole}`,
+        `Date/time: ${dateTime(addedAt)}`,
+        link ? `Dashboard link: ${link}` : '',
+      ].filter(Boolean).join('\n')
+      const email = await sendResendEmail({ resendApiKey, fromEmail, to: toEmail, subject, html, text })
+      return jsonResponse({ success: true, emailId: email?.id || null })
+    }
+
+    if (kind === 'supervisor_project_submitted') {
+      if (!['supervisor', 'admin', 'committee'].includes(normalize(actor.role))) return jsonResponse({ error: 'Only supervisors/admin/committee can send project submission emails.' }, 403)
+      const project = await getProjectById(supabaseUrl, serviceRoleKey, String(payload.projectId || ''))
+      if (!project) throw new Error('Research project submission not found.')
+      if (project.supervisor_project_submitted_email_sent_at) return jsonResponse({ success: true, skipped: true, reason: 'Submission email already sent.' })
+      const committees = await restFetch(supabaseUrl, serviceRoleKey, `profiles?role=eq.committee&status=eq.Active&select=*`)
+      const recipients = (committees || []).filter((profile: AnyRecord) => profile.email)
+      if (!recipients.length) return jsonResponse({ success: true, skipped: true, reason: 'No active Research Committee email found.' })
+      const submittedAt = project.submitted_at || project.created_at || new Date().toISOString()
+      const link = dashboardLink(appUrl, 'committee', { tab: 'dashboard', project: project.id || '' })
+      const html = buildEmailWrapper(
+        'New Supervisor Project Submission',
+        `${project.supervisor_name || project.supervisor_email || 'A supervisor'} submitted a project for Research Committee review.`,
+        `
+          <p><strong>Supervisor:</strong> ${escapeHtml(project.supervisor_name || project.supervisor_email || 'Not available')}</p>
+          <p><strong>Supervisor email:</strong> ${escapeHtml(project.supervisor_email || 'Not available')}</p>
+          <p><strong>Research group:</strong> ${escapeHtml(project.group_name || 'Research Group')}</p>
+          <p><strong>Project title:</strong> ${escapeHtml(project.title || 'Untitled project')}</p>
+          <p><strong>Research area:</strong> ${escapeHtml(project.area || 'Not available')}</p>
+          <p><strong>Expected members:</strong> ${escapeHtml(project.expected_members || 'Not specified')}</p>
+          <p><strong>Submitted:</strong> ${escapeHtml(dateTime(submittedAt))}</p>
+          ${project.project_description ? `<p><strong>Description:</strong><br>${escapeHtml(project.project_description)}</p>` : ''}
+        `,
+        link,
+        'Review supervisor project'
+      )
+      const text = [
+        'New Supervisor Project Submission',
+        `Supervisor: ${project.supervisor_name || project.supervisor_email || 'Not available'}`,
+        `Supervisor email: ${project.supervisor_email || 'Not available'}`,
+        `Research group: ${project.group_name || 'Research Group'}`,
+        `Project title: ${project.title || 'Untitled project'}`,
+        `Research area: ${project.area || 'Not available'}`,
+        `Expected members: ${project.expected_members || 'Not specified'}`,
+        `Submitted: ${dateTime(submittedAt)}`,
+        project.project_description ? `Description: ${project.project_description}` : '',
+        link ? `Dashboard link: ${link}` : '',
+      ].filter(Boolean).join('\n')
+      const results = []
+      for (const recipient of recipients) {
+        results.push(await sendResendEmail({ resendApiKey, fromEmail, to: recipient.email, subject: 'New Supervisor Project Submission', html, text }))
+      }
+      await restFetch(supabaseUrl, serviceRoleKey, `research_projects?id=eq.${encodeURIComponent(project.id)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ supervisor_project_submitted_email_sent_at: new Date().toISOString() }),
+      })
+      return jsonResponse({ success: true, sent: results.length })
+    }
+
+    if (kind === 'supervisor_project_reviewed') {
+      if (!isGroupManagerRole(actor.role)) return jsonResponse({ error: 'Only Admin or Research Committee can send project review emails.' }, 403)
+      const project = await getProjectById(supabaseUrl, serviceRoleKey, String(payload.projectId || ''))
+      if (!project) throw new Error('Research project submission not found.')
+      const status = String(project.approval || payload.decision || 'Updated')
+      const normalizedStatus = normalize(status).replace(/\s+/g, '_')
+      if (project.supervisor_project_review_email_sent_at && normalize(project.supervisor_project_review_email_status) === normalizedStatus) {
+        return jsonResponse({ success: true, skipped: true, reason: 'Review email already sent for this status.' })
+      }
+      const supervisor = project.supervisor_id ? await getProfileById(supabaseUrl, serviceRoleKey, project.supervisor_id) : project.supervisor_email ? await getProfileByEmail(supabaseUrl, serviceRoleKey, project.supervisor_email) : null
+      const toEmail = supervisor?.email || project.supervisor_email
+      if (!toEmail) throw new Error('Supervisor email address is missing.')
+      const reviewedAt = project.reviewed_at || new Date().toISOString()
+      const subject = status === 'Approved' ? 'Research Project Accepted' : status === 'Rejected' ? 'Research Project Rejected' : 'Research Project Revision Requested'
+      const intro = status === 'Approved'
+        ? `${project.title || 'Your research project'} was approved and is now available for students to request joining.`
+        : `${project.title || 'Your research project'} status changed to ${status}.`
+      const link = dashboardLink(appUrl, 'supervisor', { tab: 'dashboard', project: project.id || '' })
+      const html = buildEmailWrapper(
+        subject,
+        intro,
+        `
+          <p><strong>Supervisor:</strong> ${escapeHtml(supervisor?.full_name || project.supervisor_name || project.supervisor_email || 'Supervisor')}</p>
+          <p><strong>Research group:</strong> ${escapeHtml(project.group_name || 'Research Group')}</p>
+          <p><strong>Project title:</strong> ${escapeHtml(project.title || 'Untitled project')}</p>
+          <p><strong>Status:</strong> ${escapeHtml(status)}</p>
+          <p><strong>Reviewed:</strong> ${escapeHtml(dateTime(reviewedAt))}</p>
+          ${project.committee_comments || project.decision_message ? `<p><strong>Committee comment:</strong> ${escapeHtml(project.committee_comments || project.decision_message)}</p>` : ''}
+        `,
+        link,
+        'Open supervisor dashboard'
+      )
+      const text = [
+        subject,
+        `Supervisor: ${supervisor?.full_name || project.supervisor_name || project.supervisor_email || 'Supervisor'}`,
+        `Research group: ${project.group_name || 'Research Group'}`,
+        `Project title: ${project.title || 'Untitled project'}`,
+        `Status: ${status}`,
+        `Reviewed: ${dateTime(reviewedAt)}`,
+        project.committee_comments || project.decision_message ? `Committee comment: ${project.committee_comments || project.decision_message}` : '',
+        link ? `Dashboard link: ${link}` : '',
+      ].filter(Boolean).join('\n')
+      const email = await sendResendEmail({ resendApiKey, fromEmail, to: toEmail, subject, html, text })
+      await restFetch(supabaseUrl, serviceRoleKey, `research_projects?id=eq.${encodeURIComponent(project.id)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ supervisor_project_review_email_sent_at: new Date().toISOString(), supervisor_project_review_email_status: normalizedStatus }),
       })
       return jsonResponse({ success: true, emailId: email?.id || null })
     }

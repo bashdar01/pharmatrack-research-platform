@@ -6724,3 +6724,33 @@ button .button-spinner {
     justify-content: flex-end;
   }
 }
+
+/* Group membership management polish */
+.direct-group-add-card .form-grid {
+  align-items: end;
+}
+.compact-group-details {
+  display: grid;
+  gap: 0.45rem;
+}
+.compact-group-details .project-members-list,
+.compact-group-details .member-chip-list {
+  margin-top: 0.35rem;
+}
+
+/* Supervisor-to-committee project workflow */
+.supervisor-project-form-grid {
+  align-items: end;
+}
+.supervisor-submit-project-card textarea {
+  min-height: 88px;
+}
+.supervisor-submissions-card .compact-table-wrap table td,
+.supervisor-submissions-card .compact-table-wrap table th {
+  vertical-align: top;
+}
+.decision-actions {
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.55rem;
+}
