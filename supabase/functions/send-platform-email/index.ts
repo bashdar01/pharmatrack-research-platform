@@ -706,6 +706,46 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true, emailId: email?.id || null })
     }
 
+
+    if (kind === 'project_leader_assigned') {
+      if (!['admin', 'committee', 'supervisor'].includes(normalize(actor.role))) return jsonResponse({ error: 'You do not have permission to send project leader emails.' }, 403)
+      const project = await getProjectById(supabaseUrl, serviceRoleKey, String(payload.projectId || ''))
+      if (!project) throw new Error('Research project was not found.')
+      const student = payload.studentId ? await getProfileById(supabaseUrl, serviceRoleKey, String(payload.studentId)) : await getProfileByEmail(supabaseUrl, serviceRoleKey, String(payload.studentEmail || ''))
+      const toEmail = student?.email || payload.studentEmail || project.project_leader_email
+      if (!toEmail) throw new Error('Student email address is missing.')
+      const assignedAt = project.project_leader_assigned_at || new Date().toISOString()
+      const supervisor = project.supervisor_id ? await getProfileById(supabaseUrl, serviceRoleKey, project.supervisor_id) : project.supervisor_email ? await getProfileByEmail(supabaseUrl, serviceRoleKey, project.supervisor_email) : null
+      const link = dashboardLink(appUrl, 'student', { tab: 'dashboard', project: project.id || '' })
+      const subject = 'You Have Been Assigned as Research Project Leader'
+      const html = buildEmailWrapper(
+        subject,
+        `You have been assigned as Research Project Leader for ${project.title || project.group_name || 'your research project'}.`,
+        `
+          <p><strong>Student name:</strong> ${escapeHtml(student?.full_name || project.project_leader_name || student?.email || 'Student')}</p>
+          <p><strong>Project title:</strong> ${escapeHtml(project.title || 'Untitled project')}</p>
+          <p><strong>Research group:</strong> ${escapeHtml(project.group_name || 'Research Group')}</p>
+          <p><strong>Supervisor:</strong> ${escapeHtml(supervisor?.full_name || project.supervisor_name || project.supervisor_email || 'Not available')}</p>
+          <p><strong>Assignment date/time:</strong> ${escapeHtml(dateTime(assignedAt))}</p>
+          <p><strong>Important:</strong> Only the project leader can submit weekly reports for this project.</p>
+        `,
+        link,
+        'Open student dashboard'
+      )
+      const text = [
+        subject,
+        `Student: ${student?.full_name || project.project_leader_name || student?.email || 'Student'}`,
+        `Project title: ${project.title || 'Untitled project'}`,
+        `Research group: ${project.group_name || 'Research Group'}`,
+        `Supervisor: ${supervisor?.full_name || project.supervisor_name || project.supervisor_email || 'Not available'}`,
+        `Assignment date/time: ${dateTime(assignedAt)}`,
+        'Only the project leader can submit weekly reports for this project.',
+        link ? `Dashboard link: ${link}` : '',
+      ].filter(Boolean).join('\n')
+      const email = await sendResendEmail({ resendApiKey, fromEmail, to: toEmail, subject, html, text })
+      return jsonResponse({ success: true, emailId: email?.id || null })
+    }
+
     if (kind === 'project_accepted') {
       if (!['admin', 'committee', 'supervisor'].includes(actor.role)) return jsonResponse({ error: 'You do not have permission to access this admin feature.' }, 403)
       const project = await getProjectById(supabaseUrl, serviceRoleKey, String(payload.projectId || ''))

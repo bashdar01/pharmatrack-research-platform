@@ -724,6 +724,10 @@ function getResearchGroupMemberProfiles(data = {}, project = {}) {
       (!!member.student_email && normalizeText(profile.email) === normalizeText(member.student_email)) ||
       (!!member.student_name && normalizeText(profile.full_name) === normalizeText(member.student_name))
     )
+    // Research supervisors may be stored as created_by/supervisor fields on projects.
+    // Never render a supervisor as a student project member.
+    if (matched?.role && matched.role !== 'student') return
+    const memberRole = normalizeText(member.member_role || member.project_role || member.role)
     const profile = matched || {
       id: member.student_id || null,
       full_name: member.student_name || member.student_email || 'Student',
@@ -731,10 +735,20 @@ function getResearchGroupMemberProfiles(data = {}, project = {}) {
       role: 'student',
     }
     const key = profile.id || normalizeText(profile.email) || normalizeText(profile.full_name)
-    if (key && !profileMap.has(key)) profileMap.set(key, profile)
+    if (!key) return
+    const isLeader = memberRole === 'project_leader' || memberRole === 'research_project_leader'
+    const existing = profileMap.get(key) || {}
+    profileMap.set(key, {
+      ...existing,
+      ...profile,
+      memberRole: isLeader ? 'project_leader' : (existing.memberRole || 'member'),
+      roleStatus: isLeader ? 'Project Leader' : (existing.roleStatus || 'Member'),
+      joined_at: existing.joined_at || member.joined_at || member.created_at || '',
+      membership_status: member.status || existing.membership_status || 'Active',
+    })
   })
 
-  return Array.from(profileMap.values())
+  return Array.from(profileMap.values()).filter((profile) => !profile.role || profile.role === 'student')
 }
 
 function getResearchGroupMemberLabels(data = {}, project = {}) {
@@ -798,10 +812,11 @@ function getSupervisorProjectStudents(data = {}, supervisor = {}) {
 function getProjectMemberProfiles(data = {}, project = {}, reports = []) {
   const members = new Map()
   const addMember = (profile = {}, fallback = {}) => {
+    if (profile.role && profile.role !== 'student') return
     const name = profile.full_name || profile.name || fallback.name || fallback.full_name || fallback.email || 'Student'
     const email = profile.email || fallback.email || ''
     const id = profile.id || fallback.id || null
-    const roleStatus = fallback.roleStatus || profile.member_status || profile.status || 'Group member'
+    const roleStatus = fallback.roleStatus || profile.roleStatus || profile.member_status || profile.status || 'Member'
     const key = id || normalizeText(email) || normalizeText(name)
     if (!key) return
     const existing = members.get(key) || {}
@@ -811,24 +826,27 @@ function getProjectMemberProfiles(data = {}, project = {}, reports = []) {
       id: existing.id || id,
       full_name: existing.full_name || name,
       email: existing.email || email,
-      roleStatus: existing.roleStatus || roleStatus,
+      role: 'student',
+      roleStatus: existing.roleStatus === 'Project Leader' ? existing.roleStatus : roleStatus,
+      joined_at: existing.joined_at || profile.joined_at || fallback.joined_at || '',
+      membership_status: existing.membership_status || profile.membership_status || fallback.membership_status || 'Active',
     })
   }
 
-  ;(project.member_profiles || []).forEach((profile) => addMember(profile, { roleStatus: 'Group member' }))
-  getResearchGroupMemberProfiles(data, project).forEach((profile) => addMember(profile, { roleStatus: 'Group member' }))
+  ;(project.member_profiles || []).forEach((profile) => addMember(profile, { roleStatus: profile.roleStatus || 'Member' }))
+  getResearchGroupMemberProfiles(data, project).forEach((profile) => addMember(profile, { roleStatus: profile.roleStatus || 'Member', joined_at: profile.joined_at, membership_status: profile.membership_status }))
 
   const explicitStudent = findProfileByIdentity(data, {
     id: project.student_id || project.created_by || project.owner_id,
     email: project.student_email || project.created_by_email || project.owner_email,
     name: project.student_name || project.submitted_by,
   })
-  if (explicitStudent || project.student_email || project.created_by_email || project.student_name) {
+  if ((explicitStudent?.role === 'student') || project.student_email || project.student_name) {
     addMember(explicitStudent || {}, {
-      id: project.student_id || project.created_by || project.owner_id || null,
-      email: project.student_email || project.created_by_email || project.owner_email || '',
-      name: project.student_name || project.submitted_by || project.group_name || 'Student',
-      roleStatus: 'Original student',
+      id: project.student_id || null,
+      email: project.student_email || '',
+      name: project.student_name || project.submitted_by || 'Student',
+      roleStatus: 'Member',
     })
   }
 
@@ -865,12 +883,15 @@ function ProjectMembersCompact({ members = [], emptyText = 'No project members f
       <p className="project-members-title"><Users size={14} /> Project members</p>
       {visibleMembers.length ? (
         <div className="project-member-chips">
-          {visibleMembers.map((member, index) => (
-            <span className="project-member-chip" key={member.id || member.email || member.full_name || index}>
-              <b>{member.full_name || member.name || member.email || 'Student'}</b>
-              <small>{member.roleStatus || 'Group member'}</small>
-            </span>
-          ))}
+          {visibleMembers.map((member, index) => {
+            const isLeader = normalizeText(member.roleStatus || member.memberRole) === 'project leader' || normalizeText(member.memberRole) === 'project_leader'
+            return (
+              <span className={`project-member-chip ${isLeader ? 'leader' : ''}`} key={member.id || member.email || member.full_name || index}>
+                <b>{member.full_name || member.name || member.email || 'Student'}</b>
+                <small>{isLeader ? 'Project Leader' : (member.roleStatus || 'Member')}</small>
+              </span>
+            )
+          })}
         </div>
       ) : <p className="muted small project-members-empty">{emptyText}</p>}
     </div>
@@ -880,7 +901,7 @@ function ProjectMembersCompact({ members = [], emptyText = 'No project members f
 function enrichProjectsWithGroupMembers(projects = [], profiles = [], groupMembers = []) {
   const data = { profiles, groupMembers }
   return (projects || []).map((project) => {
-    const memberProfiles = getResearchGroupMemberProfiles(data, project)
+    const memberProfiles = getProjectMembersWithoutSupervisor(data, project, [])
     const memberNames = uniqueTextList(memberProfiles.map((profile) => profile.full_name).filter(Boolean))
     const memberEmails = uniqueTextList(memberProfiles.map((profile) => profile.email).filter(Boolean))
     const students = uniqueTextList([
@@ -958,7 +979,9 @@ function getVisibleReports(reports, visibleProjects, role, user) {
   const projectIds = new Set(visibleProjects.map((project) => String(project.id)))
   if (role === 'admin' || role === 'committee') return reports
   if (role === 'student') {
-    return reports.filter((report) => projectIds.has(String(report.project_id)) && reportOwnedByUser(report, user))
+    // Project partners can view weekly reports for their joined/assigned project,
+    // even though only the project leader can submit new reports.
+    return reports.filter((report) => projectIds.has(String(report.project_id)))
   }
   if (role === 'supervisor') {
     return reports.filter((report) => projectIds.has(String(report.project_id)))
@@ -1127,11 +1150,11 @@ function getAssignedSupervisorStudents(data, assignedProjects = [], reports = []
       email: project.student_email || project.created_by_email,
       submitted_by: project.student_name,
     })
-    if (explicitStudent?.role === 'student' || explicitStudent?.id || explicitStudent?.email) {
+    if (explicitStudent?.role === 'student' || project.student_id || project.student_email || project.student_name) {
       upsertStudentOption(students, explicitStudent || {}, {
-        id: project.student_id || project.created_by || null,
-        email: project.student_email || project.created_by_email || '',
-        name: explicitStudent?.full_name || project.student_name || project.group_name || 'Student',
+        id: project.student_id || null,
+        email: project.student_email || '',
+        name: explicitStudent?.full_name || project.student_name || 'Student',
         group: project.group_name,
       })
     }
@@ -1394,6 +1417,70 @@ function findSupervisorProfileForProject(data, project) {
   return null
 }
 
+
+
+function getProjectLeaderProfile(data = {}, project = {}) {
+  if (!project) return null
+  const leaderId = project.project_leader_id || project.research_project_leader_id || project.leader_id
+  const leaderEmail = normalizeText(project.project_leader_email || project.research_project_leader_email || project.leader_email)
+  const leaderName = normalizeText(project.project_leader_name || project.research_project_leader_name || project.leader_name)
+  const fromFields = findProfileByIdentity(data, {
+    id: leaderId,
+    email: leaderEmail,
+    name: leaderName,
+  })
+  if (fromFields?.role === 'student') return { ...fromFields, memberRole: 'project_leader', roleStatus: 'Project Leader' }
+
+  const leaderRecord = getResearchGroupMemberRecords(data.groupMembers || [], project).find((member) => {
+    if (member.status && normalizeText(member.status) !== 'active') return false
+    const role = normalizeText(member.member_role || member.project_role || member.role)
+    return role === 'project_leader' || role === 'research_project_leader'
+  })
+  if (!leaderRecord) return null
+  const matched = findProfileByIdentity(data, {
+    id: leaderRecord.student_id,
+    email: leaderRecord.student_email,
+    name: leaderRecord.student_name,
+  })
+  if (matched?.role && matched.role !== 'student') return null
+  return {
+    ...(matched || {}),
+    id: matched?.id || leaderRecord.student_id || null,
+    full_name: matched?.full_name || leaderRecord.student_name || leaderRecord.student_email || 'Project Leader',
+    email: matched?.email || leaderRecord.student_email || '',
+    role: 'student',
+    memberRole: 'project_leader',
+    roleStatus: 'Project Leader',
+    joined_at: leaderRecord.joined_at || '',
+  }
+}
+
+function isStudentProjectLeader(data = {}, project = {}, student = {}) {
+  if (!project || !student) return false
+  const leader = getProjectLeaderProfile(data, project)
+  if (!leader) return false
+  return (
+    (!!student.id && !!leader.id && String(student.id) === String(leader.id)) ||
+    (!!student.email && !!leader.email && normalizeText(student.email) === normalizeText(leader.email)) ||
+    (!!student.full_name && !!leader.full_name && normalizeText(student.full_name) === normalizeText(leader.full_name))
+  )
+}
+
+function getProjectMembersWithoutSupervisor(data = {}, project = {}, reports = []) {
+  const supervisor = findSupervisorProfileForProject(data, project)
+  const supervisorKeys = [supervisor?.id, supervisor?.email, supervisor?.full_name, project?.supervisor_id, project?.supervisor_email, project?.supervisor_name]
+    .map(normalizeText)
+    .filter(Boolean)
+  const leader = getProjectLeaderProfile(data, project)
+  return getProjectMemberProfiles(data, project, reports).filter((member) => {
+    const memberKeys = [member.id, member.email, member.full_name].map(normalizeText).filter(Boolean)
+    const isSupervisor = memberKeys.some((key) => supervisorKeys.includes(key)) || member.role === 'supervisor'
+    if (isSupervisor) return false
+    const isLeader = leader && memberKeys.some((key) => [leader.id, leader.email, leader.full_name].map(normalizeText).includes(key))
+    if (isLeader) member.roleStatus = 'Project Leader'
+    return true
+  })
+}
 
 function findAssignedSupervisorForStudent(data, studentUser) {
   if (!studentUser) return null
@@ -2832,10 +2919,104 @@ export default function App() {
     return { ok: true, project: savedProject, emailSent: !emailFailed }
   }
 
+
+  async function sendProjectLeaderAssignedEmail(projectId, studentId) {
+    if (!isSupabaseConfigured || !supabase?.functions?.invoke) return { ok: false, error: 'Email sending requires Supabase Edge Functions.' }
+    const { data: result, error } = await supabase.functions.invoke('send-platform-email', {
+      body: {
+        kind: 'project_leader_assigned',
+        projectId,
+        studentId,
+        appUrl: typeof window !== 'undefined' ? window.location.origin : '',
+      },
+    })
+    if (error) throw new Error(error.message || 'Project leader email could not be sent.')
+    if (result?.error) throw new Error(result.error)
+    return { ok: true, result }
+  }
+
+  async function assignProjectLeader(projectId, studentId) {
+    const project = data.projects.find((item) => String(item.id) === String(projectId))
+    const student = (data.profiles || []).find((profile) => String(profile.id) === String(studentId) && profile.role === 'student')
+    if (!project || !student) {
+      setMessage('Project or student was not found. Please refresh and try again.')
+      return { ok: false }
+    }
+    if (!(isAssignedSupervisorProject(project, currentUser) || canManageAllGroupMemberships(currentUser))) {
+      setMessage('You do not have permission to assign a project leader for this project.')
+      return { ok: false }
+    }
+    const members = getProjectMembersWithoutSupervisor(data, project, data.reports)
+    const isMember = members.some((member) => String(member.id || '') === String(student.id) || normalizeText(member.email) === normalizeText(student.email))
+    if (!isMember) {
+      setMessage('Project leader must be an existing student member of this project.')
+      return { ok: false }
+    }
+
+    let emailFailed = false
+    if (isSupabaseConfigured) {
+      const rpcResult = await supabase.rpc('assign_project_leader', { p_project_id: project.id, p_student_id: student.id })
+      if (rpcResult.error) {
+        // Fallback for deployments before the SQL function is run.
+        const activeMembers = getResearchGroupMemberRecords(data.groupMembers || [], project)
+        for (const member of activeMembers) {
+          if (!member.id) continue
+          await supabase.from('research_group_members').update({ member_role: String(member.student_id) === String(student.id) || normalizeText(member.student_email) === normalizeText(student.email) ? 'project_leader' : 'member' }).eq('id', member.id)
+        }
+        const updateResult = await supabase.from('research_projects').update({
+          project_leader_id: student.id,
+          project_leader_name: student.full_name || student.email || 'Project Leader',
+          project_leader_email: student.email || '',
+          project_leader_assigned_at: new Date().toISOString(),
+        }).eq('id', project.id)
+        if (updateResult.error) {
+          setMessage(rpcResult.error.message || updateResult.error.message)
+          return { ok: false }
+        }
+      }
+      const note = {
+        profile_id: student.id || null,
+        recipient_user_id: student.id || null,
+        recipient_email: student.email || '',
+        sender_user_id: currentUser?.id || null,
+        project_id: project.id,
+        notification_type: `project_leader_assigned_${project.id}_${student.id}`,
+        title: 'Research Project Leader Assigned',
+        message: `You have been assigned as Research Project Leader for ${project.title || project.group_name || 'your project'}. Only the project leader can submit weekly reports for this project.`,
+        type: 'Project Leader',
+        target_role: 'student',
+        is_read: false,
+        created_at: new Date().toISOString(),
+      }
+      const notificationResult = await supabase.from('notifications').insert(note)
+      if (notificationResult.error) console.warn('Project leader notification failed:', notificationResult.error)
+      try {
+        await sendProjectLeaderAssignedEmail(project.id, student.id)
+      } catch (emailError) {
+        console.warn('Project leader assignment email failed:', emailError)
+        emailFailed = true
+      }
+      await loadFromSupabase(currentUser)
+    } else {
+      setLocal((current) => ({
+        ...current,
+        projects: current.projects.map((item) => String(item.id) === String(project.id) ? { ...item, project_leader_id: student.id, project_leader_name: student.full_name, project_leader_email: student.email, project_leader_assigned_at: new Date().toISOString() } : item),
+        groupMembers: (current.groupMembers || []).map((member) => String(member.group_id) === String(project.id) ? { ...member, member_role: String(member.student_id) === String(student.id) || normalizeText(member.student_email) === normalizeText(student.email) ? 'project_leader' : 'member' } : member),
+      }))
+    }
+    setMessage(emailFailed ? 'Project leader assigned, but email notification failed.' : 'Project leader assigned successfully.')
+    return { ok: true, emailSent: !emailFailed }
+  }
+
   async function createWeeklyReport(form, file) {
     if (!form.project_id) {
       setMessage('Create or select a research project first.')
       return { ok: false, error: 'Create or select a research project first.' }
+    }
+    const weeklyProject = data.projects.find((project) => String(project.id) === String(form.project_id))
+    if (currentUser?.role === 'student' && !isStudentProjectLeader(data, weeklyProject, currentUser)) {
+      setMessage('Only the project leader can submit weekly reports for this project.')
+      return { ok: false, error: 'Only the project leader can submit weekly reports for this project.' }
     }
     if (!form.completed_work?.trim()) {
       setMessage('Please write the work completed this week before submitting.')
@@ -5160,6 +5341,7 @@ export default function App() {
   const roleLabel = ({ student: 'BSc Student', supervisor: 'Supervisor', admin: 'Admin', committee: 'Research Committee' }[allowedRole]) || 'User'
   const mainNavItems = [
     { id: 'dashboard', label: allowedRole === 'admin' ? 'Admin Dashboard' : 'Dashboard', icon: LayoutDashboard, show: true },
+    { id: 'project-management', label: 'Project Management', icon: ClipboardCheck, show: allowedRole === 'supervisor' },
     { id: 'reports', label: 'Print/PDF Reports', icon: Printer, show: true },
     { id: 'questions', label: allowedRole === 'supervisor' ? 'Student Questions' : 'Questions', icon: MessageSquareText, show: allowedRole === 'student' || allowedRole === 'supervisor' },
     { id: 'join-group', label: 'Join Research Group', icon: Users, show: allowedRole === 'student' && !studentCurrentResearchGroup },
@@ -5223,7 +5405,7 @@ export default function App() {
 
 
             {allowedRole === 'student' && <StudentDashboard data={visibleData} projects={visibleProjects} currentUser={currentUser} createWeeklyReport={createWeeklyReport} dataLoading={dataLoading} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
-            {allowedRole === 'supervisor' && <SupervisorDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} dataLoading={dataLoading} reviewReport={reviewReport} createProject={createProject} createDeadline={createDeadline} removeDeadline={removeDeadline} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
+            {allowedRole === 'supervisor' && <SupervisorDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} dataLoading={dataLoading} />}
             {allowedRole === 'committee' && <CommitteeDashboard data={visibleData} projects={visibleProjects} dataLoading={dataLoading} updateProject={updateProject} saveEvaluation={saveEvaluation} />}
             {allowedRole === 'admin' && <AdminDashboard data={visibleData} projects={visibleProjects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} assignStudentToSupervisor={assignStudentToSupervisor} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} loadError={dataLoadError} dataLoading={dataLoading} />}
           </>
@@ -5231,6 +5413,7 @@ export default function App() {
 
         {tab === 'questions' && allowedRole === 'student' && <StudentQuestionsTab data={data} currentUser={currentUser} dataLoading={dataLoading} submitStudentQuestion={submitStudentQuestion} />}
         {tab === 'questions' && allowedRole === 'supervisor' && <SupervisorQuestionsTab data={data} currentUser={currentUser} dataLoading={dataLoading} answerStudentQuestion={answerStudentQuestion} />}
+        {tab === 'project-management' && allowedRole === 'supervisor' && <SupervisorProjectManagementTab data={visibleData} projects={filteredProjects} currentUser={currentUser} dataLoading={dataLoading} reviewReport={reviewReport} createProject={createProject} createDeadline={createDeadline} removeDeadline={removeDeadline} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} assignProjectLeader={assignProjectLeader} />}
         {tab === 'join-group' && allowedRole === 'student' && !studentCurrentResearchGroup && <StudentJoinResearchGroupTab data={data} currentUser={currentUser} dataLoading={dataLoading} submitGroupJoinRequest={submitGroupJoinRequest} />}
         {tab === 'groups' && allowedRole === 'supervisor' && <SupervisorResearchGroupManagementTab data={data} currentUser={currentUser} dataLoading={dataLoading} supervisorAddStudentsToGroup={supervisorAddStudentsToGroup} decideGroupJoinRequest={decideGroupJoinRequest} />}
         {tab === 'group-requests' && (allowedRole === 'admin' || allowedRole === 'committee') && <AdminGroupJoinRequestsTab data={data} currentUser={currentUser} dataLoading={dataLoading} decideGroupJoinRequest={decideGroupJoinRequest} directAddStudentsToGroup={directAddStudentsToGroup} />}
@@ -6129,8 +6312,10 @@ function StudentDashboard({ data, projects, currentUser, createWeeklyReport, dat
   const ownProjects = projects.filter((p) => isOwnStudentProject(p, studentProfile) && isApprovedResearchProject(p))
   const selectedProject = joinedProject || ownProjects[0] || data.projects.find((p) => isOwnStudentProject(p, studentProfile) && isApprovedResearchProject(p))
   const selectedProjectContext = selectedProject ? getProjectContext(data, selectedProject) : studentProjectContext
-  const reports = data.reports.filter((r) => String(r.project_id) === String(selectedProject?.id) && reportOwnedByUser(r, currentUser))
-  const groupMemberProfiles = selectedProjectContext.members || []
+  const reports = data.reports.filter((r) => String(r.project_id) === String(selectedProject?.id))
+  const groupMemberProfiles = selectedProject ? getProjectMembersWithoutSupervisor(data, selectedProject, data.reports) : []
+  const projectLeader = selectedProject ? getProjectLeaderProfile(data, selectedProject) : null
+  const isProjectLeader = selectedProject ? isStudentProjectLeader(data, selectedProject, currentUser) : false
   const projectProgress = selectedProjectContext.progress || 0
   const projectDeadlines = selectedProject ? getDeadlinesForProject(data.deadlines || [], selectedProject, groupMemberProfiles) : []
   const [reportForm, setReportForm] = useState({ completed_work: '', challenges: '', next_week_plan: '', attendance: 'Attended' })
@@ -6139,6 +6324,11 @@ function StudentDashboard({ data, projects, currentUser, createWeeklyReport, dat
 
   async function handleSubmitWeeklyReport() {
     if (submittingReport) return
+    if (!selectedProject) return
+    if (!isProjectLeader) {
+      alert('Only the project leader can submit weekly reports for this project.')
+      return
+    }
     setSubmittingReport(true)
     try {
       const result = await createWeeklyReport({ ...reportForm, project_id: selectedProject.id, submitted_by: currentUser.full_name }, file)
@@ -6167,6 +6357,8 @@ function StudentDashboard({ data, projects, currentUser, createWeeklyReport, dat
                   <h3>{selectedProject.area}</h3>
                   <p className="muted">{selectedProject.title}</p>
                   <p className="muted small">Supervisor: {selectedProject.supervisor_name || 'Pending Assignment'}</p>
+                  <p className="muted small">Project Leader: {projectLeader?.full_name || projectLeader?.email || 'Not assigned yet'}</p>
+                  {isProjectLeader && <Pill tone="blue">You are the project leader for this project.</Pill>}
                 </div>
                 <Pill tone={selectedProject.approval === 'Approved' ? 'green' : 'amber'}>{selectedProject.approval}</Pill>
               </div>
@@ -6185,7 +6377,7 @@ function StudentDashboard({ data, projects, currentUser, createWeeklyReport, dat
       <div className="grid two-one student-dashboard-row student-report-feedback-row">
         <div className="card student-weekly-report-card">
           <SectionHeader icon={MessageSquareText} title="Submit Weekly Report" subtitle="Submit progress and upload evidence file" />
-          {selectedProject ? (
+          {selectedProject && isProjectLeader ? (
             <>
               <div className="form-grid weekly-report-form-grid">
                 <TextArea label="Work completed this week" value={reportForm.completed_work} onChange={(v) => setReportForm({ ...reportForm, completed_work: v })} />
@@ -6206,6 +6398,8 @@ function StudentDashboard({ data, projects, currentUser, createWeeklyReport, dat
                 <button className="primary min-button-width weekly-submit-button" type="button" disabled={submittingReport} onClick={handleSubmitWeeklyReport}><ButtonContent loading={submittingReport} loadingText="Submitting..." icon={Upload}>Submit Weekly Report</ButtonContent></button>
               </div>
             </>
+          ) : selectedProject ? (
+            <EmptyState title="Weekly reports locked" text="Only the project leader can submit weekly reports for this project." icon={Lock} />
           ) : <EmptyState title="Weekly reports locked" text="You must join or be assigned to a research project before submitting weekly reports." icon={Lock} />}
         </div>
 
@@ -6238,7 +6432,7 @@ function StudentDashboard({ data, projects, currentUser, createWeeklyReport, dat
   )
 }
 
-function SupervisorDashboard({ data, projects, currentUser, dataLoading = false, reviewReport, createProject, createDeadline, removeDeadline, sendWeeklyReportToMyEmail, emailSendingReports = {} }) {
+function SupervisorProjectManagementTab({ data, projects, currentUser, dataLoading = false, reviewReport, createProject, createDeadline, removeDeadline, sendWeeklyReportToMyEmail, emailSendingReports = {}, assignProjectLeader }) {
   const [feedback, setFeedback] = useState({})
   const [selectedStudent, setSelectedStudent] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
@@ -6246,6 +6440,8 @@ function SupervisorDashboard({ data, projects, currentUser, dataLoading = false,
   const [reviewLoadingKey, setReviewLoadingKey] = useState('')
   const [projectForm, setProjectForm] = useState({ title: '', group_name: `${currentUser.full_name || 'Supervisor'} Research Group`, area: DEFAULT_DEPARTMENT, project_description: '', expected_members: '', start_date: '', end_date: '', final_due: '' })
   const [submittingProject, setSubmittingProject] = useState(false)
+  const [leaderSelections, setLeaderSelections] = useState({})
+  const [leaderAssigningProjectId, setLeaderAssigningProjectId] = useState('')
   const assignedProjects = useMemo(() => projects.filter((p) => isAssignedSupervisorProject(p, currentUser)), [projects, currentUser])
   const approvedAssignedProjects = useMemo(() => assignedProjects.filter(isApprovedResearchProject), [assignedProjects])
   const supervisorProgressProjects = useMemo(() => getSupervisorProgressProjects(data, approvedAssignedProjects.length ? approvedAssignedProjects : assignedProjects), [data, approvedAssignedProjects, assignedProjects])
@@ -6296,10 +6492,21 @@ function SupervisorDashboard({ data, projects, currentUser, dataLoading = false,
     }
   }
 
-  if (dataLoading) return <LoadingBlock text="Loading supervisor reports..." />
+  async function handleAssignLeader(projectId) {
+    const studentId = leaderSelections[projectId]
+    if (!studentId || leaderAssigningProjectId || !assignProjectLeader) return
+    setLeaderAssigningProjectId(projectId)
+    try {
+      await assignProjectLeader(projectId, studentId)
+    } finally {
+      setLeaderAssigningProjectId('')
+    }
+  }
+
+  if (dataLoading) return <LoadingBlock text="Loading project management..." />
 
   return (
-    <div className="stack supervisor-dashboard-layout">
+    <div className="stack supervisor-project-management-layout">
       <div className="card supervisor-submit-project-card">
         <SectionHeader icon={FileText} title="Submit Research Project" subtitle="Supervisor projects are reviewed by the Research Committee before students can join" />
         <div className="form-grid supervisor-project-form-grid">
@@ -6322,6 +6529,44 @@ function SupervisorDashboard({ data, projects, currentUser, dataLoading = false,
       </div>
 
       {supervisorProgressProjects.length ? <ProjectProgressSection projects={supervisorProgressProjects} reports={allowedReports} students={studentOptions} data={data} /> : <div className="card"><EmptyState title="No approved supervised projects yet" text="Project progress appears after the Research Committee approves your submitted project or an approved project is assigned to you." icon={Users} /></div>}
+
+      <div className="card project-leader-assignment-card">
+        <SectionHeader icon={UserCog} title="Project Leader Assignment" subtitle="Select one student member as Research Project Leader for each project" />
+        {approvedAssignedProjects.length ? (
+          <div className="project-leader-grid">
+            {approvedAssignedProjects.map((project) => {
+              const members = getProjectMembersWithoutSupervisor(data, project, data.reports)
+              const leader = getProjectLeaderProfile(data, project)
+              return (
+                <div className="soft-box project-leader-card" key={project.id}>
+                  <div className="split">
+                    <div>
+                      <h3>{project.title || 'Untitled project'}</h3>
+                      <p className="muted small">Group: {project.group_name || 'Research Group'} • Supervisor: {project.supervisor_name || currentUser.full_name || 'Supervisor'}</p>
+                      <p className="muted small">Current Project Leader: {leader?.full_name || leader?.email || 'Not assigned yet'}</p>
+                    </div>
+                    <Pill tone={project.approval === 'Approved' ? 'green' : 'amber'}>{project.approval || 'Pending'}</Pill>
+                  </div>
+                  <ProjectMembersCompact members={members} />
+                  <div className="project-leader-controls">
+                    <label className="field">
+                      <span>Select Project Leader</span>
+                      <select value={leaderSelections[project.id] || leader?.id || ''} onChange={(e) => setLeaderSelections({ ...leaderSelections, [project.id]: e.target.value })}>
+                        <option value="">Choose a student member</option>
+                        {members.map((member) => <option key={member.id || member.email} value={member.id || ''}>{member.full_name || member.email}{member.email ? ` — ${member.email}` : ''}</option>)}
+                      </select>
+                    </label>
+                    <button className="primary min-button-width" type="button" disabled={leaderAssigningProjectId === project.id || !leaderSelections[project.id]} onClick={() => handleAssignLeader(project.id)}>
+                      <ButtonContent loading={leaderAssigningProjectId === project.id} loadingText="Assigning leader..." icon={UserPlus}>Assign Project Leader</ButtonContent>
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ) : <EmptyState title="No accepted projects yet." text="Project leader assignment appears after a project is accepted and students join." icon={UserCog} />}
+      </div>
+
       <DeadlineManager deadlines={data.deadlines} createDeadline={createDeadline} removeDeadline={removeDeadline} students={studentOptions} currentUser={currentUser} />
 
       <div className="card supervisor-review-reports-card">
@@ -6415,6 +6660,45 @@ function SupervisorDashboard({ data, projects, currentUser, dataLoading = false,
 }
 
 
+
+
+function SupervisorDashboard({ data, projects, currentUser, dataLoading = false }) {
+  const assignedProjects = useMemo(() => projects.filter((p) => isAssignedSupervisorProject(p, currentUser)), [projects, currentUser])
+  const approvedProjects = useMemo(() => assignedProjects.filter(isApprovedResearchProject), [assignedProjects])
+  const pendingProjects = assignedProjects.filter((project) => !isApprovedResearchProject(project) && normalizeText(project.approval || project.status).includes('pending'))
+  const averageProgress = approvedProjects.length
+    ? approvedProjects.reduce((sum, project) => sum + Number(getProjectProgress(project, data.reports) || project.progress || 0), 0) / approvedProjects.length
+    : 0
+  const members = approvedProjects.flatMap((project) => getProjectMembersWithoutSupervisor(data, project, data.reports))
+  const uniqueMembers = new Map()
+  members.forEach((member) => {
+    const key = member.id || normalizeText(member.email) || normalizeText(member.full_name)
+    if (key && !uniqueMembers.has(key)) uniqueMembers.set(key, member)
+  })
+
+  if (dataLoading) return <LoadingBlock text="Loading supervisor dashboard..." />
+
+  return (
+    <div className="stack supervisor-dashboard-layout">
+      <div className="grid two-one supervisor-overview-grid">
+        <div className="card">
+          <SectionHeader icon={LayoutDashboard} title="Supervisor Overview" subtitle="Project details are now organized inside Project Management" />
+          <div className="mini-metrics-grid">
+            <div className="metric-chip"><b>{assignedProjects.length}</b><span>Total submitted projects</span></div>
+            <div className="metric-chip"><b>{approvedProjects.length}</b><span>Accepted projects</span></div>
+            <div className="metric-chip"><b>{pendingProjects.length}</b><span>Pending review</span></div>
+            <div className="metric-chip"><b>{formatProgress(averageProgress)}%</b><span>Average progress</span></div>
+          </div>
+          <p className="muted small">Use the <b>Project Management</b> tab to view submitted projects, progress, members, deadlines, and project leader assignment.</p>
+        </div>
+        <div className="card">
+          <SectionHeader icon={Users} title="Supervised Project Members" subtitle="Students in accepted groups only" />
+          <ProjectMembersCompact members={Array.from(uniqueMembers.values())} />
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function QuestionStatusBadge({ status }) {
   const normalized = String(status || 'Pending')
@@ -7173,6 +7457,9 @@ function ProjectProgressSection({ projects = [], reports = [], students = [], da
             const projectReports = reports.filter((report) => String(report.project_id) === String(project.id))
             const latestReportDate = projectReports.map((report) => report.submitted_at).filter(Boolean).sort().at(-1)
             const progress = getProjectProgress(project, reports)
+            const leader = getProjectLeaderProfile(data, project)
+            const supervisor = findSupervisorProfileForProject(data, project)
+            const members = getProjectMembersWithoutSupervisor(data, project, reports)
             return (
               <div className="project-progress-wide-card" key={project.id}>
                 <div className="split project-progress-header">
@@ -7181,6 +7468,8 @@ function ProjectProgressSection({ projects = [], reports = [], students = [], da
                     {student?.email && <p className="muted small">{student.email}</p>}
                     <h3>{project.title}</h3>
                     <p className="muted">Research group: {project.group_name || 'Not specified'}</p>
+                    <p className="muted small">Supervisor: {supervisor?.full_name || project.supervisor_name || project.supervisor_email || 'Not assigned'}</p>
+                    <p className="muted small">Project Leader: {leader?.full_name || leader?.email || 'Not assigned yet'}</p>
                     <p className="muted small">Last update: {latestReportDate ? new Date(latestReportDate).toLocaleString() : project.created_at ? new Date(project.created_at).toLocaleString() : 'No updates yet'}</p>
                   </div>
                   <div className="progress-status-column">
@@ -7190,7 +7479,7 @@ function ProjectProgressSection({ projects = [], reports = [], students = [], da
                 </div>
                 <div className="progress-row"><span>Progress</span><span>{formatProgress(progress)}%</span></div>
                 <ProgressBar value={progress} />
-                <ProjectMembersCompact members={getProjectMemberProfiles(data, project, reports)} />
+                <ProjectMembersCompact members={members} />
               </div>
             )
           })}
@@ -7748,7 +8037,7 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
                   <b>{project.title || 'Untitled research title'}</b>
                   <p className="small muted">Group: {project.group_name || 'N/A'} • Supervisor: {project.supervisor_name || 'Pending Assignment'}</p>
                   <p className="small muted">Status: {project.status || 'Pending'} • Last update: {String(project.updated_at || project.created_at || '').slice(0, 10) || 'N/A'}</p>
-                  <ProjectMembersCompact members={getProjectMemberProfiles(data, project, data.reports)} />
+                  <ProjectMembersCompact members={getProjectMembersWithoutSupervisor(data, project, data.reports)} />
                 </div>
                 <div className="admin-progress-inline">
                   <span>{formatProgress(getProjectProgress(project, data.reports))}%</span>
@@ -7856,7 +8145,7 @@ function ProjectDecisionTable({ projects, updateProject, data = emptyData, repor
         <tr key={p.id}>
           <td><b>{p.group_name || 'Research Group'}</b><p>{p.title}</p><p className="muted small">Supervisor: {p.supervisor_name || p.supervisor_email || 'Not assigned'}{p.submitted_at ? ` • Submitted ${new Date(p.submitted_at).toLocaleDateString()}` : ''}</p>{p.project_description && <p className="muted small">{p.project_description}</p>}</td>
           <td>{p.area}</td>
-          <td><ProjectMembersCompact members={getProjectMemberProfiles(data, p, reports)} /></td>
+          <td><ProjectMembersCompact members={getProjectMembersWithoutSupervisor(data, p, reports)} /></td>
           <td><ProgressBar value={getProjectProgress(p, reports)} /><p className="small muted">{formatProgress(getProjectProgress(p, reports))}%</p></td>
           <td>
             <div className="inline-actions decision-actions">
@@ -8636,7 +8925,7 @@ function ProjectCard({ project, reports = [] }) {
         <p>{project.title}</p>
         <div className="progress-row"><span>Progress</span><span>{formatProgress(progress)}%</span></div>
         <ProgressBar value={progress} />
-        <ProjectMembersCompact members={getProjectMemberProfiles({}, project, reports)} />
+        <ProjectMembersCompact members={getProjectMembersWithoutSupervisor({ profiles: [], groupMembers: [] }, project, reports)} />
       </div>
     </div>
   )

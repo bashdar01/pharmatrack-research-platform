@@ -6754,3 +6754,100 @@ button .button-spinner {
   flex-wrap: wrap;
   margin-bottom: 0.55rem;
 }
+
+/* Project leader workflow polish */
+.project-member-chip.leader,
+.project-member-chip:has(small) {
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.project-member-chip.leader {
+  background: linear-gradient(135deg, #dbeafe, #e0f2fe);
+  border-color: #60a5fa;
+  color: #075985;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, .10);
+}
+
+.project-member-chip.leader small {
+  color: #0369a1;
+}
+
+.project-leader-assignment-card .project-leader-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+  gap: 14px;
+}
+
+.project-leader-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.project-leader-card h3 {
+  margin: 0 0 4px;
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+.project-leader-controls {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  padding-top: 10px;
+  border-top: 1px solid #e0f2fe;
+}
+
+.supervisor-overview-grid .metric-chip,
+.mini-metrics-grid .metric-chip {
+  min-height: 72px;
+}
+
+.mini-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.metric-chip {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid #dbeafe;
+  background: #f8fbff;
+}
+
+.metric-chip b {
+  color: #0284c7;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.metric-chip span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.supervisor-project-management-layout .supervisor-submit-project-card,
+.supervisor-project-management-layout .supervisor-submissions-card,
+.supervisor-project-management-layout .supervisor-project-progress-section,
+.supervisor-project-management-layout .project-leader-assignment-card,
+.supervisor-project-management-layout .supervisor-review-reports-card {
+  border-color: #dbeafe;
+}
+
+@media (max-width: 720px) {
+  .project-leader-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .project-leader-assignment-card .project-leader-grid {
+    grid-template-columns: 1fr;
+  }
+}
