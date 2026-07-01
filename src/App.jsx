@@ -737,6 +737,88 @@ function getResearchGroupMemberLabels(data = {}, project = {}) {
   return getResearchGroupMemberProfiles(data, project).flatMap((profile) => [profile.full_name, profile.email]).filter(Boolean)
 }
 
+function getProjectMemberProfiles(data = {}, project = {}, reports = []) {
+  const members = new Map()
+  const addMember = (profile = {}, fallback = {}) => {
+    const name = profile.full_name || profile.name || fallback.name || fallback.full_name || fallback.email || 'Student'
+    const email = profile.email || fallback.email || ''
+    const id = profile.id || fallback.id || null
+    const roleStatus = fallback.roleStatus || profile.member_status || profile.status || 'Group member'
+    const key = id || normalizeText(email) || normalizeText(name)
+    if (!key) return
+    const existing = members.get(key) || {}
+    members.set(key, {
+      ...existing,
+      ...profile,
+      id: existing.id || id,
+      full_name: existing.full_name || name,
+      email: existing.email || email,
+      roleStatus: existing.roleStatus || roleStatus,
+    })
+  }
+
+  ;(project.member_profiles || []).forEach((profile) => addMember(profile, { roleStatus: 'Group member' }))
+  getResearchGroupMemberProfiles(data, project).forEach((profile) => addMember(profile, { roleStatus: 'Group member' }))
+
+  const explicitStudent = findProfileByIdentity(data, {
+    id: project.student_id || project.created_by || project.owner_id,
+    email: project.student_email || project.created_by_email || project.owner_email,
+    name: project.student_name || project.submitted_by,
+  })
+  if (explicitStudent || project.student_email || project.created_by_email || project.student_name) {
+    addMember(explicitStudent || {}, {
+      id: project.student_id || project.created_by || project.owner_id || null,
+      email: project.student_email || project.created_by_email || project.owner_email || '',
+      name: project.student_name || project.submitted_by || project.group_name || 'Student',
+      roleStatus: 'Original student',
+    })
+  }
+
+  getProjectStudents(project).forEach((studentName) => {
+    const matchedProfile = (data.profiles || []).find((profile) =>
+      profile.role === 'student' && (normalizeText(profile.full_name) === normalizeText(studentName) || normalizeText(profile.email) === normalizeText(studentName))
+    )
+    addMember(matchedProfile || {}, {
+      name: matchedProfile?.full_name || studentName,
+      email: matchedProfile?.email || (String(studentName || '').includes('@') ? studentName : ''),
+      roleStatus: 'Project partner',
+    })
+  })
+
+  ;(reports || []).filter((report) => String(report.project_id) === String(project.id)).forEach((report) => {
+    const student = findStudentProfileForReport(data, report)
+    addMember(student || {}, {
+      id: report.student_id || report.submitted_by_id || report.user_id || report.created_by || null,
+      email: report.student_email || report.submitted_by_email || report.created_by_email || '',
+      name: report.submitted_by || student?.full_name || 'Student',
+      roleStatus: 'Report submitter',
+    })
+  })
+
+  return Array.from(members.values())
+    .filter((member) => member.full_name || member.email)
+    .sort((a, b) => String(a.full_name || a.email || '').localeCompare(String(b.full_name || b.email || '')))
+}
+
+function ProjectMembersCompact({ members = [], emptyText = 'No project members found.' }) {
+  const visibleMembers = (members || []).filter(Boolean)
+  return (
+    <div className="project-members-compact">
+      <p className="project-members-title"><Users size={14} /> Project members</p>
+      {visibleMembers.length ? (
+        <div className="project-member-chips">
+          {visibleMembers.map((member, index) => (
+            <span className="project-member-chip" key={member.id || member.email || member.full_name || index}>
+              <b>{member.full_name || member.name || member.email || 'Student'}</b>
+              <small>{member.roleStatus || 'Group member'}</small>
+            </span>
+          ))}
+        </div>
+      ) : <p className="muted small project-members-empty">{emptyText}</p>}
+    </div>
+  )
+}
+
 function enrichProjectsWithGroupMembers(projects = [], profiles = [], groupMembers = []) {
   const data = { profiles, groupMembers }
   return (projects || []).map((project) => {
@@ -1401,14 +1483,15 @@ function ProgressBar({ value }) {
 }
 
 function StatCard({ icon: Icon, title, value, detail }) {
+  const slug = String(title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
   return (
-    <div className="card stat-card">
+    <div className={`card stat-card compact-dashboard-stat-card stat-${slug}`}>
+      <div className="icon-box stat-card-icon"><Icon size={22} /></div>
       <div>
-        <p className="muted small">{title}</p>
+        <p className="muted small stat-card-label">{title}</p>
         <h2>{value}</h2>
         <p className="muted small">{detail}</p>
       </div>
-      <div className="icon-box"><Icon size={24} /></div>
     </div>
   )
 }
@@ -4629,28 +4712,63 @@ export default function App() {
     )
   }
 
+  const roleLabel = ({ student: 'PharmD Student', supervisor: 'Supervisor', admin: 'Admin', committee: 'Research Committee' }[allowedRole]) || 'User'
+  const mainNavItems = [
+    { id: 'dashboard', label: allowedRole === 'admin' ? 'Admin Dashboard' : 'Dashboard', icon: LayoutDashboard, show: true },
+    { id: 'reports', label: 'Print/PDF Reports', icon: Printer, show: true },
+    { id: 'questions', label: allowedRole === 'supervisor' ? 'Student Questions' : 'Questions', icon: MessageSquareText, show: allowedRole === 'student' || allowedRole === 'supervisor' },
+    { id: 'join-group', label: 'Join Research Group', icon: Users, show: allowedRole === 'student' && !studentCurrentResearchGroup },
+    { id: 'groups', label: 'Research Groups', icon: Users, show: allowedRole === 'supervisor' },
+    { id: 'database', label: 'Database', icon: Database, show: allowedRole === 'admin' },
+    { id: 'audit', label: 'Audit Log', icon: ShieldCheck, show: allowedRole === 'admin' },
+  ].filter((item) => item.show)
+  const activeNavItem = mainNavItems.find((item) => item.id === tab) || mainNavItems[0]
+
+  useEffect(() => {
+    if (tab === 'notifications') setTab('dashboard')
+  }, [tab])
+
   return (
-    <div className="app">
-      <header className="hero no-print" style={{ '--hero-bg-image': cssImageUrl(websiteSettings.heroImage, websiteSettings.assetUpdatedAt), backgroundImage: cssImageUrl(websiteSettings.heroImage, websiteSettings.assetUpdatedAt) }}>
-        <UserProfileMenu
-          currentUser={currentUser}
-          onLogout={logout}
-        />
+    <div className={`app app-main-shell main-dashboard-no-sidebar role-${allowedRole}`}>
+      <header className="main-compact-header no-print">
+        <div className="main-compact-brand">
+          <img src="/favicon.svg" alt="Hawler Medical University" />
+          <div>
+            <h1>Hawler Medical University</h1>
+            <p>College of Pharmacy Research Platform</p>
+          </div>
+        </div>
+        <div className="main-header-actions">
+          <NotificationBellMenu
+            data={data}
+            role={allowedRole}
+            currentUser={currentUser}
+            dataLoading={dataLoading}
+            unreadCount={stats.unread}
+            markNotificationRead={markNotificationRead}
+            removeNotification={removeNotification}
+          />
+          <div className="main-profile-summary">
+            <b>{currentUser?.full_name || currentUser?.email || 'Active user'}</b>
+            <small>{roleLabel}</small>
+          </div>
+          <UserProfileMenu currentUser={currentUser} onLogout={logout} />
+        </div>
       </header>
 
-      <main>
-
-        <div className="tabs no-print">
-          <button onClick={() => setTab('dashboard')} className={tab === 'dashboard' ? 'active' : ''}><LayoutDashboard size={16} /> {isAdminPortal ? 'Admin Dashboard' : 'Dashboard'}</button>
-          <button onClick={() => setTab('notifications')} className={tab === 'notifications' ? 'active' : ''}><Bell size={16} /> Notifications {stats.unread > 0 && <span className="tab-badge">{stats.unread}</span>}</button>
-          <button onClick={() => setTab('reports')} className={tab === 'reports' ? 'active' : ''}><Printer size={16} /> Print/PDF Reports</button>
-          {allowedRole === 'student' && <button onClick={() => setTab('questions')} className={tab === 'questions' ? 'active' : ''}><MessageSquareText size={16} /> Questions</button>}
-          {allowedRole === 'student' && !studentCurrentResearchGroup && <button onClick={() => setTab('join-group')} className={tab === 'join-group' ? 'active' : ''}><Users size={16} /> Join Research Group</button>}
-          {allowedRole === 'supervisor' && <button onClick={() => setTab('questions')} className={tab === 'questions' ? 'active' : ''}><MessageSquareText size={16} /> Student Questions</button>}
-          {allowedRole === 'supervisor' && <button onClick={() => setTab('groups')} className={tab === 'groups' ? 'active' : ''}><Users size={16} /> Research Groups</button>}
-          {allowedRole === 'admin' && <button onClick={() => setTab('database')} className={tab === 'database' ? 'active' : ''}><Database size={16} /> Database</button>}
-          {allowedRole === 'admin' && <button onClick={() => setTab('audit')} className={tab === 'audit' ? 'active' : ''}><ShieldCheck size={16} /> Audit Log</button>}
-        </div>
+      <main className="app-content-panel">
+        <nav className="main-pill-tabs no-print" aria-label="Main navigation">
+          {mainNavItems.map((item) => {
+            const Icon = item.icon
+            return (
+              <button key={item.id} type="button" onClick={() => setTab(item.id)} className={tab === item.id ? 'active' : ''}>
+                <Icon size={17} />
+                <span>{item.label}</span>
+                {item.badge > 0 && <span className="tab-badge">{item.badge}</span>}
+              </button>
+            )
+          })}
+        </nav>
 
         {message && <div className="message no-print">{message}</div>}
 
@@ -4669,7 +4787,6 @@ export default function App() {
           </>
         )}
 
-        {tab === 'notifications' && <NotificationsTab data={data} role={allowedRole} currentUser={currentUser} dataLoading={dataLoading} createNotification={createNotification} markNotificationRead={markNotificationRead} removeNotification={removeNotification} />}
         {tab === 'questions' && allowedRole === 'student' && <StudentQuestionsTab data={data} currentUser={currentUser} dataLoading={dataLoading} submitStudentQuestion={submitStudentQuestion} />}
         {tab === 'questions' && allowedRole === 'supervisor' && <SupervisorQuestionsTab data={data} currentUser={currentUser} dataLoading={dataLoading} answerStudentQuestion={answerStudentQuestion} />}
         {tab === 'join-group' && allowedRole === 'student' && !studentCurrentResearchGroup && <StudentJoinResearchGroupTab data={data} currentUser={currentUser} dataLoading={dataLoading} submitGroupJoinRequest={submitGroupJoinRequest} />}
@@ -4683,9 +4800,124 @@ export default function App() {
   )
 }
 
+
+function NotificationBellMenu({ data, role, currentUser, dataLoading = false, unreadCount = 0, markNotificationRead, removeNotification }) {
+  const [open, setOpen] = useState(false)
+  const [removingNotificationId, setRemovingNotificationId] = useState('')
+  const [readingNotificationId, setReadingNotificationId] = useState('')
+  const wrapperRef = useRef(null)
+  const visibleNotifications = useMemo(() => (
+    Array.isArray(data?.notifications) ? data.notifications.filter((notification) => notificationForUser(notification, currentUser, role)) : []
+  ), [data?.notifications, currentUser, role])
+
+  useEffect(() => {
+    if (!open) return undefined
+    function handleOutside(event) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) setOpen(false)
+    }
+    function handleEscape(event) {
+      if (event.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', handleOutside)
+    document.addEventListener('touchstart', handleOutside)
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('mousedown', handleOutside)
+      document.removeEventListener('touchstart', handleOutside)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [open])
+
+  async function handleMarkRead(notificationId) {
+    if (!markNotificationRead || readingNotificationId || removingNotificationId) return
+    setReadingNotificationId(notificationId)
+    try {
+      await markNotificationRead(notificationId)
+    } finally {
+      setReadingNotificationId('')
+    }
+  }
+
+  async function handleRemove(notificationId) {
+    if (!removeNotification || removingNotificationId) return
+    if (!window.confirm('Are you sure you want to remove this notification?')) return
+    setRemovingNotificationId(notificationId)
+    try {
+      await removeNotification(notificationId)
+    } finally {
+      setRemovingNotificationId('')
+    }
+  }
+
+  return (
+    <div className={`notification-bell-menu ${open ? 'open' : ''}`} ref={wrapperRef}>
+      <button
+        className={`main-notification-button ${open ? 'active' : ''}`}
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        aria-label="Open alerts"
+        aria-expanded={open}
+      >
+        <Bell size={20} />
+        {unreadCount > 0 && <span>{unreadCount}</span>}
+      </button>
+
+      <div className="notification-popover" role="dialog" aria-label="Recent updates">
+        <div className="notification-popover-head">
+          <div>
+            <b>Updates</b>
+            <small>{unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}</small>
+          </div>
+          <button type="button" className="notification-popover-close" onClick={() => setOpen(false)} aria-label="Close updates">×</button>
+        </div>
+
+        <div className="notification-popover-list">
+          {dataLoading ? (
+            <div className="notification-popover-state">Loading notifications...</div>
+          ) : visibleNotifications.length ? visibleNotifications.map((notification) => {
+            const removing = String(removingNotificationId) === String(notification.id)
+            const reading = String(readingNotificationId) === String(notification.id)
+            return (
+              <article className={`notification-popover-item ${notification.is_read ? '' : 'unread'}`} key={notification.id}>
+                <button
+                  type="button"
+                  className="notification-popover-content"
+                  onClick={() => !notification.is_read && handleMarkRead(notification.id)}
+                  disabled={reading || removing}
+                >
+                  <span className="notification-dot" aria-hidden="true" />
+                  <span>
+                    <b>{notification.title || notification.type || 'Update'}</b>
+                    <small>{notification.message || 'You have a new update.'}</small>
+                    <em>{String(notification.created_at || '').slice(0, 16).replace('T', ' ') || 'Date unavailable'}</em>
+                  </span>
+                </button>
+                <div className="notification-popover-actions">
+                  {!notification.is_read && (
+                    <button type="button" onClick={() => handleMarkRead(notification.id)} disabled={reading || removing}>
+                      <ButtonContent loading={reading} loadingText="Saving...">Read</ButtonContent>
+                    </button>
+                  )}
+                  <button type="button" className="danger ghost-icon-button" onClick={() => handleRemove(notification.id)} disabled={removing} aria-label="Remove update">
+                    <ButtonContent loading={removing} loadingText="..."><Trash2 size={14} /></ButtonContent>
+                  </button>
+                </div>
+              </article>
+            )
+          }) : (
+            <div className="notification-popover-state">No notifications.</div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function UserProfileMenu({ currentUser, onLogout }) {
   const storageKey = `pharmatrack-profile-photo-${currentUser?.email || currentUser?.id || 'user'}`
   const [open, setOpen] = useState(false)
+  const [menuVisible, setMenuVisible] = useState(false)
+  const closeTimerRef = useRef(null)
   const [photo, setPhoto] = useState(() => localStorage.getItem(storageKey) || '')
   const initial = String(currentUser?.full_name || currentUser?.email || 'U').trim().charAt(0).toUpperCase()
   const displayName = currentUser?.full_name || 'User'
@@ -4710,13 +4942,33 @@ function UserProfileMenu({ currentUser, onLogout }) {
     localStorage.removeItem(storageKey)
   }
 
+  function keepProfileOpen() {
+    if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current)
+    closeTimerRef.current = null
+    setMenuVisible(true)
+    setOpen(true)
+  }
+
+  function scheduleProfileClose() {
+    if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current)
+    setOpen(false)
+    closeTimerRef.current = window.setTimeout(() => {
+      setMenuVisible(false)
+      closeTimerRef.current = null
+    }, 420)
+  }
+
+  useEffect(() => () => {
+    if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current)
+  }, [])
+
   return (
-    <div className={`student-profile-menu user-profile-menu ${open ? 'open' : ''}`} onMouseLeave={() => setOpen(false)}>
-      <button className="student-profile-trigger redesigned" type="button" onClick={() => setOpen((value) => !value)} aria-label="Open profile menu">
+    <div className={`student-profile-menu user-profile-menu ${open ? 'open' : menuVisible ? 'closing' : ''}`} onMouseEnter={keepProfileOpen} onMouseLeave={scheduleProfileClose}>
+      <button className="student-profile-trigger redesigned" type="button" onClick={() => (open ? scheduleProfileClose() : keepProfileOpen())} aria-label="Open profile menu">
         {photo ? <img src={photo} alt="Profile" /> : <span>{initial}</span>}
         <span className="profile-online-dot" aria-hidden="true" />
       </button>
-      {open && (
+      {menuVisible && (
         <div className="student-profile-dropdown redesigned-profile-card">
           <div className="profile-cover" />
           <div className="profile-card-body simplified-profile-card">
@@ -5433,7 +5685,7 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
   const selectedProject = joinedProject || ownProjects[0] || data.projects.find((p) => isOwnStudentProject(p, studentProfile))
   const hasSubmittedResearchTitle = Boolean(selectedProject)
   const reports = data.reports.filter((r) => String(r.project_id) === String(selectedProject?.id) && reportOwnedByUser(r, currentUser))
-  const groupMembers = selectedProject ? uniqueTextList([...listValue(selectedProject.member_names), ...getProjectStudents(selectedProject).filter((member) => !String(member || '').includes('@'))]) : []
+  const groupMemberProfiles = selectedProject ? getProjectMemberProfiles(data, selectedProject, data.reports) : []
   const projectProgress = selectedProject ? getProjectProgress(selectedProject, data.reports) : 0
   const [titleForm, setTitleForm] = useState({ title: '', area: DEFAULT_DEPARTMENT, group_name: `${currentUser.full_name} Research Group`, final_due: '2026-06-20' })
   const [reportForm, setReportForm] = useState({ completed_work: '', challenges: '', next_week_plan: '', attendance: 'Attended' })
@@ -5480,12 +5732,12 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
                   <h3>{selectedProject.area}</h3>
                   <p className="muted">{selectedProject.title}</p>
                   <p className="muted small">Supervisor: {selectedProject.supervisor_name || 'Pending Assignment'}</p>
-                  {groupMembers.length ? <p className="muted small">Group members: {groupMembers.join(', ')}</p> : null}
                 </div>
                 <Pill tone={selectedProject.approval === 'Approved' ? 'green' : 'amber'}>{selectedProject.approval}</Pill>
               </div>
               <div className="progress-row"><span>Progress</span><span>{formatProgress(projectProgress)}%</span></div>
               <ProgressBar value={projectProgress} />
+              <ProjectMembersCompact members={groupMemberProfiles} />
             </div>
           ) : <EmptyState title="No research project assigned yet." text="Join or submit a research project to see progress and weekly report access." />}
         </div>
@@ -5504,15 +5756,20 @@ function StudentDashboard({ data, projects, currentUser, createProject, createWe
                 <TextArea label="Work completed this week" value={reportForm.completed_work} onChange={(v) => setReportForm({ ...reportForm, completed_work: v })} />
                 <TextArea label="Problems or challenges" value={reportForm.challenges} onChange={(v) => setReportForm({ ...reportForm, challenges: v })} />
                 <TextArea label="Next week plan" value={reportForm.next_week_plan} onChange={(v) => setReportForm({ ...reportForm, next_week_plan: v })} />
-                <label className="field">
+                <label className="field weekly-upload-field">
                   <span>Upload file</span>
                   <input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+                </label>
+                <label className="field weekly-attendance-field">
+                  <span>Attendance</span>
                   <select value={reportForm.attendance} onChange={(e) => setReportForm({ ...reportForm, attendance: e.target.value })}>
                     <option>Attended</option><option>Online</option><option>Absent</option><option>Not scheduled</option>
                   </select>
                 </label>
               </div>
-              <button className="primary min-button-width" type="button" disabled={submittingReport} onClick={handleSubmitWeeklyReport}><ButtonContent loading={submittingReport} loadingText="Submitting..." icon={Upload}>Submit Weekly Report</ButtonContent></button>
+              <div className="weekly-report-actions">
+                <button className="primary min-button-width weekly-submit-button" type="button" disabled={submittingReport} onClick={handleSubmitWeeklyReport}><ButtonContent loading={submittingReport} loadingText="Submitting..." icon={Upload}>Submit Weekly Report</ButtonContent></button>
+              </div>
             </>
           ) : <EmptyState title="Weekly reports locked" text="You must join or be assigned to a research project before submitting weekly reports." icon={Lock} />}
         </div>
@@ -5607,7 +5864,7 @@ function SupervisorDashboard({ data, projects, currentUser, dataLoading = false,
 
   return (
     <div className="stack">
-      {supervisorProgressProjects.length ? <ProjectProgressSection projects={supervisorProgressProjects} reports={allowedReports} students={studentOptions} /> : <div className="card"><EmptyState title="No assigned projects" text="Ask the admin to assign projects to your exact login name, or assign yourself from the Admin view for testing." icon={Users} /></div>}
+      {supervisorProgressProjects.length ? <ProjectProgressSection projects={supervisorProgressProjects} reports={allowedReports} students={studentOptions} data={data} /> : <div className="card"><EmptyState title="No assigned projects" text="Ask the admin to assign projects to your exact login name, or assign yourself from the Admin view for testing." icon={Users} /></div>}
       <DeadlineManager deadlines={data.deadlines} createDeadline={createDeadline} removeDeadline={removeDeadline} students={studentOptions} currentUser={currentUser} />
 
       <div className="card supervisor-review-reports-card">
@@ -6374,7 +6631,7 @@ function DeadlineManager({ deadlines, createDeadline, removeDeadline, students =
   )
 }
 
-function ProjectProgressSection({ projects = [], reports = [], students = [] }) {
+function ProjectProgressSection({ projects = [], reports = [], students = [], data = emptyData }) {
   const [selectedStudent, setSelectedStudent] = useState('all')
 
   useEffect(() => {
@@ -6424,6 +6681,7 @@ function ProjectProgressSection({ projects = [], reports = [], students = [] }) 
                 </div>
                 <div className="progress-row"><span>Progress</span><span>{formatProgress(progress)}%</span></div>
                 <ProgressBar value={progress} />
+                <ProjectMembersCompact members={getProjectMemberProfiles(data, project, reports)} />
               </div>
             )
           })}
@@ -6556,7 +6814,7 @@ function CommitteeDashboard({ data = emptyData, projects = [], dataLoading = fal
           <label className="field"><span>Department</span><select value={reviewDepartment} onChange={(e) => setReviewDepartment(e.target.value)}><option value="all">All departments</option>{DEPARTMENT_OPTIONS.map((department) => <option key={department} value={department}>{department}</option>)}</select></label>
           <label className="field"><span>Research group</span><select value={reviewGroup} onChange={(e) => setReviewGroup(e.target.value)}><option value="all">All groups</option>{reviewGroupOptions.filter((item) => item !== 'all').map((group) => <option key={group} value={group}>{group}</option>)}</select></label>
         </div>
-        {reviewProjects.length ? <ProjectDecisionTable projects={reviewProjects} updateProject={updateProject} /> : <EmptyState title="No matching projects" text="Try changing the filters or wait for students to submit research titles." icon={Search} />}
+        {reviewProjects.length ? <ProjectDecisionTable projects={reviewProjects} updateProject={updateProject} data={data} reports={reports} /> : <EmptyState title="No matching projects" text="Try changing the filters or wait for students to submit research titles." icon={Search} />}
       </div>
 
       <div className="card final-evaluation-card">
@@ -6979,12 +7237,13 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
               <div className="mini-card managed-item admin-progress-management-item" key={`progress-${project.id}`}>
                 <div>
                   <b>{project.title || 'Untitled research title'}</b>
-                  <p className="small muted">Student: {project.student_email || project.created_by_email || getProjectStudents(project).join(', ') || 'Not linked'} • Group: {project.group_name || 'N/A'}</p>
+                  <p className="small muted">Group: {project.group_name || 'N/A'} • Supervisor: {project.supervisor_name || 'Pending Assignment'}</p>
                   <p className="small muted">Status: {project.status || 'Pending'} • Last update: {String(project.updated_at || project.created_at || '').slice(0, 10) || 'N/A'}</p>
+                  <ProjectMembersCompact members={getProjectMemberProfiles(data, project, data.reports)} />
                 </div>
                 <div className="admin-progress-inline">
-                  <span>{formatProgress(project.progress)}%</span>
-                  <ProgressBar value={project.progress} />
+                  <span>{formatProgress(getProjectProgress(project, data.reports))}%</span>
+                  <ProgressBar value={getProjectProgress(project, data.reports)} />
                 </div>
               </div>
             )) : <EmptyState title="No project progress" text="Project progress will appear after research titles are submitted." icon={CheckCircle2} />}
@@ -7052,7 +7311,7 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
   )
 }
 
-function ProjectDecisionTable({ projects, updateProject }) {
+function ProjectDecisionTable({ projects, updateProject, data = emptyData, reports = [] }) {
   const [decisionLoading, setDecisionLoading] = useState('')
 
   async function runDecision(projectId, decision, fields) {
@@ -7067,7 +7326,7 @@ function ProjectDecisionTable({ projects, updateProject }) {
   }
 
   return (
-    <div className="table-wrap"><table><thead><tr><th>Project</th><th>Area</th><th>Progress</th><th>Decision</th></tr></thead><tbody>{projects.map((p) => {
+    <div className="table-wrap"><table><thead><tr><th>Project</th><th>Area</th><th>Members</th><th>Progress</th><th>Decision</th></tr></thead><tbody>{projects.map((p) => {
       const approvedKey = `${p.id}-approve`
       const reviseKey = `${p.id}-revise`
       const rejectKey = `${p.id}-reject`
@@ -7075,7 +7334,8 @@ function ProjectDecisionTable({ projects, updateProject }) {
         <tr key={p.id}>
           <td><b>{p.group_name}</b><p>{p.title}</p></td>
           <td>{p.area}</td>
-          <td><ProgressBar value={p.progress} /><p className="small muted">{formatProgress(p.progress)}%</p></td>
+          <td><ProjectMembersCompact members={getProjectMemberProfiles(data, p, reports)} /></td>
+          <td><ProgressBar value={getProjectProgress(p, reports)} /><p className="small muted">{formatProgress(getProjectProgress(p, reports))}%</p></td>
           <td>
             <button className="success min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'approve', { approval: 'Approved', status: 'Ongoing' })}><ButtonContent loading={decisionLoading === approvedKey} loadingText="Accepting..." icon={CheckCircle2}>Approve</ButtonContent></button>
             <button className="warning min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'revise', { approval: 'Revision Required', status: 'Needs Attention' })}><ButtonContent loading={decisionLoading === reviseKey} loadingText="Requesting..." icon={RefreshCw}>Revise</ButtonContent></button>
@@ -7643,7 +7903,7 @@ function ReportsTab({ data, projects, currentUser, role, printPdfReport, exportC
         </PdfReportSection>
 
         <PdfReportSection settings={settings} sectionKey="projectProgress" title="Project Progress">
-          {hasProjects ? <ReportTable><thead><tr><th>Group</th><th>Title</th><th>Progress</th><th>Status</th></tr></thead><tbody>{studentFilteredProjects.map((project) => <tr key={project.id}><td>{project.group_name || '-'}</td><td>{project.title}</td><td>{formatProgress(getProjectProgress(project, scopedReports))}%</td><td>{getProgressStatusLabel(project, scopedReports)}</td></tr>)}</tbody></ReportTable> : <NoRecords />}
+          {hasProjects ? <ReportTable><thead><tr><th>Group</th><th>Title</th><th>Progress</th><th>Members</th><th>Status</th></tr></thead><tbody>{studentFilteredProjects.map((project) => { const members = getProjectMemberProfiles(data, project, scopedReports); return <tr key={project.id}><td>{project.group_name || '-'}</td><td>{project.title}</td><td>{formatProgress(getProjectProgress(project, scopedReports))}%</td><td>{members.length ? members.map((member) => member.full_name || member.email).join(', ') : 'No project members found.'}</td><td>{getProgressStatusLabel(project, scopedReports)}</td></tr> })}</tbody></ReportTable> : <NoRecords />}
         </PdfReportSection>
 
         <PdfReportSection settings={settings} sectionKey="deadlines" title="Deadlines">
@@ -7841,6 +8101,7 @@ function ProjectCard({ project, reports = [] }) {
         <p>{project.title}</p>
         <div className="progress-row"><span>Progress</span><span>{formatProgress(progress)}%</span></div>
         <ProgressBar value={progress} />
+        <ProjectMembersCompact members={getProjectMemberProfiles({}, project, reports)} />
       </div>
     </div>
   )
