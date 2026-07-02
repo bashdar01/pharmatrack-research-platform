@@ -60,6 +60,8 @@ const DEPARTMENT_OPTIONS = [
 ]
 
 const DEFAULT_DEPARTMENT = DEPARTMENT_OPTIONS[0]
+const PROJECT_DESCRIPTION_MAX_LENGTH = 200
+const PROJECT_DESCRIPTION_LIMIT_MESSAGE = 'Description / Abstract must be 200 characters or less.'
 
 function normalizeDepartment(value, fallback = DEFAULT_DEPARTMENT) {
   return DEPARTMENT_OPTIONS.includes(value) ? value : fallback
@@ -897,6 +899,16 @@ function ProjectMembersCompact({ members = [], emptyText = 'No project members f
     </div>
   )
 }
+
+function getProjectAbstractText(project = {}) {
+  return project.project_description || project.abstract || project.bio || project.description || ''
+}
+
+function ProjectAbstractText({ project, emptyText = 'No abstract provided.', className = '' }) {
+  const value = String(getProjectAbstractText(project) || '').trim()
+  return <p className={`muted small project-abstract-text ${className}`.trim()}>{value || emptyText}</p>
+}
+
 
 function enrichProjectsWithGroupMembers(projects = [], profiles = [], groupMembers = []) {
   const data = { profiles, groupMembers }
@@ -2829,13 +2841,18 @@ export default function App() {
       setMessage('Please select a valid department.')
       return { ok: false, error: 'Please select a valid department.' }
     }
+    const projectDescription = String(form.project_description || form.description || '')
+    if (projectDescription.length > PROJECT_DESCRIPTION_MAX_LENGTH) {
+      setMessage(PROJECT_DESCRIPTION_LIMIT_MESSAGE)
+      return { ok: false, error: PROJECT_DESCRIPTION_LIMIT_MESSAGE }
+    }
     const now = new Date().toISOString()
     const project = {
       id: crypto.randomUUID(),
       group_name: form.group_name || `${currentUser?.full_name || 'Supervisor'} Research Group`,
       title: form.title,
       area: normalizeDepartment(form.area),
-      project_description: form.project_description || form.description || '',
+      project_description: projectDescription,
       expected_members: form.expected_members ? Number(form.expected_members) : null,
       start_date: form.start_date || null,
       end_date: form.end_date || form.final_due || null,
@@ -4324,6 +4341,10 @@ export default function App() {
   async function updateProject(projectId, fields) {
     const targetProject = (data.projects || []).find((project) => String(project.id) === String(projectId)) || {}
     const nextFields = { ...fields }
+    if (Object.prototype.hasOwnProperty.call(nextFields, 'project_description') && String(nextFields.project_description || '').length > PROJECT_DESCRIPTION_MAX_LENGTH) {
+      setMessage(PROJECT_DESCRIPTION_LIMIT_MESSAGE)
+      return { ok: false, error: PROJECT_DESCRIPTION_LIMIT_MESSAGE }
+    }
     const approvalChanged = Object.prototype.hasOwnProperty.call(nextFields, 'approval') && String(targetProject.approval || '') !== String(nextFields.approval || '')
     if (approvalChanged) {
       nextFields.reviewed_at = new Date().toISOString()
@@ -5405,7 +5426,7 @@ export default function App() {
 
 
             {allowedRole === 'student' && <StudentDashboard data={visibleData} projects={visibleProjects} currentUser={currentUser} createWeeklyReport={createWeeklyReport} dataLoading={dataLoading} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
-            {allowedRole === 'supervisor' && <SupervisorDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} dataLoading={dataLoading} />}
+            {allowedRole === 'supervisor' && <SupervisorDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} dataLoading={dataLoading} reviewReport={reviewReport} createDeadline={createDeadline} removeDeadline={removeDeadline} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
             {allowedRole === 'committee' && <CommitteeDashboard data={visibleData} projects={visibleProjects} dataLoading={dataLoading} updateProject={updateProject} saveEvaluation={saveEvaluation} />}
             {allowedRole === 'admin' && <AdminDashboard data={visibleData} projects={visibleProjects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} assignStudentToSupervisor={assignStudentToSupervisor} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} loadError={dataLoadError} dataLoading={dataLoading} />}
           </>
@@ -5413,7 +5434,7 @@ export default function App() {
 
         {tab === 'questions' && allowedRole === 'student' && <StudentQuestionsTab data={data} currentUser={currentUser} dataLoading={dataLoading} submitStudentQuestion={submitStudentQuestion} />}
         {tab === 'questions' && allowedRole === 'supervisor' && <SupervisorQuestionsTab data={data} currentUser={currentUser} dataLoading={dataLoading} answerStudentQuestion={answerStudentQuestion} />}
-        {tab === 'project-management' && allowedRole === 'supervisor' && <SupervisorProjectManagementTab data={visibleData} projects={filteredProjects} currentUser={currentUser} dataLoading={dataLoading} reviewReport={reviewReport} createProject={createProject} createDeadline={createDeadline} removeDeadline={removeDeadline} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} assignProjectLeader={assignProjectLeader} />}
+        {tab === 'project-management' && allowedRole === 'supervisor' && <SupervisorProjectManagementTab data={visibleData} projects={filteredProjects} currentUser={currentUser} dataLoading={dataLoading} createProject={createProject} assignProjectLeader={assignProjectLeader} />}
         {tab === 'join-group' && allowedRole === 'student' && !studentCurrentResearchGroup && <StudentJoinResearchGroupTab data={data} currentUser={currentUser} dataLoading={dataLoading} submitGroupJoinRequest={submitGroupJoinRequest} />}
         {tab === 'groups' && allowedRole === 'supervisor' && <SupervisorResearchGroupManagementTab data={data} currentUser={currentUser} dataLoading={dataLoading} supervisorAddStudentsToGroup={supervisorAddStudentsToGroup} decideGroupJoinRequest={decideGroupJoinRequest} />}
         {tab === 'group-requests' && (allowedRole === 'admin' || allowedRole === 'committee') && <AdminGroupJoinRequestsTab data={data} currentUser={currentUser} dataLoading={dataLoading} decideGroupJoinRequest={decideGroupJoinRequest} directAddStudentsToGroup={directAddStudentsToGroup} />}
@@ -6356,6 +6377,7 @@ function StudentDashboard({ data, projects, currentUser, createWeeklyReport, dat
                   <p className="muted small bold">{selectedProject.group_name}</p>
                   <h3>{selectedProject.area}</h3>
                   <p className="muted">{selectedProject.title}</p>
+                  <ProjectAbstractText project={selectedProject} className="student-project-abstract" />
                   <p className="muted small">Supervisor: {selectedProject.supervisor_name || 'Pending Assignment'}</p>
                   <p className="muted small">Project Leader: {projectLeader?.full_name || projectLeader?.email || 'Not assigned yet'}</p>
                   {isProjectLeader && <Pill tone="blue">You are the project leader for this project.</Pill>}
@@ -6432,19 +6454,15 @@ function StudentDashboard({ data, projects, currentUser, createWeeklyReport, dat
   )
 }
 
-function SupervisorProjectManagementTab({ data, projects, currentUser, dataLoading = false, reviewReport, createProject, createDeadline, removeDeadline, sendWeeklyReportToMyEmail, emailSendingReports = {}, assignProjectLeader }) {
+
+function SupervisorWeeklyReportReviewCard({ data, projects, currentUser, reviewReport, sendWeeklyReportToMyEmail, emailSendingReports = {} }) {
   const [feedback, setFeedback] = useState({})
   const [selectedStudent, setSelectedStudent] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
   const [selectedGroup, setSelectedGroup] = useState('all')
   const [reviewLoadingKey, setReviewLoadingKey] = useState('')
-  const [projectForm, setProjectForm] = useState({ title: '', group_name: `${currentUser.full_name || 'Supervisor'} Research Group`, area: DEFAULT_DEPARTMENT, project_description: '', expected_members: '', start_date: '', end_date: '', final_due: '' })
-  const [submittingProject, setSubmittingProject] = useState(false)
-  const [leaderSelections, setLeaderSelections] = useState({})
-  const [leaderAssigningProjectId, setLeaderAssigningProjectId] = useState('')
   const assignedProjects = useMemo(() => projects.filter((p) => isAssignedSupervisorProject(p, currentUser)), [projects, currentUser])
   const approvedAssignedProjects = useMemo(() => assignedProjects.filter(isApprovedResearchProject), [assignedProjects])
-  const supervisorProgressProjects = useMemo(() => getSupervisorProgressProjects(data, approvedAssignedProjects.length ? approvedAssignedProjects : assignedProjects), [data, approvedAssignedProjects, assignedProjects])
   const studentOptions = useMemo(() => mergeStudentOptions(getAssignedSupervisorStudents(data, approvedAssignedProjects.length ? approvedAssignedProjects : assignedProjects, data.reports), getDirectAssignedStudentsForSupervisor(data, currentUser)), [data, approvedAssignedProjects, assignedProjects, currentUser])
   const allowedReports = useMemo(() => getSupervisorAllowedReports(data, approvedAssignedProjects.length ? approvedAssignedProjects : assignedProjects, currentUser), [data, approvedAssignedProjects, assignedProjects, currentUser])
 
@@ -6470,7 +6488,7 @@ function SupervisorProjectManagementTab({ data, projects, currentUser, dataLoadi
 
   async function handleReviewAction(reportId, status, fallbackFeedback) {
     const key = `${reportId}-${status}`
-    if (reviewLoadingKey) return
+    if (reviewLoadingKey || !reviewReport) return
     setReviewLoadingKey(key)
     try {
       await reviewReport(reportId, status, feedback[reportId] || fallbackFeedback)
@@ -6479,13 +6497,127 @@ function SupervisorProjectManagementTab({ data, projects, currentUser, dataLoadi
     }
   }
 
+  return (
+    <div className="card supervisor-review-reports-card dashboard-review-reports-card">
+      <SectionHeader icon={ClipboardCheck} title="Review Weekly Reports" subtitle="Choose a student, then review their weekly reports" />
+      <div className="supervisor-report-filter-panel">
+        <label className="field">
+          <span>Student</span>
+          <select value={selectedStudent} onChange={(e) => setSelectedStudent(e.target.value)}>
+            <option value="all">All Assigned Students</option>
+            {studentOptions.map((student) => (
+              <option key={student.key} value={student.key}>
+                {student.name}{student.email ? ` — ${student.email}` : ''}{student.group ? ` (${student.group})` : ''}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span>Report status</span>
+          <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
+            <option value="all">All Statuses</option>
+            <option value="Submitted">Pending</option>
+            <option value="Accepted">Accepted</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Revision Required">Needs Revision</option>
+          </select>
+        </label>
+        <label className="field">
+          <span>Research group</span>
+          <select value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)}>
+            <option value="all">All Research Groups</option>
+            {groupOptions.map((group) => <option key={group} value={group}>{group}</option>)}
+          </select>
+        </label>
+      </div>
+      {reports.length ? (
+        <div className="supervisor-review-reports-scroll-container">
+          {reports.map((r) => {
+            const project = data.projects.find((p) => p.id === r.project_id)
+            const student = findStudentProfileForReport(data, r)
+            return (
+              <div className="review-card" key={r.id}>
+                <div className="split">
+                  <div>
+                    <p className="muted small bold">Student: {student?.full_name || r.submitted_by || project?.group_name || 'Unknown student'}</p>
+                    {(student?.email || r.student_email || r.submitted_by_email || project?.group_name) && <p className="muted small">{student?.email || r.student_email || r.submitted_by_email || ''}{project?.group_name ? `${student?.email || r.student_email || r.submitted_by_email ? ' • ' : ''}${project.group_name}` : ''}</p>}
+                    <h3>{project?.title || 'Weekly Report'}</h3>
+                    <p className="muted small">Week {r.week_number} • Department: {r.department || project?.area || 'Not specified'} • Submitted {String(r.submitted_at || '').slice(0, 10) || 'date unavailable'}</p>
+                  </div>
+                  <div className="inline-actions">
+                    <Pill tone={r.status === 'Accepted' ? 'green' : r.status === 'Revision Required' ? 'red' : 'amber'}>{r.status}</Pill>
+                    <EmailReportButton loading={Boolean(emailSendingReports[r.id])} onSend={() => sendWeeklyReportToMyEmail?.(r.id)} />
+                  </div>
+                </div>
+                <div className="report-detail-box">
+                  <h4>Submitted report content</h4>
+                  <div className="three-cols">
+                    <div><b>Completed</b><p>{r.completed_work || 'No completed work written.'}</p></div>
+                    <div><b>Challenges</b><p>{r.challenges || 'No challenges written.'}</p></div>
+                    <div><b>Next plan</b><p>{r.next_week_plan || 'No next plan written.'}</p></div>
+                  </div>
+                </div>
+                <div className="report-detail-box">
+                  <h4>Attached file</h4>
+                  {(() => {
+                    const attachment = getReportAttachment(r, data.uploadedFiles)
+                    return <ReportAttachmentBox attachment={attachment} />
+                  })()}
+                </div>
+                <div className="report-detail-box supervisor-feedback-review-box">
+                  <h4>Supervisor feedback section</h4>
+                  <textarea
+                    className="supervisor-feedback-textarea"
+                    value={feedback[r.id] ?? r.supervisor_feedback ?? ''}
+                    onChange={(e) => setFeedback({ ...feedback, [r.id]: e.target.value })}
+                    placeholder="Supervisor feedback"
+                  />
+                  <div className="supervisor-feedback-actions">
+                    <button onClick={() => handleReviewAction(r.id, 'Accepted', 'Accepted. Continue with the next milestone.')} disabled={Boolean(reviewLoadingKey)} className="success min-button-width"><ButtonContent loading={reviewLoadingKey === `${r.id}-Accepted`} loadingText="Accepting..." icon={CheckCircle2}>Approve</ButtonContent></button>
+                    <button onClick={() => handleReviewAction(r.id, 'Revision Required', 'Revision required. Please add more detail.')} disabled={Boolean(reviewLoadingKey)} className="warning min-button-width"><ButtonContent loading={reviewLoadingKey === `${r.id}-Revision Required`} loadingText="Requesting..." icon={RefreshCw}>Request Revision</ButtonContent></button>
+                    <button onClick={() => handleReviewAction(r.id, 'Rejected', 'Rejected. Please meet your supervisor for guidance.')} disabled={Boolean(reviewLoadingKey)} className="danger min-button-width"><ButtonContent loading={reviewLoadingKey === `${r.id}-Rejected`} loadingText="Rejecting..." icon={XCircle}>Reject</ButtonContent></button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      ) : <EmptyState title={selectedStudentName ? 'No weekly reports found for this student.' : 'No weekly reports found for your assigned students.'} text={selectedStudentName ? `${selectedStudentName} has not submitted weekly reports matching this filter yet.` : 'Only reports from students assigned to you will appear here.'} icon={ClipboardCheck} />}
+    </div>
+  )
+}
+
+function SupervisorProjectManagementTab({ data, projects, currentUser, dataLoading = false, createProject, assignProjectLeader }) {
+  const [projectForm, setProjectForm] = useState({ title: '', group_name: `${currentUser.full_name || 'Supervisor'} Research Group`, area: DEFAULT_DEPARTMENT, project_description: '', expected_members: '', start_date: '', end_date: '', final_due: '' })
+  const [submittingProject, setSubmittingProject] = useState(false)
+  const [projectDescriptionError, setProjectDescriptionError] = useState('')
+  const [leaderSelections, setLeaderSelections] = useState({})
+  const [leaderAssigningProjectId, setLeaderAssigningProjectId] = useState('')
+  const assignedProjects = useMemo(() => projects.filter((p) => isAssignedSupervisorProject(p, currentUser)), [projects, currentUser])
+  const approvedAssignedProjects = useMemo(() => assignedProjects.filter(isApprovedResearchProject), [assignedProjects])
+  const supervisorProgressProjects = useMemo(() => getSupervisorProgressProjects(data, approvedAssignedProjects.length ? approvedAssignedProjects : assignedProjects), [data, approvedAssignedProjects, assignedProjects])
+  const studentOptions = useMemo(() => mergeStudentOptions(getAssignedSupervisorStudents(data, approvedAssignedProjects.length ? approvedAssignedProjects : assignedProjects, data.reports), getDirectAssignedStudentsForSupervisor(data, currentUser)), [data, approvedAssignedProjects, assignedProjects, currentUser])
+  const allowedReports = useMemo(() => getSupervisorAllowedReports(data, approvedAssignedProjects.length ? approvedAssignedProjects : assignedProjects, currentUser), [data, approvedAssignedProjects, assignedProjects, currentUser])
+
+  function updateProjectDescription(value) {
+    const nextValue = String(value || '').slice(0, PROJECT_DESCRIPTION_MAX_LENGTH)
+    setProjectForm({ ...projectForm, project_description: nextValue })
+    setProjectDescriptionError('')
+  }
+
   async function handleSubmitSupervisorProject() {
     if (submittingProject || !createProject) return
+    if (String(projectForm.project_description || '').length > PROJECT_DESCRIPTION_MAX_LENGTH) {
+      setProjectDescriptionError(PROJECT_DESCRIPTION_LIMIT_MESSAGE)
+      return
+    }
+    setProjectDescriptionError('')
     setSubmittingProject(true)
     try {
       const result = await createProject(projectForm)
       if (result?.ok) {
         setProjectForm({ title: '', group_name: `${currentUser.full_name || 'Supervisor'} Research Group`, area: DEFAULT_DEPARTMENT, project_description: '', expected_members: '', start_date: '', end_date: '', final_due: '' })
+        setProjectDescriptionError('')
       }
     } finally {
       setSubmittingProject(false)
@@ -6516,7 +6648,7 @@ function SupervisorProjectManagementTab({ data, projects, currentUser, dataLoadi
           <label className="field"><span>Expected members</span><input type="number" min="1" value={projectForm.expected_members} onChange={(e) => setProjectForm({ ...projectForm, expected_members: e.target.value })} placeholder="e.g. 4" /></label>
           <label className="field"><span>Start date</span><input type="date" value={projectForm.start_date} onChange={(e) => setProjectForm({ ...projectForm, start_date: e.target.value })} /></label>
           <label className="field"><span>Expected end date</span><input type="date" value={projectForm.end_date} onChange={(e) => setProjectForm({ ...projectForm, end_date: e.target.value, final_due: e.target.value })} /></label>
-          <label className="field wide-field"><span>Description / abstract</span><textarea value={projectForm.project_description} onChange={(e) => setProjectForm({ ...projectForm, project_description: e.target.value })} placeholder="Brief project description or abstract for Research Committee review" /></label>
+          <label className="field wide-field project-description-field"><span>Description / Abstract</span><textarea value={projectForm.project_description} maxLength={PROJECT_DESCRIPTION_MAX_LENGTH} onChange={(e) => updateProjectDescription(e.target.value)} placeholder="Brief project description or abstract for Research Committee review" aria-invalid={Boolean(projectDescriptionError)} /><small className={`character-counter ${String(projectForm.project_description || '').length >= PROJECT_DESCRIPTION_MAX_LENGTH ? 'at-limit' : ''}`}>{String(projectForm.project_description || '').length} / {PROJECT_DESCRIPTION_MAX_LENGTH} characters</small>{projectDescriptionError && <small className="form-error-text">{projectDescriptionError}</small>}</label>
         </div>
         <div className="inline-actions"><button className="primary min-button-width" type="button" disabled={submittingProject} onClick={handleSubmitSupervisorProject}><ButtonContent loading={submittingProject} loadingText="Submitting..." icon={Send}>Submit to Research Committee</ButtonContent></button></div>
       </div>
@@ -6524,7 +6656,7 @@ function SupervisorProjectManagementTab({ data, projects, currentUser, dataLoadi
       <div className="card supervisor-submissions-card">
         <SectionHeader icon={ClipboardCheck} title="My Submitted Projects" subtitle="Committee status, comments, and availability for student joining" />
         {assignedProjects.length ? (
-          <div className="table-wrap compact-table-wrap"><table><thead><tr><th>Project</th><th>Group</th><th>Area</th><th>Status</th><th>Committee comment</th><th>Reviewed</th></tr></thead><tbody>{assignedProjects.map((project) => <tr key={project.id}><td><b>{project.title || 'Untitled project'}</b><p className="muted small">{project.project_description || 'No description'}</p></td><td>{project.group_name || 'Research Group'}</td><td>{project.area || '-'}</td><td><Pill tone={project.approval === 'Approved' ? 'green' : project.approval === 'Rejected' ? 'red' : 'amber'}>{project.approval || 'Pending Committee Review'}</Pill></td><td>{project.committee_comments || project.decision_message || project.admin_comment || '-'}</td><td>{project.reviewed_at ? new Date(project.reviewed_at).toLocaleDateString() : '-'}</td></tr>)}</tbody></table></div>
+          <div className="table-wrap compact-table-wrap"><table><thead><tr><th>Project</th><th>Group</th><th>Area</th><th>Status</th><th>Committee comment</th><th>Reviewed</th></tr></thead><tbody>{assignedProjects.map((project) => <tr key={project.id}><td><b>{project.title || 'Untitled project'}</b><ProjectAbstractText project={project} emptyText="No description" /></td><td>{project.group_name || 'Research Group'}</td><td>{project.area || '-'}</td><td><Pill tone={project.approval === 'Approved' ? 'green' : project.approval === 'Rejected' ? 'red' : 'amber'}>{project.approval || 'Pending Committee Review'}</Pill></td><td>{project.committee_comments || project.decision_message || project.admin_comment || '-'}</td><td>{project.reviewed_at ? new Date(project.reviewed_at).toLocaleDateString() : '-'}</td></tr>)}</tbody></table></div>
         ) : <EmptyState title="No project submissions yet." text="Submit a research project above so the Research Committee can review it." icon={FileText} />}
       </div>
 
@@ -6567,94 +6699,6 @@ function SupervisorProjectManagementTab({ data, projects, currentUser, dataLoadi
         ) : <EmptyState title="No accepted projects yet." text="Project leader assignment appears after a project is accepted and students join." icon={UserCog} />}
       </div>
 
-      <DeadlineManager deadlines={data.deadlines} createDeadline={createDeadline} removeDeadline={removeDeadline} students={studentOptions} currentUser={currentUser} />
-
-      <div className="card supervisor-review-reports-card">
-        <SectionHeader icon={ClipboardCheck} title="Review Weekly Reports" subtitle="Choose a student, then review their weekly reports" />
-        <div className="supervisor-report-filter-panel">
-          <label className="field">
-            <span>Student</span>
-            <select value={selectedStudent} onChange={(e) => setSelectedStudent(e.target.value)}>
-              <option value="all">All Assigned Students</option>
-              {studentOptions.map((student) => (
-                <option key={student.key} value={student.key}>
-                  {student.name}{student.email ? ` — ${student.email}` : ''}{student.group ? ` (${student.group})` : ''}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>Report status</span>
-            <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
-              <option value="all">All Statuses</option>
-              <option value="Submitted">Pending</option>
-              <option value="Accepted">Accepted</option>
-              <option value="Rejected">Rejected</option>
-              <option value="Revision Required">Needs Revision</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>Research group</span>
-            <select value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)}>
-              <option value="all">All Research Groups</option>
-              {groupOptions.map((group) => <option key={group} value={group}>{group}</option>)}
-            </select>
-          </label>
-        </div>
-        {reports.length ? (
-          <div className="supervisor-review-reports-scroll-container">
-            {reports.map((r) => {
-              const project = data.projects.find((p) => p.id === r.project_id)
-              const student = findStudentProfileForReport(data, r)
-              return (
-                <div className="review-card" key={r.id}>
-                  <div className="split">
-                    <div>
-                      <p className="muted small bold">Student: {student?.full_name || r.submitted_by || project?.group_name || 'Unknown student'}</p>
-                      {(student?.email || r.student_email || r.submitted_by_email || project?.group_name) && <p className="muted small">{student?.email || r.student_email || r.submitted_by_email || ''}{project?.group_name ? `${student?.email || r.student_email || r.submitted_by_email ? ' • ' : ''}${project.group_name}` : ''}</p>}
-                      <h3>{project?.title || 'Weekly Report'}</h3>
-                      <p className="muted small">Week {r.week_number} • Department: {r.department || project?.area || 'Not specified'} • Submitted {String(r.submitted_at || '').slice(0, 10) || 'date unavailable'}</p>
-                    </div>
-                    <div className="inline-actions">
-                      <Pill tone={r.status === 'Accepted' ? 'green' : r.status === 'Revision Required' ? 'red' : 'amber'}>{r.status}</Pill>
-                      <EmailReportButton loading={Boolean(emailSendingReports[r.id])} onSend={() => sendWeeklyReportToMyEmail(r.id)} />
-                    </div>
-                  </div>
-                  <div className="report-detail-box">
-                    <h4>Submitted report content</h4>
-                    <div className="three-cols">
-                      <div><b>Completed</b><p>{r.completed_work || 'No completed work written.'}</p></div>
-                      <div><b>Challenges</b><p>{r.challenges || 'No challenges written.'}</p></div>
-                      <div><b>Next plan</b><p>{r.next_week_plan || 'No next plan written.'}</p></div>
-                    </div>
-                  </div>
-                  <div className="report-detail-box">
-                    <h4>Attached file</h4>
-                    {(() => {
-                      const attachment = getReportAttachment(r, data.uploadedFiles)
-                      return <ReportAttachmentBox attachment={attachment} />
-                    })()}
-                  </div>
-                  <div className="report-detail-box supervisor-feedback-review-box">
-                    <h4>Supervisor feedback section</h4>
-                    <textarea
-                      className="supervisor-feedback-textarea"
-                      value={feedback[r.id] ?? r.supervisor_feedback ?? ''}
-                      onChange={(e) => setFeedback({ ...feedback, [r.id]: e.target.value })}
-                      placeholder="Supervisor feedback"
-                    />
-                    <div className="supervisor-feedback-actions">
-                      <button onClick={() => handleReviewAction(r.id, 'Accepted', 'Accepted. Continue with the next milestone.')} disabled={Boolean(reviewLoadingKey)} className="success min-button-width"><ButtonContent loading={reviewLoadingKey === `${r.id}-Accepted`} loadingText="Accepting..." icon={CheckCircle2}>Approve</ButtonContent></button>
-                      <button onClick={() => handleReviewAction(r.id, 'Revision Required', 'Revision required. Please add more detail.')} disabled={Boolean(reviewLoadingKey)} className="warning min-button-width"><ButtonContent loading={reviewLoadingKey === `${r.id}-Revision Required`} loadingText="Requesting..." icon={RefreshCw}>Request Revision</ButtonContent></button>
-                      <button onClick={() => handleReviewAction(r.id, 'Rejected', 'Rejected. Please meet your supervisor for guidance.')} disabled={Boolean(reviewLoadingKey)} className="danger min-button-width"><ButtonContent loading={reviewLoadingKey === `${r.id}-Rejected`} loadingText="Rejecting..." icon={XCircle}>Reject</ButtonContent></button>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        ) : <EmptyState title={selectedStudentName ? 'No weekly reports found for this student.' : 'No weekly reports found for your assigned students.'} text={selectedStudentName ? `${selectedStudentName} has not submitted weekly reports matching this filter yet.` : 'Only reports from students assigned to you will appear here.'} icon={ClipboardCheck} />}
-      </div>
     </div>
   )
 }
@@ -6662,7 +6706,7 @@ function SupervisorProjectManagementTab({ data, projects, currentUser, dataLoadi
 
 
 
-function SupervisorDashboard({ data, projects, currentUser, dataLoading = false }) {
+function SupervisorDashboard({ data, projects, currentUser, dataLoading = false, reviewReport, createDeadline, removeDeadline, sendWeeklyReportToMyEmail, emailSendingReports = {} }) {
   const assignedProjects = useMemo(() => projects.filter((p) => isAssignedSupervisorProject(p, currentUser)), [projects, currentUser])
   const approvedProjects = useMemo(() => assignedProjects.filter(isApprovedResearchProject), [assignedProjects])
   const pendingProjects = assignedProjects.filter((project) => !isApprovedResearchProject(project) && normalizeText(project.approval || project.status).includes('pending'))
@@ -6675,6 +6719,7 @@ function SupervisorDashboard({ data, projects, currentUser, dataLoading = false 
     const key = member.id || normalizeText(member.email) || normalizeText(member.full_name)
     if (key && !uniqueMembers.has(key)) uniqueMembers.set(key, member)
   })
+  const studentOptions = useMemo(() => mergeStudentOptions(getAssignedSupervisorStudents(data, approvedProjects.length ? approvedProjects : assignedProjects, data.reports), getDirectAssignedStudentsForSupervisor(data, currentUser)), [data, approvedProjects, assignedProjects, currentUser])
 
   if (dataLoading) return <LoadingBlock text="Loading supervisor dashboard..." />
 
@@ -6682,19 +6727,37 @@ function SupervisorDashboard({ data, projects, currentUser, dataLoading = false 
     <div className="stack supervisor-dashboard-layout">
       <div className="grid two-one supervisor-overview-grid">
         <div className="card">
-          <SectionHeader icon={LayoutDashboard} title="Supervisor Overview" subtitle="Project details are now organized inside Project Management" />
+          <SectionHeader icon={LayoutDashboard} title="Supervisor Overview" subtitle="Review reports and manage deadlines from this dashboard" />
           <div className="mini-metrics-grid">
             <div className="metric-chip"><b>{assignedProjects.length}</b><span>Total submitted projects</span></div>
             <div className="metric-chip"><b>{approvedProjects.length}</b><span>Accepted projects</span></div>
             <div className="metric-chip"><b>{pendingProjects.length}</b><span>Pending review</span></div>
             <div className="metric-chip"><b>{formatProgress(averageProgress)}%</b><span>Average progress</span></div>
           </div>
-          <p className="muted small">Use the <b>Project Management</b> tab to view submitted projects, progress, members, deadlines, and project leader assignment.</p>
+          <p className="muted small">Use the <b>Project Management</b> tab only for submitted projects, project progress, project members, and project leader assignment.</p>
         </div>
         <div className="card">
           <SectionHeader icon={Users} title="Supervised Project Members" subtitle="Students in accepted groups only" />
           <ProjectMembersCompact members={Array.from(uniqueMembers.values())} />
         </div>
+      </div>
+
+      <div className="supervisor-dashboard-workflow-grid">
+        <SupervisorWeeklyReportReviewCard
+          data={data}
+          projects={projects}
+          currentUser={currentUser}
+          reviewReport={reviewReport}
+          sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail}
+          emailSendingReports={emailSendingReports}
+        />
+        <DeadlineManager
+          deadlines={data.deadlines}
+          createDeadline={createDeadline}
+          removeDeadline={removeDeadline}
+          students={studentOptions}
+          currentUser={currentUser}
+        />
       </div>
     </div>
   )
@@ -7470,6 +7533,7 @@ function ProjectProgressSection({ projects = [], reports = [], students = [], da
                     <p className="muted">Research group: {project.group_name || 'Not specified'}</p>
                     <p className="muted small">Supervisor: {supervisor?.full_name || project.supervisor_name || project.supervisor_email || 'Not assigned'}</p>
                     <p className="muted small">Project Leader: {leader?.full_name || leader?.email || 'Not assigned yet'}</p>
+                    <ProjectAbstractText project={project} className="progress-project-abstract" />
                     <p className="muted small">Last update: {latestReportDate ? new Date(latestReportDate).toLocaleString() : project.created_at ? new Date(project.created_at).toLocaleString() : 'No updates yet'}</p>
                   </div>
                   <div className="progress-status-column">
@@ -8017,6 +8081,7 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
                   <div>
                     <b>{project.title || 'Untitled research title'}</b>
                     <p className="small muted">Group: {project.group_name || 'N/A'} • Area: {project.area || 'N/A'}</p>
+                    <ProjectAbstractText project={project} className="admin-project-abstract" />
                     <p className="small muted">Supervisor: {project.supervisor_name || 'Pending Assignment'} • Reports: {reportCount}</p>
                   </div>
                   {canDeleteResearchProject(project, currentUser) && deleteResearchProject && (
@@ -8036,6 +8101,7 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
                 <div>
                   <b>{project.title || 'Untitled research title'}</b>
                   <p className="small muted">Group: {project.group_name || 'N/A'} • Supervisor: {project.supervisor_name || 'Pending Assignment'}</p>
+                  <ProjectAbstractText project={project} className="admin-project-abstract" />
                   <p className="small muted">Status: {project.status || 'Pending'} • Last update: {String(project.updated_at || project.created_at || '').slice(0, 10) || 'N/A'}</p>
                   <ProjectMembersCompact members={getProjectMembersWithoutSupervisor(data, project, data.reports)} />
                 </div>
@@ -8143,7 +8209,7 @@ function ProjectDecisionTable({ projects, updateProject, data = emptyData, repor
       const rejectKey = `${p.id}-Rejected`
       return (
         <tr key={p.id}>
-          <td><b>{p.group_name || 'Research Group'}</b><p>{p.title}</p><p className="muted small">Supervisor: {p.supervisor_name || p.supervisor_email || 'Not assigned'}{p.submitted_at ? ` • Submitted ${new Date(p.submitted_at).toLocaleDateString()}` : ''}</p>{p.project_description && <p className="muted small">{p.project_description}</p>}</td>
+          <td><b>{p.group_name || 'Research Group'}</b><p>{p.title}</p><p className="muted small">Supervisor: {p.supervisor_name || p.supervisor_email || 'Not assigned'}{p.submitted_at ? ` • Submitted ${new Date(p.submitted_at).toLocaleDateString()}` : ''}</p><ProjectAbstractText project={p} /></td>
           <td>{p.area}</td>
           <td><ProjectMembersCompact members={getProjectMembersWithoutSupervisor(data, p, reports)} /></td>
           <td><ProgressBar value={getProjectProgress(p, reports)} /><p className="small muted">{formatProgress(getProjectProgress(p, reports))}%</p></td>
