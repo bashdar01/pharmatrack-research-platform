@@ -1006,6 +1006,43 @@ function canManageAllGroupMemberships(user) {
   return isAdminUser(user) || isResearchCommitteeUser(user)
 }
 
+function normalizeProjectDecisionValue(value) {
+  return normalizeText(value).replace(/[^a-z0-9]+/g, '')
+}
+
+function getProjectDecisionKey(project = {}) {
+  const approvalKey = normalizeProjectDecisionValue(project.approval || project.approval_status || project.committee_status)
+  if (['approved', 'accepted'].includes(approvalKey)) return 'accepted'
+  if (approvalKey === 'rejected') return 'rejected'
+  if (['revisionrequired', 'revisionrequested', 'needsrevision'].includes(approvalKey)) return 'revision'
+
+  const statusKey = normalizeProjectDecisionValue(project.status)
+  if (statusKey === 'rejected') return 'rejected'
+  if (['needsattention', 'revisionrequired', 'revisionrequested', 'needsrevision'].includes(statusKey)) return 'revision'
+  if (statusKey === 'ongoing' && ['approved', 'accepted'].includes(approvalKey)) return 'accepted'
+  return 'pending'
+}
+
+function isProjectCommitteeDecided(project = {}) {
+  return ['accepted', 'revision', 'rejected'].includes(getProjectDecisionKey(project))
+}
+
+function getProjectDecisionLabel(project = {}) {
+  const key = getProjectDecisionKey(project)
+  if (key === 'accepted') return 'Accepted'
+  if (key === 'revision') return 'Revision Requested'
+  if (key === 'rejected') return 'Rejected'
+  return 'Pending Committee Review'
+}
+
+function getProjectDecisionTone(project = {}) {
+  const key = getProjectDecisionKey(project)
+  if (key === 'accepted') return 'green'
+  if (key === 'revision') return 'amber'
+  if (key === 'rejected') return 'red'
+  return 'amber'
+}
+
 function isApprovedResearchProject(project = {}) {
   const approval = normalizeText(project.approval || project.approval_status || project.committee_status || project.status)
   return ['approved', 'accepted'].includes(approval) || normalizeText(project.status) === 'ongoing'
@@ -4329,6 +4366,9 @@ export default function App() {
     const targetProject = (data.projects || []).find((project) => String(project.id) === String(projectId)) || {}
     const nextFields = { ...fields }
     const approvalChanged = Object.prototype.hasOwnProperty.call(nextFields, 'approval') && String(targetProject.approval || '') !== String(nextFields.approval || '')
+    if (approvalChanged && isProjectCommitteeDecided(targetProject) && currentUser?.role !== 'admin') {
+      return setMessage('This project already has a committee decision.')
+    }
     if (approvalChanged) {
       nextFields.reviewed_at = new Date().toISOString()
       nextFields.reviewed_by = currentUser?.id || null
@@ -4338,7 +4378,7 @@ export default function App() {
     let emailFailed = false
     if (isSupabaseConfigured) {
       const { error } = await supabase.from('research_projects').update(nextFields).eq('id', projectId)
-      if (error) return setMessage(error.message)
+      if (error) return setMessage(error.message || 'Project update failed.')
       if (approvalChanged) {
         const supervisor = findSupervisorProfileForProject(data, targetProject) || { id: targetProject.supervisor_id, email: targetProject.supervisor_email, full_name: targetProject.supervisor_name, role: 'supervisor' }
         if (supervisor?.id || supervisor?.email) {
@@ -4378,7 +4418,7 @@ export default function App() {
         auditLogs: [log, ...current.auditLogs],
       }))
     }
-    setMessage(approvalChanged && emailFailed ? 'Project updated, but email notification failed.' : 'Project updated.')
+    setMessage(approvalChanged && emailFailed ? 'Decision saved, but email notification failed.' : approvalChanged ? 'Project decision saved.' : 'Project updated.')
   }
 
   function isMissingRpcFunction(error) {
@@ -5303,7 +5343,7 @@ export default function App() {
 
   function exportCsv() {
     const header = 'Group,Title,Department,Supervisor,Approval,Status,Progress,Final Due\n'
-    const rows = filteredProjects.map((p) => `"${p.group_name}","${p.title}","${p.area}","${p.supervisor_name}","${p.approval}","${p.status}","${formatProgress(p.progress)}%","${p.final_due}"`).join('\n')
+    const rows = filteredProjects.map((p) => `"${p.group_name}","${p.title}","${p.area}","${p.supervisor_name}","${getProjectDecisionLabel(p)}","${p.status}","${formatProgress(p.progress)}%","${p.final_due}"`).join('\n')
     const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -5358,7 +5398,7 @@ export default function App() {
   }, [allowedRole, tab, studentCurrentResearchGroup, dataLoading])
 
   const stats = useMemo(() => {
-    const approved = visibleProjects.filter((p) => p.approval === 'Approved').length
+    const approved = visibleProjects.filter(isApprovedResearchProject).length
     const pendingReports = visibleReports.filter((r) => ['Submitted', 'Revision Required'].includes(r.status)).length
     const averageProgress = visibleProjects.length ? Math.round(visibleProjects.reduce((sum, p) => sum + Number(p.progress || 0), 0) / visibleProjects.length) : 0
     const unread = data.notifications.filter((n) => !n.is_read && notificationForUser(n, currentUser, allowedRole)).length
@@ -5372,7 +5412,7 @@ export default function App() {
     if (allowedRole === 'admin') {
       return [
         { icon: Users, title: 'Registered users', value: data.profiles.length, detail: `${stats.activeUsers} active, ${stats.pendingUsers} pending` },
-        { icon: BookOpen, title: 'Research projects', value: data.projects.length, detail: `${data.projects.filter((p) => p.approval === 'Approved').length} approved topics` },
+        { icon: BookOpen, title: 'Research projects', value: data.projects.length, detail: `${data.projects.filter(isApprovedResearchProject).length} accepted topics` },
         { icon: MessageSquareText, title: 'Reports needing review', value: data.reports.filter((r) => ['Submitted', 'Revision Required'].includes(r.status)).length, detail: 'Submitted or revision-required' },
         { icon: CheckCircle2, title: 'Average progress', value: `${data.projects.length ? Math.round(data.projects.reduce((sum, p) => sum + Number(p.progress || 0), 0) / data.projects.length) : 0}%`, detail: 'Across active projects' },
       ]
@@ -5389,7 +5429,7 @@ export default function App() {
 
     if (allowedRole === 'committee') {
       return [
-        { icon: BookOpen, title: 'Projects for review', value: visibleProjects.length, detail: `${visibleProjects.filter((p) => p.approval === 'Pending Committee Review' || p.approval === 'Revision Required').length} awaiting decision` },
+        { icon: BookOpen, title: 'Projects for review', value: visibleProjects.length, detail: `${visibleProjects.filter((p) => !isProjectCommitteeDecided(p)).length} awaiting decision` },
         { icon: CheckCircle2, title: 'Approved topics', value: stats.approved, detail: 'Committee-approved research topics' },
         { icon: MessageSquareText, title: 'Weekly reports', value: visibleReports.length, detail: 'Visible project reports' },
         { icon: CalendarDays, title: 'Active deadlines', value: data.deadlines.length, detail: 'Academic milestones' },
@@ -6496,7 +6536,7 @@ function StudentDashboard({ data, projects, currentUser, createWeeklyReport, dat
                   <p className="muted small">Project Leader: {projectLeader?.full_name || projectLeader?.email || 'Not assigned yet'}</p>
                   {isProjectLeader && <Pill tone="blue">You are the project leader for this project.</Pill>}
                 </div>
-                <Pill tone={selectedProject.approval === 'Approved' ? 'green' : 'amber'}>{selectedProject.approval}</Pill>
+                <Pill tone={getProjectDecisionTone(selectedProject)}>{getProjectDecisionLabel(selectedProject)}</Pill>
               </div>
               <div className="progress-row"><span>Progress</span><span>{formatProgress(projectProgress)}%</span></div>
               <ProgressBar value={projectProgress} />
@@ -6756,7 +6796,7 @@ function SupervisorProjectManagementTab({ data, projects, currentUser, dataLoadi
       <div className="card supervisor-submissions-card">
         <SectionHeader icon={ClipboardCheck} title="My Submitted Projects" subtitle="Committee status, comments, and availability for student joining" />
         {assignedProjects.length ? (
-          <div className="table-wrap compact-table-wrap"><table><thead><tr><th>Project</th><th>Group</th><th>Department</th><th>Status</th><th>Committee comment</th><th>Reviewed</th></tr></thead><tbody>{assignedProjects.map((project) => <tr key={project.id}><td><b>{project.title || 'Untitled project'}</b></td><td>{project.group_name || 'Research Group'}</td><td>{project.area || '-'}</td><td><Pill tone={project.approval === 'Approved' ? 'green' : project.approval === 'Rejected' ? 'red' : 'amber'}>{project.approval || 'Pending Committee Review'}</Pill></td><td>{project.committee_comments || project.decision_message || project.admin_comment || '-'}</td><td>{project.reviewed_at ? new Date(project.reviewed_at).toLocaleDateString() : '-'}</td></tr>)}</tbody></table></div>
+          <div className="table-wrap compact-table-wrap"><table><thead><tr><th>Project</th><th>Group</th><th>Department</th><th>Status</th><th>Committee comment</th><th>Reviewed</th></tr></thead><tbody>{assignedProjects.map((project) => <tr key={project.id}><td><b>{project.title || 'Untitled project'}</b></td><td>{project.group_name || 'Research Group'}</td><td>{project.area || '-'}</td><td><Pill tone={getProjectDecisionTone(project)}>{getProjectDecisionLabel(project)}</Pill></td><td>{project.committee_comments || project.decision_message || project.admin_comment || '-'}</td><td>{project.reviewed_at ? new Date(project.reviewed_at).toLocaleDateString() : '-'}</td></tr>)}</tbody></table></div>
         ) : <EmptyState title="No project submissions yet." text="Submit a research project above so the Research Committee can review it." icon={FileText} />}
       </div>
 
@@ -6777,7 +6817,7 @@ function SupervisorProjectManagementTab({ data, projects, currentUser, dataLoadi
                       <p className="muted small">Group: {project.group_name || 'Research Group'} • Supervisor: {project.supervisor_name || currentUser.full_name || 'Supervisor'}</p>
                       <p className="muted small">Current Project Leader: {leader?.full_name || leader?.email || 'Not assigned yet'}</p>
                     </div>
-                    <Pill tone={project.approval === 'Approved' ? 'green' : 'amber'}>{project.approval || 'Pending'}</Pill>
+                    <Pill tone={getProjectDecisionTone(project)}>{getProjectDecisionLabel(project)}</Pill>
                   </div>
                   <ProjectMembersCompact members={members} />
                   <div className="project-leader-controls">
@@ -7636,7 +7676,7 @@ function ProjectProgressSection({ projects = [], reports = [], students = [], da
                     <p className="muted small">Last update: {latestReportDate ? new Date(latestReportDate).toLocaleString() : project.created_at ? new Date(project.created_at).toLocaleString() : 'No updates yet'}</p>
                   </div>
                   <div className="progress-status-column">
-                    <Pill tone={project.status === 'Needs Attention' ? 'amber' : project.status === 'Rejected' ? 'red' : 'green'}>{project.status || project.approval || 'Pending'}</Pill>
+                    <Pill tone={getProjectDecisionTone(project)}>{getProjectDecisionLabel(project)}</Pill>
                     <strong>{formatProgress(progress)}%</strong>
                   </div>
                 </div>
@@ -8141,7 +8181,7 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
                       <p className="muted small">Group: {project.group_name || 'Research Group'} • Supervisor: {project.supervisor_name || 'Pending Assignment'}</p>
                       <p className="muted small">Current Project Leader: <b>{leader?.full_name || leader?.email || 'Not assigned yet'}</b></p>
                     </div>
-                    <Pill tone={project.approval === 'Approved' ? 'green' : project.approval === 'Rejected' ? 'red' : 'amber'}>{project.approval || 'Pending'}</Pill>
+                    <Pill tone={getProjectDecisionTone(project)}>{getProjectDecisionLabel(project)}</Pill>
                   </div>
                   <div className="supervisor-project-member-list">
                     <b>Project members</b>
@@ -8574,6 +8614,10 @@ function ProjectDecisionTable({ projects, updateProject, data = emptyData, repor
     const key = `${projectId}-${decision}`
     if (decisionLoading) return
     const project = projects.find((item) => String(item.id) === String(projectId)) || {}
+    if (isProjectCommitteeDecided(project)) {
+      window.alert('This project already has a committee decision.')
+      return
+    }
     let comment = ''
     if (decision !== 'Approved') {
       comment = window.prompt(decision === 'Revision Required' ? 'Write revision request/comment for the supervisor:' : 'Write rejection reason/comment for the supervisor:', project.committee_comments || '') || ''
@@ -8599,6 +8643,8 @@ function ProjectDecisionTable({ projects, updateProject, data = emptyData, repor
       const approvedKey = `${p.id}-Approved`
       const reviseKey = `${p.id}-Revision Required`
       const rejectKey = `${p.id}-Rejected`
+      const decided = isProjectCommitteeDecided(p)
+      const comment = p.committee_comments || p.decision_message || p.admin_comment || ''
       return (
         <tr key={p.id}>
           <td><b>{p.group_name || 'Research Group'}</b><p>{p.title}</p><p className="muted small">Supervisor: {p.supervisor_name || p.supervisor_email || 'Not assigned'}{p.submitted_at ? ` • Submitted ${new Date(p.submitted_at).toLocaleDateString()}` : ''}</p></td>
@@ -8606,13 +8652,22 @@ function ProjectDecisionTable({ projects, updateProject, data = emptyData, repor
           <td><ProjectMembersCompact members={getProjectMembersWithoutSupervisor(data, p, reports)} /></td>
           <td><ProgressBar value={getProjectProgress(p, reports)} /><p className="small muted">{formatProgress(getProjectProgress(p, reports))}%</p></td>
           <td className="project-decision-cell">
-            <div className="inline-actions decision-actions">
-              <button className="success min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'Approved')}><ButtonContent loading={decisionLoading === approvedKey} loadingText="Accepting..." icon={CheckCircle2}>Accept</ButtonContent></button>
-              <button className="warning min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'Revision Required')}><ButtonContent loading={decisionLoading === reviseKey} loadingText="Requesting..." icon={RefreshCw}>Revision</ButtonContent></button>
-              <button className="danger min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'Rejected')}><ButtonContent loading={decisionLoading === rejectKey} loadingText="Rejecting..." icon={XCircle}>Reject</ButtonContent></button>
-            </div>
-            <Pill tone={p.approval === 'Approved' ? 'green' : p.approval === 'Rejected' ? 'red' : 'amber'}>{p.approval || 'Pending Committee Review'}</Pill>
-            {p.committee_comments && <p className="muted small">Comment: {p.committee_comments}</p>}
+            {decided ? (
+              <div className="project-decision-status">
+                <Pill tone={getProjectDecisionTone(p)}>{getProjectDecisionLabel(p)}</Pill>
+                {comment && <p className="muted small">Comment: {comment}</p>}
+              </div>
+            ) : (
+              <div className="project-decision-status">
+                <div className="inline-actions decision-actions">
+                  <button className="success min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'Approved')}><ButtonContent loading={decisionLoading === approvedKey} loadingText="Accepting..." icon={CheckCircle2}>Accept</ButtonContent></button>
+                  <button className="warning min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'Revision Required')}><ButtonContent loading={decisionLoading === reviseKey} loadingText="Requesting..." icon={RefreshCw}>Revision</ButtonContent></button>
+                  <button className="danger min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'Rejected')}><ButtonContent loading={decisionLoading === rejectKey} loadingText="Rejecting..." icon={XCircle}>Reject</ButtonContent></button>
+                </div>
+                <Pill tone={getProjectDecisionTone(p)}>{getProjectDecisionLabel(p)}</Pill>
+                {comment && <p className="muted small">Comment: {comment}</p>}
+              </div>
+            )}
           </td>
         </tr>
       )
@@ -9169,11 +9224,11 @@ function ReportsTab({ data, projects, currentUser, role, printPdfReport, exportC
         </PdfReportSection>
 
         <PdfReportSection settings={settings} sectionKey="researchGroup" title="Research Group">
-          {hasProjects ? <ReportTable><thead><tr><th>Group</th><th>Students</th><th>Supervisor</th><th>Status</th></tr></thead><tbody>{studentFilteredProjects.map((project) => <tr key={project.id}><td>{project.group_name || 'Research group'}</td><td>{getProjectStudents(project).join(', ') || project.student_email || '-'}</td><td>{project.supervisor_name || 'Pending Assignment'}</td><td>{project.approval || project.status || '-'}</td></tr>)}</tbody></ReportTable> : <NoRecords />}
+          {hasProjects ? <ReportTable><thead><tr><th>Group</th><th>Students</th><th>Supervisor</th><th>Status</th></tr></thead><tbody>{studentFilteredProjects.map((project) => <tr key={project.id}><td>{project.group_name || 'Research group'}</td><td>{getProjectStudents(project).join(', ') || project.student_email || '-'}</td><td>{project.supervisor_name || 'Pending Assignment'}</td><td>{getProjectDecisionLabel(project)}</td></tr>)}</tbody></ReportTable> : <NoRecords />}
         </PdfReportSection>
 
         <PdfReportSection settings={settings} sectionKey="researchTitle" title="Research Title / Project">
-          {hasProjects ? <ReportTable><thead><tr><th>Title</th><th>Department</th><th>Final due</th><th>Approval</th></tr></thead><tbody>{studentFilteredProjects.map((project) => <tr key={project.id}><td>{project.title}</td><td>{project.area || '-'}</td><td>{project.final_due || '-'}</td><td>{project.approval || '-'}</td></tr>)}</tbody></ReportTable> : <NoRecords />}
+          {hasProjects ? <ReportTable><thead><tr><th>Title</th><th>Department</th><th>Final due</th><th>Approval</th></tr></thead><tbody>{studentFilteredProjects.map((project) => <tr key={project.id}><td>{project.title}</td><td>{project.area || '-'}</td><td>{project.final_due || '-'}</td><td>{getProjectDecisionLabel(project)}</td></tr>)}</tbody></ReportTable> : <NoRecords />}
         </PdfReportSection>
 
         <PdfReportSection settings={settings} sectionKey="weeklyReports" title="Weekly Reports">
