@@ -513,7 +513,7 @@ function optimizeImageFile(file, options = {}) {
   })
 }
 
-const adminPanelTabs = ['overview', 'branding', 'login-settings', 'users', 'invitations', 'deadlines', 'notifications', 'reports', 'pdf-report', 'group-requests', 'database', 'audit']
+const adminPanelTabs = ['overview', 'branding', 'login-settings', 'users', 'supervisors', 'invitations', 'deadlines', 'notifications', 'reports', 'pdf-report', 'group-requests', 'database', 'audit']
 
 const adminPanelPathAliases = {
   '': 'overview',
@@ -530,6 +530,11 @@ const adminPanelPathAliases = {
   roles: 'users',
   'users-roles': 'users',
   'users-and-roles': 'users',
+  supervisors: 'supervisors',
+  'supervisor-management': 'supervisors',
+  'student-supervisor-assignment': 'supervisors',
+  'project-supervisor-assignment': 'supervisors',
+  'project-leader-assignment': 'supervisors',
   invitations: 'invitations',
   invite: 'invitations',
   deadlines: 'deadlines',
@@ -4599,6 +4604,134 @@ export default function App() {
       supervisor_name: supervisor?.full_name || 'Pending Assignment',
     }
 
+    if (options.assignmentScope === 'student') {
+      const previousSupervisor = student.assigned_supervisor_id
+        ? data.profiles.find((user) => String(user.id) === String(student.assigned_supervisor_id))
+        : data.profiles.find((user) => user.role === 'supervisor' && (normalizeText(user.email) === normalizeText(student.assigned_supervisor_email) || normalizeText(user.full_name) === normalizeText(student.assigned_supervisor_name)))
+      if (supervisor && alreadyAssignedToSameSupervisor && assignmentEmailAlreadySent) {
+        setMessage(`${student.full_name || student.email} is already assigned to ${supervisor.full_name || supervisor.email}. No duplicate email was sent.`)
+        return
+      }
+      const assignedAt = new Date().toISOString()
+      let emailError = null
+
+      try {
+        if (isSupabaseConfigured) {
+          const rpcResult = await supabase.rpc('admin_assign_student_supervisor_only', {
+            target_student_id: student.id,
+            target_supervisor_id: supervisor?.id || null,
+          })
+          if (rpcResult.error) throw rpcResult.error
+
+          const notices = []
+          if (supervisor) {
+            notices.push({
+              profile_id: student.id || null,
+              recipient_user_id: student.id || null,
+              recipient_email: student.email || '',
+              sender_user_id: currentUser?.id || null,
+              notification_type: `student_supervisor_assigned_${student.id}_${supervisor.id}`,
+              title: 'Supervisor Assigned',
+              message: `${supervisor.full_name || supervisor.email || 'A supervisor'} has been assigned as your supervisor.`,
+              type: 'Supervisor Assignment',
+              target_role: 'student',
+              is_read: false,
+              created_at: assignedAt,
+            })
+            notices.push({
+              profile_id: supervisor.id || null,
+              recipient_user_id: supervisor.id || null,
+              recipient_email: supervisor.email || '',
+              sender_user_id: currentUser?.id || null,
+              notification_type: `student_assigned_to_supervisor_${student.id}_${supervisor.id}`,
+              title: 'New Student Assigned',
+              message: `${student.full_name || student.email || 'A student'} has been assigned to you by admin.`,
+              type: 'Supervisor Assignment',
+              target_role: 'supervisor',
+              is_read: false,
+              created_at: assignedAt,
+            })
+          } else {
+            notices.push({
+              profile_id: student.id || null,
+              recipient_user_id: student.id || null,
+              recipient_email: student.email || '',
+              sender_user_id: currentUser?.id || null,
+              notification_type: `student_supervisor_removed_${student.id}_${assignedAt}`,
+              title: 'Supervisor Removed',
+              message: 'Your supervisor assignment was removed by admin.',
+              type: 'Supervisor Assignment',
+              target_role: 'student',
+              is_read: false,
+              created_at: assignedAt,
+            })
+            if (previousSupervisor?.id || previousSupervisor?.email) {
+              notices.push({
+                profile_id: previousSupervisor.id || null,
+                recipient_user_id: previousSupervisor.id || null,
+                recipient_email: previousSupervisor.email || '',
+                sender_user_id: currentUser?.id || null,
+                notification_type: `student_supervisor_removed_notice_${student.id}_${previousSupervisor.id || normalizeText(previousSupervisor.email)}_${assignedAt}`,
+                title: 'Student Supervisor Assignment Removed',
+                message: `${student.full_name || student.email || 'A student'} is no longer assigned to you by admin.`,
+                type: 'Supervisor Assignment',
+                target_role: 'supervisor',
+                is_read: false,
+                created_at: assignedAt,
+              })
+            }
+          }
+          if (notices.length) {
+            const noticeResult = await supabase.from('notifications').insert(notices)
+            if (noticeResult.error) console.warn('Student-supervisor notification failed:', noticeResult.error)
+          }
+
+          if (supervisor && (!alreadyAssignedToSameSupervisor || !assignmentEmailAlreadySent)) {
+            try {
+              await sendSupervisorAssignmentEmails({ student, supervisor, linkedProjects, assignedAt })
+            } catch (notificationError) {
+              console.warn('Student-supervisor assignment email failed:', notificationError)
+              emailError = notificationError
+            }
+          }
+
+          await addAudit(currentUser.full_name, supervisor ? 'assigned student supervisor' : 'removed student supervisor', `${student.full_name || student.email}${supervisor ? ` → ${supervisor.full_name || supervisor.email}` : ''}`)
+          await loadFromSupabase(currentUser)
+        } else {
+          const localNotices = []
+          if (supervisor) {
+            localNotices.push({ id: crypto.randomUUID(), profile_id: student.id || null, recipient_user_id: student.id || null, recipient_email: student.email || '', sender_user_id: currentUser?.id || null, notification_type: `student_supervisor_assigned_${student.id}_${supervisor.id}`, title: 'Supervisor Assigned', message: `${supervisor.full_name || supervisor.email || 'A supervisor'} has been assigned as your supervisor.`, type: 'Supervisor Assignment', target_role: 'student', is_read: false, created_at: assignedAt })
+            localNotices.push({ id: crypto.randomUUID(), profile_id: supervisor.id || null, recipient_user_id: supervisor.id || null, recipient_email: supervisor.email || '', sender_user_id: currentUser?.id || null, notification_type: `student_assigned_to_supervisor_${student.id}_${supervisor.id}`, title: 'New Student Assigned', message: `${student.full_name || student.email || 'A student'} has been assigned to you by admin.`, type: 'Supervisor Assignment', target_role: 'supervisor', is_read: false, created_at: assignedAt })
+          } else {
+            localNotices.push({ id: crypto.randomUUID(), profile_id: student.id || null, recipient_user_id: student.id || null, recipient_email: student.email || '', sender_user_id: currentUser?.id || null, notification_type: `student_supervisor_removed_${student.id}_${assignedAt}`, title: 'Supervisor Removed', message: 'Your supervisor assignment was removed by admin.', type: 'Supervisor Assignment', target_role: 'student', is_read: false, created_at: assignedAt })
+          }
+          const log = makeAudit(currentUser.full_name, supervisor ? 'assigned student supervisor' : 'removed student supervisor', `${student.full_name || student.email}${supervisor ? ` → ${supervisor.full_name || supervisor.email}` : ''}`)
+          setLocal((current) => ({
+            ...current,
+            profiles: current.profiles.map((user) => String(user.id) === String(student.id) ? { ...user, ...profileUpdate } : user),
+            notifications: [...localNotices, ...(current.notifications || [])],
+            auditLogs: [log, ...current.auditLogs],
+          }))
+        }
+
+        if (!supervisor) {
+          setMessage(`Supervisor assignment removed for ${student.full_name || student.email}.`)
+        } else if ((alreadyAssignedToSameSupervisor && assignmentEmailAlreadySent)) {
+          setMessage(`${student.full_name || student.email} is already assigned to ${supervisor.full_name || supervisor.email}. No duplicate email was sent.`)
+        } else if (emailError) {
+          setMessage('Supervisor assigned successfully, but email notification failed.')
+        } else if (!isSupabaseConfigured) {
+          setMessage('Supervisor assigned successfully. Automatic email notifications require Supabase Edge Function deployment.')
+        } else {
+          setMessage('Supervisor assigned successfully and email notifications sent.')
+        }
+      } catch (error) {
+        const errorMessage = String(error.message || '')
+        setMessage(errorMessage.toLowerCase().includes('admin_assign_student_supervisor_only') || errorMessage.toLowerCase().includes('could not find') ? 'Could not update student supervisor assignment. Run the new Supabase Supervisor Management SQL migration first.' : (errorMessage || 'Could not update student supervisor assignment.'))
+      }
+      return
+    }
+
     try {
       const assignedAt = new Date().toISOString()
       let emailResult = null
@@ -5341,6 +5474,7 @@ export default function App() {
         loadError={dataLoadError}
         dataLoading={dataLoading}
         assignStudentToSupervisor={assignStudentToSupervisor}
+        assignProjectLeader={assignProjectLeader}
         createInvitation={createInvitation}
         resendInvitation={resendInvitation}
         cancelInvitation={cancelInvitation}
@@ -5674,6 +5808,7 @@ function AdminControlPanel({
   deleteResearchGroup,
   deleteResearchProject,
   assignStudentToSupervisor,
+  assignProjectLeader,
   createInvitation,
   resendInvitation,
   cancelInvitation,
@@ -5703,6 +5838,7 @@ function AdminControlPanel({
     { id: 'branding', label: 'Website Settings', icon: SlidersHorizontal },
     { id: 'login-settings', label: 'Login Page Settings', icon: Lock },
     { id: 'users', label: 'Users & Roles', icon: Users },
+    { id: 'supervisors', label: 'Supervisor Management', icon: UserCog },
     { id: 'invitations', label: 'Invite Users', icon: Mail },
     { id: 'deadlines', label: 'Deadlines', icon: CalendarDays },
     { id: 'notifications', label: 'Notifications', icon: Bell },
@@ -5869,7 +6005,7 @@ function AdminControlPanel({
         <header className="admin-panel-topbar no-print">
           <div>
             <p className="eyebrow"><UserCog size={16} /> Admin subdomain</p>
-            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Notifications' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'pdf-report' ? 'PDF Report Customization' : adminPanelTab === 'group-requests' ? 'Group Join Requests' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : 'Control Center'}</h1>
+            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'supervisors' ? 'Supervisor Management' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Notifications' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'pdf-report' ? 'PDF Report Customization' : adminPanelTab === 'group-requests' ? 'Group Join Requests' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : 'Control Center'}</h1>
             <p>{settings.adminWelcome}</p>
           </div>
           <a className="admin-preview-link" href="/" target="_blank" rel="noreferrer">Open main website</a>
@@ -6117,7 +6253,8 @@ function AdminControlPanel({
         )}
 
         {adminPanelTab === 'invitations' && <InvitationManager invitations={data.invitations} settings={settings} createInvitation={createInvitation} resendInvitation={resendInvitation} cancelInvitation={cancelInvitation} copyInvitationLink={copyInvitationLink} />}
-        {adminPanelTab === 'users' && <AdminDashboard data={data} projects={projects} currentUser={currentUser} loadError={loadError} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} assignStudentToSupervisor={assignStudentToSupervisor} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} />}
+        {adminPanelTab === 'users' && <AdminDashboard data={data} projects={projects} currentUser={currentUser} loadError={loadError} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} />}
+        {adminPanelTab === 'supervisors' && <SupervisorManagementTab data={data} projects={projects} currentUser={currentUser} loadError={loadError} dataLoading={dataLoading} updateProject={updateProject} assignStudentToSupervisor={assignStudentToSupervisor} assignProjectLeader={assignProjectLeader} exportCsv={exportCsv} />}
         {adminPanelTab === 'deadlines' && <DeadlineManager deadlines={data.deadlines} createDeadline={createDeadline} removeDeadline={removeDeadline} students={data.profiles.filter((profile) => profile.role === 'student').map((student) => ({ key: makeStudentOptionKey(student), id: student.id, name: student.full_name, email: student.email, group: student.department || student.area || 'Student' }))} currentUser={currentUser} />}
         {adminPanelTab === 'notifications' && <NotificationsTab data={data} role="admin" currentUser={currentUser} createNotification={createNotification} markNotificationRead={markNotificationRead} removeNotification={removeNotification} />}
         {adminPanelTab === 'reports' && <ReportsTab data={data} projects={projects} currentUser={currentUser} role="admin" printPdfReport={printPdfReport} exportCsv={exportCsv} pdfReportSettings={getPdfReportSettingsForRole('admin', pdfReportSettingsByRole, globalPdfReportSettings)} dataLoading={dataLoading} />}
@@ -7733,6 +7870,354 @@ function CommitteeDashboard({ data = emptyData, projects = [], dataLoading = fal
 }
 
 
+
+function SupervisorManagementTab({ data = emptyData, projects = [], currentUser, loadError = '', dataLoading = false, updateProject, assignStudentToSupervisor, assignProjectLeader, exportCsv }) {
+  const usersLoading = !data || !Array.isArray(data.profiles)
+  data = cleanData({
+    ...emptyData,
+    ...(data || {}),
+    profiles: Array.isArray(data?.profiles) ? data.profiles : [],
+    projects: Array.isArray(data?.projects) ? data.projects : [],
+    reports: Array.isArray(data?.reports) ? data.reports : [],
+    uploadedFiles: Array.isArray(data?.uploadedFiles) ? data.uploadedFiles : [],
+    deadlines: Array.isArray(data?.deadlines) ? data.deadlines : [],
+    notifications: Array.isArray(data?.notifications) ? data.notifications : [],
+    evaluations: Array.isArray(data?.evaluations) ? data.evaluations : [],
+    auditLogs: Array.isArray(data?.auditLogs) ? data.auditLogs : [],
+    invitations: Array.isArray(data?.invitations) ? data.invitations : [],
+    groupJoinRequests: Array.isArray(data?.groupJoinRequests) ? data.groupJoinRequests : [],
+    groupMembers: Array.isArray(data?.groupMembers) ? data.groupMembers : [],
+  })
+  projects = Array.isArray(projects) ? projects : data.projects
+  const supervisors = data.profiles.filter((u) => u.role === 'supervisor')
+  const students = data.profiles.filter((u) => u.role === 'student')
+  const [studentSearch, setStudentSearch] = useState('')
+  const [supervisorSearch, setSupervisorSearch] = useState('')
+  const [studentSupervisorSelections, setStudentSupervisorSelections] = useState({})
+  const [projectSupervisorId, setProjectSupervisorId] = useState(supervisors[0]?.id || '')
+  const [projectAssignmentSearch, setProjectAssignmentSearch] = useState('')
+  const [leaderSearch, setLeaderSearch] = useState('')
+  const [leaderSelections, setLeaderSelections] = useState({})
+  const [actionLoading, setActionLoading] = useState('')
+
+  useEffect(() => {
+    if (!projectSupervisorId && supervisors[0]?.id) setProjectSupervisorId(supervisors[0].id)
+  }, [projectSupervisorId, supervisors])
+
+  function getUserDepartment(user = {}) {
+    const direct = user.department || user.area || user.research_area
+    if (direct) return direct
+    const relatedProject = getStudentProject(user)
+    return relatedProject?.area || relatedProject?.department || 'Not set'
+  }
+
+  function getAssignedSupervisor(user = {}) {
+    if (user.role !== 'student') return null
+    if (user.assigned_supervisor_id || user.assigned_supervisor_email || user.assigned_supervisor_name) {
+      const byId = supervisors.find((s) => String(s.id) === String(user.assigned_supervisor_id))
+      const byEmail = supervisors.find((s) => normalizeText(s.email) === normalizeText(user.assigned_supervisor_email))
+      return byId || byEmail || { id: user.assigned_supervisor_id || '', full_name: user.assigned_supervisor_name || 'Assigned supervisor', email: user.assigned_supervisor_email || '' }
+    }
+    return null
+  }
+
+  function getStudentProject(student = {}) {
+    if (!student) return null
+    const currentGroup = getStudentCurrentResearchGroup(data, student)
+    if (currentGroup) return currentGroup
+    const studentName = normalizeText(student.full_name)
+    const studentEmail = normalizeText(student.email)
+    return projects.find((project) => {
+      const projectStudents = getProjectStudents(project).map(normalizeText)
+      return (
+        String(project.student_id || project.created_by || '') === String(student.id || '') ||
+        normalizeText(project.student_email || project.created_by_email) === studentEmail ||
+        normalizeText(project.group_name) === studentName ||
+        projectStudents.includes(studentName) ||
+        projectStudents.includes(studentEmail)
+      )
+    }) || null
+  }
+
+  function getProjectAssignedStudent(project = {}) {
+    return students.find((student) =>
+      String(project.student_id || project.created_by || '') === String(student.id) ||
+      normalizeText(project.student_email || project.created_by_email) === normalizeText(student.email) ||
+      getProjectStudents(project).map(normalizeText).includes(normalizeText(student.full_name)) ||
+      getProjectStudents(project).map(normalizeText).includes(normalizeText(student.email))
+    )
+  }
+
+  async function runSupervisorAction(key, action) {
+    if (actionLoading) return
+    setActionLoading(key)
+    try {
+      await action()
+    } finally {
+      setActionLoading('')
+    }
+  }
+
+  const filteredSupervisorOptions = supervisors.filter((supervisor) => {
+    const q = supervisorSearch.trim().toLowerCase()
+    if (!q) return true
+    return [supervisor.full_name, supervisor.email, supervisor.department, supervisor.area, supervisor.research_area].some((value) => String(value || '').toLowerCase().includes(q))
+  })
+
+  const filteredStudents = students.filter((student) => {
+    const q = studentSearch.trim().toLowerCase()
+    if (!q) return true
+    const assigned = getAssignedSupervisor(student)
+    const project = getStudentProject(student)
+    const searchable = [
+      student.full_name,
+      student.email,
+      student.status,
+      getUserDepartment(student),
+      assigned?.full_name,
+      assigned?.email,
+      project?.group_name,
+      project?.title,
+      project?.area,
+      project?.department,
+    ].join(' ').toLowerCase()
+    return searchable.includes(q)
+  })
+
+  async function handleStudentSupervisorAssign(studentId) {
+    const student = students.find((item) => String(item.id) === String(studentId))
+    const currentSupervisor = student ? getAssignedSupervisor(student) : null
+    const selectedSupervisorId = Object.prototype.hasOwnProperty.call(studentSupervisorSelections, studentId)
+      ? studentSupervisorSelections[studentId]
+      : currentSupervisor?.id || ''
+    if (!selectedSupervisorId || !assignStudentToSupervisor) return
+    await assignStudentToSupervisor(studentId, selectedSupervisorId, { assignmentScope: 'student' })
+  }
+
+  async function handleStudentSupervisorRemove(studentId) {
+    if (!assignStudentToSupervisor) return
+    await assignStudentToSupervisor(studentId, '', { assignmentScope: 'student' })
+    setStudentSupervisorSelections((current) => ({ ...current, [studentId]: '' }))
+  }
+
+  const selectedProjectSupervisor = supervisors.find((supervisor) => String(supervisor.id) === String(projectSupervisorId))
+  const filteredAssignmentProjects = projects.filter((project) => {
+    const q = projectAssignmentSearch.trim().toLowerCase()
+    if (!q) return true
+    const student = getProjectAssignedStudent(project)
+    const supervisor = supervisors.find((item) =>
+      String(item.id) === String(project.supervisor_id) ||
+      normalizeText(item.email) === normalizeText(project.supervisor_email) ||
+      normalizeText(item.full_name) === normalizeText(project.supervisor_name)
+    )
+    const searchable = [
+      project.title,
+      project.group_name,
+      project.area,
+      project.department,
+      project.student_email,
+      project.created_by_email,
+      project.supervisor_name,
+      project.supervisor_email,
+      getProjectStudents(project).join(' '),
+      student?.full_name,
+      student?.email,
+      getUserDepartment(student || {}),
+      supervisor?.full_name,
+      supervisor?.email,
+    ].join(' ').toLowerCase()
+    return searchable.includes(q)
+  })
+
+  async function handleProjectSupervisorAssign(projectId) {
+    const supervisor = selectedProjectSupervisor
+    const project = projects.find((item) => String(item.id) === String(projectId))
+    const student = project ? getProjectAssignedStudent(project) : null
+
+    if (student?.id && assignStudentToSupervisor) {
+      await assignStudentToSupervisor(student.id, supervisor?.id || '', { projectId })
+      return
+    }
+
+    await updateProject?.(projectId, {
+      supervisor_name: supervisor?.full_name || 'Pending Assignment',
+      supervisor_id: supervisor?.id || null,
+      supervisor_email: supervisor?.email || '',
+    })
+  }
+
+  async function handleProjectSupervisorRemove(projectId) {
+    const project = projects.find((item) => String(item.id) === String(projectId))
+    const student = project ? getProjectAssignedStudent(project) : null
+
+    if (student?.id && assignStudentToSupervisor) {
+      await assignStudentToSupervisor(student.id, '', { projectId })
+      return
+    }
+
+    await updateProject?.(projectId, {
+      supervisor_name: 'Pending Assignment',
+      supervisor_id: null,
+      supervisor_email: '',
+    })
+  }
+
+  const filteredLeaderProjects = projects.filter((project) => {
+    const q = leaderSearch.trim().toLowerCase()
+    if (!q) return true
+    const leader = getProjectLeaderProfile(data, project)
+    const members = getProjectMembersWithoutSupervisor(data, project, data.reports)
+    const searchable = [
+      project.title,
+      project.group_name,
+      project.area,
+      project.supervisor_name,
+      project.supervisor_email,
+      leader?.full_name,
+      leader?.email,
+      members.map((member) => `${member.full_name || ''} ${member.email || ''}`).join(' '),
+    ].join(' ').toLowerCase()
+    return searchable.includes(q)
+  })
+
+  async function handleAssignProjectLeader(projectId) {
+    const selectedStudentId = leaderSelections[projectId]
+    if (!selectedStudentId || !assignProjectLeader) return
+    await assignProjectLeader(projectId, selectedStudentId)
+  }
+
+  if (dataLoading) return <LoadingBlock text="Loading supervisor management..." />
+
+  return (
+    <div className="admin-panel-stack supervisor-management-page">
+      <div className="card supervisor-management-card student-supervisor-management-card">
+        <SectionHeader icon={UserCog} title="Student Supervisor Assignment" subtitle="Assign, change, or remove direct supervisors for student accounts" />
+        <div className="supervisor-management-controls">
+          <label className="field"><span>Search students</span><input value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} placeholder="Search student name, email, supervisor, department, project..." /></label>
+          <label className="field"><span>Search supervisors</span><input value={supervisorSearch} onChange={(e) => setSupervisorSearch(e.target.value)} placeholder="Search supervisor name, email, department..." /></label>
+        </div>
+        {loadError ? <EmptyState title="Failed to load supervisor management data." text={loadError} icon={Users} /> : usersLoading ? <EmptyState title="Loading users..." text="Please wait while the user list loads." icon={Users} /> : supervisors.length === 0 ? <EmptyState title="No supervisors found." text="Create or approve supervisor accounts first." icon={UserCog} /> : filteredStudents.length ? (
+          <div className="managed-list compact-managed-list supervisor-management-list">
+            {filteredStudents.map((student) => {
+              const assigned = getAssignedSupervisor(student)
+              const project = getStudentProject(student)
+              const selectedValue = Object.prototype.hasOwnProperty.call(studentSupervisorSelections, student.id) ? studentSupervisorSelections[student.id] : assigned?.id || ''
+              const assignKey = `student-supervisor-assign-${student.id}`
+              const removeKey = `student-supervisor-remove-${student.id}`
+              const isAssigned = Boolean(assigned?.id || assigned?.email || assigned?.full_name)
+              return (
+                <div className="mini-card managed-item supervisor-management-row" key={student.id}>
+                  <div className="supervisor-management-record-main">
+                    <b>{student.full_name || 'Unnamed student'}</b>
+                    <p>{student.email || 'No email available'}</p>
+                    <p className="small muted">Department/program: <b>{getUserDepartment(student)}</b></p>
+                    <p className="small muted">Research group/project: <b>{project?.group_name || project?.title || 'Not assigned'}</b>{project?.title && project?.group_name ? ` • ${project.title}` : ''}</p>
+                    <p className="small muted">Current supervisor: <b>{assigned?.full_name || 'Not assigned'}</b>{assigned?.email ? ` • ${assigned.email}` : ''}</p>
+                    <Pill tone={isAssigned ? 'green' : 'amber'}>{isAssigned ? 'Assigned' : 'Not Assigned'}</Pill>
+                  </div>
+                  <div className="supervisor-management-actions">
+                    <label className="field compact-field">
+                      <span>Supervisor</span>
+                      <select value={selectedValue} disabled={Boolean(actionLoading)} onChange={(e) => setStudentSupervisorSelections((current) => ({ ...current, [student.id]: e.target.value }))}>
+                        <option value="">Choose supervisor</option>
+                        {filteredSupervisorOptions.map((supervisor) => <option key={supervisor.id} value={supervisor.id}>{supervisor.full_name || supervisor.email}{supervisor.email ? ` — ${supervisor.email}` : ''}</option>)}
+                      </select>
+                    </label>
+                    <button className="secondary compact-button min-button-width" disabled={Boolean(actionLoading) || !selectedValue} onClick={() => runSupervisorAction(assignKey, () => handleStudentSupervisorAssign(student.id))}><ButtonContent loading={actionLoading === assignKey} loadingText="Assigning..." icon={UserPlus} iconSize={14}>Assign Supervisor</ButtonContent></button>
+                    <button className="warning compact-button min-button-width" disabled={Boolean(actionLoading) || !isAssigned} onClick={() => runSupervisorAction(removeKey, () => handleStudentSupervisorRemove(student.id))}><ButtonContent loading={actionLoading === removeKey} loadingText="Removing..." icon={XCircle} iconSize={14}>Remove Supervisor</ButtonContent></button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ) : <EmptyState title="No students found." text="Try another student name, email, supervisor, department, or project keyword." icon={Search} />}
+        {supervisors.length > 0 && filteredSupervisorOptions.length === 0 && <EmptyState title="No supervisors found." text="Try another supervisor search keyword." icon={Search} />}
+      </div>
+
+      <div className="card supervisor-management-card admin-assignment-card">
+        <SectionHeader icon={UserCog} title="Project Supervisor Assignment" subtitle="Assign, change, or remove supervisors for submitted research titles" />
+        <div className="supervisor-management-controls">
+          <label className="field"><span>Search projects</span><input value={projectAssignmentSearch} onChange={(e) => setProjectAssignmentSearch(e.target.value)} placeholder="Search students, supervisors, projects, or research groups..." /></label>
+          <label className="field"><span>Choose supervisor</span><select value={projectSupervisorId} onChange={(e) => setProjectSupervisorId(e.target.value)}><option value="">Pending Assignment / remove supervisor</option>{supervisors.map((supervisor) => <option key={supervisor.id} value={supervisor.id}>{supervisor.full_name || supervisor.email}</option>)}</select></label>
+        </div>
+        <div className="managed-list compact-managed-list admin-project-assignment-list supervisor-management-list">
+          {projects.length ? (filteredAssignmentProjects.length ? filteredAssignmentProjects.map((project) => (
+            <div className="mini-card managed-item supervisor-management-row" key={project.id}>
+              <div className="supervisor-management-record-main">
+                <b>{project.group_name || 'Research Group'}</b>
+                <p>{project.title || 'Untitled project'}</p>
+                <p className="small muted">Student/member: {project.student_email || project.created_by_email || getProjectStudents(project).join(', ') || 'Not linked'}</p>
+                <p className="small muted">Current supervisor: <b>{project.supervisor_name || 'Pending Assignment'}</b>{project.supervisor_email ? ` • ${project.supervisor_email}` : ''}</p>
+              </div>
+              <div className="stacked-actions supervisor-management-actions">
+                <button className="secondary compact-button min-button-width" disabled={Boolean(actionLoading)} onClick={() => runSupervisorAction(`project-assign-${project.id}`, () => handleProjectSupervisorAssign(project.id))}><ButtonContent loading={actionLoading === `project-assign-${project.id}`} loadingText="Assigning..." icon={UserCog} iconSize={14}>Assign Supervisor</ButtonContent></button>
+                <button className="warning compact-button min-button-width" disabled={Boolean(actionLoading)} onClick={() => runSupervisorAction(`project-unassign-${project.id}`, () => handleProjectSupervisorRemove(project.id))}><ButtonContent loading={actionLoading === `project-unassign-${project.id}`} loadingText="Removing..." icon={XCircle} iconSize={14}>Remove Supervisor</ButtonContent></button>
+              </div>
+            </div>
+          )) : <EmptyState title="No projects found." text="Try another student, supervisor, project, research group, or department keyword." icon={Search} />) : <EmptyState title="No projects found." text="Project assignments appear after supervisors submit projects." icon={BookOpen} />}
+        </div>
+        {exportCsv && <button className="primary" onClick={exportCsv}><Download size={16} /> Export CSV Report</button>}
+      </div>
+
+      <div className="card supervisor-management-card project-leader-management-card">
+        <SectionHeader icon={UserPlus} title="Project Leader Assignment" subtitle="Choose one student member as Research Project Leader for each group/project" />
+        <div className="supervisor-management-controls">
+          <label className="field wide-field"><span>Search research group/project</span><input value={leaderSearch} onChange={(e) => setLeaderSearch(e.target.value)} placeholder="Search project title, group, supervisor, leader, or member..." /></label>
+        </div>
+        {projects.length ? (filteredLeaderProjects.length ? (
+          <div className="project-leader-grid supervisor-management-leader-grid">
+            {filteredLeaderProjects.map((project) => {
+              const members = getProjectMembersWithoutSupervisor(data, project, data.reports)
+              const leader = getProjectLeaderProfile(data, project)
+              const leaderKey = `leader-assign-${project.id}`
+              const selectedLeader = Object.prototype.hasOwnProperty.call(leaderSelections, project.id) ? leaderSelections[project.id] : leader?.id || ''
+              return (
+                <div className="soft-box project-leader-card supervisor-leader-card" key={project.id}>
+                  <div className="split supervisor-leader-header">
+                    <div>
+                      <h3>{project.title || 'Untitled project'}</h3>
+                      <p className="muted small">Group: {project.group_name || 'Research Group'} • Supervisor: {project.supervisor_name || 'Pending Assignment'}</p>
+                      <p className="muted small">Current Project Leader: <b>{leader?.full_name || leader?.email || 'Not assigned yet'}</b></p>
+                    </div>
+                    <Pill tone={project.approval === 'Approved' ? 'green' : project.approval === 'Rejected' ? 'red' : 'amber'}>{project.approval || 'Pending'}</Pill>
+                  </div>
+                  <div className="supervisor-project-member-list">
+                    <b>Project members</b>
+                    {members.length ? members.map((member) => {
+                      const isLeader = String(member.id || '') === String(leader?.id || '') || normalizeText(member.email) === normalizeText(leader?.email) || member.roleStatus === 'Project Leader'
+                      return (
+                        <div className="supervisor-project-member-row" key={member.id || member.email || member.full_name}>
+                          <div>
+                            <b>{member.full_name || member.email || 'Student'}</b>
+                            <p className="small muted">{member.email || 'No email'}{member.joined_at ? ` • Joined ${String(member.joined_at).slice(0, 10)}` : ''}</p>
+                          </div>
+                          <Pill tone={isLeader ? 'blue' : 'slate'}>{isLeader ? 'Project Leader' : 'Member'}</Pill>
+                        </div>
+                      )
+                    }) : <EmptyState title="No project members found." text="Only students who are already project/group members can become Project Leader." icon={Users} />}
+                  </div>
+                  <div className="project-leader-controls supervisor-management-leader-controls">
+                    <label className="field">
+                      <span>Select Project Leader</span>
+                      <select value={selectedLeader} disabled={Boolean(actionLoading) || !members.length} onChange={(e) => setLeaderSelections((current) => ({ ...current, [project.id]: e.target.value }))}>
+                        <option value="">Choose a student member</option>
+                        {members.map((member) => <option key={member.id || member.email} value={member.id || ''} disabled={!member.id}>{member.full_name || member.email}{member.email ? ` — ${member.email}` : ''}</option>)}
+                      </select>
+                    </label>
+                    <button className="primary min-button-width" type="button" disabled={Boolean(actionLoading) || !selectedLeader || !members.length} onClick={() => runSupervisorAction(leaderKey, () => handleAssignProjectLeader(project.id))}>
+                      <ButtonContent loading={actionLoading === leaderKey} loadingText="Assigning leader..." icon={UserPlus}>Assign Project Leader</ButtonContent>
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ) : <EmptyState title="No projects found." text="Try another project, group, supervisor, leader, or member keyword." icon={Search} />) : <EmptyState title="No projects found." text="Research groups/projects appear here after submission." icon={BookOpen} />}
+      </div>
+    </div>
+  )
+}
+
 function AdminDashboard({ data = emptyData, projects = [], currentUser, loadError = '', dataLoading = false, updateProject, updateUserRole, updateUserStatus, assignStudentToSupervisor, exportCsv, deleteWeeklyReport, deleteUploadedFile, deleteUserAccount, deleteResearchGroup, deleteResearchProject }) {
   const usersLoading = !data || !Array.isArray(data.profiles)
   data = cleanData({
@@ -7835,7 +8320,7 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
   const tabSubtitle = userTab === 'pending'
     ? 'Approve or reject newly registered users before they can access the platform.'
     : userTab === 'roles'
-      ? 'Search, filter, change roles, update status, assign students to supervisors, and delete accounts.'
+      ? 'Search, filter, change roles, update account status, and delete accounts.'
       : 'Review rejected accounts and restore them if needed.'
 
   const researchGroups = getProjectGroupSummaries(projects)
@@ -7930,7 +8415,7 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
   return (
     <div className="admin-dashboard-grid full-admin-dashboard-grid">
       <div className="card admin-user-management-card admin-users-and-roles-card">
-        <SectionHeader icon={Users} title="Users and Roles" subtitle="Approve users, manage roles, assign students, and delete accounts" />
+        <SectionHeader icon={Users} title="Users and Roles" subtitle="Approve users, manage account roles/status, and delete accounts" />
 
         <div className="admin-user-tabs">
           <button className={userTab === 'pending' ? 'active' : ''} onClick={() => setUserTab('pending')}>
@@ -7974,9 +8459,6 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
             const requestedRoleLabel = roleButtons.find((role) => role.id === u.role)?.label || u.role || 'Student'
             const submittedAt = String(u.created_at || u.submitted_at || u.registered_at || '').slice(0, 16).replace('T', ' ') || 'Date unavailable'
             const department = getUserDepartment(u)
-            const assignedSupervisor = getAssignedSupervisor(u)
-            const supervisorStudentCount = u.role === 'supervisor' ? getSupervisorStudentCount(u) : 0
-            const assignmentLoading = adminActionLoading === `assign-${u.id}`
             return (
               <div className="mini-card user-role-row admin-pending-user-request admin-user-role-management-row" key={u.id}>
                 <div className="admin-pending-user-info">
@@ -7985,8 +8467,6 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
                   <p className="small muted">Role: <b>{requestedRoleLabel}</b> • Status: <b>{u.status || 'Pending'}</b></p>
                   <p className="small muted">Department: <b>{department}</b></p>
                   <p className="small muted">Submitted: <b>{submittedAt}</b></p>
-                  {u.role === 'student' && <p className="small muted">Assigned supervisor: <b>{assignedSupervisor?.full_name || 'Not assigned'}</b>{assignedSupervisor?.email ? ` • ${assignedSupervisor.email}` : ''}</p>}
-                  {u.role === 'supervisor' && <p className="small muted">Assigned students/projects: <b>{supervisorStudentCount}</b></p>}
                   {isCurrentAdmin && <p className="small muted">Current admin account</p>}
                 </div>
                 <div className="role-management admin-pending-user-actions admin-role-actions-expanded">
@@ -8007,16 +8487,6 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
                     </select>
                   )}
 
-                  {u.role === 'student' && (
-                    <label className="admin-inline-assignment-field">
-                      <span>Supervisor</span>
-                      <select value={assignedSupervisor?.id || ''} disabled={Boolean(adminActionLoading)} onChange={(e) => runAdminAction(`assign-${u.id}`, () => assignStudentToSupervisor?.(u.id, e.target.value))}>
-                        <option value="">Not assigned</option>
-                        {supervisors.map((supervisor) => <option key={supervisor.id} value={supervisor.id}>{supervisor.full_name || supervisor.email}</option>)}
-                      </select>
-                      {assignmentLoading && <small className="muted">Updating...</small>}
-                    </label>
-                  )}
 
                   {userTab === 'pending' && !isCurrentAdmin && <button className="success compact-button min-button-width" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`accept-${u.id}`, () => updateUserStatus(u.id, 'Active'))}><ButtonContent loading={adminActionLoading === `accept-${u.id}`} loadingText="Accepting..." icon={CheckCircle2} iconSize={14}>Accept</ButtonContent></button>}
                   {userTab === 'pending' && !isCurrentAdmin && <button className="danger compact-button min-button-width" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`reject-${u.id}`, () => updateUserStatus(u.id, 'Rejected'))}><ButtonContent loading={adminActionLoading === `reject-${u.id}`} loadingText="Rejecting..." icon={XCircle} iconSize={14}>Reject</ButtonContent></button>}
@@ -8030,44 +8500,6 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
             )
           }) : <EmptyState title="No users found." text="Try changing the search/filter settings or wait for users to register." icon={Users} />}
         </div>
-      </div>
-
-      <div className="card admin-assignment-card">
-        <SectionHeader icon={UserCog} title="Project Supervisor Assignment" subtitle="Assign or update supervisors for submitted research titles" />
-        <div className="admin-assignment-controls">
-          <label className="field">
-            <span>Search assignment records</span>
-            <input
-              value={assignmentSearch}
-              onChange={(e) => setAssignmentSearch(e.target.value)}
-              placeholder="Search students, supervisors, projects, or research groups..."
-            />
-          </label>
-          <label className="field">
-            <span>Choose supervisor</span>
-            <select value={projectSupervisorId} onChange={(e) => setProjectSupervisorId(e.target.value)}>
-              <option value="">Pending Assignment / remove supervisor</option>
-              {supervisors.map((supervisor) => <option key={supervisor.id} value={supervisor.id}>{supervisor.full_name || supervisor.email}</option>)}
-            </select>
-          </label>
-        </div>
-        <div className="managed-list compact-managed-list admin-project-assignment-list">
-          {projects.length ? (filteredAssignmentProjects.length ? filteredAssignmentProjects.map((p) => (
-            <div className="mini-card managed-item" key={p.id}>
-              <div>
-                <b>{p.group_name}</b>
-                <p>{p.title}</p>
-                <p className="small muted">Student: {p.student_email || p.created_by_email || getProjectStudents(p).join(', ') || 'Not linked'}</p>
-                <p className="small muted">Supervisor: {p.supervisor_name || 'Pending Assignment'}</p>
-              </div>
-              <div className="stacked-actions">
-                <button className="secondary compact-button min-button-width" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`project-assign-${p.id}`, () => handleProjectSupervisorAssign(p.id))}><ButtonContent loading={adminActionLoading === `project-assign-${p.id}`} loadingText="Assigning..." icon={UserCog} iconSize={14}>Assign Supervisor</ButtonContent></button>
-                <button className="warning compact-button min-button-width" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`project-unassign-${p.id}`, () => handleProjectSupervisorRemove(p.id))}><ButtonContent loading={adminActionLoading === `project-unassign-${p.id}`} loadingText="Removing..." icon={XCircle} iconSize={14}>Remove Supervisor</ButtonContent></button>
-              </div>
-            </div>
-          )) : <EmptyState title="No matching assignments found." text="Try another student, supervisor, project, research group, or department keyword." icon={Search} />) : <EmptyState title="No projects to assign" text="Project assignments appear after students submit titles." icon={BookOpen} />}
-        </div>
-        <button className="primary" onClick={exportCsv}><Download size={16} /> Export CSV Report</button>
       </div>
 
       <div className="admin-management-alignment-grid">

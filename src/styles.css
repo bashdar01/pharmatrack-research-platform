@@ -6925,3 +6925,141 @@ button .button-spinner {
 .character-counter.at-limit {
   color: #b45309;
 }
+
+/* Admin subdomain: Supervisor Management */
+.supervisor-management-page {
+  gap: 20px;
+}
+
+.supervisor-management-card {
+  border: 1px solid #cfe4ff;
+  border-radius: 22px;
+  background: #ffffff;
+}
+
+.supervisor-management-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  align-items: end;
+  margin: 14px 0 18px;
+}
+
+.supervisor-management-list {
+  max-height: 560px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.supervisor-management-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
+  gap: 16px;
+  align-items: center;
+}
+
+.supervisor-management-record-main {
+  min-width: 0;
+}
+
+.supervisor-management-record-main p {
+  margin: 4px 0;
+  overflow-wrap: anywhere;
+}
+
+.supervisor-management-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: end;
+  gap: 10px;
+}
+
+.supervisor-management-actions .field,
+.supervisor-management-leader-controls .field {
+  min-width: 210px;
+  flex: 1 1 210px;
+  margin: 0;
+}
+
+.compact-field span {
+  font-size: .82rem;
+}
+
+.supervisor-management-leader-grid {
+  margin-top: 14px;
+}
+
+.supervisor-leader-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-color: #d7e8ff;
+  background: #fafdff;
+}
+
+.supervisor-leader-header {
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.supervisor-project-member-list {
+  display: grid;
+  gap: 10px;
+}
+
+.supervisor-project-member-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.supervisor-project-member-row p {
+  margin: 3px 0 0;
+}
+
+.supervisor-management-leader-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .supervisor-management-row {
+    grid-template-columns: 1fr;
+  }
+
+  .supervisor-management-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .supervisor-management-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .supervisor-management-actions,
+  .supervisor-management-leader-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .supervisor-management-actions .field,
+  .supervisor-management-leader-controls .field,
+  .supervisor-management-actions button,
+  .supervisor-management-leader-controls button {
+    width: 100%;
+  }
+
+  .supervisor-project-member-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
