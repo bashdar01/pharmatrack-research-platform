@@ -1107,6 +1107,9 @@ function hasCommitteeSupervisorAccess(user) {
 }
 
 function getActiveRoleLabel(baseRole, activeRole) {
+  if (baseRole === 'admin') {
+    return ({ admin: 'Admin Mode', student: 'Student Mode', supervisor: 'Supervisor Mode', committee: 'Research Committee Mode' }[activeRole]) || 'Admin Mode'
+  }
   if (baseRole === 'committee' && activeRole === 'supervisor') return 'Supervisor Mode'
   if (baseRole === 'committee') return 'Research Committee Mode'
   return ({ student: 'BSc Student', supervisor: 'Supervisor', admin: 'Admin', committee: 'Research Committee' }[activeRole]) || 'User'
@@ -2263,6 +2266,8 @@ export default function App() {
   const [adminPanelTab, setAdminPanelTab] = useState(getInitialAdminPanelTab)
   const [currentUser, setCurrentUser] = useState(loadCurrentUser)
   const [activeRoleOverride, setActiveRoleOverride] = useState('')
+  const [adminSelectedStudentId, setAdminSelectedStudentId] = useState('')
+  const [adminSelectedSupervisorId, setAdminSelectedSupervisorId] = useState('')
   const [message, setMessage] = useState('')
   const [loginLoading, setLoginLoading] = useState(false)
   const [passwordRecoveryMode, setPasswordRecoveryMode] = useState(false)
@@ -2274,8 +2279,26 @@ export default function App() {
 
   const databaseMode = isSupabaseConfigured ? 'Supabase connected' : 'Local database mode'
   const baseRole = currentUser?.role || 'student'
+  const isAdminBaseRole = baseRole === 'admin'
   const committeeSupervisorAccess = hasCommitteeSupervisorAccess(currentUser)
-  const allowedRole = baseRole === 'committee' && committeeSupervisorAccess && activeRoleOverride === 'supervisor' ? 'supervisor' : baseRole
+  const adminRoleModes = ['student', 'supervisor', 'committee']
+  const allowedRole = isAdminBaseRole && adminRoleModes.includes(activeRoleOverride)
+    ? activeRoleOverride
+    : baseRole === 'committee' && committeeSupervisorAccess && activeRoleOverride === 'supervisor'
+      ? 'supervisor'
+      : baseRole
+  const adminViewingAsRole = isAdminBaseRole && allowedRole !== 'admin'
+  const adminStudentOptions = useMemo(() => (data.profiles || []).filter((profile) => profile.role === 'student' && normalizeText(profile.status || 'Active') !== 'rejected'), [data.profiles])
+  const adminSupervisorOptions = useMemo(() => (data.profiles || []).filter((profile) => (profile.role === 'supervisor' || hasCommitteeSupervisorAccess(profile)) && normalizeText(profile.status || 'Active') !== 'rejected'), [data.profiles])
+  const adminSelectedStudent = useMemo(() => adminStudentOptions.find((profile) => String(profile.id) === String(adminSelectedStudentId)) || null, [adminStudentOptions, adminSelectedStudentId])
+  const adminSelectedSupervisor = useMemo(() => adminSupervisorOptions.find((profile) => String(profile.id) === String(adminSelectedSupervisorId)) || null, [adminSupervisorOptions, adminSelectedSupervisorId])
+  const roleContextUser = adminViewingAsRole && allowedRole === 'student'
+    ? adminSelectedStudent
+    : adminViewingAsRole && allowedRole === 'supervisor'
+      ? adminSelectedSupervisor
+      : currentUser
+  const activeRoleUser = roleContextUser || currentUser
+  const roleContextReady = !adminViewingAsRole || !['student', 'supervisor'].includes(allowedRole) || Boolean(roleContextUser)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', 'light')
@@ -2335,11 +2358,31 @@ export default function App() {
   }, [allowedRole, tab])
 
   useEffect(() => {
-    if (!committeeSupervisorAccess && activeRoleOverride) {
+    if (!isAdminBaseRole && !committeeSupervisorAccess && activeRoleOverride) {
       setActiveRoleOverride('')
       setTab('dashboard')
     }
-  }, [committeeSupervisorAccess, activeRoleOverride])
+  }, [isAdminBaseRole, committeeSupervisorAccess, activeRoleOverride])
+
+  useEffect(() => {
+    if (!isAdminBaseRole) {
+      setAdminSelectedStudentId('')
+      setAdminSelectedSupervisorId('')
+      return
+    }
+    if (allowedRole !== 'student' && adminSelectedStudentId) setAdminSelectedStudentId('')
+    if (allowedRole !== 'supervisor' && adminSelectedSupervisorId) setAdminSelectedSupervisorId('')
+  }, [isAdminBaseRole, allowedRole, adminSelectedStudentId, adminSelectedSupervisorId])
+
+  useEffect(() => {
+    if (!adminSelectedStudentId) return
+    if (!adminStudentOptions.some((profile) => String(profile.id) === String(adminSelectedStudentId))) setAdminSelectedStudentId('')
+  }, [adminStudentOptions, adminSelectedStudentId])
+
+  useEffect(() => {
+    if (!adminSelectedSupervisorId) return
+    if (!adminSupervisorOptions.some((profile) => String(profile.id) === String(adminSelectedSupervisorId))) setAdminSelectedSupervisorId('')
+  }, [adminSupervisorOptions, adminSelectedSupervisorId])
 
   async function loadFromSupabase(userOverride = currentUser) {
     if (!isSupabaseConfigured) return
@@ -3090,7 +3133,8 @@ export default function App() {
   }
 
   async function createProject(form) {
-    if (!canSubmitSupervisorProject(currentUser)) {
+    const actionUser = activeRoleUser || currentUser
+    if (!canSubmitSupervisorProject(actionUser)) {
       setMessage('Students cannot submit research titles or research groups. Please request to join an approved project after Research Committee approval.')
       return { ok: false, error: 'Students cannot submit research titles or research groups.' }
     }
@@ -3105,22 +3149,22 @@ export default function App() {
     const now = new Date().toISOString()
     const project = {
       id: crypto.randomUUID(),
-      group_name: form.group_name || `${currentUser?.full_name || 'Supervisor'} Research Group`,
+      group_name: form.group_name || `${actionUser?.full_name || 'Supervisor'} Research Group`,
       title: form.title,
       area: normalizeDepartment(form.area),
       expected_members: form.expected_members ? Number(form.expected_members) : null,
       start_date: form.start_date || null,
       end_date: form.end_date || form.final_due || null,
-      supervisor_name: currentUser?.full_name || currentUser?.email || 'Supervisor',
-      supervisor_id: currentUser?.id || null,
-      supervisor_email: currentUser?.email || '',
+      supervisor_name: actionUser?.full_name || actionUser?.email || 'Supervisor',
+      supervisor_id: actionUser?.id || null,
+      supervisor_email: actionUser?.email || '',
       student_id: null,
       student_email: '',
-      created_by: currentUser?.id || null,
-      created_by_email: currentUser?.email || '',
-      created_by_role: currentUser?.role || 'supervisor',
-      submitted_by_role: currentUser?.role || 'supervisor',
-      submitted_by_name: currentUser?.full_name || currentUser?.email || 'Supervisor',
+      created_by: actionUser?.id || null,
+      created_by_email: actionUser?.email || '',
+      created_by_role: actionUser?.role || 'supervisor',
+      submitted_by_role: actionUser?.role || 'supervisor',
+      submitted_by_name: actionUser?.full_name || actionUser?.email || 'Supervisor',
       submitted_at: now,
       approval: 'Pending Committee Review',
       status: 'Pending',
@@ -3145,11 +3189,11 @@ export default function App() {
         profile_id: committee.id || null,
         recipient_user_id: committee.id || null,
         recipient_email: committee.email || '',
-        sender_user_id: currentUser?.id || null,
+        sender_user_id: actionUser?.id || null,
         project_id: savedProject.id || null,
         notification_type: `supervisor_project_${savedProject.id}_submitted_${committee.id || committee.email}`,
         title: 'New Supervisor Project Submission',
-        message: `${currentUser?.full_name || currentUser?.email || 'A supervisor'} submitted ${savedProject.title || 'a research project'} for Research Committee review.`,
+        message: `${actionUser?.full_name || actionUser?.email || 'A supervisor'} submitted ${savedProject.title || 'a research project'} for Research Committee review.`,
         type: 'Supervisor Project Submission',
         target_role: 'committee',
         is_read: false,
@@ -3165,7 +3209,7 @@ export default function App() {
         console.warn('Supervisor project submission email failed:', emailError)
         emailFailed = true
       }
-      await addAudit(currentUser.full_name, 'submitted', 'supervisor research project')
+      await addAudit(actionUser.full_name, 'submitted', 'supervisor research project')
       await loadFromSupabase(currentUser)
     } else {
       const committeeUsers = (data.profiles || []).filter((profile) => profile.role === 'committee')
@@ -3174,17 +3218,17 @@ export default function App() {
         profile_id: committee.id || null,
         recipient_user_id: committee.id || null,
         recipient_email: committee.email || '',
-        sender_user_id: currentUser?.id || null,
+        sender_user_id: actionUser?.id || null,
         project_id: project.id,
         notification_type: `supervisor_project_${project.id}_submitted_${committee.id || committee.email}`,
         title: 'New Supervisor Project Submission',
-        message: `${currentUser?.full_name || currentUser?.email || 'A supervisor'} submitted ${project.title || 'a research project'} for Research Committee review.`,
+        message: `${actionUser?.full_name || actionUser?.email || 'A supervisor'} submitted ${project.title || 'a research project'} for Research Committee review.`,
         type: 'Supervisor Project Submission',
         target_role: 'committee',
         is_read: false,
         created_at: now,
       }))
-      const log = makeAudit(currentUser.full_name, 'submitted', 'supervisor research project')
+      const log = makeAudit(actionUser.full_name, 'submitted', 'supervisor research project')
       setLocal((current) => ({ ...current, projects: [project, ...current.projects], notifications: [...notices, ...current.notifications], auditLogs: [log, ...current.auditLogs] }))
     }
     setMessage(emailFailed ? 'Research project submitted successfully, but email notification failed.' : 'Research project submitted to Research Committee successfully.')
@@ -3289,13 +3333,14 @@ export default function App() {
   }
 
   async function createWeeklyReport(form, file) {
+    const actionUser = activeRoleUser || currentUser
     if (!form.project_id) {
       setMessage('Create or select a research project first.')
       return { ok: false, error: 'Create or select a research project first.' }
     }
     const weeklyProject = data.projects.find((project) => String(project.id) === String(form.project_id))
-    if (currentUser?.role === 'student') {
-      const permission = getWeeklyReportSubmissionPermission(data, weeklyProject, currentUser)
+    if (actionUser?.role === 'student') {
+      const permission = getWeeklyReportSubmissionPermission(data, weeklyProject, actionUser)
       if (!permission.canSubmit) {
         setMessage(permission.reason || 'Only the project leader can submit weekly reports for this project.')
         return { ok: false, error: permission.reason || 'Only the project leader can submit weekly reports for this project.' }
@@ -3308,21 +3353,21 @@ export default function App() {
     const nextWeek = Math.max(
       0,
       ...data.reports
-        .filter((r) => String(r.project_id) === String(form.project_id) && reportOwnedByUser(r, currentUser))
+        .filter((r) => String(r.project_id) === String(form.project_id) && reportOwnedByUser(r, actionUser))
         .map((r) => Number(r.week_number || 0))
     ) + 1
     const report = {
       id: crypto.randomUUID(),
       project_id: form.project_id,
       week_number: nextWeek,
-      submitted_by: currentUser?.full_name || form.submitted_by,
-      submitted_by_id: currentUser?.id || null,
-      submitted_by_email: currentUser?.email || '',
-      student_id: currentUser?.id || null,
-      student_email: currentUser?.email || '',
-      user_id: currentUser?.id || null,
-      created_by: currentUser?.id || null,
-      created_by_email: currentUser?.email || '',
+      submitted_by: actionUser?.full_name || form.submitted_by,
+      submitted_by_id: actionUser?.id || null,
+      submitted_by_email: actionUser?.email || '',
+      student_id: actionUser?.id || null,
+      student_email: actionUser?.email || '',
+      user_id: actionUser?.id || null,
+      created_by: actionUser?.id || null,
+      created_by_email: actionUser?.email || '',
       submitted_at: new Date().toISOString(),
       completed_work: form.completed_work,
       challenges: form.challenges,
@@ -3355,7 +3400,7 @@ export default function App() {
       await addAudit(form.submitted_by, 'submitted', `weekly report ${nextWeek}`)
       await loadFromSupabase()
     } else {
-      const attachment = file ? await makeLocalReportAttachment(file, form.project_id, report.id, currentUser) : null
+      const attachment = file ? await makeLocalReportAttachment(file, form.project_id, report.id, actionUser) : null
       const reportWithAttachment = attachment ? { ...report, attachment } : report
       const log = makeAudit(form.submitted_by, 'submitted', `weekly report ${nextWeek}`)
       const project = data.projects.find((item) => String(item.id) === String(form.project_id))
@@ -3365,12 +3410,12 @@ export default function App() {
         profile_id: supervisor.id || null,
         recipient_user_id: supervisor.id || null,
         recipient_email: supervisor.email || '',
-        sender_user_id: currentUser?.id || null,
+        sender_user_id: actionUser?.id || null,
         weekly_report_id: report.id,
         project_id: form.project_id,
         notification_type: 'weekly_report_submitted',
         title: 'New Weekly Report Submitted',
-        message: `A new weekly report has been submitted by ${currentUser?.full_name || report.submitted_by || 'Student'} for Week ${nextWeek}.`,
+        message: `A new weekly report has been submitted by ${actionUser?.full_name || report.submitted_by || 'Student'} for Week ${nextWeek}.`,
         type: 'Weekly Report',
         target_role: 'supervisor',
         is_read: false,
@@ -3404,11 +3449,11 @@ export default function App() {
       file_type: fileType,
       file_name: file.name,
       file_path: filePath,
-      uploaded_by: currentUser?.id || null,
-      uploaded_by_email: currentUser?.email || '',
-      user_id: currentUser?.id || null,
-      created_by: currentUser?.id || null,
-      created_by_email: currentUser?.email || '',
+      uploaded_by: actionUser?.id || null,
+      uploaded_by_email: actionUser?.email || '',
+      user_id: actionUser?.id || null,
+      created_by: actionUser?.id || null,
+      created_by_email: actionUser?.email || '',
       file_mime_type: file.type || 'application/octet-stream',
     }).select().single()
     if (insert.error) throw insert.error
@@ -3434,7 +3479,7 @@ export default function App() {
       profile_id: recipientId,
       recipient_user_id: recipientId,
       recipient_email: recipient.email || '',
-      sender_user_id: currentUser?.id || null,
+      sender_user_id: actionUser?.id || null,
       weekly_report_id: reportId,
       project_id: project?.id || report.project_id || null,
       notification_type: notificationType,
@@ -3684,7 +3729,8 @@ export default function App() {
   }
 
   async function submitStudentQuestion(questionText, attachmentFile = null) {
-    if (currentUser?.role !== 'student') {
+    const actionUser = activeRoleUser || currentUser
+    if (actionUser?.role !== 'student') {
       setMessage('Only students can submit questions to supervisors.')
       return { ok: false, error: 'Only students can submit questions.' }
     }
@@ -3693,7 +3739,7 @@ export default function App() {
       setMessage('Please write your question before submitting.')
       return { ok: false, error: 'Please write your question.' }
     }
-    const supervisor = findAssignedSupervisorForStudent(data, currentUser)
+    const supervisor = findAssignedSupervisorForStudent(data, actionUser)
     if (!supervisor) {
       setMessage('No supervisor assigned yet.')
       return { ok: false, error: 'No supervisor assigned yet.' }
@@ -3701,9 +3747,9 @@ export default function App() {
 
     const question = {
       id: crypto.randomUUID(),
-      student_id: currentUser?.id || null,
-      student_email: currentUser?.email || '',
-      student_name: currentUser?.full_name || currentUser?.email || 'Student',
+      student_id: actionUser?.id || null,
+      student_email: actionUser?.email || '',
+      student_name: actionUser?.full_name || actionUser?.email || 'Student',
       supervisor_id: supervisor.id || null,
       supervisor_email: supervisor.email || '',
       supervisor_name: supervisor.full_name || supervisor.email || 'Supervisor',
@@ -3748,10 +3794,10 @@ export default function App() {
       }
       await createQuestionNotification({
         recipient: supervisor,
-        sender: currentUser,
+        sender: actionUser,
         question: savedQuestion,
         title: 'New Student Question',
-        message: attachmentFile ? `New question with attachment from ${currentUser?.full_name || currentUser?.email || 'Student'}.` : `New question from ${currentUser?.full_name || currentUser?.email || 'Student'}.`,
+        message: attachmentFile ? `New question with attachment from ${actionUser?.full_name || actionUser?.email || 'Student'}.` : `New question from ${actionUser?.full_name || actionUser?.email || 'Student'}.`,
         targetRole: 'supervisor',
       })
       try {
@@ -3780,10 +3826,10 @@ export default function App() {
       profile_id: supervisor.id || null,
       recipient_user_id: supervisor.id || null,
       recipient_email: supervisor.email || '',
-      sender_user_id: currentUser?.id || null,
+      sender_user_id: actionUser?.id || null,
       notification_type: `student_question_${question.id}_supervisor`,
       title: 'New Student Question',
-      message: attachmentFile ? `New question with attachment from ${currentUser?.full_name || currentUser?.email || 'Student'}.` : `New question from ${currentUser?.full_name || currentUser?.email || 'Student'}.`,
+      message: attachmentFile ? `New question with attachment from ${actionUser?.full_name || actionUser?.email || 'Student'}.` : `New question from ${actionUser?.full_name || actionUser?.email || 'Student'}.`,
       type: 'Student Question',
       target_role: 'supervisor',
       is_read: false,
@@ -3799,7 +3845,8 @@ export default function App() {
   }
 
   async function answerStudentQuestion(questionId, answerText, attachmentFile = null) {
-    if (currentUser?.role !== 'supervisor') {
+    const actionUser = activeRoleUser || currentUser
+    if (actionUser?.role !== 'supervisor') {
       setMessage('Only supervisors can answer student questions.')
       return { ok: false, error: 'Only supervisors can answer student questions.' }
     }
@@ -3813,7 +3860,7 @@ export default function App() {
       setMessage('Question not found. Please refresh and try again.')
       return { ok: false, error: 'Question not found.' }
     }
-    if (!supervisorCanAccessQuestion(data, question, currentUser)) {
+    if (!supervisorCanAccessQuestion(data, question, actionUser)) {
       setMessage('You do not have permission to answer this question.')
       return { ok: false, error: 'You do not have permission to answer this question.' }
     }
@@ -3822,8 +3869,8 @@ export default function App() {
       answer_text: answer,
       status: 'Answered',
       answered_at: new Date().toISOString(),
-      answered_by: currentUser?.id || null,
-      answered_by_name: currentUser?.full_name || currentUser?.email || 'Supervisor',
+      answered_by: actionUser?.id || null,
+      answered_by_name: actionUser?.full_name || actionUser?.email || 'Supervisor',
     }
     const student = findProfileByIdentity(data, {
       id: question.student_id,
@@ -3860,7 +3907,7 @@ export default function App() {
       }
       await createQuestionNotification({
         recipient: student,
-        sender: currentUser,
+        sender: actionUser,
         question: updated || { ...question, ...updates },
         title: 'Supervisor Answered Your Question',
         message: attachmentFile && !attachmentWarning ? 'Your supervisor answered your question and attached a file.' : 'Your supervisor answered your question.',
@@ -3892,7 +3939,7 @@ export default function App() {
       profile_id: student.id || null,
       recipient_user_id: student.id || null,
       recipient_email: student.email || '',
-      sender_user_id: currentUser?.id || null,
+      sender_user_id: actionUser?.id || null,
       notification_type: `student_question_${question.id}_student`,
       title: 'Supervisor Answered Your Question',
       message: 'Your supervisor answered your question.',
@@ -3952,7 +3999,8 @@ export default function App() {
   }
 
   async function submitGroupJoinRequest(groupId, requestMessage = '') {
-    if (currentUser?.role !== 'student') {
+    const actionUser = activeRoleUser || currentUser
+    if (actionUser?.role !== 'student') {
       setMessage('Only students can request to join research groups.')
       return { ok: false }
     }
@@ -3965,13 +4013,13 @@ export default function App() {
       setMessage('This research group is not approved yet and cannot accept join requests.')
       return { ok: false }
     }
-    const currentGroup = getStudentCurrentResearchGroup(data, currentUser)
+    const currentGroup = getStudentCurrentResearchGroup(data, actionUser)
     if (currentGroup) {
       setMessage('You are already assigned to a research group.')
       return { ok: false }
     }
     const existingPending = (data.groupJoinRequests || []).find((request) =>
-      requestOwnedByStudent(request, currentUser) &&
+      requestOwnedByStudent(request, actionUser) &&
       String(request.requested_group_id || '') === String(group.id) &&
       String(request.status || '').toLowerCase() === 'pending'
     )
@@ -3983,9 +4031,9 @@ export default function App() {
     const supervisor = findSupervisorProfileForProject(data, group)
     const request = {
       id: crypto.randomUUID(),
-      student_id: currentUser.id || null,
-      student_email: currentUser.email || '',
-      student_name: currentUser.full_name || currentUser.email || 'Student',
+      student_id: actionUser.id || null,
+      student_email: actionUser.email || '',
+      student_name: actionUser.full_name || actionUser.email || 'Student',
       requested_group_id: group.id,
       requested_group_name: group.group_name || group.title || 'Research Group',
       requested_project_title: group.title || '',
@@ -4019,20 +4067,20 @@ export default function App() {
       for (const manager of groupManagers) {
         await createGroupJoinNotification({
           recipient: manager,
-          sender: currentUser,
+          sender: actionUser,
           request: savedRequest,
           title: 'New Research Group Join Request',
-          message: `${currentUser.full_name || currentUser.email || 'A student'} requested to join ${group.group_name || group.title || 'a research group'}.`,
+          message: `${actionUser.full_name || actionUser.email || 'A student'} requested to join ${group.group_name || group.title || 'a research group'}.`,
           targetRole: manager.role || 'admin',
         })
       }
       if (supervisor) {
         await createGroupJoinNotification({
           recipient: supervisor,
-          sender: currentUser,
+          sender: actionUser,
           request: savedRequest,
           title: 'New Research Group Join Request',
-          message: `${currentUser.full_name || currentUser.email || 'A student'} requested to join ${group.group_name || group.title || 'your research group'}.`,
+          message: `${actionUser.full_name || actionUser.email || 'A student'} requested to join ${group.group_name || group.title || 'your research group'}.`,
           targetRole: 'supervisor',
         })
       }
@@ -4041,7 +4089,7 @@ export default function App() {
       } catch (emailError) {
         console.warn('Group join request email could not be sent:', emailError)
       }
-      await loadFromSupabase(currentUser)
+      await loadFromSupabase(actionUser)
     } else {
       const groupManagers = (data.profiles || []).filter((profile) => profile.role === 'admin' || profile.role === 'committee')
       const notices = groupManagers.map((manager) => ({
@@ -4049,11 +4097,11 @@ export default function App() {
         profile_id: manager.id,
         recipient_user_id: manager.id,
         recipient_email: manager.email || '',
-        sender_user_id: currentUser?.id || null,
+        sender_user_id: actionUser?.id || null,
         project_id: group.id,
         notification_type: `group_join_${request.id}_${manager.role || 'manager'}`,
         title: 'New Research Group Join Request',
-        message: `${currentUser.full_name || currentUser.email || 'A student'} requested to join ${group.group_name || group.title || 'a research group'}.`,
+        message: `${actionUser.full_name || actionUser.email || 'A student'} requested to join ${group.group_name || group.title || 'a research group'}.`,
         type: 'Research Group Request',
         target_role: manager.role || 'admin',
         is_read: false,
@@ -5477,6 +5525,7 @@ export default function App() {
   }
 
   async function createDeadline(form) {
+    const actionUser = activeRoleUser || currentUser
     if (!['admin', 'supervisor'].includes(allowedRole)) {
       setMessage('Only supervisors and admins can add deadlines.')
       return { ok: false, error: 'Only supervisors and admins can add deadlines.' }
@@ -5491,10 +5540,10 @@ export default function App() {
     }
 
     const assignedProjects = allowedRole === 'supervisor'
-      ? getVisibleProjects(data.projects, 'supervisor', currentUser, data)
+      ? getVisibleProjects(data.projects, 'supervisor', actionUser, data)
       : data.projects
     const assignedStudents = allowedRole === 'supervisor'
-      ? mergeStudentOptions(getAssignedSupervisorStudents(data, assignedProjects, data.reports), getDirectAssignedStudentsForSupervisor(data, currentUser))
+      ? mergeStudentOptions(getAssignedSupervisorStudents(data, assignedProjects, data.reports), getDirectAssignedStudentsForSupervisor(data, actionUser))
       : getAssignedSupervisorStudents(data, assignedProjects, data.reports)
     const selectedStudents = form.target_scope === 'all_assigned'
       ? assignedStudents
@@ -5539,8 +5588,8 @@ export default function App() {
       target_student_emails: targetStudentEmails,
       target_student_names: targetStudentNames,
       target_student_keys: targetStudentKeys,
-      supervisor_id: currentUser?.id || null,
-      supervisor_email: currentUser?.email || '',
+      supervisor_id: actionUser?.id || null,
+      supervisor_email: actionUser?.email || '',
       created_by: currentUser?.id || null,
       created_by_email: currentUser?.email || '',
       created_at: new Date().toISOString(),
@@ -5555,7 +5604,7 @@ export default function App() {
       notification_type: 'deadline_assigned',
       related_deadline_id: deadline.id,
       title: 'New Deadline Assigned',
-      message: `${currentUser?.full_name || 'Your supervisor'} assigned a new deadline: ${deadline.title}. Due date: ${deadline.due_date}.${deadline.description ? ` ${deadline.description}` : ''}`,
+      message: `${actionUser?.full_name || 'Your supervisor'} assigned a new deadline: ${deadline.title}. Due date: ${deadline.due_date}.${deadline.description ? ` ${deadline.description}` : ''}`,
       type: 'Deadline',
       target_role: 'student',
       is_read: false,
@@ -5896,7 +5945,10 @@ export default function App() {
     addAudit(currentUser.full_name, 'printed', 'PDF report')
   }
 
-  const visibleProjects = useMemo(() => getVisibleProjects(data.projects, allowedRole, currentUser, data), [data, allowedRole, currentUser])
+  const visibleProjects = useMemo(() => {
+    if (adminViewingAsRole && ['student', 'supervisor'].includes(allowedRole) && !roleContextUser) return []
+    return getVisibleProjects(data.projects, allowedRole, activeRoleUser, data)
+  }, [data, allowedRole, activeRoleUser, adminViewingAsRole, roleContextUser])
 
   const filteredProjects = useMemo(() => {
     const q = filters.search.trim().toLowerCase()
@@ -5908,9 +5960,9 @@ export default function App() {
     })
   }, [visibleProjects, filters])
 
-  const visibleReports = useMemo(() => getVisibleReports(data.reports, visibleProjects, allowedRole, currentUser), [data.reports, visibleProjects, allowedRole, currentUser])
+  const visibleReports = useMemo(() => getVisibleReports(data.reports, visibleProjects, allowedRole, activeRoleUser), [data.reports, visibleProjects, allowedRole, activeRoleUser])
 
-  const visibleDeadlines = useMemo(() => getVisibleDeadlines(data.deadlines, allowedRole, currentUser, data), [data, allowedRole, currentUser])
+  const visibleDeadlines = useMemo(() => getVisibleDeadlines(data.deadlines, allowedRole, activeRoleUser, data), [data, allowedRole, activeRoleUser])
 
   const visibleData = useMemo(() => ({
     ...data,
@@ -5925,8 +5977,8 @@ export default function App() {
   }), [data, allowedRole, visibleProjects, visibleReports, visibleDeadlines])
 
   const studentCurrentResearchGroup = useMemo(() => (
-    allowedRole === 'student' ? getStudentCurrentResearchGroup(data, currentUser) : null
-  ), [allowedRole, data, currentUser])
+    allowedRole === 'student' && roleContextReady ? getStudentCurrentResearchGroup(data, activeRoleUser) : null
+  ), [allowedRole, data, activeRoleUser, roleContextReady])
 
   useEffect(() => {
     if (allowedRole === 'student' && tab === 'join-group' && studentCurrentResearchGroup && !dataLoading) {
@@ -5993,7 +6045,7 @@ export default function App() {
     return <LoginPage onLogin={handleLogin} onForgotPassword={handleForgotPassword} message={message} loading={loginLoading} adminOnly={isAdminPortal} settings={websiteSettings} invitation={acceptedInvitation} />
   }
 
-  if (isAdminPortal && allowedRole !== 'admin') {
+  if (isAdminPortal && allowedRole !== 'admin' && !isAdminBaseRole) {
     return <AdminAccessDenied currentUser={currentUser} onLogout={logout} />
   }
 
@@ -6066,9 +6118,48 @@ export default function App() {
   ].filter((item) => item.show)
   const activeNavItem = mainNavItems.find((item) => item.id === tab) || mainNavItems[0]
 
-  function handleCommitteeRoleSwitch(nextMode) {
+  function handleRoleSwitch(nextMode) {
+    if (isAdminBaseRole) {
+      const normalizedMode = ['student', 'supervisor', 'committee'].includes(nextMode) ? nextMode : ''
+      setActiveRoleOverride(normalizedMode)
+      setTab('dashboard')
+      addAudit(currentUser?.full_name || currentUser?.email || 'Admin', 'switched view mode', normalizedMode || 'admin', {
+        action_type: 'admin_role_view_switch',
+        new_value: normalizedMode || 'admin',
+        description: `Admin switched view mode to ${getActiveRoleLabel('admin', normalizedMode || 'admin')}.`,
+      }).catch((error) => console.warn('Role switch audit failed:', error))
+      return
+    }
     setActiveRoleOverride(nextMode === 'supervisor' ? 'supervisor' : '')
     setTab('dashboard')
+  }
+
+  function handleAdminContextSelect(kind, value) {
+    if (kind === 'student') {
+      setAdminSelectedStudentId(value)
+      const selected = adminStudentOptions.find((profile) => String(profile.id) === String(value))
+      if (selected) {
+        addAudit(currentUser?.full_name || currentUser?.email || 'Admin', 'selected student context', selected.full_name || selected.email || 'student', {
+          action_type: 'admin_role_view_context',
+          affected_user_id: selected.id || null,
+          new_value: selected.email || selected.full_name || selected.id || '',
+          description: `Admin selected student context ${selected.full_name || selected.email || 'student'} for Student Mode.`,
+        }).catch((error) => console.warn('Context audit failed:', error))
+      }
+      return
+    }
+    if (kind === 'supervisor') {
+      setAdminSelectedSupervisorId(value)
+      const selected = adminSupervisorOptions.find((profile) => String(profile.id) === String(value))
+      if (selected) {
+        addAudit(currentUser?.full_name || currentUser?.email || 'Admin', 'selected supervisor context', selected.full_name || selected.email || 'supervisor', {
+          action_type: 'admin_role_view_context',
+          affected_user_id: selected.id || null,
+          new_value: selected.email || selected.full_name || selected.id || '',
+          description: `Admin selected supervisor context ${selected.full_name || selected.email || 'supervisor'} for Supervisor Mode.`,
+        }).catch((error) => console.warn('Context audit failed:', error))
+      }
+    }
   }
 
   return (
@@ -6091,10 +6182,11 @@ export default function App() {
             markNotificationRead={markNotificationRead}
             removeNotification={removeNotification}
           />
-          {committeeSupervisorAccess && (
+          {(isAdminBaseRole || committeeSupervisorAccess) && (
             <RoleSwitchDropdown
               activeRole={allowedRole}
-              onChange={handleCommitteeRoleSwitch}
+              mode={isAdminBaseRole ? 'admin' : 'committee'}
+              onChange={handleRoleSwitch}
             />
           )}
           <div className="main-profile-summary">
@@ -6121,6 +6213,17 @@ export default function App() {
 
         {message && <div className="message no-print">{message}</div>}
 
+        {adminViewingAsRole && ['student', 'supervisor'].includes(allowedRole) && (
+          <AdminRoleContextSelector
+            mode={allowedRole}
+            students={adminStudentOptions}
+            supervisors={adminSupervisorOptions}
+            selectedStudentId={adminSelectedStudentId}
+            selectedSupervisorId={adminSelectedSupervisorId}
+            onSelect={handleAdminContextSelect}
+          />
+        )}
+
         {tab === 'dashboard' && (
           <>
             <section className="stats no-print">
@@ -6129,21 +6232,22 @@ export default function App() {
 
 
 
-            {allowedRole === 'student' && <StudentDashboard data={visibleData} projects={visibleProjects} currentUser={currentUser} createWeeklyReport={createWeeklyReport} dataLoading={dataLoading} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
-            {allowedRole === 'supervisor' && <SupervisorDashboard data={visibleData} projects={filteredProjects} currentUser={currentUser} dataLoading={dataLoading} reviewReport={reviewReport} createDeadline={createDeadline} removeDeadline={removeDeadline} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
+            {allowedRole === 'student' && roleContextReady && <StudentDashboard data={visibleData} projects={visibleProjects} currentUser={activeRoleUser} createWeeklyReport={createWeeklyReport} dataLoading={dataLoading} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
+            {allowedRole === 'supervisor' && roleContextReady && <SupervisorDashboard data={visibleData} projects={filteredProjects} currentUser={activeRoleUser} dataLoading={dataLoading} reviewReport={reviewReport} createDeadline={createDeadline} removeDeadline={removeDeadline} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
             {allowedRole === 'committee' && <CommitteeDashboard data={visibleData} projects={visibleProjects} dataLoading={dataLoading} updateProject={updateProject} saveEvaluation={saveEvaluation} />}
             {allowedRole === 'admin' && <AdminDashboard data={visibleData} projects={visibleProjects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} assignStudentToSupervisor={assignStudentToSupervisor} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} loadError={dataLoadError} dataLoading={dataLoading} />}
+            {adminViewingAsRole && !roleContextReady && <AdminRoleContextEmpty mode={allowedRole} />}
           </>
         )}
 
         {tab === 'profile-settings' && <ProfileSettingsPage currentUser={currentUser} onBack={() => setTab('dashboard')} updateOwnProfile={updateOwnProfile} uploadOwnProfilePhoto={uploadOwnProfilePhoto} updateOwnPassword={updateOwnPassword} />}
-        {tab === 'questions' && allowedRole === 'student' && <StudentQuestionsTab data={data} currentUser={currentUser} dataLoading={dataLoading} submitStudentQuestion={submitStudentQuestion} openQuestionAttachment={openQuestionAttachment} />}
-        {tab === 'questions' && allowedRole === 'supervisor' && <SupervisorQuestionsTab data={data} currentUser={currentUser} dataLoading={dataLoading} answerStudentQuestion={answerStudentQuestion} openQuestionAttachment={openQuestionAttachment} />}
-        {tab === 'project-management' && allowedRole === 'supervisor' && <SupervisorProjectManagementTab data={visibleData} projects={filteredProjects} currentUser={currentUser} dataLoading={dataLoading} createProject={createProject} assignProjectLeader={assignProjectLeader} />}
-        {tab === 'join-group' && allowedRole === 'student' && !studentCurrentResearchGroup && <StudentJoinResearchGroupTab data={data} currentUser={currentUser} dataLoading={dataLoading} submitGroupJoinRequest={submitGroupJoinRequest} />}
-        {tab === 'groups' && allowedRole === 'supervisor' && <SupervisorResearchGroupManagementTab data={data} currentUser={currentUser} dataLoading={dataLoading} supervisorAddStudentsToGroup={supervisorAddStudentsToGroup} decideGroupJoinRequest={decideGroupJoinRequest} />}
+        {tab === 'questions' && allowedRole === 'student' && roleContextReady && <StudentQuestionsTab data={data} currentUser={activeRoleUser} dataLoading={dataLoading} submitStudentQuestion={submitStudentQuestion} openQuestionAttachment={openQuestionAttachment} />}
+        {tab === 'questions' && allowedRole === 'supervisor' && roleContextReady && <SupervisorQuestionsTab data={data} currentUser={activeRoleUser} dataLoading={dataLoading} answerStudentQuestion={answerStudentQuestion} openQuestionAttachment={openQuestionAttachment} />}
+        {tab === 'project-management' && allowedRole === 'supervisor' && roleContextReady && <SupervisorProjectManagementTab data={visibleData} projects={filteredProjects} currentUser={activeRoleUser} dataLoading={dataLoading} createProject={createProject} assignProjectLeader={assignProjectLeader} />}
+        {tab === 'join-group' && allowedRole === 'student' && roleContextReady && !studentCurrentResearchGroup && <StudentJoinResearchGroupTab data={data} currentUser={activeRoleUser} dataLoading={dataLoading} submitGroupJoinRequest={submitGroupJoinRequest} />}
+        {tab === 'groups' && allowedRole === 'supervisor' && roleContextReady && <SupervisorResearchGroupManagementTab data={data} currentUser={activeRoleUser} dataLoading={dataLoading} supervisorAddStudentsToGroup={supervisorAddStudentsToGroup} decideGroupJoinRequest={decideGroupJoinRequest} />}
         {tab === 'group-requests' && (allowedRole === 'admin' || allowedRole === 'committee') && <AdminGroupJoinRequestsTab data={data} currentUser={currentUser} dataLoading={dataLoading} decideGroupJoinRequest={decideGroupJoinRequest} directAddStudentsToGroup={directAddStudentsToGroup} />}
-        {tab === 'reports' && <ReportsTab data={data} projects={filteredProjects} currentUser={currentUser} role={allowedRole} printPdfReport={printPdfReport} exportCsv={exportCsv} pdfReportSettings={getPdfReportSettingsForRole(allowedRole, pdfReportSettingsByRole, pdfReportSettings)} dataLoading={dataLoading} />}
+        {tab === 'reports' && <ReportsTab data={data} projects={filteredProjects} currentUser={activeRoleUser} role={allowedRole} printPdfReport={printPdfReport} exportCsv={exportCsv} pdfReportSettings={getPdfReportSettingsForRole(allowedRole, pdfReportSettingsByRole, pdfReportSettings)} dataLoading={dataLoading} />}
         {tab === 'database' && allowedRole === 'admin' && <DatabaseTab databaseMode={databaseMode} />}
         {tab === 'database' && allowedRole !== 'admin' && <div className="card"><SectionHeader icon={Lock} title="Database Access Locked" subtitle="Only Admin accounts can view database status" /><p className="muted">Please use your role dashboard, notifications, or reports page.</p></div>}
         {tab === 'audit' && allowedRole === 'admin' && <AuditTab logs={visibleData.auditLogs} dataLoading={dataLoading} />}
@@ -6153,15 +6257,82 @@ export default function App() {
 }
 
 
-function RoleSwitchDropdown({ activeRole, onChange }) {
+function RoleSwitchDropdown({ activeRole, mode = 'committee', onChange }) {
+  const options = mode === 'admin'
+    ? [
+        { value: 'admin', label: 'Admin' },
+        { value: 'student', label: 'Student' },
+        { value: 'supervisor', label: 'Supervisor' },
+        { value: 'committee', label: 'Research Committee' },
+      ]
+    : [
+        { value: 'committee', label: 'Research Committee' },
+        { value: 'supervisor', label: 'Supervisor' },
+      ]
+  const value = mode === 'admin' ? activeRole || 'admin' : activeRole === 'supervisor' ? 'supervisor' : 'committee'
   return (
     <label className="role-switch-dropdown no-print">
       <span>View as</span>
-      <select value={activeRole === 'supervisor' ? 'supervisor' : 'committee'} onChange={(e) => onChange?.(e.target.value)}>
-        <option value="committee">Research Committee</option>
-        <option value="supervisor">Supervisor</option>
+      <select value={value} onChange={(e) => onChange?.(e.target.value)}>
+        {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
     </label>
+  )
+}
+
+function AdminRoleContextSelector({ mode, students = [], supervisors = [], selectedStudentId = '', selectedSupervisorId = '', onSelect }) {
+  const [query, setQuery] = useState('')
+  const isStudentMode = mode === 'student'
+  const options = isStudentMode ? students : supervisors
+  const selectedId = isStudentMode ? selectedStudentId : selectedSupervisorId
+  const label = isStudentMode ? 'Select Student' : 'Select Supervisor'
+  const empty = isStudentMode ? 'No students found.' : 'No supervisors found.'
+  const filtered = options.filter((profile) => {
+    const q = normalizeText(query)
+    if (!q) return true
+    return [profile.full_name, profile.email, profile.department, profile.program, profile.role].some((value) => normalizeText(value).includes(q))
+  })
+  const selected = options.find((profile) => String(profile.id) === String(selectedId))
+
+  return (
+    <section className="admin-view-context-card no-print">
+      <div>
+        <p className="eyebrow">Admin role view</p>
+        <h3>{label}</h3>
+        <p className="muted small">Choose the user context for {isStudentMode ? 'Student Mode' : 'Supervisor Mode'}. Your account remains Admin.</p>
+      </div>
+      <div className="admin-view-context-controls">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={`Search ${isStudentMode ? 'students' : 'supervisors'}...`}
+          aria-label={`Search ${isStudentMode ? 'students' : 'supervisors'}`}
+        />
+        <select value={selectedId} onChange={(e) => onSelect?.(isStudentMode ? 'student' : 'supervisor', e.target.value)}>
+          <option value="">{label}</option>
+          {filtered.map((profile) => (
+            <option key={profile.id || profile.email} value={profile.id}>
+              {(profile.full_name || profile.email || 'Unnamed user')} {profile.email ? `• ${profile.email}` : ''}
+            </option>
+          ))}
+        </select>
+        {selected && <Pill tone="blue">Viewing: {selected.full_name || selected.email}</Pill>}
+        {!filtered.length && <span className="muted small">{empty}</span>}
+      </div>
+    </section>
+  )
+}
+
+function AdminRoleContextEmpty({ mode }) {
+  return (
+    <div className="card no-print">
+      <SectionHeader
+        icon={mode === 'student' ? GraduationCap : ClipboardCheck}
+        title={mode === 'student' ? 'Select Student' : 'Select Supervisor'}
+        subtitle={mode === 'student' ? 'Choose a student context to view the Student dashboard.' : 'Choose a supervisor context to view the Supervisor dashboard.'}
+      />
+      <p className="muted">{mode === 'student' ? 'No student is selected yet.' : 'No supervisor is selected yet.'}</p>
+    </div>
   )
 }
 
