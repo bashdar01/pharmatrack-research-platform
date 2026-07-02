@@ -14,3 +14,10 @@ node_modules/
 .env.local
 supabase/.temp/
 .env*
+
+node_modules/
+dist/
+.DS_Store
+*.zip
+.env
+.env.local
