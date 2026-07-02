@@ -628,7 +628,6 @@ Deno.serve(async (req) => {
           <p><strong>Research area:</strong> ${escapeHtml(project.area || 'Not available')}</p>
           <p><strong>Expected members:</strong> ${escapeHtml(project.expected_members || 'Not specified')}</p>
           <p><strong>Submitted:</strong> ${escapeHtml(dateTime(submittedAt))}</p>
-          ${project.project_description ? `<p><strong>Description:</strong><br>${escapeHtml(project.project_description)}</p>` : ''}
         `,
         link,
         'Review supervisor project'
@@ -642,7 +641,6 @@ Deno.serve(async (req) => {
         `Research area: ${project.area || 'Not available'}`,
         `Expected members: ${project.expected_members || 'Not specified'}`,
         `Submitted: ${dateTime(submittedAt)}`,
-        project.project_description ? `Description: ${project.project_description}` : '',
         link ? `Dashboard link: ${link}` : '',
       ].filter(Boolean).join('\n')
       const results = []

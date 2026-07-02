@@ -6749,10 +6749,33 @@ button .button-spinner {
 .supervisor-submissions-card .compact-table-wrap table th {
   vertical-align: top;
 }
+.project-decision-cell {
+  min-width: 180px;
+  vertical-align: top;
+}
 .decision-actions {
-  gap: 0.45rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.55rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0.55rem;
+  flex-wrap: nowrap;
+  margin-bottom: 0.65rem;
+}
+.decision-actions button {
+  width: 100%;
+  min-width: 150px;
+}
+.project-decision-cell .pill {
+  margin-top: 0.2rem;
+}
+@media (max-width: 760px) {
+  .project-decision-cell {
+    min-width: 0;
+  }
+  .decision-actions button {
+    min-width: 0;
+  }
 }
 
 /* Project leader workflow polish */
@@ -6896,34 +6919,6 @@ button .button-spinner {
   .supervisor-dashboard-workflow-grid .deadline-actions button {
     width: 100%;
   }
-}
-
-/* Project abstract text and supervisor description limit */
-.project-abstract-text {
-  margin: 6px 0 0 !important;
-  max-width: 100%;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-  word-break: normal;
-  white-space: normal;
-}
-
-.project-description-field textarea[aria-invalid="true"] {
-  border-color: #dc2626;
-  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
-}
-
-.character-counter {
-  display: block;
-  margin-top: 7px;
-  color: #64748b;
-  font-size: 12px;
-  font-weight: 800;
-  text-align: right;
-}
-
-.character-counter.at-limit {
-  color: #b45309;
 }
 
 /* Admin subdomain: Supervisor Management */

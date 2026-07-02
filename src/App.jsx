@@ -60,8 +60,6 @@ const DEPARTMENT_OPTIONS = [
 ]
 
 const DEFAULT_DEPARTMENT = DEPARTMENT_OPTIONS[0]
-const PROJECT_DESCRIPTION_MAX_LENGTH = 200
-const PROJECT_DESCRIPTION_LIMIT_MESSAGE = 'Description / Abstract must be 200 characters or less.'
 
 function normalizeDepartment(value, fallback = DEFAULT_DEPARTMENT) {
   return DEPARTMENT_OPTIONS.includes(value) ? value : fallback
@@ -904,16 +902,6 @@ function ProjectMembersCompact({ members = [], emptyText = 'No project members f
     </div>
   )
 }
-
-function getProjectAbstractText(project = {}) {
-  return project.project_description || project.abstract || project.bio || project.description || ''
-}
-
-function ProjectAbstractText({ project, emptyText = 'No abstract provided.', className = '' }) {
-  const value = String(getProjectAbstractText(project) || '').trim()
-  return <p className={`muted small project-abstract-text ${className}`.trim()}>{value || emptyText}</p>
-}
-
 
 function enrichProjectsWithGroupMembers(projects = [], profiles = [], groupMembers = []) {
   const data = { profiles, groupMembers }
@@ -2846,18 +2834,12 @@ export default function App() {
       setMessage('Please select a valid department.')
       return { ok: false, error: 'Please select a valid department.' }
     }
-    const projectDescription = String(form.project_description || form.description || '')
-    if (projectDescription.length > PROJECT_DESCRIPTION_MAX_LENGTH) {
-      setMessage(PROJECT_DESCRIPTION_LIMIT_MESSAGE)
-      return { ok: false, error: PROJECT_DESCRIPTION_LIMIT_MESSAGE }
-    }
     const now = new Date().toISOString()
     const project = {
       id: crypto.randomUUID(),
       group_name: form.group_name || `${currentUser?.full_name || 'Supervisor'} Research Group`,
       title: form.title,
       area: normalizeDepartment(form.area),
-      project_description: projectDescription,
       expected_members: form.expected_members ? Number(form.expected_members) : null,
       start_date: form.start_date || null,
       end_date: form.end_date || form.final_due || null,
@@ -4346,10 +4328,6 @@ export default function App() {
   async function updateProject(projectId, fields) {
     const targetProject = (data.projects || []).find((project) => String(project.id) === String(projectId)) || {}
     const nextFields = { ...fields }
-    if (Object.prototype.hasOwnProperty.call(nextFields, 'project_description') && String(nextFields.project_description || '').length > PROJECT_DESCRIPTION_MAX_LENGTH) {
-      setMessage(PROJECT_DESCRIPTION_LIMIT_MESSAGE)
-      return { ok: false, error: PROJECT_DESCRIPTION_LIMIT_MESSAGE }
-    }
     const approvalChanged = Object.prototype.hasOwnProperty.call(nextFields, 'approval') && String(targetProject.approval || '') !== String(nextFields.approval || '')
     if (approvalChanged) {
       nextFields.reviewed_at = new Date().toISOString()
@@ -5324,7 +5302,7 @@ export default function App() {
   }
 
   function exportCsv() {
-    const header = 'Group,Title,Area,Supervisor,Approval,Status,Progress,Final Due\n'
+    const header = 'Group,Title,Department,Supervisor,Approval,Status,Progress,Final Due\n'
     const rows = filteredProjects.map((p) => `"${p.group_name}","${p.title}","${p.area}","${p.supervisor_name}","${p.approval}","${p.status}","${formatProgress(p.progress)}%","${p.final_due}"`).join('\n')
     const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
@@ -6443,14 +6421,14 @@ function FilterBar({ filters, setFilters, projects }) {
   const statuses = ['All', ...Array.from(new Set(projects.flatMap((p) => [p.status, p.approval]).filter(Boolean)))]
   return (
     <div className="card filter-card no-print">
-      <SectionHeader icon={Filter} title="Search and Filter" subtitle="Find projects by title, group, area, supervisor, approval, or status" />
+      <SectionHeader icon={Filter} title="Search and Filter" subtitle="Find projects by title, group, department, supervisor, approval, or status" />
       <div className="filter-grid">
         <label className="field">
           <span>Search</span>
           <div className="input-icon"><Search size={16} /><input value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} placeholder="Search projects..." /></div>
         </label>
         <label className="field">
-          <span>Research area</span>
+          <span>Department</span>
           <select value={filters.area} onChange={(e) => setFilters({ ...filters, area: e.target.value })}>{areas.map((a) => <option key={a}>{a}</option>)}</select>
         </label>
         <label className="field">
@@ -6514,7 +6492,6 @@ function StudentDashboard({ data, projects, currentUser, createWeeklyReport, dat
                   <p className="muted small bold">{selectedProject.group_name}</p>
                   <h3>{selectedProject.area}</h3>
                   <p className="muted">{selectedProject.title}</p>
-                  <ProjectAbstractText project={selectedProject} className="student-project-abstract" />
                   <p className="muted small">Supervisor: {selectedProject.supervisor_name || 'Pending Assignment'}</p>
                   <p className="muted small">Project Leader: {projectLeader?.full_name || projectLeader?.email || 'Not assigned yet'}</p>
                   {isProjectLeader && <Pill tone="blue">You are the project leader for this project.</Pill>}
@@ -6725,9 +6702,8 @@ function SupervisorWeeklyReportReviewCard({ data, projects, currentUser, reviewR
 }
 
 function SupervisorProjectManagementTab({ data, projects, currentUser, dataLoading = false, createProject, assignProjectLeader }) {
-  const [projectForm, setProjectForm] = useState({ title: '', group_name: `${currentUser.full_name || 'Supervisor'} Research Group`, area: DEFAULT_DEPARTMENT, project_description: '', expected_members: '', start_date: '', end_date: '', final_due: '' })
+  const [projectForm, setProjectForm] = useState({ title: '', group_name: `${currentUser.full_name || 'Supervisor'} Research Group`, area: DEFAULT_DEPARTMENT, expected_members: '', start_date: '', end_date: '', final_due: '' })
   const [submittingProject, setSubmittingProject] = useState(false)
-  const [projectDescriptionError, setProjectDescriptionError] = useState('')
   const [leaderSelections, setLeaderSelections] = useState({})
   const [leaderAssigningProjectId, setLeaderAssigningProjectId] = useState('')
   const assignedProjects = useMemo(() => projects.filter((p) => isAssignedSupervisorProject(p, currentUser)), [projects, currentUser])
@@ -6736,25 +6712,13 @@ function SupervisorProjectManagementTab({ data, projects, currentUser, dataLoadi
   const studentOptions = useMemo(() => mergeStudentOptions(getAssignedSupervisorStudents(data, approvedAssignedProjects.length ? approvedAssignedProjects : assignedProjects, data.reports), getDirectAssignedStudentsForSupervisor(data, currentUser)), [data, approvedAssignedProjects, assignedProjects, currentUser])
   const allowedReports = useMemo(() => getSupervisorAllowedReports(data, approvedAssignedProjects.length ? approvedAssignedProjects : assignedProjects, currentUser), [data, approvedAssignedProjects, assignedProjects, currentUser])
 
-  function updateProjectDescription(value) {
-    const nextValue = String(value || '').slice(0, PROJECT_DESCRIPTION_MAX_LENGTH)
-    setProjectForm({ ...projectForm, project_description: nextValue })
-    setProjectDescriptionError('')
-  }
-
   async function handleSubmitSupervisorProject() {
     if (submittingProject || !createProject) return
-    if (String(projectForm.project_description || '').length > PROJECT_DESCRIPTION_MAX_LENGTH) {
-      setProjectDescriptionError(PROJECT_DESCRIPTION_LIMIT_MESSAGE)
-      return
-    }
-    setProjectDescriptionError('')
     setSubmittingProject(true)
     try {
       const result = await createProject(projectForm)
       if (result?.ok) {
-        setProjectForm({ title: '', group_name: `${currentUser.full_name || 'Supervisor'} Research Group`, area: DEFAULT_DEPARTMENT, project_description: '', expected_members: '', start_date: '', end_date: '', final_due: '' })
-        setProjectDescriptionError('')
+        setProjectForm({ title: '', group_name: `${currentUser.full_name || 'Supervisor'} Research Group`, area: DEFAULT_DEPARTMENT, expected_members: '', start_date: '', end_date: '', final_due: '' })
       }
     } finally {
       setSubmittingProject(false)
@@ -6781,11 +6745,10 @@ function SupervisorProjectManagementTab({ data, projects, currentUser, dataLoadi
         <div className="form-grid supervisor-project-form-grid">
           <label className="field wide-field"><span>Research title/project title</span><input value={projectForm.title} onChange={(e) => setProjectForm({ ...projectForm, title: e.target.value })} placeholder="Write the research project title" /></label>
           <label className="field"><span>Research group name</span><input value={projectForm.group_name} onChange={(e) => setProjectForm({ ...projectForm, group_name: e.target.value })} placeholder="Research group name" /></label>
-          <label className="field"><span>Department / research area</span><select value={projectForm.area} onChange={(e) => setProjectForm({ ...projectForm, area: e.target.value })}>{DEPARTMENT_OPTIONS.map((department) => <option key={department} value={department}>{department}</option>)}</select></label>
+          <label className="field"><span>Department</span><select value={projectForm.area} onChange={(e) => setProjectForm({ ...projectForm, area: e.target.value })}>{DEPARTMENT_OPTIONS.map((department) => <option key={department} value={department}>{department}</option>)}</select></label>
           <label className="field"><span>Expected members</span><input type="number" min="1" value={projectForm.expected_members} onChange={(e) => setProjectForm({ ...projectForm, expected_members: e.target.value })} placeholder="e.g. 4" /></label>
           <label className="field"><span>Start date</span><input type="date" value={projectForm.start_date} onChange={(e) => setProjectForm({ ...projectForm, start_date: e.target.value })} /></label>
           <label className="field"><span>Expected end date</span><input type="date" value={projectForm.end_date} onChange={(e) => setProjectForm({ ...projectForm, end_date: e.target.value, final_due: e.target.value })} /></label>
-          <label className="field wide-field project-description-field"><span>Description / Abstract</span><textarea value={projectForm.project_description} maxLength={PROJECT_DESCRIPTION_MAX_LENGTH} onChange={(e) => updateProjectDescription(e.target.value)} placeholder="Brief project description or abstract for Research Committee review" aria-invalid={Boolean(projectDescriptionError)} /><small className={`character-counter ${String(projectForm.project_description || '').length >= PROJECT_DESCRIPTION_MAX_LENGTH ? 'at-limit' : ''}`}>{String(projectForm.project_description || '').length} / {PROJECT_DESCRIPTION_MAX_LENGTH} characters</small>{projectDescriptionError && <small className="form-error-text">{projectDescriptionError}</small>}</label>
         </div>
         <div className="inline-actions"><button className="primary min-button-width" type="button" disabled={submittingProject} onClick={handleSubmitSupervisorProject}><ButtonContent loading={submittingProject} loadingText="Submitting..." icon={Send}>Submit to Research Committee</ButtonContent></button></div>
       </div>
@@ -6793,7 +6756,7 @@ function SupervisorProjectManagementTab({ data, projects, currentUser, dataLoadi
       <div className="card supervisor-submissions-card">
         <SectionHeader icon={ClipboardCheck} title="My Submitted Projects" subtitle="Committee status, comments, and availability for student joining" />
         {assignedProjects.length ? (
-          <div className="table-wrap compact-table-wrap"><table><thead><tr><th>Project</th><th>Group</th><th>Area</th><th>Status</th><th>Committee comment</th><th>Reviewed</th></tr></thead><tbody>{assignedProjects.map((project) => <tr key={project.id}><td><b>{project.title || 'Untitled project'}</b><ProjectAbstractText project={project} emptyText="No description" /></td><td>{project.group_name || 'Research Group'}</td><td>{project.area || '-'}</td><td><Pill tone={project.approval === 'Approved' ? 'green' : project.approval === 'Rejected' ? 'red' : 'amber'}>{project.approval || 'Pending Committee Review'}</Pill></td><td>{project.committee_comments || project.decision_message || project.admin_comment || '-'}</td><td>{project.reviewed_at ? new Date(project.reviewed_at).toLocaleDateString() : '-'}</td></tr>)}</tbody></table></div>
+          <div className="table-wrap compact-table-wrap"><table><thead><tr><th>Project</th><th>Group</th><th>Department</th><th>Status</th><th>Committee comment</th><th>Reviewed</th></tr></thead><tbody>{assignedProjects.map((project) => <tr key={project.id}><td><b>{project.title || 'Untitled project'}</b></td><td>{project.group_name || 'Research Group'}</td><td>{project.area || '-'}</td><td><Pill tone={project.approval === 'Approved' ? 'green' : project.approval === 'Rejected' ? 'red' : 'amber'}>{project.approval || 'Pending Committee Review'}</Pill></td><td>{project.committee_comments || project.decision_message || project.admin_comment || '-'}</td><td>{project.reviewed_at ? new Date(project.reviewed_at).toLocaleDateString() : '-'}</td></tr>)}</tbody></table></div>
         ) : <EmptyState title="No project submissions yet." text="Submit a research project above so the Research Committee can review it." icon={FileText} />}
       </div>
 
@@ -7670,7 +7633,6 @@ function ProjectProgressSection({ projects = [], reports = [], students = [], da
                     <p className="muted">Research group: {project.group_name || 'Not specified'}</p>
                     <p className="muted small">Supervisor: {supervisor?.full_name || project.supervisor_name || project.supervisor_email || 'Not assigned'}</p>
                     <p className="muted small">Project Leader: {leader?.full_name || leader?.email || 'Not assigned yet'}</p>
-                    <ProjectAbstractText project={project} className="progress-project-abstract" />
                     <p className="muted small">Last update: {latestReportDate ? new Date(latestReportDate).toLocaleString() : project.created_at ? new Date(project.created_at).toLocaleString() : 'No updates yet'}</p>
                   </div>
                   <div className="progress-status-column">
@@ -8512,8 +8474,7 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
                 <div className="mini-card managed-item" key={project.id}>
                   <div>
                     <b>{project.title || 'Untitled research title'}</b>
-                    <p className="small muted">Group: {project.group_name || 'N/A'} • Area: {project.area || 'N/A'}</p>
-                    <ProjectAbstractText project={project} className="admin-project-abstract" />
+                    <p className="small muted">Group: {project.group_name || 'N/A'} • Department: {project.area || 'N/A'}</p>
                     <p className="small muted">Supervisor: {project.supervisor_name || 'Pending Assignment'} • Reports: {reportCount}</p>
                   </div>
                   {canDeleteResearchProject(project, currentUser) && deleteResearchProject && (
@@ -8533,7 +8494,6 @@ function AdminDashboard({ data = emptyData, projects = [], currentUser, loadErro
                 <div>
                   <b>{project.title || 'Untitled research title'}</b>
                   <p className="small muted">Group: {project.group_name || 'N/A'} • Supervisor: {project.supervisor_name || 'Pending Assignment'}</p>
-                  <ProjectAbstractText project={project} className="admin-project-abstract" />
                   <p className="small muted">Status: {project.status || 'Pending'} • Last update: {String(project.updated_at || project.created_at || '').slice(0, 10) || 'N/A'}</p>
                   <ProjectMembersCompact members={getProjectMembersWithoutSupervisor(data, project, data.reports)} />
                 </div>
@@ -8635,17 +8595,17 @@ function ProjectDecisionTable({ projects, updateProject, data = emptyData, repor
   }
 
   return (
-    <div className="table-wrap"><table><thead><tr><th>Supervisor project</th><th>Area</th><th>Members</th><th>Progress</th><th>Committee decision</th></tr></thead><tbody>{projects.map((p) => {
+    <div className="table-wrap"><table><thead><tr><th>Supervisor project</th><th>Department</th><th>Members</th><th>Progress</th><th>Committee decision</th></tr></thead><tbody>{projects.map((p) => {
       const approvedKey = `${p.id}-Approved`
       const reviseKey = `${p.id}-Revision Required`
       const rejectKey = `${p.id}-Rejected`
       return (
         <tr key={p.id}>
-          <td><b>{p.group_name || 'Research Group'}</b><p>{p.title}</p><p className="muted small">Supervisor: {p.supervisor_name || p.supervisor_email || 'Not assigned'}{p.submitted_at ? ` • Submitted ${new Date(p.submitted_at).toLocaleDateString()}` : ''}</p><ProjectAbstractText project={p} /></td>
+          <td><b>{p.group_name || 'Research Group'}</b><p>{p.title}</p><p className="muted small">Supervisor: {p.supervisor_name || p.supervisor_email || 'Not assigned'}{p.submitted_at ? ` • Submitted ${new Date(p.submitted_at).toLocaleDateString()}` : ''}</p></td>
           <td>{p.area}</td>
           <td><ProjectMembersCompact members={getProjectMembersWithoutSupervisor(data, p, reports)} /></td>
           <td><ProgressBar value={getProjectProgress(p, reports)} /><p className="small muted">{formatProgress(getProjectProgress(p, reports))}%</p></td>
-          <td>
+          <td className="project-decision-cell">
             <div className="inline-actions decision-actions">
               <button className="success min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'Approved')}><ButtonContent loading={decisionLoading === approvedKey} loadingText="Accepting..." icon={CheckCircle2}>Accept</ButtonContent></button>
               <button className="warning min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'Revision Required')}><ButtonContent loading={decisionLoading === reviseKey} loadingText="Requesting..." icon={RefreshCw}>Revision</ButtonContent></button>
