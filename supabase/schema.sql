@@ -385,8 +385,12 @@ for delete to authenticated using (
   )
 );
 
-create policy "audit_logs_select_authenticated" on public.audit_logs for select to anon, authenticated using (true);
-create policy "audit_logs_insert_authenticated" on public.audit_logs for insert to anon, authenticated with check (true);
+drop policy if exists "audit_logs_select_authenticated" on public.audit_logs;
+drop policy if exists "audit_logs_insert_authenticated" on public.audit_logs;
+drop policy if exists "audit_logs_select_admin_only" on public.audit_logs;
+drop policy if exists "audit_logs_insert_authenticated_secure" on public.audit_logs;
+create policy "audit_logs_select_admin_only" on public.audit_logs for select to authenticated using (public.current_profile_role() = 'admin');
+create policy "audit_logs_insert_authenticated_secure" on public.audit_logs for insert to authenticated with check (public.current_profile_role() in ('admin','committee','supervisor','student'));
 
 -- Create the Storage bucket manually in Supabase Dashboard:
 -- Storage > New bucket > Name: project-files > Private bucket.
@@ -4221,3 +4225,18 @@ drop trigger if exists trg_one_time_committee_project_decision on public.researc
 create trigger trg_one_time_committee_project_decision
 before insert or update on public.research_projects
 for each row execute function public.enforce_one_time_committee_project_decision();
+
+-- 202607020004 audit, weekly report single-student exception, and project title workflow support
+alter table public.audit_logs
+  add column if not exists actor_id uuid,
+  add column if not exists actor_email text,
+  add column if not exists actor_role text,
+  add column if not exists action_type text,
+  add column if not exists affected_entity text,
+  add column if not exists affected_user_id uuid,
+  add column if not exists affected_project_id uuid,
+  add column if not exists affected_report_id uuid,
+  add column if not exists old_value jsonb,
+  add column if not exists new_value jsonb,
+  add column if not exists description text,
+  add column if not exists details jsonb;

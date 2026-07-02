@@ -7071,3 +7071,97 @@ button .button-spinner {
     flex-direction: column;
   }
 }
+
+/* Audit log, profile hover, project-title selectors, and compact member display fixes */
+.user-profile-menu.closing .student-profile-dropdown.redesigned-profile-card,
+.student-profile-menu.user-profile-menu.closing .student-profile-dropdown.redesigned-profile-card,
+.main-dashboard-no-sidebar .student-profile-menu.user-profile-menu.closing .student-profile-dropdown.redesigned-profile-card,
+.main-dashboard-no-sidebar .user-profile-menu.closing .student-profile-dropdown.redesigned-profile-card {
+  pointer-events: auto;
+  opacity: 0;
+  transform: translateY(8px) scale(.98);
+  transition: opacity .26s ease, transform .26s ease;
+}
+
+.user-profile-menu.open .student-profile-dropdown.redesigned-profile-card,
+.student-profile-menu.user-profile-menu.open .student-profile-dropdown.redesigned-profile-card {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.project-member-chip small:empty { display: none; }
+.project-member-chip:not(.leader) small { display: none; }
+
+.project-leader-dropdown-layout,
+.project-title-selector-grid,
+.progress-filter-panel,
+.audit-filter-grid {
+  gap: 14px;
+}
+
+.project-title-selector-grid {
+  grid-template-columns: minmax(220px, 1fr) minmax(280px, 1.3fr);
+  align-items: end;
+}
+
+.selected-project-leader-card {
+  margin-top: 14px;
+}
+
+.project-progress-deadlines {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  background: #f8fbff;
+}
+
+.project-progress-deadlines p {
+  margin: 4px 0 0;
+}
+
+.audit-log-card .audit-filter-grid {
+  grid-template-columns: minmax(240px, 1.4fr) minmax(160px, .8fr) minmax(150px, .7fr) auto;
+  align-items: end;
+  margin-bottom: 16px;
+}
+
+.audit-log-list {
+  display: grid;
+  gap: 12px;
+  max-height: min(72vh, 760px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.audit-log-entry {
+  border-color: #dbeafe;
+  background: #ffffff;
+}
+
+.audit-values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.audit-values p {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #f8fbff;
+  border: 1px solid #e0edff;
+  word-break: break-word;
+}
+
+@media (max-width: 780px) {
+  .project-title-selector-grid,
+  .audit-log-card .audit-filter-grid {
+    grid-template-columns: 1fr;
+  }
+  .audit-values {
+    grid-template-columns: 1fr;
+  }
+}
