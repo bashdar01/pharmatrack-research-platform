@@ -187,6 +187,60 @@ function getAttachmentUrl(attachment) {
   return ''
 }
 
+const QUESTION_ATTACHMENT_BUCKET = 'question-attachments'
+const QUESTION_ATTACHMENT_ACCEPT = '.pdf,.doc,.docx,.xls,.xlsx,image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+
+function getQuestionAttachment(question = {}, type = 'question') {
+  const prefix = type === 'answer' ? 'answer_attachment' : 'question_attachment'
+  const name = question[`${prefix}_name`] || ''
+  const path = question[`${prefix}_path`] || ''
+  const url = question[`${prefix}_url`] || question[`${prefix}_data_url`] || ''
+  const mimeType = question[`${prefix}_mime_type`] || ''
+  const size = question[`${prefix}_size`] || null
+  if (!name && !path && !url) return null
+  return { file_name: name || 'Attachment', file_path: path, file_url: url, file_mime_type: mimeType, file_size: size }
+}
+
+function formatFileSize(bytes) {
+  const numeric = Number(bytes || 0)
+  if (!numeric) return ''
+  if (numeric < 1024) return `${numeric} B`
+  if (numeric < 1024 * 1024) return `${(numeric / 1024).toFixed(1)} KB`
+  return `${(numeric / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function validateQuestionAttachmentFile(file) {
+  if (!file) return ''
+  const extension = String(file.name || '').split('.').pop()?.toLowerCase() || ''
+  const allowedExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'gif', 'webp']
+  const mimeType = String(file.type || '').toLowerCase()
+  const allowedMime = mimeType.startsWith('image/') || [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  ].includes(mimeType)
+  if (!allowedExtensions.includes(extension) && !allowedMime) return 'Only PDF, Word, image, and Excel attachments are allowed.'
+  if (file.size > 10 * 1024 * 1024) return 'Attachment must be 10 MB or smaller.'
+  return ''
+}
+
+async function makeLocalQuestionAttachment(file, questionId, type = 'question') {
+  if (!file) return {}
+  const validationError = validateQuestionAttachmentFile(file)
+  if (validationError) throw new Error(validationError)
+  const dataUrl = await readFileAsDataUrl(file)
+  const prefix = type === 'answer' ? 'answer_attachment' : 'question_attachment'
+  return {
+    [`${prefix}_name`]: file.name,
+    [`${prefix}_path`]: '',
+    [`${prefix}_url`]: dataUrl,
+    [`${prefix}_mime_type`]: file.type || 'application/octet-stream',
+    [`${prefix}_size`]: file.size || null,
+  }
+}
+
 function DeleteItemButton({ onDelete, label = 'Delete' }) {
   return (
     <button className="danger compact-button delete-item-button" type="button" onClick={onDelete}>
@@ -1607,6 +1661,32 @@ function questionStudentLabel(data, question = {}) {
     name: student?.full_name || question.student_name || question.student_email || 'Student',
     email: student?.email || question.student_email || '',
   }
+}
+
+function getSupervisorQuestionStudents(data = {}, supervisorUser = {}, questions = []) {
+  const supervisedProjects = (data.projects || []).filter((project) => isAssignedSupervisorProject(project, supervisorUser))
+  const students = new Map()
+  mergeStudentOptions(getAssignedSupervisorStudents(data, supervisedProjects, data.reports || []), getDirectAssignedStudentsForSupervisor(data, supervisorUser)).forEach((student) => {
+    upsertStudentOption(students, student, student)
+  })
+  ;(questions || []).forEach((question) => {
+    const student = questionStudentLabel(data, question)
+    upsertStudentOption(students, { id: question.student_id || null, email: student.email || question.student_email || '', name: student.name || question.student_name || 'Student' }, { group: question.group_name || 'Question student' })
+  })
+  return Array.from(students.values()).filter((student) => student.name || student.email || student.id).sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')))
+}
+
+function questionMatchesStudentFilter(question = {}, studentKey = '', data = {}) {
+  if (!studentKey || studentKey === 'all') return true
+  const student = questionStudentLabel(data, question)
+  const candidates = [
+    makeStudentOptionKey({ id: question.student_id, email: question.student_email, name: question.student_name }),
+    makeStudentOptionKey({ id: question.student_id, email: student.email, name: student.name }),
+    `id:${question.student_id || ''}`,
+    `email:${normalizeText(question.student_email || student.email || '')}`,
+    `name:${normalizeText(question.student_name || student.name || '')}`,
+  ]
+  return candidates.map(String).includes(String(studentKey))
 }
 
 
@@ -3448,6 +3528,47 @@ export default function App() {
   }
 
 
+  async function uploadQuestionAttachmentFile(file, questionId, type = 'question') {
+    if (!isSupabaseConfigured || !file) return null
+    const validationError = validateQuestionAttachmentFile(file)
+    if (validationError) throw new Error(validationError)
+    const safeName = sanitizeFileName(file.name)
+    const filePath = `student-questions/${questionId}/${type}/${Date.now()}-${safeName}`
+    const upload = await supabase.storage.from(QUESTION_ATTACHMENT_BUCKET).upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: false,
+      contentType: file.type || 'application/octet-stream',
+    })
+    if (upload.error) throw upload.error
+    return {
+      file_name: file.name,
+      file_path: filePath,
+      file_mime_type: file.type || 'application/octet-stream',
+      file_size: file.size || null,
+    }
+  }
+
+  async function openQuestionAttachment(question, type = 'question') {
+    const attachment = getQuestionAttachment(question, type)
+    if (!attachment) return
+    if (attachment.file_url) {
+      window.open(attachment.file_url, '_blank', 'noopener,noreferrer')
+      return
+    }
+    if (!isSupabaseConfigured || !attachment.file_path) {
+      setMessage('Attachment file is not available for download.')
+      return
+    }
+    const { data: signed, error } = await supabase.storage.from(QUESTION_ATTACHMENT_BUCKET).createSignedUrl(attachment.file_path, 60 * 10, {
+      download: attachment.file_name || true,
+    })
+    if (error || !signed?.signedUrl) {
+      setMessage(error?.message || 'Could not open attachment.')
+      return
+    }
+    window.open(signed.signedUrl, '_blank', 'noopener,noreferrer')
+  }
+
   async function sendQuestionEmail(kind, questionId) {
     if (!isSupabaseConfigured || !supabase?.functions?.invoke) return { ok: false, error: 'Email sending requires Supabase Edge Functions.' }
     const { data: result, error } = await supabase.functions.invoke('send-platform-email', {
@@ -3486,7 +3607,7 @@ export default function App() {
     return { ok: true, notification: note }
   }
 
-  async function submitStudentQuestion(questionText) {
+  async function submitStudentQuestion(questionText, attachmentFile = null) {
     if (currentUser?.role !== 'student') {
       setMessage('Only students can submit questions to supervisors.')
       return { ok: false, error: 'Only students can submit questions.' }
@@ -3520,8 +3641,7 @@ export default function App() {
 
     let savedQuestion = question
     if (isSupabaseConfigured) {
-      const { id, ...questionForDb } = question
-      const { data: inserted, error } = await supabase.from('student_questions').insert(questionForDb).select().single()
+      const { data: inserted, error } = await supabase.from('student_questions').insert(question).select().single()
       if (error) {
         const missingTable = String(error.message || '').toLowerCase().includes('student_questions') || String(error.message || '').toLowerCase().includes('relation')
         const messageText = missingTable ? `${error.message}. Run supabase/student_questions.sql in Supabase SQL Editor, refresh, then try again.` : error.message
@@ -3529,12 +3649,33 @@ export default function App() {
         return { ok: false, error: messageText }
       }
       savedQuestion = inserted
+      if (attachmentFile) {
+        try {
+          setMessage('Uploading attachment...')
+          const attachment = await uploadQuestionAttachmentFile(attachmentFile, savedQuestion.id, 'question')
+          const attachmentUpdates = {
+            question_attachment_name: attachment.file_name,
+            question_attachment_path: attachment.file_path,
+            question_attachment_mime_type: attachment.file_mime_type,
+            question_attachment_size: attachment.file_size,
+            question_attachment_url: '',
+          }
+          const { data: updatedWithAttachment, error: attachmentUpdateError } = await supabase.from('student_questions').update(attachmentUpdates).eq('id', savedQuestion.id).select().single()
+          if (attachmentUpdateError) throw attachmentUpdateError
+          savedQuestion = updatedWithAttachment || { ...savedQuestion, ...attachmentUpdates }
+        } catch (attachmentError) {
+          console.warn('Failed to upload question attachment:', attachmentError)
+          await loadFromSupabase()
+          setMessage('Failed to upload attachment.')
+          return { ok: false, question: savedQuestion, error: attachmentError.message || 'Failed to upload attachment.' }
+        }
+      }
       await createQuestionNotification({
         recipient: supervisor,
         sender: currentUser,
         question: savedQuestion,
         title: 'New Student Question',
-        message: `New question from ${currentUser?.full_name || currentUser?.email || 'Student'}.`,
+        message: attachmentFile ? `New question with attachment from ${currentUser?.full_name || currentUser?.email || 'Student'}.` : `New question from ${currentUser?.full_name || currentUser?.email || 'Student'}.`,
         targetRole: 'supervisor',
       })
       try {
@@ -3550,6 +3691,14 @@ export default function App() {
       }
     }
 
+    if (attachmentFile) {
+      try {
+        Object.assign(question, await makeLocalQuestionAttachment(attachmentFile, question.id, 'question'))
+      } catch (attachmentError) {
+        setMessage('Failed to upload attachment.')
+        return { ok: false, error: attachmentError.message || 'Failed to upload attachment.' }
+      }
+    }
     const notification = {
       id: crypto.randomUUID(),
       profile_id: supervisor.id || null,
@@ -3558,7 +3707,7 @@ export default function App() {
       sender_user_id: currentUser?.id || null,
       notification_type: `student_question_${question.id}_supervisor`,
       title: 'New Student Question',
-      message: `New question from ${currentUser?.full_name || currentUser?.email || 'Student'}.`,
+      message: attachmentFile ? `New question with attachment from ${currentUser?.full_name || currentUser?.email || 'Student'}.` : `New question from ${currentUser?.full_name || currentUser?.email || 'Student'}.`,
       type: 'Student Question',
       target_role: 'supervisor',
       is_read: false,
@@ -3573,7 +3722,7 @@ export default function App() {
     return { ok: true, question }
   }
 
-  async function answerStudentQuestion(questionId, answerText) {
+  async function answerStudentQuestion(questionId, answerText, attachmentFile = null) {
     if (currentUser?.role !== 'supervisor') {
       setMessage('Only supervisors can answer student questions.')
       return { ok: false, error: 'Only supervisors can answer student questions.' }
@@ -3607,33 +3756,61 @@ export default function App() {
     }) || { id: question.student_id, email: question.student_email, full_name: question.student_name, role: 'student' }
 
     if (isSupabaseConfigured) {
-      const { data: updated, error } = await supabase.from('student_questions').update(updates).eq('id', questionId).select().single()
+      const { data: initialUpdated, error } = await supabase.from('student_questions').update(updates).eq('id', questionId).select().single()
       if (error) {
         setMessage(error.message)
         return { ok: false, error: error.message }
+      }
+      let updated = initialUpdated || { ...question, ...updates }
+      let attachmentWarning = ''
+      if (attachmentFile) {
+        try {
+          setMessage('Uploading attachment...')
+          const attachment = await uploadQuestionAttachmentFile(attachmentFile, questionId, 'answer')
+          const attachmentUpdates = {
+            answer_attachment_name: attachment.file_name,
+            answer_attachment_path: attachment.file_path,
+            answer_attachment_mime_type: attachment.file_mime_type,
+            answer_attachment_size: attachment.file_size,
+            answer_attachment_url: '',
+          }
+          const { data: updatedWithAttachment, error: attachmentUpdateError } = await supabase.from('student_questions').update(attachmentUpdates).eq('id', questionId).select().single()
+          if (attachmentUpdateError) throw attachmentUpdateError
+          updated = updatedWithAttachment || { ...updated, ...attachmentUpdates }
+        } catch (attachmentError) {
+          console.warn('Answer saved, but attachment upload failed:', attachmentError)
+          attachmentWarning = 'Answer saved, but attachment upload failed.'
+        }
       }
       await createQuestionNotification({
         recipient: student,
         sender: currentUser,
         question: updated || { ...question, ...updates },
         title: 'Supervisor Answered Your Question',
-        message: 'Your supervisor answered your question.',
+        message: attachmentFile && !attachmentWarning ? 'Your supervisor answered your question and attached a file.' : 'Your supervisor answered your question.',
         targetRole: 'student',
       })
       try {
         await sendQuestionEmail('student_question_answered', questionId)
         await loadFromSupabase()
-        setMessage('Answer submitted successfully and student notified.')
-        return { ok: true, question: updated, emailSent: true }
+        setMessage(attachmentWarning || 'Answer submitted successfully and student notified.')
+        return { ok: true, question: updated, emailSent: true, warning: attachmentWarning }
       } catch (emailError) {
         console.warn('Answer submitted, but email notification failed:', emailError)
         await loadFromSupabase()
-        setMessage('Answer submitted successfully, but email notification failed.')
-        return { ok: true, question: updated, emailSent: false, warning: emailError.message }
+        setMessage(attachmentWarning ? `${attachmentWarning} Email notification failed.` : 'Answer submitted successfully, but email notification failed.')
+        return { ok: true, question: updated, emailSent: false, warning: attachmentWarning || emailError.message }
       }
     }
 
-    const updatedQuestion = { ...question, ...updates }
+    let updatedQuestion = { ...question, ...updates }
+    if (attachmentFile) {
+      try {
+        updatedQuestion = { ...updatedQuestion, ...(await makeLocalQuestionAttachment(attachmentFile, question.id, 'answer')) }
+      } catch (attachmentError) {
+        setMessage('Answer saved, but attachment upload failed.')
+      }
+    }
     const notification = {
       id: crypto.randomUUID(),
       profile_id: student.id || null,
@@ -5670,8 +5847,8 @@ export default function App() {
           </>
         )}
 
-        {tab === 'questions' && allowedRole === 'student' && <StudentQuestionsTab data={data} currentUser={currentUser} dataLoading={dataLoading} submitStudentQuestion={submitStudentQuestion} />}
-        {tab === 'questions' && allowedRole === 'supervisor' && <SupervisorQuestionsTab data={data} currentUser={currentUser} dataLoading={dataLoading} answerStudentQuestion={answerStudentQuestion} />}
+        {tab === 'questions' && allowedRole === 'student' && <StudentQuestionsTab data={data} currentUser={currentUser} dataLoading={dataLoading} submitStudentQuestion={submitStudentQuestion} openQuestionAttachment={openQuestionAttachment} />}
+        {tab === 'questions' && allowedRole === 'supervisor' && <SupervisorQuestionsTab data={data} currentUser={currentUser} dataLoading={dataLoading} answerStudentQuestion={answerStudentQuestion} openQuestionAttachment={openQuestionAttachment} />}
         {tab === 'project-management' && allowedRole === 'supervisor' && <SupervisorProjectManagementTab data={visibleData} projects={filteredProjects} currentUser={currentUser} dataLoading={dataLoading} createProject={createProject} assignProjectLeader={assignProjectLeader} />}
         {tab === 'join-group' && allowedRole === 'student' && !studentCurrentResearchGroup && <StudentJoinResearchGroupTab data={data} currentUser={currentUser} dataLoading={dataLoading} submitGroupJoinRequest={submitGroupJoinRequest} />}
         {tab === 'groups' && allowedRole === 'supervisor' && <SupervisorResearchGroupManagementTab data={data} currentUser={currentUser} dataLoading={dataLoading} supervisorAddStudentsToGroup={supervisorAddStudentsToGroup} decideGroupJoinRequest={decideGroupJoinRequest} />}
@@ -7043,8 +7220,25 @@ function QuestionStatusBadge({ status }) {
   return <Pill tone={normalized === 'Answered' ? 'green' : 'amber'}>{normalized}</Pill>
 }
 
-function QuestionCard({ question, data, role, answerValue = '', onAnswerChange, onSubmitAnswer, answering = false }) {
+function QuestionAttachmentBox({ question, type = 'question', onOpenAttachment }) {
+  const attachment = getQuestionAttachment(question, type)
+  if (!attachment) return null
+  return (
+    <div className="question-attachment-box">
+      <div>
+        <b>{attachment.file_name || 'Attached file'}</b>
+        <p className="muted small">{type === 'answer' ? 'Supervisor answer attachment' : 'Student question attachment'}{formatFileSize(attachment.file_size) ? ` • ${formatFileSize(attachment.file_size)}` : ''}</p>
+      </div>
+      <button className="secondary compact-link" type="button" onClick={() => onOpenAttachment?.(question, type)}>
+        <Download size={15} /> Download Attachment
+      </button>
+    </div>
+  )
+}
+
+function QuestionCard({ question, data, role, answerValue = '', answerFile = null, onAnswerChange, onAnswerFileChange, onSubmitAnswer, onOpenAttachment, answering = false }) {
   const student = questionStudentLabel(data, question)
+  const answered = String(question.status || 'Pending') === 'Answered' || Boolean(question.answer_text)
   return (
     <div className="question-card">
       <div className="question-card-header">
@@ -7053,30 +7247,37 @@ function QuestionCard({ question, data, role, answerValue = '', onAnswerChange, 
           {role === 'supervisor' && student.email && <p className="muted small">{student.email}</p>}
           {role === 'student' && question.supervisor_email && <p className="muted small">{question.supervisor_email}</p>}
         </div>
-        <QuestionStatusBadge status={question.status} />
+        <QuestionStatusBadge status={answered ? 'Answered' : 'Pending'} />
       </div>
       <div className="question-body">
         <p className="question-label">Question</p>
         <p>{question.question_text || 'No question text available.'}</p>
+        <QuestionAttachmentBox question={question} type="question" onOpenAttachment={onOpenAttachment} />
       </div>
       <p className="muted small">Submitted: {question.created_at ? new Date(question.created_at).toLocaleString() : '-'}</p>
       {question.answer_text ? (
         <div className="question-answer-box">
           <p className="question-label">Supervisor answer</p>
           <p>{question.answer_text}</p>
+          <QuestionAttachmentBox question={question} type="answer" onOpenAttachment={onOpenAttachment} />
           <p className="muted small">Answered: {question.answered_at ? new Date(question.answered_at).toLocaleString() : '-'}</p>
         </div>
       ) : role === 'student' ? (
         <div className="question-answer-box pending-answer">Waiting for supervisor answer.</div>
       ) : null}
-      {role === 'supervisor' && (
+      {role === 'supervisor' && !answered && (
         <div className="question-answer-form">
           <label className="field wide-field">
             <span>Answer</span>
             <textarea value={answerValue} onChange={(e) => onAnswerChange(question.id, e.target.value)} placeholder="Write a clear answer for the student..." />
           </label>
+          <label className="field wide-field">
+            <span>Optional answer attachment</span>
+            <input type="file" accept={QUESTION_ATTACHMENT_ACCEPT} onChange={(e) => onAnswerFileChange?.(question.id, e.target.files?.[0] || null)} />
+            {answerFile?.name && <small className="muted">Selected: {answerFile.name}</small>}
+          </label>
           <button className="primary min-button-width" type="button" disabled={answering || !String(answerValue || '').trim()} onClick={() => onSubmitAnswer(question.id)}>
-            <ButtonContent loading={answering} loadingText="Sending answer..." icon={Send}>Submit Answer</ButtonContent>
+            <ButtonContent loading={answering} loadingText={answerFile ? 'Uploading attachment...' : 'Sending answer...'} icon={Send}>Send Answer</ButtonContent>
           </button>
         </div>
       )}
@@ -7084,24 +7285,39 @@ function QuestionCard({ question, data, role, answerValue = '', onAnswerChange, 
   )
 }
 
-function StudentQuestionsTab({ data, currentUser, dataLoading = false, submitStudentQuestion }) {
+function StudentQuestionsTab({ data, currentUser, dataLoading = false, submitStudentQuestion, openQuestionAttachment }) {
   const [questionText, setQuestionText] = useState('')
+  const [questionFile, setQuestionFile] = useState(null)
+  const [fileInputKey, setFileInputKey] = useState(0)
+  const [statusFilter, setStatusFilter] = useState('all')
   const [submitting, setSubmitting] = useState(false)
   const supervisor = findAssignedSupervisorForStudent(data, currentUser)
   const questions = (data.studentQuestions || [])
     .filter((question) => questionOwnedByStudent(question, currentUser))
+    .filter((question) => {
+      const answered = String(question.status || 'Pending') === 'Answered' || Boolean(question.answer_text)
+      if (statusFilter === 'pending') return !answered
+      if (statusFilter === 'answered') return answered
+      return true
+    })
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
 
   async function handleSubmit() {
     if (submitting) return
     setSubmitting(true)
     try {
-      const result = await submitStudentQuestion(questionText)
-      if (result?.ok) setQuestionText('')
+      const result = await submitStudentQuestion(questionText, questionFile)
+      if (result?.ok) {
+        setQuestionText('')
+        setQuestionFile(null)
+        setFileInputKey((value) => value + 1)
+      }
     } finally {
       setSubmitting(false)
     }
   }
+
+  const emptyTitle = statusFilter === 'pending' ? 'No pending questions found.' : statusFilter === 'answered' ? 'No answered questions found.' : 'No questions yet.'
 
   return (
     <div className="questions-grid">
@@ -7120,29 +7336,56 @@ function StudentQuestionsTab({ data, currentUser, dataLoading = false, submitStu
               <span>Your question</span>
               <textarea value={questionText} onChange={(e) => setQuestionText(e.target.value)} placeholder="Write your question for your supervisor..." />
             </label>
+            <label className="field wide-field">
+              <span>Optional attachment</span>
+              <input key={fileInputKey} type="file" accept={QUESTION_ATTACHMENT_ACCEPT} onChange={(e) => setQuestionFile(e.target.files?.[0] || null)} />
+              {questionFile?.name && <small className="muted">Selected: {questionFile.name}</small>}
+            </label>
             <button className="primary min-button-width" type="button" disabled={submitting || !questionText.trim()} onClick={handleSubmit}>
-              <ButtonContent loading={submitting} loadingText="Submitting..." icon={Send}>Submit Question</ButtonContent>
+              <ButtonContent loading={submitting} loadingText={questionFile ? 'Uploading attachment...' : 'Submitting question...'} icon={Send}>Submit Question</ButtonContent>
             </button>
           </>
         )}
       </div>
       <div className="card">
         <SectionHeader icon={MessageSquareText} title="Previous Questions" subtitle="Track pending and answered questions" />
+        <div className="question-filter-grid student-question-filter-grid">
+          <label className="field">
+            <span>Question Status</span>
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <option value="all">All Questions</option>
+              <option value="pending">Pending Questions</option>
+              <option value="answered">Answered Questions</option>
+            </select>
+          </label>
+        </div>
         {dataLoading ? <LoadingBlock text="Loading questions..." /> : questions.length ? (
           <div className="question-list">
-            {questions.map((question) => <QuestionCard key={question.id} question={question} data={data} role="student" />)}
+            {questions.map((question) => <QuestionCard key={question.id} question={question} data={data} role="student" onOpenAttachment={openQuestionAttachment} />)}
           </div>
-        ) : <EmptyState title="No questions yet." text="Your submitted questions and supervisor answers will appear here." icon={MessageSquareText} />}
+        ) : <EmptyState title={emptyTitle} text="Your submitted questions and supervisor answers will appear here." icon={MessageSquareText} />}
       </div>
     </div>
   )
 }
 
-function SupervisorQuestionsTab({ data, currentUser, dataLoading = false, answerStudentQuestion }) {
+function SupervisorQuestionsTab({ data, currentUser, dataLoading = false, answerStudentQuestion, openQuestionAttachment }) {
   const [answers, setAnswers] = useState({})
+  const [answerFiles, setAnswerFiles] = useState({})
   const [answeringId, setAnsweringId] = useState('')
-  const questions = (data.studentQuestions || [])
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [studentFilter, setStudentFilter] = useState('all')
+  const accessibleQuestions = (data.studentQuestions || [])
     .filter((question) => supervisorCanAccessQuestion(data, question, currentUser))
+  const studentOptions = getSupervisorQuestionStudents(data, currentUser, accessibleQuestions)
+  const questions = accessibleQuestions
+    .filter((question) => {
+      const answered = String(question.status || 'Pending') === 'Answered' || Boolean(question.answer_text)
+      if (statusFilter === 'pending') return !answered
+      if (statusFilter === 'answered') return answered
+      return true
+    })
+    .filter((question) => questionMatchesStudentFilter(question, studentFilter, data))
     .sort((a, b) => {
       const statusSort = String(a.status || 'Pending') === 'Pending' && String(b.status || 'Pending') !== 'Pending' ? -1 : String(b.status || 'Pending') === 'Pending' && String(a.status || 'Pending') !== 'Pending' ? 1 : 0
       if (statusSort) return statusSort
@@ -7153,20 +7396,47 @@ function SupervisorQuestionsTab({ data, currentUser, dataLoading = false, answer
     setAnswers((current) => ({ ...current, [questionId]: value }))
   }
 
+  function updateAnswerFile(questionId, file) {
+    setAnswerFiles((current) => ({ ...current, [questionId]: file || null }))
+  }
+
   async function submitAnswer(questionId) {
     if (answeringId) return
     setAnsweringId(questionId)
     try {
-      const result = await answerStudentQuestion(questionId, answers[questionId])
-      if (result?.ok) setAnswers((current) => ({ ...current, [questionId]: '' }))
+      const result = await answerStudentQuestion(questionId, answers[questionId], answerFiles[questionId] || null)
+      if (result?.ok) {
+        setAnswers((current) => ({ ...current, [questionId]: '' }))
+        setAnswerFiles((current) => ({ ...current, [questionId]: null }))
+      }
     } finally {
       setAnsweringId('')
     }
   }
 
+  const emptyTitle = !studentOptions.length ? 'No students found.' : statusFilter === 'pending' ? 'No pending questions found.' : statusFilter === 'answered' ? 'No answered questions found.' : 'No questions found.'
+
   return (
     <div className="card">
       <SectionHeader icon={MessageSquareText} title="Student Questions" subtitle="Answer questions from your assigned students" />
+      <div className="question-filter-grid">
+        <label className="field">
+          <span>Question Status</span>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="all">All Questions</option>
+            <option value="pending">Pending Questions</option>
+            <option value="answered">Answered Questions</option>
+          </select>
+        </label>
+        <label className="field">
+          <span>Select Student</span>
+          <select value={studentFilter} onChange={(e) => setStudentFilter(e.target.value)}>
+            <option value="all">All Assigned Students</option>
+            {studentOptions.map((student) => <option key={student.key} value={student.key}>{student.name}{student.email ? ` — ${student.email}` : ''}</option>)}
+          </select>
+          {!studentOptions.length && <small className="muted">No students found.</small>}
+        </label>
+      </div>
       {dataLoading ? <LoadingBlock text="Loading questions..." /> : questions.length ? (
         <div className="question-list supervisor-question-list">
           {questions.map((question) => (
@@ -7176,13 +7446,16 @@ function SupervisorQuestionsTab({ data, currentUser, dataLoading = false, answer
               data={data}
               role="supervisor"
               answerValue={answers[question.id] ?? question.answer_text ?? ''}
+              answerFile={answerFiles[question.id] || null}
               onAnswerChange={updateAnswer}
+              onAnswerFileChange={updateAnswerFile}
               onSubmitAnswer={submitAnswer}
+              onOpenAttachment={openQuestionAttachment}
               answering={String(answeringId) === String(question.id)}
             />
           ))}
         </div>
-      ) : <EmptyState title="No student questions yet." text="Questions from your assigned students will appear here." icon={MessageSquareText} />}
+      ) : <EmptyState title={emptyTitle} text="Questions from your assigned students will appear here." icon={MessageSquareText} />}
     </div>
   )
 }

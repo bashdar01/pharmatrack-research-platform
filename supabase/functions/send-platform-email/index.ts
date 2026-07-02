@@ -379,6 +379,7 @@ Deno.serve(async (req) => {
       if (!supervisor?.email) throw new Error('Supervisor email address is missing.')
       const link = dashboardLink(appUrl, 'supervisor', { tab: 'questions', question: question.id || '' })
       const submittedAt = question.created_at || new Date().toISOString()
+      const questionAttachmentLabel = question.question_attachment_name || question.question_attachment_url || question.question_attachment_path || ''
       const html = buildEmailWrapper(
         'New Student Question',
         `${question.student_name || student?.full_name || question.student_email || 'A student'} submitted a question for you.`,
@@ -388,6 +389,7 @@ Deno.serve(async (req) => {
           <p><strong>Student email:</strong> ${escapeHtml(student?.email || question.student_email || 'Not available')}</p>
           <p><strong>Submitted date/time:</strong> ${escapeHtml(dateTime(submittedAt))}</p>
           <p><strong>Question:</strong><br>${escapeHtml(question.question_text || '')}</p>
+          ${questionAttachmentLabel ? `<p><strong>Attachment:</strong> ${escapeHtml(questionAttachmentLabel)}. Open the questions tab to view/download it.</p>` : ''}
         `,
         link,
         'Open student questions'
@@ -399,6 +401,7 @@ Deno.serve(async (req) => {
         `Student email: ${student?.email || question.student_email || 'Not available'}`,
         `Submitted: ${dateTime(submittedAt)}`,
         `Question: ${question.question_text || ''}`,
+        questionAttachmentLabel ? `Attachment: ${questionAttachmentLabel}. Open the questions tab to view/download it.` : '',
         link ? `Dashboard link: ${link}` : '',
       ].filter(Boolean).join('\n')
       const email = await sendResendEmail({ resendApiKey, fromEmail, to: supervisor.email, subject: 'New Student Question', html, text })
@@ -415,6 +418,7 @@ Deno.serve(async (req) => {
       const toEmail = student?.email || question.student_email
       const link = dashboardLink(appUrl, 'student', { tab: 'questions', question: question.id || '' })
       const answeredAt = question.answered_at || new Date().toISOString()
+      const answerAttachmentLabel = question.answer_attachment_name || question.answer_attachment_url || question.answer_attachment_path || ''
       const html = buildEmailWrapper(
         'Your Supervisor Answered Your Question',
         `${question.supervisor_name || supervisor?.full_name || 'Your supervisor'} answered your question.`,
@@ -423,6 +427,7 @@ Deno.serve(async (req) => {
           <p><strong>Supervisor name:</strong> ${escapeHtml(supervisor?.full_name || question.supervisor_name || question.supervisor_email || 'Supervisor')}</p>
           <p><strong>Original question:</strong><br>${escapeHtml(question.question_text || '')}</p>
           <p><strong>Answer:</strong><br>${escapeHtml(question.answer_text || '')}</p>
+          ${answerAttachmentLabel ? `<p><strong>Answer attachment:</strong> ${escapeHtml(answerAttachmentLabel)}. Open the questions tab to view/download it.</p>` : ''}
           <p><strong>Answered date/time:</strong> ${escapeHtml(dateTime(answeredAt))}</p>
         `,
         link,
@@ -434,6 +439,7 @@ Deno.serve(async (req) => {
         `Supervisor: ${supervisor?.full_name || question.supervisor_name || question.supervisor_email || 'Supervisor'}`,
         `Question: ${question.question_text || ''}`,
         `Answer: ${question.answer_text || ''}`,
+        answerAttachmentLabel ? `Answer attachment: ${answerAttachmentLabel}. Open the questions tab to view/download it.` : '',
         `Answered: ${dateTime(answeredAt)}`,
         link ? `Dashboard link: ${link}` : '',
       ].filter(Boolean).join('\n')
