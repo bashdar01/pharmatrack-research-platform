@@ -14,6 +14,8 @@ create table if not exists public.profiles (
   display_name text,
   phone_number text,
   program text,
+  can_act_as_supervisor boolean not null default false,
+  secondary_roles text[] not null default array[]::text[],
   profile_photo_url text,
   profile_photo_path text,
   updated_at timestamptz,
@@ -183,6 +185,8 @@ alter table public.notifications add column if not exists project_id uuid refere
 alter table public.notifications add column if not exists related_deadline_id uuid references public.deadlines(id) on delete cascade;
 alter table public.notifications add column if not exists notification_type text;
 alter table public.profiles add column if not exists department text;
+alter table public.profiles add column if not exists can_act_as_supervisor boolean not null default false;
+alter table public.profiles add column if not exists secondary_roles text[] not null default array[]::text[];
 alter table public.profiles add column if not exists assigned_supervisor_id uuid references public.profiles(id) on delete set null;
 alter table public.profiles add column if not exists assigned_supervisor_email text;
 alter table public.profiles add column if not exists assigned_supervisor_name text;
@@ -1783,6 +1787,8 @@ grant execute on function public.save_pdf_report_settings(jsonb, text) to authen
 -- Supervisor assignment Edge Function / email notification fix
 -- Safe to run multiple times in Supabase SQL Editor.
 
+alter table public.profiles add column if not exists can_act_as_supervisor boolean not null default false;
+alter table public.profiles add column if not exists secondary_roles text[] not null default array[]::text[];
 alter table public.profiles add column if not exists assigned_supervisor_id uuid references public.profiles(id) on delete set null;
 alter table public.profiles add column if not exists assigned_supervisor_email text;
 alter table public.profiles add column if not exists assigned_supervisor_name text;
@@ -2501,6 +2507,8 @@ using (
 
 alter table public.profiles add column if not exists current_research_group_id uuid references public.research_projects(id) on delete set null;
 alter table public.profiles add column if not exists current_research_group_name text;
+alter table public.profiles add column if not exists can_act_as_supervisor boolean not null default false;
+alter table public.profiles add column if not exists secondary_roles text[] not null default array[]::text[];
 alter table public.profiles add column if not exists assigned_supervisor_id uuid references public.profiles(id) on delete set null;
 alter table public.profiles add column if not exists assigned_supervisor_email text;
 alter table public.profiles add column if not exists assigned_supervisor_name text;
@@ -3071,6 +3079,8 @@ create extension if not exists "uuid-ossp";
 
 alter table public.profiles add column if not exists current_research_group_id uuid references public.research_projects(id) on delete set null;
 alter table public.profiles add column if not exists current_research_group_name text;
+alter table public.profiles add column if not exists can_act_as_supervisor boolean not null default false;
+alter table public.profiles add column if not exists secondary_roles text[] not null default array[]::text[];
 alter table public.profiles add column if not exists assigned_supervisor_id uuid references public.profiles(id) on delete set null;
 alter table public.profiles add column if not exists assigned_supervisor_email text;
 alter table public.profiles add column if not exists assigned_supervisor_name text;
@@ -3313,6 +3323,8 @@ create extension if not exists "uuid-ossp";
 
 alter table public.profiles add column if not exists current_research_group_id uuid references public.research_projects(id) on delete set null;
 alter table public.profiles add column if not exists current_research_group_name text;
+alter table public.profiles add column if not exists can_act_as_supervisor boolean not null default false;
+alter table public.profiles add column if not exists secondary_roles text[] not null default array[]::text[];
 alter table public.profiles add column if not exists assigned_supervisor_id uuid references public.profiles(id) on delete set null;
 alter table public.profiles add column if not exists assigned_supervisor_email text;
 alter table public.profiles add column if not exists assigned_supervisor_name text;
@@ -4036,6 +4048,8 @@ commit;
 
 begin;
 
+alter table public.profiles add column if not exists can_act_as_supervisor boolean not null default false;
+alter table public.profiles add column if not exists secondary_roles text[] not null default array[]::text[];
 alter table public.profiles add column if not exists assigned_supervisor_id uuid references public.profiles(id) on delete set null;
 alter table public.profiles add column if not exists assigned_supervisor_email text;
 alter table public.profiles add column if not exists assigned_supervisor_name text;

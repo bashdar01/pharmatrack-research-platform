@@ -7409,3 +7409,103 @@ button .button-spinner {
     padding: 15px;
   }
 }
+
+/* Dual-role management and committee/supervisor mode switch */
+.role-switch-dropdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1e40af;
+  box-shadow: 0 8px 22px rgba(59, 130, 246, .08);
+}
+
+.role-switch-dropdown span {
+  font-size: .78rem;
+  font-weight: 800;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.role-switch-dropdown select {
+  border: 0;
+  background: transparent;
+  color: #1d4ed8;
+  font-weight: 800;
+  outline: none;
+  min-width: 150px;
+}
+
+.dual-role-management-tab,
+.dual-role-management-card {
+  width: 100%;
+}
+
+.dual-role-filter-bar {
+  align-items: end;
+}
+
+.dual-role-user-list {
+  display: grid;
+  gap: 12px;
+}
+
+.dual-role-row {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(230px, .8fr) auto;
+  align-items: center;
+  gap: 14px;
+  border-color: #dbeafe;
+  background: #ffffff;
+}
+
+.dual-role-user-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.dual-role-user-main b,
+.dual-role-user-main p {
+  overflow-wrap: anywhere;
+}
+
+.small-avatar {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+}
+
+.dual-role-status-block {
+  display: grid;
+  gap: 6px;
+}
+
+.dual-role-actions {
+  justify-self: end;
+  min-width: 210px;
+}
+
+@media (max-width: 900px) {
+  .dual-role-row {
+    grid-template-columns: 1fr;
+  }
+
+  .dual-role-actions {
+    justify-self: stretch;
+    min-width: 0;
+  }
+
+  .dual-role-actions button {
+    width: 100%;
+  }
+
+  .role-switch-dropdown {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

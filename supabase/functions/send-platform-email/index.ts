@@ -613,6 +613,43 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true, emailId: email?.id || null })
     }
 
+    if (kind === 'committee_supervisor_access') {
+      if (!isAdminRole(actor.role)) return jsonResponse({ error: 'Only Admin can send dual-role access emails.' }, 403)
+      const target = await getProfileById(supabaseUrl, serviceRoleKey, String(payload.targetUserId || ''))
+      if (!target || !isResearchCommitteeRole(target.role)) throw new Error('Research Committee user not found.')
+      if (!target.email) throw new Error('Research Committee user email address is missing.')
+      const enabled = Boolean(payload.enabled)
+      const subject = enabled ? 'Supervisor Access Enabled' : 'Supervisor Access Disabled'
+      const link = dashboardLink(appUrl, 'committee', { tab: 'dashboard' })
+      const html = buildEmailWrapper(
+        subject,
+        enabled
+          ? 'Admin enabled Supervisor mode for your Research Committee account.'
+          : 'Admin disabled Supervisor mode for your Research Committee account.',
+        `
+          <p><strong>User:</strong> ${escapeHtml(target.full_name || target.email)}</p>
+          <p><strong>Email:</strong> ${escapeHtml(target.email || 'Not available')}</p>
+          <p><strong>Current access:</strong> ${escapeHtml(enabled ? 'Research Committee + Supervisor Access' : 'Research Committee only')}</p>
+          <p><strong>Updated by:</strong> ${escapeHtml(actor.full_name || actor.email || 'Admin')}</p>
+          <p><strong>Date/time:</strong> ${escapeHtml(dateTime(new Date().toISOString()))}</p>
+          ${enabled ? '<p>You can now use the View as dropdown in your Research Committee dashboard to switch to Supervisor mode without logging out.</p>' : '<p>The View as dropdown will no longer appear on your Research Committee dashboard.</p>'}
+        `,
+        link,
+        'Open dashboard'
+      )
+      const text = [
+        subject,
+        `User: ${target.full_name || target.email}`,
+        `Email: ${target.email || 'Not available'}`,
+        `Current access: ${enabled ? 'Research Committee + Supervisor Access' : 'Research Committee only'}`,
+        `Updated by: ${actor.full_name || actor.email || 'Admin'}`,
+        enabled ? 'You can use the View as dropdown to switch to Supervisor mode.' : 'The View as dropdown will no longer appear.',
+        link ? `Dashboard link: ${link}` : '',
+      ].filter(Boolean).join('\n')
+      const email = await sendResendEmail({ resendApiKey, fromEmail, to: target.email, subject, html, text })
+      return jsonResponse({ success: true, emailId: email?.id || null })
+    }
+
     if (kind === 'supervisor_project_submitted') {
       if (!['supervisor', 'admin', 'committee'].includes(normalize(actor.role))) return jsonResponse({ error: 'Only supervisors/admin/committee can send project submission emails.' }, 403)
       const project = await getProjectById(supabaseUrl, serviceRoleKey, String(payload.projectId || ''))

@@ -565,7 +565,7 @@ function optimizeImageFile(file, options = {}) {
   })
 }
 
-const adminPanelTabs = ['overview', 'branding', 'login-settings', 'users', 'supervisors', 'invitations', 'deadlines', 'notifications', 'reports', 'pdf-report', 'group-requests', 'database', 'audit', 'profile-settings']
+const adminPanelTabs = ['overview', 'branding', 'login-settings', 'users', 'supervisors', 'dual-roles', 'invitations', 'deadlines', 'notifications', 'reports', 'pdf-report', 'group-requests', 'database', 'audit', 'profile-settings']
 
 const adminPanelPathAliases = {
   '': 'overview',
@@ -587,6 +587,10 @@ const adminPanelPathAliases = {
   'student-supervisor-assignment': 'supervisors',
   'project-supervisor-assignment': 'supervisors',
   'project-leader-assignment': 'supervisors',
+  'dual-roles': 'dual-roles',
+  'dual-role-management': 'dual-roles',
+  'committee-supervisor-access': 'dual-roles',
+  'committee-supervisor-management': 'dual-roles',
   invitations: 'invitations',
   invite: 'invitations',
   deadlines: 'deadlines',
@@ -1092,6 +1096,20 @@ function isAdminUser(user) {
 
 function isResearchCommitteeUser(user) {
   return user?.role === 'committee'
+}
+
+function hasCommitteeSupervisorAccess(user) {
+  if (!user || user.role !== 'committee') return false
+  if (user.can_act_as_supervisor === true) return true
+  if (String(user.can_act_as_supervisor || '').toLowerCase() === 'true') return true
+  const secondaryRoles = listValue(user.secondary_roles).map((role) => normalizeText(role))
+  return secondaryRoles.includes('supervisor') || secondaryRoles.includes('supervisor access')
+}
+
+function getActiveRoleLabel(baseRole, activeRole) {
+  if (baseRole === 'committee' && activeRole === 'supervisor') return 'Supervisor Mode'
+  if (baseRole === 'committee') return 'Research Committee Mode'
+  return ({ student: 'BSc Student', supervisor: 'Supervisor', admin: 'Admin', committee: 'Research Committee' }[activeRole]) || 'User'
 }
 
 function canManageAllGroupMemberships(user) {
@@ -2244,6 +2262,7 @@ export default function App() {
   const [pdfReportSettingsByRole, setPdfReportSettingsByRole] = useState(loadPdfReportSettingsByRole)
   const [adminPanelTab, setAdminPanelTab] = useState(getInitialAdminPanelTab)
   const [currentUser, setCurrentUser] = useState(loadCurrentUser)
+  const [activeRoleOverride, setActiveRoleOverride] = useState('')
   const [message, setMessage] = useState('')
   const [loginLoading, setLoginLoading] = useState(false)
   const [passwordRecoveryMode, setPasswordRecoveryMode] = useState(false)
@@ -2254,7 +2273,9 @@ export default function App() {
   const isAdminPortal = useMemo(() => isAdminPortalRequest(), [])
 
   const databaseMode = isSupabaseConfigured ? 'Supabase connected' : 'Local database mode'
-  const allowedRole = currentUser?.role || 'student'
+  const baseRole = currentUser?.role || 'student'
+  const committeeSupervisorAccess = hasCommitteeSupervisorAccess(currentUser)
+  const allowedRole = baseRole === 'committee' && committeeSupervisorAccess && activeRoleOverride === 'supervisor' ? 'supervisor' : baseRole
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', 'light')
@@ -2312,6 +2333,13 @@ export default function App() {
       setTab('dashboard')
     }
   }, [allowedRole, tab])
+
+  useEffect(() => {
+    if (!committeeSupervisorAccess && activeRoleOverride) {
+      setActiveRoleOverride('')
+      setTab('dashboard')
+    }
+  }, [committeeSupervisorAccess, activeRoleOverride])
 
   async function loadFromSupabase(userOverride = currentUser) {
     if (!isSupabaseConfigured) return
@@ -5740,6 +5768,116 @@ export default function App() {
     return { ok: true }
   }
 
+  async function sendCommitteeSupervisorAccessEmail(targetUser, enabled) {
+    if (!isSupabaseConfigured || !supabase?.functions?.invoke || !targetUser?.email) return { ok: false, error: 'Email sending requires Supabase Edge Functions.' }
+    const { data: result, error } = await supabase.functions.invoke('send-platform-email', {
+      body: {
+        kind: 'committee_supervisor_access',
+        targetUserId: targetUser.id,
+        enabled,
+        appUrl: typeof window !== 'undefined' ? window.location.origin : '',
+      },
+    })
+    if (error) throw new Error(error.message || 'Dual-role access email could not be sent.')
+    if (result?.error) throw new Error(result.error)
+    return { ok: true, result }
+  }
+
+  async function updateCommitteeSupervisorAccess(userId, enabled) {
+    const targetUser = data.profiles.find((user) => String(user.id) === String(userId))
+    if (!targetUser) {
+      setMessage('Research Committee user not found.')
+      return { ok: false, error: 'Research Committee user not found.' }
+    }
+    if (currentUser?.role !== 'admin') {
+      setMessage('Only admins can update dual-role supervisor access.')
+      return { ok: false, error: 'Only admins can update dual-role supervisor access.' }
+    }
+    if (targetUser.role !== 'committee') {
+      setMessage('Supervisor access can only be changed for Research Committee users.')
+      return { ok: false, error: 'Supervisor access can only be changed for Research Committee users.' }
+    }
+
+    let emailFailed = false
+    let auditAlreadyWritten = false
+    try {
+      if (isSupabaseConfigured) {
+        const rpcResult = await supabase.rpc('admin_set_committee_supervisor_access', { target_profile_id: userId, enabled })
+        if (!rpcResult.error) auditAlreadyWritten = true
+        if (rpcResult.error) {
+          if (isMissingRpcFunction(rpcResult.error)) {
+            const fallbackUpdate = await supabase.from('profiles').update({ can_act_as_supervisor: Boolean(enabled) }).eq('id', userId)
+            if (fallbackUpdate.error) throw fallbackUpdate.error
+          } else {
+            throw rpcResult.error
+          }
+        }
+        const note = {
+          profile_id: targetUser.id || null,
+          recipient_user_id: targetUser.id || null,
+          recipient_email: targetUser.email || '',
+          sender_user_id: currentUser?.id || null,
+          notification_type: `committee_supervisor_access_${targetUser.id}_${enabled ? 'enabled' : 'disabled'}`,
+          title: enabled ? 'Supervisor Access Enabled' : 'Supervisor Access Disabled',
+          message: enabled
+            ? 'Admin enabled Supervisor mode for your Research Committee account. Use the View as dropdown to switch dashboards.'
+            : 'Admin disabled Supervisor mode for your Research Committee account. Your Research Committee dashboard is still available.',
+          type: 'Dual Role Management',
+          target_role: 'committee',
+          is_read: false,
+          created_at: new Date().toISOString(),
+        }
+        const noticeResult = await supabase.from('notifications').insert(note)
+        if (noticeResult.error) console.warn('Dual role notification failed:', noticeResult.error)
+        try {
+          await sendCommitteeSupervisorAccessEmail(targetUser, enabled)
+        } catch (emailError) {
+          console.warn('Dual role access email failed:', emailError)
+          emailFailed = true
+        }
+        if (!auditAlreadyWritten) {
+          await addAudit(currentUser.full_name, enabled ? 'enabled supervisor access for' : 'disabled supervisor access for', targetUser.full_name || targetUser.email || `user ${userId}`, {
+            action_type: enabled ? 'committee_supervisor_access_enabled' : 'committee_supervisor_access_disabled',
+            affected_user_id: targetUser.id,
+            affected_user_email: targetUser.email || '',
+            old_value: hasCommitteeSupervisorAccess(targetUser) ? 'Research Committee + Supervisor Access' : 'Research Committee only',
+            new_value: enabled ? 'Research Committee + Supervisor Access' : 'Research Committee only',
+            description: `${currentUser.full_name || currentUser.email || 'Admin'} ${enabled ? 'enabled' : 'disabled'} Supervisor access for ${targetUser.full_name || targetUser.email || 'a Research Committee user'}.`,
+          })
+        }
+        await loadFromSupabase(currentUser)
+      } else {
+        const log = makeAudit(currentUser.full_name, enabled ? 'enabled supervisor access for' : 'disabled supervisor access for', targetUser.full_name || targetUser.email || `user ${userId}`)
+        setLocal((current) => ({
+          ...current,
+          profiles: current.profiles.map((user) => String(user.id) === String(userId) ? { ...user, can_act_as_supervisor: Boolean(enabled) } : user),
+          notifications: [{
+            id: crypto.randomUUID(),
+            profile_id: targetUser.id || null,
+            recipient_user_id: targetUser.id || null,
+            recipient_email: targetUser.email || '',
+            sender_user_id: currentUser?.id || null,
+            title: enabled ? 'Supervisor Access Enabled' : 'Supervisor Access Disabled',
+            message: enabled ? 'Admin enabled Supervisor mode for your Research Committee account.' : 'Admin disabled Supervisor mode for your Research Committee account.',
+            type: 'Dual Role Management',
+            target_role: 'committee',
+            is_read: false,
+            created_at: new Date().toISOString(),
+          }, ...(current.notifications || [])],
+          auditLogs: [log, ...current.auditLogs],
+        }))
+      }
+      setMessage(emailFailed ? 'Supervisor access updated successfully, but email notification failed.' : 'Supervisor access updated successfully.')
+      return { ok: true, emailSent: !emailFailed }
+    } catch (error) {
+      const errorMessage = error.message?.toLowerCase?.().includes('permission') || error.message?.toLowerCase?.().includes('row-level security')
+        ? 'Failed to update supervisor access. Run supabase/migrations/202607020007_committee_supervisor_access.sql in Supabase SQL Editor, then try again.'
+        : (error.message || 'Failed to update supervisor access.')
+      setMessage(errorMessage)
+      return { ok: false, error: errorMessage }
+    }
+  }
+
   function exportCsv() {
     const header = 'Group,Title,Department,Supervisor,Approval,Status,Progress,Final Due\n'
     const rows = filteredProjects.map((p) => `"${p.group_name}","${p.title}","${p.area}","${p.supervisor_name}","${getProjectDecisionLabel(p)}","${p.status}","${formatProgress(p.progress)}%","${p.final_due}"`).join('\n')
@@ -5909,11 +6047,12 @@ export default function App() {
         updateOwnProfile={updateOwnProfile}
         uploadOwnProfilePhoto={uploadOwnProfilePhoto}
         updateOwnPassword={updateOwnPassword}
+        updateCommitteeSupervisorAccess={updateCommitteeSupervisorAccess}
       />
     )
   }
 
-  const roleLabel = ({ student: 'BSc Student', supervisor: 'Supervisor', admin: 'Admin', committee: 'Research Committee' }[allowedRole]) || 'User'
+  const roleLabel = getActiveRoleLabel(baseRole, allowedRole)
   const mainNavItems = [
     { id: 'dashboard', label: allowedRole === 'admin' ? 'Admin Dashboard' : 'Dashboard', icon: LayoutDashboard, show: true },
     { id: 'project-management', label: 'Project Management', icon: ClipboardCheck, show: allowedRole === 'supervisor' },
@@ -5926,6 +6065,11 @@ export default function App() {
     { id: 'audit', label: 'Audit Log', icon: ShieldCheck, show: allowedRole === 'admin' },
   ].filter((item) => item.show)
   const activeNavItem = mainNavItems.find((item) => item.id === tab) || mainNavItems[0]
+
+  function handleCommitteeRoleSwitch(nextMode) {
+    setActiveRoleOverride(nextMode === 'supervisor' ? 'supervisor' : '')
+    setTab('dashboard')
+  }
 
   return (
     <div className={`app app-main-shell main-dashboard-no-sidebar role-${allowedRole}`}>
@@ -5947,6 +6091,12 @@ export default function App() {
             markNotificationRead={markNotificationRead}
             removeNotification={removeNotification}
           />
+          {committeeSupervisorAccess && (
+            <RoleSwitchDropdown
+              activeRole={allowedRole}
+              onChange={handleCommitteeRoleSwitch}
+            />
+          )}
           <div className="main-profile-summary">
             <b>{currentUser?.full_name || currentUser?.email || 'Active user'}</b>
             <small>{roleLabel}</small>
@@ -6002,6 +6152,18 @@ export default function App() {
   )
 }
 
+
+function RoleSwitchDropdown({ activeRole, onChange }) {
+  return (
+    <label className="role-switch-dropdown no-print">
+      <span>View as</span>
+      <select value={activeRole === 'supervisor' ? 'supervisor' : 'committee'} onChange={(e) => onChange?.(e.target.value)}>
+        <option value="committee">Research Committee</option>
+        <option value="supervisor">Supervisor</option>
+      </select>
+    </label>
+  )
+}
 
 function NotificationBellMenu({ data, role, currentUser, dataLoading = false, unreadCount = 0, markNotificationRead, removeNotification }) {
   const [open, setOpen] = useState(false)
@@ -6430,6 +6592,7 @@ function AdminControlPanel({
   updateOwnProfile,
   uploadOwnProfilePhoto,
   updateOwnPassword,
+  updateCommitteeSupervisorAccess,
   loadError = '',
   dataLoading = false,
 }) {
@@ -6446,6 +6609,7 @@ function AdminControlPanel({
     { id: 'login-settings', label: 'Login Page Settings', icon: Lock },
     { id: 'users', label: 'Users & Roles', icon: Users },
     { id: 'supervisors', label: 'Supervisor Management', icon: UserCog },
+    { id: 'dual-roles', label: 'Dual Role Management', icon: ShieldCheck },
     { id: 'invitations', label: 'Invite Users', icon: Mail },
     { id: 'deadlines', label: 'Deadlines', icon: CalendarDays },
     { id: 'notifications', label: 'Notifications', icon: Bell },
@@ -6613,7 +6777,7 @@ function AdminControlPanel({
         <header className="admin-panel-topbar no-print">
           <div>
             <p className="eyebrow"><UserCog size={16} /> Admin subdomain</p>
-            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'supervisors' ? 'Supervisor Management' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Notifications' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'pdf-report' ? 'PDF Report Customization' : adminPanelTab === 'group-requests' ? 'Group Join Requests' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : adminPanelTab === 'profile-settings' ? 'Profile Settings' : 'Control Center'}</h1>
+            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'supervisors' ? 'Supervisor Management' : adminPanelTab === 'dual-roles' ? 'Dual Role Management' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Notifications' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'pdf-report' ? 'PDF Report Customization' : adminPanelTab === 'group-requests' ? 'Group Join Requests' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : adminPanelTab === 'profile-settings' ? 'Profile Settings' : 'Control Center'}</h1>
             <p>{settings.adminWelcome}</p>
           </div>
           <a className="admin-preview-link" href="/" target="_blank" rel="noreferrer">Open main website</a>
@@ -6865,6 +7029,7 @@ function AdminControlPanel({
         {adminPanelTab === 'invitations' && <InvitationManager invitations={data.invitations} settings={settings} createInvitation={createInvitation} resendInvitation={resendInvitation} cancelInvitation={cancelInvitation} copyInvitationLink={copyInvitationLink} />}
         {adminPanelTab === 'users' && <AdminDashboard data={data} projects={projects} currentUser={currentUser} loadError={loadError} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} />}
         {adminPanelTab === 'supervisors' && <SupervisorManagementTab data={data} projects={projects} currentUser={currentUser} loadError={loadError} dataLoading={dataLoading} updateProject={updateProject} assignStudentToSupervisor={assignStudentToSupervisor} assignProjectLeader={assignProjectLeader} exportCsv={exportCsv} />}
+        {adminPanelTab === 'dual-roles' && <DualRoleManagementTab data={data} currentUser={currentUser} loadError={loadError} dataLoading={dataLoading} updateCommitteeSupervisorAccess={updateCommitteeSupervisorAccess} />}
         {adminPanelTab === 'deadlines' && <DeadlineManager deadlines={data.deadlines} createDeadline={createDeadline} removeDeadline={removeDeadline} students={data.profiles.filter((profile) => profile.role === 'student').map((student) => ({ key: makeStudentOptionKey(student), id: student.id, name: student.full_name, email: student.email, group: student.department || student.area || 'Student' }))} currentUser={currentUser} />}
         {adminPanelTab === 'notifications' && <NotificationsTab data={data} role="admin" currentUser={currentUser} createNotification={createNotification} markNotificationRead={markNotificationRead} removeNotification={removeNotification} />}
         {adminPanelTab === 'reports' && <ReportsTab data={data} projects={projects} currentUser={currentUser} role="admin" printPdfReport={printPdfReport} exportCsv={exportCsv} pdfReportSettings={getPdfReportSettingsForRole('admin', pdfReportSettingsByRole, globalPdfReportSettings)} dataLoading={dataLoading} />}
@@ -8614,6 +8779,99 @@ function CommitteeDashboard({ data = emptyData, projects = [], dataLoading = fal
 }
 
 
+
+
+function DualRoleManagementTab({ data = emptyData, currentUser, loadError = '', dataLoading = false, updateCommitteeSupervisorAccess }) {
+  const [search, setSearch] = useState('')
+  const [actionLoading, setActionLoading] = useState('')
+  const [localMessage, setLocalMessage] = useState('')
+  const committeeUsers = (data.profiles || [])
+    .filter((user) => user.role === 'committee')
+    .sort((a, b) => String(a.full_name || a.email || '').localeCompare(String(b.full_name || b.email || '')))
+  const filteredCommitteeUsers = committeeUsers.filter((user) => {
+    const q = search.trim().toLowerCase()
+    if (!q) return true
+    return [
+      user.full_name,
+      user.display_name,
+      user.email,
+      user.department,
+      user.program,
+      hasCommitteeSupervisorAccess(user) ? 'research committee supervisor access' : 'research committee only',
+    ].some((value) => String(value || '').toLowerCase().includes(q))
+  })
+
+  async function handleAccessChange(user, enabled) {
+    if (!updateCommitteeSupervisorAccess || actionLoading) return
+    setLocalMessage('')
+    const key = `${user.id}-${enabled ? 'enable' : 'disable'}`
+    setActionLoading(key)
+    try {
+      const result = await updateCommitteeSupervisorAccess(user.id, enabled)
+      if (result?.ok) setLocalMessage('Supervisor access updated successfully.')
+      else if (result?.error) setLocalMessage(result.error)
+    } finally {
+      setActionLoading('')
+    }
+  }
+
+  return (
+    <div className="admin-panel-stack dual-role-management-tab">
+      <div className="card dual-role-management-card">
+        <SectionHeader icon={ShieldCheck} title="Dual Role Management" subtitle="Allow selected Research Committee users to switch into Supervisor mode without creating duplicate accounts" />
+        <div className="section-filter-bar dual-role-filter-bar">
+          <label className="field wide-field">
+            <span>Search Research Committee users</span>
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name, email, department, program, or status..." />
+          </label>
+        </div>
+        {localMessage && <div className={`message ${localMessage.includes('success') ? 'success-message' : ''}`}>{localMessage}</div>}
+        {loadError ? (
+          <EmptyState title="Failed to load dual-role data." text={loadError} icon={ShieldCheck} />
+        ) : dataLoading ? (
+          <LoadingBlock text="Loading Research Committee users..." />
+        ) : committeeUsers.length === 0 ? (
+          <EmptyState title="No Research Committee users found." text="Approve or create Research Committee accounts first." icon={Users} />
+        ) : filteredCommitteeUsers.length ? (
+          <div className="managed-list compact-managed-list dual-role-user-list">
+            {filteredCommitteeUsers.map((user) => {
+              const enabled = hasCommitteeSupervisorAccess(user)
+              const loadingKey = `${user.id}-${enabled ? 'disable' : 'enable'}`
+              return (
+                <div className="mini-card managed-item dual-role-row" key={user.id || user.email}>
+                  <div className="dual-role-user-main">
+                    <div className="status-avatar small-avatar">{getProfilePhotoUrl(user) ? <img src={getProfilePhotoUrl(user)} alt="Profile" /> : String(getProfileDisplayName(user) || 'C').trim().charAt(0).toUpperCase()}</div>
+                    <div>
+                      <b>{getProfileDisplayName(user) || user.email || 'Research Committee user'}</b>
+                      <p className="small muted">{user.email || 'No email'}{user.department || user.program ? ` • ${user.department || user.program}` : ''}</p>
+                    </div>
+                  </div>
+                  <div className="dual-role-status-block">
+                    <Pill tone={enabled ? 'blue' : 'slate'}>{enabled ? 'Research Committee + Supervisor Access' : 'Research Committee only'}</Pill>
+                    <p className="small muted">Main role remains Research Committee.</p>
+                  </div>
+                  <div className="stacked-actions dual-role-actions">
+                    {enabled ? (
+                      <button className="warning compact-button min-button-width" type="button" disabled={Boolean(actionLoading)} onClick={() => handleAccessChange(user, false)}>
+                        <ButtonContent loading={actionLoading === loadingKey} loadingText="Updating access..." icon={XCircle} iconSize={14}>Disable Supervisor Access</ButtonContent>
+                      </button>
+                    ) : (
+                      <button className="secondary compact-button min-button-width" type="button" disabled={Boolean(actionLoading)} onClick={() => handleAccessChange(user, true)}>
+                        <ButtonContent loading={actionLoading === loadingKey} loadingText="Updating access..." icon={CheckCircle2} iconSize={14}>Enable Supervisor Access</ButtonContent>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <EmptyState title="No Research Committee users found." text="Try another name, email, department, program, or access status." icon={Search} />
+        )}
+      </div>
+    </div>
+  )
+}
 
 function SupervisorManagementTab({ data = emptyData, projects = [], currentUser, loadError = '', dataLoading = false, updateProject, assignStudentToSupervisor, assignProjectLeader, exportCsv }) {
   const usersLoading = !data || !Array.isArray(data.profiles)
