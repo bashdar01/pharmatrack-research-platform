@@ -565,7 +565,7 @@ function optimizeImageFile(file, options = {}) {
   })
 }
 
-const adminPanelTabs = ['overview', 'branding', 'login-settings', 'users', 'supervisors', 'invitations', 'deadlines', 'notifications', 'reports', 'pdf-report', 'group-requests', 'database', 'audit']
+const adminPanelTabs = ['overview', 'branding', 'login-settings', 'users', 'supervisors', 'invitations', 'deadlines', 'notifications', 'reports', 'pdf-report', 'group-requests', 'database', 'audit', 'profile-settings']
 
 const adminPanelPathAliases = {
   '': 'overview',
@@ -604,7 +604,10 @@ const adminPanelPathAliases = {
   database: 'database',
   audit: 'audit',
   'audit-log': 'audit',
+  profile: 'profile-settings',
+  'profile-settings': 'profile-settings',
 }
+
 
 function isAdminPanelTab(value) {
   return adminPanelTabs.includes(value)
@@ -728,6 +731,41 @@ function saveCurrentUser(user, rememberFor30Days = false) {
   } else {
     sessionStorage.setItem('pharmatrack-current-user-session', JSON.stringify(user))
   }
+}
+
+function updateStoredCurrentUser(user) {
+  if (!user) return
+  try {
+    const saved = localStorage.getItem('pharmatrack-current-user')
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      if (parsed?.expires_at) {
+        localStorage.setItem('pharmatrack-current-user', JSON.stringify({ ...parsed, user }))
+        return
+      }
+      localStorage.setItem('pharmatrack-current-user', JSON.stringify(user))
+      return
+    }
+  } catch (_error) {
+    localStorage.removeItem('pharmatrack-current-user')
+  }
+  sessionStorage.setItem('pharmatrack-current-user-session', JSON.stringify(user))
+}
+
+function getProfilePhotoUrl(user = {}) {
+  return user.profile_photo_url || user.avatar_url || user.photo_url || ''
+}
+
+function getProfileDisplayName(user = {}) {
+  return user.display_name || user.full_name || user.email || 'User'
+}
+
+function normalizeProfileUpdateFields(updates = {}) {
+  const allowed = ['full_name', 'display_name', 'phone_number', 'department', 'program', 'profile_photo_url', 'profile_photo_path']
+  return allowed.reduce((result, key) => {
+    if (Object.prototype.hasOwnProperty.call(updates, key)) result[key] = updates[key]
+    return result
+  }, {})
 }
 
 function normalizeText(value) {
@@ -2329,6 +2367,16 @@ export default function App() {
         ...project,
         progress: getProjectProgress(project, reportsData),
       }))
+
+      const freshProfile = (profiles.data || []).find((profile) =>
+        (!!userOverride?.id && String(profile.id) === String(userOverride.id)) ||
+        (!!userOverride?.email && normalizeText(profile.email) === normalizeText(userOverride.email))
+      )
+      if (freshProfile) {
+        const mergedUser = { ...userOverride, ...freshProfile }
+        setCurrentUser(mergedUser)
+        updateStoredCurrentUser(mergedUser)
+      }
 
       setDataLoadError('')
       setData(cleanData({
@@ -5604,6 +5652,94 @@ export default function App() {
     return { ok: true }
   }
 
+  async function updateOwnProfile(updates = {}) {
+    const cleanUpdates = normalizeProfileUpdateFields(updates)
+    delete cleanUpdates.email
+    delete cleanUpdates.role
+    delete cleanUpdates.status
+    if (!cleanUpdates.full_name || !String(cleanUpdates.full_name).trim()) {
+      throw new Error('Full name is required.')
+    }
+
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ ...cleanUpdates, full_name: String(cleanUpdates.full_name || '').trim() })
+        .eq('id', currentUser.id)
+      if (error) throw error
+      const updatedUser = { ...currentUser, ...cleanUpdates, full_name: String(cleanUpdates.full_name || '').trim() }
+      setCurrentUser(updatedUser)
+      updateStoredCurrentUser(updatedUser)
+      await addAudit(currentUser.full_name, 'updated', 'own profile')
+      await loadFromSupabase(updatedUser)
+      return updatedUser
+    }
+
+    const updatedUser = { ...currentUser, ...cleanUpdates, full_name: String(cleanUpdates.full_name || '').trim() }
+    setCurrentUser(updatedUser)
+    updateStoredCurrentUser(updatedUser)
+    setLocal((current) => ({
+      ...current,
+      profiles: (current.profiles || []).map((profile) => String(profile.id) === String(currentUser.id) ? { ...profile, ...cleanUpdates, full_name: String(cleanUpdates.full_name || '').trim() } : profile),
+    }))
+    return updatedUser
+  }
+
+  async function uploadOwnProfilePhoto(file) {
+    if (!file) throw new Error('Please choose a profile photo.')
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+    if (!allowedTypes.includes(file.type)) throw new Error('Please choose a JPG, PNG, or WebP image.')
+
+    if (!isSupabaseConfigured) {
+      const dataUrl = await optimizeImageFile(file, { maxWidth: 600, maxHeight: 600, quality: 0.88, outputType: file.type === 'image/png' ? 'image/png' : file.type === 'image/webp' ? 'image/webp' : 'image/jpeg' })
+      return updateOwnProfile({ profile_photo_url: dataUrl, profile_photo_path: '' })
+    }
+
+    const outputType = file.type === 'image/png' ? 'image/png' : file.type === 'image/webp' ? 'image/webp' : 'image/jpeg'
+    const dataUrl = await optimizeImageFile(file, { maxWidth: 700, maxHeight: 700, quality: 0.88, outputType })
+    const blob = await fetch(dataUrl).then((response) => response.blob())
+    const extension = outputType === 'image/png' ? 'png' : outputType === 'image/webp' ? 'webp' : 'jpg'
+    const ownerKey = String(currentUser.id || currentUser.email || 'user').replace(/[^a-z0-9_-]/gi, '-').toLowerCase()
+    const safeName = String(file.name || 'profile-photo').replace(/[^a-z0-9._-]/gi, '-').toLowerCase()
+    const filePath = `${ownerKey}/profile-${Date.now()}-${safeName}.${extension}`
+    const upload = await supabase.storage.from('profile-photos').upload(filePath, blob, {
+      cacheControl: '3600',
+      contentType: outputType,
+      upsert: true,
+    })
+    if (upload.error) throw upload.error
+    const { data: publicData } = supabase.storage.from('profile-photos').getPublicUrl(filePath)
+    const publicUrl = publicData?.publicUrl
+    if (!publicUrl) throw new Error('Profile photo uploaded, but Supabase did not return a public URL.')
+    return updateOwnProfile({ profile_photo_url: publicUrl, profile_photo_path: filePath })
+  }
+
+  async function updateOwnPassword(currentPassword, newPassword, confirmPassword) {
+    if (!newPassword || newPassword.length < 6) throw new Error('New password must be at least 6 characters.')
+    if (newPassword !== confirmPassword) throw new Error('New password and confirm password must match.')
+
+    if (isSupabaseConfigured) {
+      if (!currentPassword) throw new Error('Please enter your current password.')
+      const { error: verifyError } = await supabase.auth.signInWithPassword({ email: currentUser.email, password: currentPassword })
+      if (verifyError) throw new Error('Current password is incorrect.')
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) throw error
+      return { ok: true }
+    }
+
+    if (currentUser.password_hash && currentUser.password_hash !== localPasswordKey(currentPassword || '')) {
+      throw new Error('Current password is incorrect.')
+    }
+    const updatedUser = { ...currentUser, password_hash: localPasswordKey(newPassword) }
+    setCurrentUser(updatedUser)
+    updateStoredCurrentUser(updatedUser)
+    setLocal((current) => ({
+      ...current,
+      profiles: (current.profiles || []).map((profile) => String(profile.id) === String(currentUser.id) ? { ...profile, password_hash: localPasswordKey(newPassword) } : profile),
+    }))
+    return { ok: true }
+  }
+
   function exportCsv() {
     const header = 'Group,Title,Department,Supervisor,Approval,Status,Progress,Final Due\n'
     const rows = filteredProjects.map((p) => `"${p.group_name}","${p.title}","${p.area}","${p.supervisor_name}","${getProjectDecisionLabel(p)}","${p.status}","${formatProgress(p.progress)}%","${p.final_due}"`).join('\n')
@@ -5770,6 +5906,9 @@ export default function App() {
         message={message}
         decideGroupJoinRequest={decideGroupJoinRequest}
         directAddStudentsToGroup={directAddStudentsToGroup}
+        updateOwnProfile={updateOwnProfile}
+        uploadOwnProfilePhoto={uploadOwnProfilePhoto}
+        updateOwnPassword={updateOwnPassword}
       />
     )
   }
@@ -5812,7 +5951,7 @@ export default function App() {
             <b>{currentUser?.full_name || currentUser?.email || 'Active user'}</b>
             <small>{roleLabel}</small>
           </div>
-          <UserProfileMenu currentUser={currentUser} onLogout={logout} />
+          <UserProfileMenu currentUser={currentUser} onLogout={logout} onOpenProfile={() => setTab('profile-settings')} />
         </div>
       </header>
 
@@ -5847,6 +5986,7 @@ export default function App() {
           </>
         )}
 
+        {tab === 'profile-settings' && <ProfileSettingsPage currentUser={currentUser} onBack={() => setTab('dashboard')} updateOwnProfile={updateOwnProfile} uploadOwnProfilePhoto={uploadOwnProfilePhoto} updateOwnPassword={updateOwnPassword} />}
         {tab === 'questions' && allowedRole === 'student' && <StudentQuestionsTab data={data} currentUser={currentUser} dataLoading={dataLoading} submitStudentQuestion={submitStudentQuestion} openQuestionAttachment={openQuestionAttachment} />}
         {tab === 'questions' && allowedRole === 'supervisor' && <SupervisorQuestionsTab data={data} currentUser={currentUser} dataLoading={dataLoading} answerStudentQuestion={answerStudentQuestion} openQuestionAttachment={openQuestionAttachment} />}
         {tab === 'project-management' && allowedRole === 'supervisor' && <SupervisorProjectManagementTab data={visibleData} projects={filteredProjects} currentUser={currentUser} dataLoading={dataLoading} createProject={createProject} assignProjectLeader={assignProjectLeader} />}
@@ -5975,34 +6115,210 @@ function NotificationBellMenu({ data, role, currentUser, dataLoading = false, un
   )
 }
 
-function UserProfileMenu({ currentUser, onLogout }) {
-  const storageKey = `pharmatrack-profile-photo-${currentUser?.email || currentUser?.id || 'user'}`
+function ProfileSettingsPage({ currentUser, onBack, updateOwnProfile, uploadOwnProfilePhoto, updateOwnPassword }) {
+  const [form, setForm] = useState(() => ({
+    full_name: currentUser?.full_name || '',
+    display_name: currentUser?.display_name || '',
+    phone_number: currentUser?.phone_number || '',
+    department: currentUser?.department || '',
+    program: currentUser?.program || '',
+  }))
+  const [passwordForm, setPasswordForm] = useState({ current: '', next: '', confirm: '' })
+  const [photoFile, setPhotoFile] = useState(null)
+  const [photoPreview, setPhotoPreview] = useState(getProfilePhotoUrl(currentUser))
+  const [statusMessage, setStatusMessage] = useState('')
+  const [loadingKey, setLoadingKey] = useState('')
+  const roleLabel = ({ student: 'Student', supervisor: 'Supervisor', admin: 'Admin', committee: 'Research Committee' }[currentUser?.role]) || currentUser?.role || 'User'
+
+  useEffect(() => {
+    setForm({
+      full_name: currentUser?.full_name || '',
+      display_name: currentUser?.display_name || '',
+      phone_number: currentUser?.phone_number || '',
+      department: currentUser?.department || '',
+      program: currentUser?.program || '',
+    })
+    setPhotoPreview(getProfilePhotoUrl(currentUser))
+    setPhotoFile(null)
+  }, [currentUser])
+
+  async function handlePhotoSelect(event) {
+    const file = event.target.files?.[0]
+    if (!file) return
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setStatusMessage('Failed to upload profile photo. Please choose a JPG, PNG, or WebP image.')
+      event.target.value = ''
+      return
+    }
+    setPhotoFile(file)
+    try {
+      const preview = await fileToDataUrl(file)
+      setPhotoPreview(preview)
+    } catch (_error) {
+      setPhotoPreview(getProfilePhotoUrl(currentUser))
+    }
+  }
+
+  async function handlePhotoUpload() {
+    if (!photoFile || loadingKey) return
+    setLoadingKey('photo')
+    setStatusMessage('Uploading photo...')
+    try {
+      const updated = await uploadOwnProfilePhoto(photoFile)
+      setPhotoPreview(getProfilePhotoUrl(updated) || photoPreview)
+      setPhotoFile(null)
+      setStatusMessage('Profile photo updated successfully.')
+    } catch (error) {
+      setStatusMessage(error.message || 'Failed to upload profile photo.')
+    } finally {
+      setLoadingKey('')
+    }
+  }
+
+  async function handleProfileSave(event) {
+    event.preventDefault()
+    if (loadingKey) return
+    setLoadingKey('profile')
+    setStatusMessage('Saving profile...')
+    try {
+      await updateOwnProfile({
+        full_name: form.full_name,
+        display_name: form.display_name,
+        phone_number: form.phone_number,
+        department: form.department,
+        program: form.program,
+      })
+      setStatusMessage('Profile updated successfully.')
+    } catch (error) {
+      setStatusMessage(error.message || 'Failed to update profile.')
+    } finally {
+      setLoadingKey('')
+    }
+  }
+
+  async function handlePasswordSave(event) {
+    event.preventDefault()
+    if (loadingKey) return
+    setLoadingKey('password')
+    setStatusMessage('Updating password...')
+    try {
+      await updateOwnPassword(passwordForm.current, passwordForm.next, passwordForm.confirm)
+      setPasswordForm({ current: '', next: '', confirm: '' })
+      setStatusMessage('Password updated successfully.')
+    } catch (error) {
+      setStatusMessage(error.message || 'Failed to update password.')
+    } finally {
+      setLoadingKey('')
+    }
+  }
+
+  return (
+    <section className="profile-settings-page no-print">
+      <div className="profile-settings-hero">
+        <div>
+          <p className="eyebrow"><UserCog size={16} /> Profile Settings</p>
+          <h2>Manage your account profile</h2>
+          <p>Update your name, profile photo, allowed profile details, and password. Your email and role are read-only.</p>
+        </div>
+        <button type="button" className="secondary" onClick={onBack}>Back to Dashboard</button>
+      </div>
+
+      {statusMessage && <div className="message profile-settings-message">{statusMessage}</div>}
+
+      <div className="profile-settings-grid">
+        <article className="profile-settings-card profile-photo-card">
+          <SectionHeader icon={ImageIcon} title="Profile Photo" subtitle="JPG, PNG, or WebP" />
+          <div className="profile-photo-preview">
+            {photoPreview ? <img src={photoPreview} alt="Profile preview" /> : <span>{String(getProfileDisplayName(currentUser)).charAt(0).toUpperCase()}</span>}
+          </div>
+          <label className="profile-file-picker">
+            <Upload size={16} /> Choose photo
+            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoSelect} />
+          </label>
+          <button type="button" className="primary wide" onClick={handlePhotoUpload} disabled={!photoFile || loadingKey === 'photo'}>
+            <ButtonContent loading={loadingKey === 'photo'} loadingText="Uploading photo...">Save Photo</ButtonContent>
+          </button>
+        </article>
+
+        <form className="profile-settings-card" onSubmit={handleProfileSave}>
+          <SectionHeader icon={UserCog} title="Personal Information" subtitle="Only your own profile can be updated" />
+          <div className="profile-form-grid">
+            <label>
+              <span>Full name</span>
+              <input value={form.full_name} onChange={(event) => setForm({ ...form, full_name: event.target.value })} required />
+            </label>
+            <label>
+              <span>Display name</span>
+              <input value={form.display_name} onChange={(event) => setForm({ ...form, display_name: event.target.value })} placeholder="Optional" />
+            </label>
+            <label>
+              <span>Phone number</span>
+              <input value={form.phone_number} onChange={(event) => setForm({ ...form, phone_number: event.target.value })} placeholder="Optional" />
+            </label>
+            <label>
+              <span>Department / Program</span>
+              <select value={form.department} onChange={(event) => setForm({ ...form, department: event.target.value })}>
+                <option value="">Not specified</option>
+                {DEPARTMENT_OPTIONS.map((department) => <option key={department} value={department}>{department}</option>)}
+              </select>
+            </label>
+            <label>
+              <span>Program</span>
+              <input value={form.program} onChange={(event) => setForm({ ...form, program: event.target.value })} placeholder="Optional" />
+            </label>
+            <label>
+              <span>Email</span>
+              <input value={currentUser?.email || ''} readOnly />
+            </label>
+            <label>
+              <span>Role</span>
+              <input value={roleLabel} readOnly />
+            </label>
+          </div>
+          <button type="submit" className="primary" disabled={loadingKey === 'profile'}>
+            <ButtonContent loading={loadingKey === 'profile'} loadingText="Saving profile..."><Save size={16} /> Save Profile</ButtonContent>
+          </button>
+        </form>
+
+        <form className="profile-settings-card" onSubmit={handlePasswordSave}>
+          <SectionHeader icon={Lock} title="Account Security" subtitle="Change your password securely" />
+          <div className="profile-form-grid">
+            <label>
+              <span>Current password</span>
+              <input type="password" value={passwordForm.current} onChange={(event) => setPasswordForm({ ...passwordForm, current: event.target.value })} autoComplete="current-password" />
+            </label>
+            <label>
+              <span>New password</span>
+              <input type="password" value={passwordForm.next} onChange={(event) => setPasswordForm({ ...passwordForm, next: event.target.value })} autoComplete="new-password" />
+            </label>
+            <label>
+              <span>Confirm new password</span>
+              <input type="password" value={passwordForm.confirm} onChange={(event) => setPasswordForm({ ...passwordForm, confirm: event.target.value })} autoComplete="new-password" />
+            </label>
+          </div>
+          <button type="submit" className="primary" disabled={loadingKey === 'password'}>
+            <ButtonContent loading={loadingKey === 'password'} loadingText="Updating password..."><Lock size={16} /> Update Password</ButtonContent>
+          </button>
+        </form>
+      </div>
+    </section>
+  )
+}
+
+function UserProfileMenu({ currentUser, onLogout, onOpenProfile }) {
   const [open, setOpen] = useState(false)
   const [menuVisible, setMenuVisible] = useState(false)
   const closeTimerRef = useRef(null)
   const hideTimerRef = useRef(null)
-  const [photo, setPhoto] = useState(() => localStorage.getItem(storageKey) || '')
-  const initial = String(currentUser?.full_name || currentUser?.email || 'U').trim().charAt(0).toUpperCase()
-  const displayName = currentUser?.full_name || 'User'
+  const photo = getProfilePhotoUrl(currentUser)
+  const initial = String(getProfileDisplayName(currentUser) || currentUser?.email || 'U').trim().charAt(0).toUpperCase()
+  const displayName = getProfileDisplayName(currentUser)
   const displayEmail = currentUser?.email || 'No email available'
 
-  function handlePhotoUpload(event) {
-    const file = event.target.files?.[0]
-    if (!file) return
-    if (!file.type.startsWith('image/')) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      const result = String(reader.result || '')
-      setPhoto(result)
-      localStorage.setItem(storageKey, result)
-    }
-    reader.readAsDataURL(file)
-    event.target.value = ''
-  }
-
-  function removePhoto() {
-    setPhoto('')
-    localStorage.removeItem(storageKey)
+  function openProfileSettings() {
+    if (onOpenProfile) onOpenProfile()
+    setOpen(false)
+    setMenuVisible(false)
   }
 
   function keepProfileOpen() {
@@ -6053,12 +6369,11 @@ function UserProfileMenu({ currentUser, onLogout }) {
               <p>{displayEmail}</p>
             </div>
 
-            <label className="profile-upload-button redesigned">
+            <button className="profile-upload-button redesigned" type="button" onClick={openProfileSettings}>
               <Upload size={15} /> {photo ? 'Change photo' : 'Add photo'}
-              <input type="file" accept="image/*" onChange={handlePhotoUpload} />
-            </label>
+            </button>
             <div className="profile-menu-actions">
-              {photo && <button className="profile-menu-button subtle" type="button" onClick={removePhoto}>Remove</button>}
+              <button className="profile-menu-button subtle" type="button" onClick={openProfileSettings}><Settings size={15} /> Profile Settings</button>
               <button className="profile-menu-button logout" type="button" onClick={onLogout}><LogOut size={15} /> Logout</button>
             </div>
           </div>
@@ -6112,6 +6427,9 @@ function AdminControlPanel({
   message,
   decideGroupJoinRequest,
   directAddStudentsToGroup,
+  updateOwnProfile,
+  uploadOwnProfilePhoto,
+  updateOwnPassword,
   loadError = '',
   dataLoading = false,
 }) {
@@ -6270,11 +6588,12 @@ function AdminControlPanel({
             <p>Website management panel</p>
           </div>
         </div>
-        <div className="admin-profile-mini">
-          <div className="status-avatar">{String(currentUser.full_name || 'A').trim().charAt(0).toUpperCase()}</div>
+        <div className="admin-profile-mini admin-profile-actions">
+          <div className="status-avatar">{getProfilePhotoUrl(currentUser) ? <img src={getProfilePhotoUrl(currentUser)} alt="Profile" /> : String(getProfileDisplayName(currentUser) || 'A').trim().charAt(0).toUpperCase()}</div>
           <div>
-            <b>{currentUser.full_name}</b>
+            <b>{getProfileDisplayName(currentUser)}</b>
             <p>Administrator</p>
+            <button type="button" className="admin-profile-settings-button" onClick={() => changeAdminPanelTab('profile-settings')}>Profile Settings</button>
           </div>
         </div>
         <nav className="admin-side-nav">
@@ -6294,7 +6613,7 @@ function AdminControlPanel({
         <header className="admin-panel-topbar no-print">
           <div>
             <p className="eyebrow"><UserCog size={16} /> Admin subdomain</p>
-            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'supervisors' ? 'Supervisor Management' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Notifications' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'pdf-report' ? 'PDF Report Customization' : adminPanelTab === 'group-requests' ? 'Group Join Requests' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : 'Control Center'}</h1>
+            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'supervisors' ? 'Supervisor Management' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Notifications' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'pdf-report' ? 'PDF Report Customization' : adminPanelTab === 'group-requests' ? 'Group Join Requests' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : adminPanelTab === 'profile-settings' ? 'Profile Settings' : 'Control Center'}</h1>
             <p>{settings.adminWelcome}</p>
           </div>
           <a className="admin-preview-link" href="/" target="_blank" rel="noreferrer">Open main website</a>
@@ -6302,6 +6621,8 @@ function AdminControlPanel({
 
         {message && <div className="message no-print">{message}</div>}
         {dataLoading && <LoadingBlock text="Loading admin records..." />}
+
+        {adminPanelTab === 'profile-settings' && <ProfileSettingsPage currentUser={currentUser} onBack={() => changeAdminPanelTab('overview')} updateOwnProfile={updateOwnProfile} uploadOwnProfilePhoto={uploadOwnProfilePhoto} updateOwnPassword={updateOwnPassword} />}
 
         {adminPanelTab === 'overview' && (
           <div className="admin-panel-stack">
