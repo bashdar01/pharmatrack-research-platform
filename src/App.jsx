@@ -2257,6 +2257,7 @@ function ResetPasswordPage({ onUpdatePassword, onBackToLogin, message, loading, 
 export default function App() {
   const [role, setRole] = useState('student')
   const [tab, setTab] = useState('dashboard')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [data, setData] = useState(loadLocalData)
   const [dataLoadError, setDataLoadError] = useState('')
   const [dataLoading, setDataLoading] = useState(false)
@@ -6142,6 +6143,11 @@ export default function App() {
   ].filter((item) => item.show)
   const activeNavItem = mainNavItems.find((item) => item.id === tab) || mainNavItems[0]
 
+  function handleMainNavClick(tabId) {
+    setTab(tabId)
+    setSidebarOpen(false)
+  }
+
   function handleRoleSwitch(nextMode) {
     if (isAdminBaseRole) {
       const normalizedMode = ['student', 'supervisor', 'committee'].includes(nextMode) ? nextMode : ''
@@ -6159,47 +6165,28 @@ export default function App() {
   }
 
   return (
-    <div className={`app app-main-shell main-dashboard-no-sidebar role-${allowedRole}`}>
-      <header className="main-compact-header no-print">
-        <div className="main-compact-brand">
+    <div className={`app app-main-shell main-dashboard-with-sidebar role-${allowedRole} ${sidebarOpen ? 'sidebar-open' : ''}`}>
+      <aside className="main-sidebar no-print" aria-label="Role navigation">
+        <div className="sidebar-brand">
           <img src="/favicon.svg" alt="Hawler Medical University" />
           <div>
-            <h1>Hawler Medical University</h1>
-            <p>College of Pharmacy Research Platform</p>
+            <b>Hawler Medical University</b>
+            <span>College of Pharmacy Research Platform</span>
           </div>
         </div>
-        <div className="main-header-actions">
-          <NotificationBellMenu
-            data={data}
-            role={allowedRole}
-            currentUser={currentUser}
-            dataLoading={dataLoading}
-            unreadCount={stats.unread}
-            markNotificationRead={markNotificationRead}
-            removeNotification={removeNotification}
-          />
-          {(isAdminBaseRole || committeeSupervisorAccess) && (
-            <RoleSwitchDropdown
-              activeRole={allowedRole}
-              mode={isAdminBaseRole ? 'admin' : 'committee'}
-              onChange={handleRoleSwitch}
-            />
-          )}
-          <div className="main-profile-summary">
-            <b>{currentUser?.full_name || currentUser?.email || 'Active user'}</b>
-            <small>{roleLabel}</small>
-          </div>
-          <UserProfileMenu currentUser={currentUser} onLogout={logout} onOpenProfile={() => setTab('profile-settings')} />
-        </div>
-      </header>
 
-      <main className="app-content-panel">
-        <nav className="main-pill-tabs no-print" aria-label="Main navigation">
+        <div className="sidebar-role-card">
+          <span>Current role</span>
+          <strong>{roleLabel}</strong>
+          <small>{currentUser?.full_name || currentUser?.email || 'Active user'}</small>
+        </div>
+
+        <nav className="main-side-nav" aria-label="Main navigation">
           {mainNavItems.map((item) => {
             const Icon = item.icon
             return (
-              <button key={item.id} type="button" onClick={() => setTab(item.id)} className={tab === item.id ? 'active' : ''}>
-                <Icon size={17} />
+              <button key={item.id} type="button" onClick={() => handleMainNavClick(item.id)} className={tab === item.id ? 'active' : ''}>
+                <Icon size={18} />
                 <span>{item.label}</span>
                 {item.badge > 0 && <span className="tab-badge">{item.badge}</span>}
               </button>
@@ -6207,6 +6194,56 @@ export default function App() {
           })}
         </nav>
 
+        <div className="sidebar-foot-note">
+          <span>Active section</span>
+          <b>{activeNavItem?.label || 'Dashboard'}</b>
+        </div>
+      </aside>
+
+      {sidebarOpen && <button type="button" className="sidebar-backdrop no-print" aria-label="Close navigation" onClick={() => setSidebarOpen(false)} />}
+
+      <div className="main-workspace">
+        <header className="main-compact-header no-print">
+          <div className="main-compact-left">
+            <button type="button" className="sidebar-menu-toggle" onClick={() => setSidebarOpen((open) => !open)} aria-label="Open navigation" aria-expanded={sidebarOpen}>
+              <span></span>
+              <span></span>
+              <span></span>
+            </button>
+            <div className="main-mobile-brand">
+              <img src="/favicon.svg" alt="Hawler Medical University" />
+              <div>
+                <h1>Hawler Medical University</h1>
+                <p>College of Pharmacy Research Platform</p>
+              </div>
+            </div>
+          </div>
+          <div className="main-header-actions">
+            <NotificationBellMenu
+              data={data}
+              role={allowedRole}
+              currentUser={currentUser}
+              dataLoading={dataLoading}
+              unreadCount={stats.unread}
+              markNotificationRead={markNotificationRead}
+              removeNotification={removeNotification}
+            />
+            {(isAdminBaseRole || committeeSupervisorAccess) && (
+              <RoleSwitchDropdown
+                activeRole={allowedRole}
+                mode={isAdminBaseRole ? 'admin' : 'committee'}
+                onChange={handleRoleSwitch}
+              />
+            )}
+            <div className="main-profile-summary">
+              <b>{currentUser?.full_name || currentUser?.email || 'Active user'}</b>
+              <small>{roleLabel}</small>
+            </div>
+            <UserProfileMenu currentUser={currentUser} onLogout={logout} onOpenProfile={() => handleMainNavClick('profile-settings')} />
+          </div>
+        </header>
+
+        <main className="app-content-panel">
         {message && <div className="message no-print">{message}</div>}
 
         {tab === 'dashboard' && (
@@ -6235,7 +6272,8 @@ export default function App() {
         {tab === 'database' && allowedRole === 'admin' && <DatabaseTab databaseMode={databaseMode} />}
         {tab === 'database' && allowedRole !== 'admin' && <div className="card"><SectionHeader icon={Lock} title="Database Access Locked" subtitle="Only Admin accounts can view database status" /><p className="muted">Please use your role dashboard, notifications, or reports page.</p></div>}
         {tab === 'audit' && allowedRole === 'admin' && <AuditTab logs={visibleData.auditLogs} dataLoading={dataLoading} />}
-      </main>
+        </main>
+      </div>
     </div>
   )
 }
