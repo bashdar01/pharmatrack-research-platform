@@ -2266,8 +2266,6 @@ export default function App() {
   const [adminPanelTab, setAdminPanelTab] = useState(getInitialAdminPanelTab)
   const [currentUser, setCurrentUser] = useState(loadCurrentUser)
   const [activeRoleOverride, setActiveRoleOverride] = useState('')
-  const [adminSelectedStudentId, setAdminSelectedStudentId] = useState('')
-  const [adminSelectedSupervisorId, setAdminSelectedSupervisorId] = useState('')
   const [message, setMessage] = useState('')
   const [loginLoading, setLoginLoading] = useState(false)
   const [passwordRecoveryMode, setPasswordRecoveryMode] = useState(false)
@@ -2288,17 +2286,9 @@ export default function App() {
       ? 'supervisor'
       : baseRole
   const adminViewingAsRole = isAdminBaseRole && allowedRole !== 'admin'
-  const adminStudentOptions = useMemo(() => (data.profiles || []).filter((profile) => profile.role === 'student' && normalizeText(profile.status || 'Active') !== 'rejected'), [data.profiles])
-  const adminSupervisorOptions = useMemo(() => (data.profiles || []).filter((profile) => (profile.role === 'supervisor' || hasCommitteeSupervisorAccess(profile)) && normalizeText(profile.status || 'Active') !== 'rejected'), [data.profiles])
-  const adminSelectedStudent = useMemo(() => adminStudentOptions.find((profile) => String(profile.id) === String(adminSelectedStudentId)) || null, [adminStudentOptions, adminSelectedStudentId])
-  const adminSelectedSupervisor = useMemo(() => adminSupervisorOptions.find((profile) => String(profile.id) === String(adminSelectedSupervisorId)) || null, [adminSupervisorOptions, adminSelectedSupervisorId])
-  const roleContextUser = adminViewingAsRole && allowedRole === 'student'
-    ? adminSelectedStudent
-    : adminViewingAsRole && allowedRole === 'supervisor'
-      ? adminSelectedSupervisor
-      : currentUser
-  const activeRoleUser = roleContextUser || currentUser
-  const roleContextReady = !adminViewingAsRole || !['student', 'supervisor'].includes(allowedRole) || Boolean(roleContextUser)
+  const roleContextUser = currentUser
+  const activeRoleUser = currentUser
+  const roleContextReady = true
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', 'light')
@@ -2363,26 +2353,6 @@ export default function App() {
       setTab('dashboard')
     }
   }, [isAdminBaseRole, committeeSupervisorAccess, activeRoleOverride])
-
-  useEffect(() => {
-    if (!isAdminBaseRole) {
-      setAdminSelectedStudentId('')
-      setAdminSelectedSupervisorId('')
-      return
-    }
-    if (allowedRole !== 'student' && adminSelectedStudentId) setAdminSelectedStudentId('')
-    if (allowedRole !== 'supervisor' && adminSelectedSupervisorId) setAdminSelectedSupervisorId('')
-  }, [isAdminBaseRole, allowedRole, adminSelectedStudentId, adminSelectedSupervisorId])
-
-  useEffect(() => {
-    if (!adminSelectedStudentId) return
-    if (!adminStudentOptions.some((profile) => String(profile.id) === String(adminSelectedStudentId))) setAdminSelectedStudentId('')
-  }, [adminStudentOptions, adminSelectedStudentId])
-
-  useEffect(() => {
-    if (!adminSelectedSupervisorId) return
-    if (!adminSupervisorOptions.some((profile) => String(profile.id) === String(adminSelectedSupervisorId))) setAdminSelectedSupervisorId('')
-  }, [adminSupervisorOptions, adminSelectedSupervisorId])
 
   async function loadFromSupabase(userOverride = currentUser) {
     if (!isSupabaseConfigured) return
@@ -5955,9 +5925,8 @@ export default function App() {
   }
 
   const visibleProjects = useMemo(() => {
-    if (adminViewingAsRole && ['student', 'supervisor'].includes(allowedRole) && !roleContextUser) return []
     return getVisibleProjects(data.projects, allowedRole, activeRoleUser, data)
-  }, [data, allowedRole, activeRoleUser, adminViewingAsRole, roleContextUser])
+  }, [data, allowedRole, activeRoleUser])
 
   const filteredProjects = useMemo(() => {
     const q = filters.search.trim().toLowerCase()
@@ -6143,34 +6112,6 @@ export default function App() {
     setTab('dashboard')
   }
 
-  function handleAdminContextSelect(kind, value) {
-    if (kind === 'student') {
-      setAdminSelectedStudentId(value)
-      const selected = adminStudentOptions.find((profile) => String(profile.id) === String(value))
-      if (selected) {
-        addAudit(currentUser?.full_name || currentUser?.email || 'Admin', 'selected student context', selected.full_name || selected.email || 'student', {
-          action_type: 'admin_role_view_context',
-          affected_user_id: selected.id || null,
-          new_value: selected.email || selected.full_name || selected.id || '',
-          description: `Admin selected student context ${selected.full_name || selected.email || 'student'} for Student role.`,
-        }).catch((error) => console.warn('Context audit failed:', error))
-      }
-      return
-    }
-    if (kind === 'supervisor') {
-      setAdminSelectedSupervisorId(value)
-      const selected = adminSupervisorOptions.find((profile) => String(profile.id) === String(value))
-      if (selected) {
-        addAudit(currentUser?.full_name || currentUser?.email || 'Admin', 'selected supervisor context', selected.full_name || selected.email || 'supervisor', {
-          action_type: 'admin_role_view_context',
-          affected_user_id: selected.id || null,
-          new_value: selected.email || selected.full_name || selected.id || '',
-          description: `Admin selected supervisor context ${selected.full_name || selected.email || 'supervisor'} for Supervisor role.`,
-        }).catch((error) => console.warn('Context audit failed:', error))
-      }
-    }
-  }
-
   return (
     <div className={`app app-main-shell main-dashboard-no-sidebar role-${allowedRole}`}>
       <header className="main-compact-header no-print">
@@ -6222,17 +6163,6 @@ export default function App() {
 
         {message && <div className="message no-print">{message}</div>}
 
-        {adminViewingAsRole && ['student', 'supervisor'].includes(allowedRole) && (
-          <AdminRoleContextSelector
-            mode={allowedRole}
-            students={adminStudentOptions}
-            supervisors={adminSupervisorOptions}
-            selectedStudentId={adminSelectedStudentId}
-            selectedSupervisorId={adminSelectedSupervisorId}
-            onSelect={handleAdminContextSelect}
-          />
-        )}
-
         {tab === 'dashboard' && (
           <>
             <section className="stats no-print">
@@ -6245,7 +6175,6 @@ export default function App() {
             {allowedRole === 'supervisor' && roleContextReady && <SupervisorDashboard data={visibleData} projects={filteredProjects} currentUser={activeRoleUser} dataLoading={dataLoading} reviewReport={reviewReport} createDeadline={createDeadline} removeDeadline={removeDeadline} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
             {allowedRole === 'committee' && <CommitteeDashboard data={visibleData} projects={visibleProjects} dataLoading={dataLoading} updateProject={updateProject} saveEvaluation={saveEvaluation} />}
             {allowedRole === 'admin' && <AdminDashboard data={visibleData} projects={visibleProjects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} assignStudentToSupervisor={assignStudentToSupervisor} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} loadError={dataLoadError} dataLoading={dataLoading} />}
-            {adminViewingAsRole && !roleContextReady && <AdminRoleContextEmpty mode={allowedRole} />}
           </>
         )}
 
@@ -6286,62 +6215,6 @@ function RoleSwitchDropdown({ activeRole, mode = 'committee', onChange }) {
         {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
     </label>
-  )
-}
-
-function AdminRoleContextSelector({ mode, students = [], supervisors = [], selectedStudentId = '', selectedSupervisorId = '', onSelect }) {
-  const [query, setQuery] = useState('')
-  const isStudentMode = mode === 'student'
-  const options = isStudentMode ? students : supervisors
-  const selectedId = isStudentMode ? selectedStudentId : selectedSupervisorId
-  const label = isStudentMode ? 'Select Student' : 'Select Supervisor'
-  const empty = isStudentMode ? 'No students found.' : 'No supervisors found.'
-  const filtered = options.filter((profile) => {
-    const q = normalizeText(query)
-    if (!q) return true
-    return [profile.full_name, profile.email, profile.department, profile.program, profile.role].some((value) => normalizeText(value).includes(q))
-  })
-  const selected = options.find((profile) => String(profile.id) === String(selectedId))
-
-  return (
-    <section className="admin-view-context-card no-print">
-      <div>
-        <p className="eyebrow">Role context</p>
-        <h3>{label}</h3>
-        <p className="muted small">Choose the user context for the {isStudentMode ? 'Student' : 'Supervisor'} role. Your account remains Admin.</p>
-      </div>
-      <div className="admin-view-context-controls">
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={`Search ${isStudentMode ? 'students' : 'supervisors'}...`}
-          aria-label={`Search ${isStudentMode ? 'students' : 'supervisors'}`}
-        />
-        <select value={selectedId} onChange={(e) => onSelect?.(isStudentMode ? 'student' : 'supervisor', e.target.value)}>
-          <option value="">{label}</option>
-          {filtered.map((profile) => (
-            <option key={profile.id || profile.email} value={profile.id}>
-              {(profile.full_name || profile.email || 'Unnamed user')} {profile.email ? `• ${profile.email}` : ''}
-            </option>
-          ))}
-        </select>
-        {selected && <Pill tone="blue">Viewing: {selected.full_name || selected.email}</Pill>}
-        {!filtered.length && <span className="muted small">{empty}</span>}
-      </div>
-    </section>
-  )
-}
-
-function AdminRoleContextEmpty({ mode }) {
-  return (
-    <div className="card no-print">
-      <SectionHeader
-        icon={mode === 'student' ? GraduationCap : ClipboardCheck}
-        title={mode === 'student' ? 'Select Student' : 'Select Supervisor'}
-        subtitle={mode === 'student' ? 'Choose a student context to view the Student dashboard.' : 'Choose a supervisor context to view the Supervisor dashboard.'}
-      />
-      <p className="muted">{mode === 'student' ? 'No student is selected yet.' : 'No supervisor is selected yet.'}</p>
-    </div>
   )
 }
 

@@ -7417,11 +7417,14 @@ button .button-spinner {
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 7px;
-  width: auto;
-  max-width: 260px;
+  gap: 6px;
+  width: fit-content;
+  min-width: 0;
+  max-width: none;
   flex: 0 0 auto;
-  padding: 7px 9px;
+  flex-grow: 0;
+  flex-shrink: 0;
+  padding: 7px 10px;
   border: 1px solid #bfdbfe;
   border-radius: 999px;
   background: #eff6ff;
@@ -7438,13 +7441,22 @@ button .button-spinner {
 
 .role-switch-dropdown select {
   border: 0;
-  background: transparent;
   color: #1d4ed8;
   font-weight: 800;
   outline: none;
   width: auto;
-  min-width: 92px;
-  max-width: 178px;
+  min-width: 0;
+  max-width: none;
+  flex: 0 0 auto;
+  field-sizing: content;
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 2px 19px 2px 2px;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%231d4ed8' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1px center;
+  background-size: 15px 15px;
 }
 
 .dual-role-management-tab,
@@ -7514,9 +7526,9 @@ button .button-spinner {
 
   .dual-role-management-tab .role-switch-dropdown,
   .dual-role-management-card .role-switch-dropdown {
-    width: 100%;
+    width: fit-content;
     max-width: none;
-    justify-content: space-between;
+    justify-content: flex-start;
   }
 }
 
@@ -7579,14 +7591,17 @@ button .button-spinner {
 
 /* Header compactness fixes for logo and role selector */
 .main-compact-header .role-switch-dropdown {
-  width: auto;
-  max-width: 250px;
+  width: fit-content;
+  min-width: 0;
+  max-width: none;
   flex: 0 0 auto;
 }
 
 .main-compact-header .role-switch-dropdown select {
-  min-width: 90px;
-  max-width: 170px;
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  field-sizing: content;
 }
 
 .main-compact-header .role-switch-dropdown span {
@@ -7600,7 +7615,8 @@ button .button-spinner {
 
 @media (max-width: 640px) {
   .main-compact-header .role-switch-dropdown {
-    max-width: 100%;
+    width: fit-content;
+    max-width: calc(100vw - 120px);
   }
   .main-profile-summary b {
     max-width: 120px;
