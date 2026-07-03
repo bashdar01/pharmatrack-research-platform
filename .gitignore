@@ -21,3 +21,13 @@ dist/
 *.zip
 .env
 .env.local
+
+.env.import
+
+students.xlsx
+.env.import
+*.textClipping
+
+students.xlsx
+.env.import
+*.textClipping
