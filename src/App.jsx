@@ -3348,6 +3348,7 @@ export default function App() {
       score: null,
     }
 
+    let submissionNotice = 'Weekly report submitted successfully and supervisor notified.'
     if (isSupabaseConfigured) {
       const { id, ...reportForDb } = report
       const { data: inserted, error } = await supabase.from('weekly_reports').insert(reportForDb).select().single()
@@ -3355,20 +3356,34 @@ export default function App() {
         setMessage(error.message)
         return { ok: false, error: error.message }
       }
+
+      let uploadWarning = ''
+      let notificationFailed = false
+      let emailFailed = false
+
       try {
-        if (file) await uploadProjectFile(file, form.project_id, inserted.id, 'Weekly Report Evidence')
+        if (file) await uploadProjectFile(file, form.project_id, inserted.id, 'Weekly Report Evidence', actionUser)
       } catch (uploadError) {
-        await loadFromSupabase()
-        setMessage(`Weekly report saved, but the attachment was not uploaded: ${uploadError.message}`)
-        return { ok: true, warning: uploadError.message }
+        uploadWarning = uploadError.message || 'Attachment upload failed.'
+        console.warn('Weekly report attachment upload failed:', uploadError)
       }
+
       try {
-        await notifySupervisorAboutSubmittedReport({ ...inserted, id: inserted.id })
+        const notificationResult = await notifySupervisorAboutSubmittedReport({ ...inserted, id: inserted.id })
+        notificationFailed = Boolean(notificationResult?.notificationFailed)
+        emailFailed = Boolean(notificationResult?.emailFailed)
       } catch (notificationError) {
+        notificationFailed = true
         console.warn('Weekly report notification could not be created:', notificationError)
       }
+
       await addAudit(form.submitted_by, 'submitted', `weekly report ${nextWeek}`)
-      await loadFromSupabase()
+      await loadFromSupabase(currentUser)
+
+      if (emailFailed) submissionNotice = 'Weekly report submitted successfully, but email notification failed.'
+      else if (notificationFailed) submissionNotice = 'Weekly report submitted successfully, but supervisor notification failed.'
+      else submissionNotice = 'Weekly report submitted successfully and supervisor notified.'
+      if (uploadWarning) submissionNotice += ` Attachment upload failed: ${uploadWarning}`
     } else {
       const attachment = file ? await makeLocalReportAttachment(file, form.project_id, report.id, actionUser) : null
       const reportWithAttachment = attachment ? { ...report, attachment } : report
@@ -3399,11 +3414,11 @@ export default function App() {
         auditLogs: [log, ...current.auditLogs],
       }))
     }
-    setMessage(file ? 'Weekly report and attachment submitted successfully.' : 'Weekly report submitted successfully.')
-    return { ok: true, report }
+    setMessage(submissionNotice)
+    return { ok: true, report, message: submissionNotice }
   }
 
-  async function uploadProjectFile(file, projectId, reportId, fileType) {
+  async function uploadProjectFile(file, projectId, reportId, fileType, uploaderUser = currentUser) {
     if (!isSupabaseConfigured || !file) return null
     const safeName = sanitizeFileName(file.name)
     const filePath = `${projectId}/${reportId}/${Date.now()}-${safeName}`
@@ -3419,47 +3434,53 @@ export default function App() {
       file_type: fileType,
       file_name: file.name,
       file_path: filePath,
-      uploaded_by: actionUser?.id || null,
-      uploaded_by_email: actionUser?.email || '',
-      user_id: actionUser?.id || null,
-      created_by: actionUser?.id || null,
-      created_by_email: actionUser?.email || '',
+      uploaded_by: uploaderUser?.id || null,
+      uploaded_by_email: uploaderUser?.email || '',
+      user_id: uploaderUser?.id || null,
+      created_by: uploaderUser?.id || null,
+      created_by_email: uploaderUser?.email || '',
       file_mime_type: file.type || 'application/octet-stream',
     }).select().single()
     if (insert.error) throw insert.error
     return insert.data
   }
 
-  async function createReportNotification({ recipient, report, project, notificationType, title, message, includeEmail = false }) {
-    if (!recipient || !report || !notificationType) return
+  async function createReportNotification({ recipient, report, project, notificationType, title, message, includeEmail = false, actor = activeRoleUser || currentUser }) {
+    if (!recipient || !report || !notificationType) return { notificationCreated: false, notificationFailed: true, emailSent: false, emailFailed: false }
+    const actorProfile = actor || activeRoleUser || currentUser || {}
     const recipientId = recipient.id || null
+    const recipientEmail = recipient.email || ''
     const reportId = report.id
     const alreadyExists = (data.notifications || []).some((note) =>
       String(note.weekly_report_id || '') === String(reportId) &&
       String(note.notification_type || note.type || '') === String(notificationType) &&
       (
         (recipientId && String(note.recipient_user_id || note.profile_id || '') === String(recipientId)) ||
-        (!recipientId && normalizeText(note.recipient_email) === normalizeText(recipient.email))
+        (!recipientId && normalizeText(note.recipient_email) === normalizeText(recipientEmail))
       )
     )
-    if (alreadyExists) return
+    if (alreadyExists) return { notificationCreated: false, notificationSkipped: true, emailSent: false, emailFailed: false }
 
     const notification = {
       id: crypto.randomUUID(),
       profile_id: recipientId,
       recipient_user_id: recipientId,
-      recipient_email: recipient.email || '',
-      sender_user_id: actionUser?.id || null,
+      recipient_email: recipientEmail,
+      sender_user_id: actorProfile?.id || null,
       weekly_report_id: reportId,
       project_id: project?.id || report.project_id || null,
       notification_type: notificationType,
       title,
       message,
       type: 'Weekly Report',
-      target_role: recipient.role || 'all',
+      target_role: recipient.role || 'supervisor',
       is_read: false,
       created_at: new Date().toISOString(),
     }
+
+    let notificationCreated = false
+    let emailSent = false
+    let emailFailed = false
 
     if (isSupabaseConfigured) {
       const { id, ...notificationForDb } = notification
@@ -3468,37 +3489,62 @@ export default function App() {
         .select('id')
         .eq('weekly_report_id', reportId)
         .eq('notification_type', notificationType)
-        .or(recipientId ? `recipient_user_id.eq.${recipientId},profile_id.eq.${recipientId}` : `recipient_email.eq.${recipient.email || ''}`)
+        .or(recipientId ? `recipient_user_id.eq.${recipientId},profile_id.eq.${recipientId}` : `recipient_email.eq.${recipientEmail}`)
         .limit(1)
-      if (!duplicateQuery.error && duplicateQuery.data?.length) return
-
-      const { error } = await supabase.from('notifications').insert(notificationForDb)
-      if (error) throw error
+      if (!duplicateQuery.error && duplicateQuery.data?.length) {
+        notificationCreated = false
+      } else {
+        const { error } = await supabase.from('notifications').insert(notificationForDb)
+        if (error) throw error
+        notificationCreated = true
+      }
 
       if (includeEmail && supabase?.functions?.invoke) {
-        await supabase.functions.invoke('email-weekly-report-to-me', {
-          body: { reportId, mode: 'notification', recipientUserId: recipientId, notificationType },
-        }).catch((emailError) => {
+        try {
+          const { data: emailResult, error: emailError } = await supabase.functions.invoke('email-weekly-report-to-me', {
+            body: {
+              reportId,
+              mode: 'notification',
+              recipientUserId: recipientId,
+              recipientEmail,
+              notificationType,
+              appUrl: typeof window !== 'undefined' ? window.location.origin : '',
+            },
+          })
+          if (emailError || emailResult?.error) throw new Error(emailError?.message || emailResult?.error || 'Weekly report email failed.')
+          emailSent = true
+        } catch (emailError) {
+          emailFailed = true
           console.warn('Weekly report email notification could not be sent:', emailError)
-        })
+        }
       }
     } else {
       setLocal((current) => ({ ...current, notifications: [notification, ...(current.notifications || [])] }))
+      notificationCreated = true
     }
+
+    return { notificationCreated, emailSent, emailFailed, notificationFailed: false }
   }
 
   async function notifySupervisorAboutSubmittedReport(report) {
     const project = data.projects.find((item) => String(item.id) === String(report.project_id))
-    const supervisor = findSupervisorProfileForProject(data, project)
-    if (!supervisor) return
-    await createReportNotification({
+    const reportStudent = findStudentProfileForReport(data, report) || activeRoleUser || currentUser
+    // Weekly reports are project/group-based. Prefer the project/group supervisor,
+    // then fall back to a direct student-supervisor assignment. Never notify all supervisors.
+    const supervisor = findSupervisorProfileForProject(data, project) || findAssignedSupervisorForStudent(data, reportStudent)
+    if (!supervisor?.email && !supervisor?.id) {
+      console.warn('No assigned supervisor found for submitted weekly report:', report.id)
+      return { notificationCreated: false, notificationFailed: true, emailSent: false, emailFailed: false }
+    }
+    return await createReportNotification({
       recipient: supervisor,
       report,
       project,
       notificationType: 'weekly_report_submitted',
       title: 'New Weekly Report Submitted',
-      message: `A new weekly report has been submitted by ${currentUser?.full_name || report.submitted_by || 'Student'} for Week ${report.week_number}.`,
+      message: `New weekly report submitted by ${reportStudent?.full_name || report.submitted_by || 'Student'}.`,
       includeEmail: true,
+      actor: reportStudent,
     })
   }
 
@@ -6086,13 +6132,13 @@ export default function App() {
   const mainNavItems = [
     { id: 'dashboard', label: allowedRole === 'admin' ? 'Admin Dashboard' : 'Dashboard', icon: LayoutDashboard, show: true },
     { id: 'project-management', label: 'Project Management', icon: ClipboardCheck, show: allowedRole === 'supervisor' },
-    { id: 'reports', label: 'Print/PDF Reports', icon: Printer, show: true },
     { id: 'questions', label: allowedRole === 'supervisor' ? 'Student Questions' : 'Questions', icon: MessageSquareText, show: allowedRole === 'student' || allowedRole === 'supervisor' },
     { id: 'join-group', label: 'Join Research Group', icon: Users, show: allowedRole === 'student' && !studentCurrentResearchGroup },
     { id: 'groups', label: 'Research Groups', icon: Users, show: allowedRole === 'supervisor' },
     { id: 'group-requests', label: 'Group Requests', icon: Users, show: allowedRole === 'admin' || allowedRole === 'committee' },
     { id: 'database', label: 'Database', icon: Database, show: allowedRole === 'admin' },
     { id: 'audit', label: 'Audit Log', icon: ShieldCheck, show: allowedRole === 'admin' },
+    { id: 'reports', label: 'Print/PDF Reports', icon: Printer, show: true },
   ].filter((item) => item.show)
   const activeNavItem = mainNavItems.find((item) => item.id === tab) || mainNavItems[0]
 
@@ -6666,11 +6712,11 @@ function AdminControlPanel({
     { id: 'invitations', label: 'Invite Users', icon: Mail },
     { id: 'deadlines', label: 'Deadlines', icon: CalendarDays },
     { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'reports', label: 'Reports', icon: Printer },
-    { id: 'pdf-report', label: 'PDF Report Customization', icon: FileText },
     { id: 'group-requests', label: 'Group Join Requests', icon: Users },
     { id: 'database', label: 'Database', icon: Database },
     { id: 'audit', label: 'Audit Log', icon: ShieldCheck },
+    { id: 'reports', label: 'Reports', icon: Printer },
+    { id: 'pdf-report', label: 'PDF Report Customization', icon: FileText },
   ]
 
   function changeAdminPanelTab(nextTab) {

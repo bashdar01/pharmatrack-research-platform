@@ -107,8 +107,8 @@ function attachmentPublicUrl(supabaseUrl: string, attachment: AnyRecord | null) 
   return `${supabaseUrl}/storage/v1/object/public/project-files/${encodeURIComponent(String(attachment.file_path)).replaceAll('%2F', '/')}`
 }
 
-function dashboardLink(req: Request, role: 'student' | 'supervisor' | 'admin', reportId: string) {
-  const origin = req.headers.get('origin') || req.headers.get('referer')?.replace(/\/$/, '') || ''
+function dashboardLink(req: Request, role: 'student' | 'supervisor' | 'admin', reportId: string, appUrl = '') {
+  const origin = appUrl || req.headers.get('origin') || req.headers.get('referer')?.replace(/\/$/, '') || ''
   if (!origin) return ''
   try {
     const url = new URL(origin)
@@ -177,9 +177,10 @@ function buildReportEmailHtml(args: {
         <h2 style="margin:0 0 8px;font-size:24px;color:#0f172a;">${escapeHtml(title)}</h2>
         <p style="margin:0 0 22px;color:#64748b;line-height:1.6;">${escapeHtml(intro)}</p>
         <div style="padding:18px;border-radius:14px;background:#eef2ff;border:1px solid #c7d2fe;margin-bottom:18px;line-height:1.55;">
+          ${isSubmission ? `<p><strong>Supervisor name:</strong> ${escapeHtml(recipient.full_name || recipient.email || 'Supervisor')}</p>` : ''}
           <p><strong>Student name:</strong> ${escapeHtml(studentName)}</p>
           <p><strong>Student email:</strong> ${escapeHtml(studentEmail)}</p>
-          <p><strong>Project:</strong> ${escapeHtml(project.title || 'Weekly Report')}</p>
+          <p><strong>Project:</strong> ${escapeHtml(project.title || project.group_name || 'Weekly Report')}</p>
           <p><strong>Week number:</strong> ${escapeHtml(report.week_number || '')}</p>
           <p><strong>Submitted:</strong> ${escapeHtml(dateTime(report.submitted_at))}</p>
           ${isReview ? `<p><strong>Reviewed:</strong> ${escapeHtml(nowDateTime())}</p>` : ''}
@@ -203,14 +204,15 @@ function buildReportEmailHtml(args: {
   `
 }
 
-function buildReportText(report: AnyRecord, project: AnyRecord, attachment: AnyRecord | null, attachmentUrl: string, kind: string, actionLink: string, studentProfile: AnyRecord | null) {
+function buildReportText(report: AnyRecord, project: AnyRecord, attachment: AnyRecord | null, attachmentUrl: string, kind: string, actionLink: string, studentProfile: AnyRecord | null, recipient: AnyRecord) {
   const studentName = getStudentName(report, studentProfile)
   const studentEmail = getStudentEmail(report, studentProfile)
   return [
     kind === 'submission' ? 'New Weekly Report Submitted' : kind === 'review' ? 'Your Weekly Report Has Been Reviewed' : 'Weekly Report Copy',
+    kind === 'submission' ? `Supervisor name: ${recipient.full_name || recipient.email || 'Supervisor'}` : '',
     `Student name: ${studentName}`,
     `Student email: ${studentEmail}`,
-    `Project: ${project.title || 'Weekly Report'}`,
+    `Project: ${project.title || project.group_name || 'Weekly Report'}`,
     `Week number: ${report.week_number || ''}`,
     `Submitted: ${dateTime(report.submitted_at)}`,
     kind === 'review' ? `Reviewed: ${nowDateTime()}` : '',
@@ -274,8 +276,13 @@ Deno.serve(async (req) => {
     }
 
     let recipientProfile = actorProfile
-    if (mode === 'notification' && payload.recipientUserId) {
-      const recipients = await restFetch(supabaseUrl, serviceRoleKey, `profiles?select=*&id=eq.${encodeURIComponent(String(payload.recipientUserId))}&limit=1`)
+    if (mode === 'notification' && (payload.recipientUserId || payload.recipientEmail)) {
+      const recipientIdParam = String(payload.recipientUserId || '').trim()
+      const recipientEmailParam = normalize(payload.recipientEmail || '')
+      const recipientPath = recipientIdParam
+        ? `profiles?select=*&id=eq.${encodeURIComponent(recipientIdParam)}&limit=1`
+        : `profiles?select=*&email=eq.${encodeURIComponent(recipientEmailParam)}&limit=1`
+      const recipients = await restFetch(supabaseUrl, serviceRoleKey, recipientPath)
       const requestedRecipient = Array.isArray(recipients) ? recipients[0] : null
       if (!requestedRecipient) return jsonResponse({ error: 'Notification recipient was not found.' }, 404)
 
@@ -319,11 +326,11 @@ Deno.serve(async (req) => {
     const attachmentUrl = attachmentPublicUrl(supabaseUrl, attachment)
     const kind = emailKindFor(mode, actorProfile)
     const linkRole: 'student' | 'supervisor' | 'admin' = kind === 'submission' ? 'supervisor' : kind === 'review' ? 'student' : (recipientProfile.role === 'admin' ? 'admin' : recipientProfile.role === 'supervisor' ? 'supervisor' : 'student')
-    const actionLink = dashboardLink(req, linkRole, reportId)
+    const actionLink = dashboardLink(req, linkRole, reportId, String(payload.appUrl || ''))
 
     const subject = subjectFor(kind, report)
     const html = buildReportEmailHtml({ report, project, recipient: recipientProfile, actor: actorProfile, studentProfile, attachment, attachmentUrl, kind, actionLink })
-    const text = buildReportText(report, project, attachment, attachmentUrl, kind, actionLink, studentProfile)
+    const text = buildReportText(report, project, attachment, attachmentUrl, kind, actionLink, studentProfile, recipientProfile)
 
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
