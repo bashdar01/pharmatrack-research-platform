@@ -631,8 +631,8 @@ button:disabled {
   border-bottom: 1px solid rgba(255,255,255,.10);
 }
 .admin-logo-mark {
-  width: 46px;
-  height: 46px;
+  width: 56px;
+  height: 56px;
   border-radius: 16px;
   display: grid;
   place-items: center;
@@ -3792,8 +3792,8 @@ button:disabled {
   }
 
   .admin-logo-mark {
-    width: 40px;
-    height: 40px;
+    width: 46px;
+    height: 46px;
     border-radius: 14px;
   }
 
@@ -5601,8 +5601,8 @@ button .button-spinner {
 }
 
 .main-compact-brand img {
-  width: 48px;
-  height: 48px;
+  width: 58px;
+  height: 58px;
   object-fit: contain;
   flex: 0 0 auto;
 }
@@ -5629,8 +5629,9 @@ button .button-spinner {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
+  flex: 0 1 auto;
 }
 
 .main-notification-button {
@@ -5675,7 +5676,8 @@ button .button-spinner {
   display: grid;
   gap: 2px;
   min-width: 0;
-  padding-left: 12px;
+  flex: 0 1 auto;
+  padding-left: 10px;
   border-left: 1px solid rgba(203, 213, 225, .9);
 }
 
@@ -5684,7 +5686,7 @@ button .button-spinner {
   font-size: 14px;
   line-height: 1.1;
   font-weight: 950;
-  max-width: 180px;
+  max-width: 150px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -6147,8 +6149,8 @@ button .button-spinner {
     padding: 12px 14px;
   }
   .main-compact-brand img {
-    width: 42px;
-    height: 42px;
+    width: 48px;
+    height: 48px;
   }
   .main-header-actions {
     justify-content: space-between;
@@ -7414,8 +7416,12 @@ button .button-spinner {
 .role-switch-dropdown {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
+  justify-content: flex-start;
+  gap: 7px;
+  width: auto;
+  max-width: 260px;
+  flex: 0 0 auto;
+  padding: 7px 9px;
   border: 1px solid #bfdbfe;
   border-radius: 999px;
   background: #eff6ff;
@@ -7436,7 +7442,9 @@ button .button-spinner {
   color: #1d4ed8;
   font-weight: 800;
   outline: none;
-  min-width: 150px;
+  width: auto;
+  min-width: 92px;
+  max-width: 178px;
 }
 
 .dual-role-management-tab,
@@ -7504,8 +7512,10 @@ button .button-spinner {
     width: 100%;
   }
 
-  .role-switch-dropdown {
+  .dual-role-management-tab .role-switch-dropdown,
+  .dual-role-management-card .role-switch-dropdown {
     width: 100%;
+    max-width: none;
     justify-content: space-between;
   }
 }
@@ -7563,5 +7573,36 @@ button .button-spinner {
   .admin-view-context-controls {
     grid-template-columns: 1fr;
     min-width: 0;
+  }
+}
+
+
+/* Header compactness fixes for logo and role selector */
+.main-compact-header .role-switch-dropdown {
+  width: auto;
+  max-width: 250px;
+  flex: 0 0 auto;
+}
+
+.main-compact-header .role-switch-dropdown select {
+  min-width: 90px;
+  max-width: 170px;
+}
+
+.main-compact-header .role-switch-dropdown span {
+  font-size: 12px;
+}
+
+.admin-brand-block .admin-logo-mark svg {
+  width: 28px;
+  height: 28px;
+}
+
+@media (max-width: 640px) {
+  .main-compact-header .role-switch-dropdown {
+    max-width: 100%;
+  }
+  .main-profile-summary b {
+    max-width: 120px;
   }
 }

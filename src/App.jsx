@@ -1108,10 +1108,10 @@ function hasCommitteeSupervisorAccess(user) {
 
 function getActiveRoleLabel(baseRole, activeRole) {
   if (baseRole === 'admin') {
-    return ({ admin: 'Admin Mode', student: 'Student Mode', supervisor: 'Supervisor Mode', committee: 'Research Committee Mode' }[activeRole]) || 'Admin Mode'
+    return ({ admin: 'Admin', student: 'Student', supervisor: 'Supervisor', committee: 'Research Committee' }[activeRole]) || 'Admin'
   }
-  if (baseRole === 'committee' && activeRole === 'supervisor') return 'Supervisor Mode'
-  if (baseRole === 'committee') return 'Research Committee Mode'
+  if (baseRole === 'committee' && activeRole === 'supervisor') return 'Supervisor'
+  if (baseRole === 'committee') return 'Research Committee'
   return ({ student: 'BSc Student', supervisor: 'Supervisor', admin: 'Admin', committee: 'Research Committee' }[activeRole]) || 'User'
 }
 
@@ -5734,30 +5734,39 @@ export default function App() {
     delete cleanUpdates.email
     delete cleanUpdates.role
     delete cleanUpdates.status
-    if (!cleanUpdates.full_name || !String(cleanUpdates.full_name).trim()) {
-      throw new Error('Full name is required.')
+
+    const hasFullNameField = Object.prototype.hasOwnProperty.call(cleanUpdates, 'full_name')
+    if (hasFullNameField) {
+      cleanUpdates.full_name = String(cleanUpdates.full_name || '').trim()
+      if (!cleanUpdates.full_name) {
+        throw new Error('Full name is required.')
+      }
+    }
+
+    if (!Object.keys(cleanUpdates).length) {
+      return currentUser
     }
 
     if (isSupabaseConfigured) {
       const { error } = await supabase
         .from('profiles')
-        .update({ ...cleanUpdates, full_name: String(cleanUpdates.full_name || '').trim() })
+        .update(cleanUpdates)
         .eq('id', currentUser.id)
       if (error) throw error
-      const updatedUser = { ...currentUser, ...cleanUpdates, full_name: String(cleanUpdates.full_name || '').trim() }
+      const updatedUser = { ...currentUser, ...cleanUpdates }
       setCurrentUser(updatedUser)
       updateStoredCurrentUser(updatedUser)
-      await addAudit(currentUser.full_name, 'updated', 'own profile')
+      await addAudit(currentUser.full_name || currentUser.email, 'updated', hasFullNameField ? 'own profile' : 'own profile photo')
       await loadFromSupabase(updatedUser)
       return updatedUser
     }
 
-    const updatedUser = { ...currentUser, ...cleanUpdates, full_name: String(cleanUpdates.full_name || '').trim() }
+    const updatedUser = { ...currentUser, ...cleanUpdates }
     setCurrentUser(updatedUser)
     updateStoredCurrentUser(updatedUser)
     setLocal((current) => ({
       ...current,
-      profiles: (current.profiles || []).map((profile) => String(profile.id) === String(currentUser.id) ? { ...profile, ...cleanUpdates, full_name: String(cleanUpdates.full_name || '').trim() } : profile),
+      profiles: (current.profiles || []).map((profile) => String(profile.id) === String(currentUser.id) ? { ...profile, ...cleanUpdates } : profile),
     }))
     return updatedUser
   }
@@ -5869,7 +5878,7 @@ export default function App() {
           notification_type: `committee_supervisor_access_${targetUser.id}_${enabled ? 'enabled' : 'disabled'}`,
           title: enabled ? 'Supervisor Access Enabled' : 'Supervisor Access Disabled',
           message: enabled
-            ? 'Admin enabled Supervisor mode for your Research Committee account. Use the View as dropdown to switch dashboards.'
+            ? 'Admin enabled Supervisor access for your Research Committee account. Use the Role dropdown to switch dashboards.'
             : 'Admin disabled Supervisor mode for your Research Committee account. Your Research Committee dashboard is still available.',
           type: 'Dual Role Management',
           target_role: 'committee',
@@ -6123,10 +6132,10 @@ export default function App() {
       const normalizedMode = ['student', 'supervisor', 'committee'].includes(nextMode) ? nextMode : ''
       setActiveRoleOverride(normalizedMode)
       setTab('dashboard')
-      addAudit(currentUser?.full_name || currentUser?.email || 'Admin', 'switched view mode', normalizedMode || 'admin', {
+      addAudit(currentUser?.full_name || currentUser?.email || 'Admin', 'switched role', normalizedMode || 'admin', {
         action_type: 'admin_role_view_switch',
         new_value: normalizedMode || 'admin',
-        description: `Admin switched view mode to ${getActiveRoleLabel('admin', normalizedMode || 'admin')}.`,
+        description: `Admin switched active role to ${getActiveRoleLabel('admin', normalizedMode || 'admin')}.`,
       }).catch((error) => console.warn('Role switch audit failed:', error))
       return
     }
@@ -6143,7 +6152,7 @@ export default function App() {
           action_type: 'admin_role_view_context',
           affected_user_id: selected.id || null,
           new_value: selected.email || selected.full_name || selected.id || '',
-          description: `Admin selected student context ${selected.full_name || selected.email || 'student'} for Student Mode.`,
+          description: `Admin selected student context ${selected.full_name || selected.email || 'student'} for Student role.`,
         }).catch((error) => console.warn('Context audit failed:', error))
       }
       return
@@ -6156,7 +6165,7 @@ export default function App() {
           action_type: 'admin_role_view_context',
           affected_user_id: selected.id || null,
           new_value: selected.email || selected.full_name || selected.id || '',
-          description: `Admin selected supervisor context ${selected.full_name || selected.email || 'supervisor'} for Supervisor Mode.`,
+          description: `Admin selected supervisor context ${selected.full_name || selected.email || 'supervisor'} for Supervisor role.`,
         }).catch((error) => console.warn('Context audit failed:', error))
       }
     }
@@ -6272,7 +6281,7 @@ function RoleSwitchDropdown({ activeRole, mode = 'committee', onChange }) {
   const value = mode === 'admin' ? activeRole || 'admin' : activeRole === 'supervisor' ? 'supervisor' : 'committee'
   return (
     <label className="role-switch-dropdown no-print">
-      <span>View as</span>
+      <span>Role</span>
       <select value={value} onChange={(e) => onChange?.(e.target.value)}>
         {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
@@ -6297,9 +6306,9 @@ function AdminRoleContextSelector({ mode, students = [], supervisors = [], selec
   return (
     <section className="admin-view-context-card no-print">
       <div>
-        <p className="eyebrow">Admin role view</p>
+        <p className="eyebrow">Role context</p>
         <h3>{label}</h3>
-        <p className="muted small">Choose the user context for {isStudentMode ? 'Student Mode' : 'Supervisor Mode'}. Your account remains Admin.</p>
+        <p className="muted small">Choose the user context for the {isStudentMode ? 'Student' : 'Supervisor'} role. Your account remains Admin.</p>
       </div>
       <div className="admin-view-context-controls">
         <input
