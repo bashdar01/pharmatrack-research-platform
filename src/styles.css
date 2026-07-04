@@ -8376,3 +8376,28 @@ button .button-spinner {
     display: none;
   }
 }
+
+/* Top-header external Scholar button beside About Us */
+.top-scholar-link {
+  text-decoration: none;
+}
+
+.top-scholar-link:visited {
+  color: #075985;
+}
+
+.top-scholar-link:hover,
+.top-scholar-link:focus-visible {
+  text-decoration: none;
+}
+
+.main-dashboard-with-sidebar .main-compact-left {
+  column-gap: 8px;
+  row-gap: 8px;
+}
+
+@media (max-width: 760px) {
+  .main-dashboard-with-sidebar .main-compact-left {
+    flex-wrap: wrap;
+  }
+}

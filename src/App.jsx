@@ -6436,6 +6436,16 @@ export default function App() {
               <span className="top-about-icon"><Info size={17} /></span>
               <span>About Us</span>
             </button>
+            <a
+              className="top-about-link top-scholar-link"
+              href="https://scholar.google.com/citations?hl=en&view_op=search_authors&mauthors=hawler+medical+universty&btnG="
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Open HMU Google Scholar in a new tab"
+            >
+              <span className="top-about-icon"><GraduationCap size={17} /></span>
+              <span>HMU Google Scholar</span>
+            </a>
 
           </div>
           <div className="main-header-actions">
