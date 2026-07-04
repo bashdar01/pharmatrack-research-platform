@@ -342,6 +342,123 @@ const defaultWebsiteSettings = {
 }
 
 
+
+const ABOUT_US_PAGE_KEY = 'about_us'
+const defaultAboutUsPage = {
+  page_key: ABOUT_US_PAGE_KEY,
+  title: 'About Us',
+  subtitle: 'College of Pharmacy Research Platform',
+  content_html: '<h2>About the Platform</h2><p>The College of Pharmacy Research Platform supports students, supervisors, research committee members, and administrators in managing research projects, weekly reports, deadlines, questions, and academic progress in one secure system.</p><p>Use the admin subdomain to customize this page for your college or department.</p>',
+  content_json: {},
+  image_url: '',
+  is_published: true,
+  updated_at: '',
+}
+
+function sanitizeRichStyle(styleValue) {
+  const allowed = new Set(['color', 'background-color', 'text-align', 'font-size', 'font-weight', 'font-style', 'text-decoration'])
+  return String(styleValue || '')
+    .split(';')
+    .map((chunk) => chunk.trim())
+    .filter(Boolean)
+    .map((chunk) => {
+      const [rawName, ...rawValueParts] = chunk.split(':')
+      const name = String(rawName || '').trim().toLowerCase()
+      const value = rawValueParts.join(':').trim()
+      if (!allowed.has(name) || !value) return ''
+      const lowered = value.toLowerCase()
+      if (lowered.includes('javascript:') || lowered.includes('expression(') || lowered.includes('url(') || lowered.includes('<') || lowered.includes('>')) return ''
+      if (name === 'font-size' && !/^\d{1,3}(px|rem|em|%)$/.test(value)) return ''
+      if ((name === 'color' || name === 'background-color') && !/^#[0-9a-f]{3,8}$/i.test(value) && !/^rgba?\([0-9\s,%.]+\)$/i.test(value) && !/^[a-z]+$/i.test(value)) return ''
+      if (name === 'text-align' && !['left', 'center', 'right', 'justify'].includes(lowered)) return ''
+      return `${name}: ${value}`
+    })
+    .filter(Boolean)
+    .join('; ')
+}
+
+function sanitizeRichHtml(html) {
+  const input = String(html || '')
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return input.replace(/<\/?script[^>]*>/gi, '').replace(/on\w+\s*=\s*(['"]).*?\1/gi, '')
+  }
+  const allowedTags = new Set(['H1', 'H2', 'H3', 'H4', 'P', 'BR', 'STRONG', 'B', 'EM', 'I', 'U', 'UL', 'OL', 'LI', 'A', 'SPAN', 'DIV', 'BLOCKQUOTE', 'HR', 'IMG', 'FONT'])
+  const allowedAttrs = new Set(['href', 'target', 'rel', 'style', 'class', 'src', 'alt', 'title', 'color', 'size'])
+  const template = document.createElement('template')
+  template.innerHTML = input
+  const nodes = Array.from(template.content.querySelectorAll('*'))
+  nodes.forEach((node) => {
+    if (!allowedTags.has(node.tagName)) {
+      const text = document.createTextNode(node.textContent || '')
+      node.replaceWith(text)
+      return
+    }
+    Array.from(node.attributes).forEach((attr) => {
+      const name = attr.name.toLowerCase()
+      const value = attr.value || ''
+      if (name.startsWith('on') || !allowedAttrs.has(name)) {
+        node.removeAttribute(attr.name)
+        return
+      }
+      if ((name === 'href' || name === 'src') && /^\s*javascript:/i.test(value)) {
+        node.removeAttribute(attr.name)
+        return
+      }
+      if (name === 'href' && value && !/^(https?:|mailto:|\/|#)/i.test(value)) {
+        node.removeAttribute(attr.name)
+        return
+      }
+      if (name === 'src' && value && !/^(https?:|data:image\/|\/)/i.test(value)) {
+        node.removeAttribute(attr.name)
+        return
+      }
+      if (name === 'style') {
+        const cleanStyle = sanitizeRichStyle(value)
+        if (cleanStyle) node.setAttribute('style', cleanStyle)
+        else node.removeAttribute('style')
+      }
+    })
+    if (node.tagName === 'A') {
+      node.setAttribute('target', '_blank')
+      node.setAttribute('rel', 'noopener noreferrer')
+    }
+    if (node.tagName === 'IMG') {
+      node.setAttribute('loading', 'lazy')
+      node.setAttribute('alt', node.getAttribute('alt') || 'About Us image')
+    }
+  })
+  return template.innerHTML.trim()
+}
+
+function normalizeAboutUsPage(page = {}) {
+  const next = { ...defaultAboutUsPage, ...(page || {}) }
+  next.page_key = ABOUT_US_PAGE_KEY
+  next.title = String(next.title || defaultAboutUsPage.title).trim() || defaultAboutUsPage.title
+  next.subtitle = String(next.subtitle || '')
+  next.content_html = sanitizeRichHtml(next.content_html || defaultAboutUsPage.content_html)
+  next.content_json = next.content_json && typeof next.content_json === 'object' ? next.content_json : {}
+  next.image_url = sanitizeSettingImageUrl(next.image_url || next.content_json?.image_url || '')
+  next.is_published = next.is_published !== false
+  return next
+}
+
+function loadAboutUsPageLocal() {
+  try {
+    const saved = localStorage.getItem('pharmatrack-about-us-page')
+    return saved ? normalizeAboutUsPage(JSON.parse(saved)) : defaultAboutUsPage
+  } catch {
+    return defaultAboutUsPage
+  }
+}
+
+function saveAboutUsPageLocal(page) {
+  try {
+    localStorage.setItem('pharmatrack-about-us-page', JSON.stringify(normalizeAboutUsPage(page)))
+  } catch {
+    // Local preview cache is optional.
+  }
+}
+
 const PDF_REPORT_SETTINGS_KEY = 'pdf_report'
 const PDF_REPORT_ROLE_KEYS = {
   student: 'pdf_report_customization_student',
@@ -565,7 +682,7 @@ function optimizeImageFile(file, options = {}) {
   })
 }
 
-const adminPanelTabs = ['overview', 'branding', 'login-settings', 'users', 'supervisors', 'dual-roles', 'invitations', 'deadlines', 'notifications', 'reports', 'pdf-report', 'group-requests', 'database', 'audit', 'profile-settings']
+const adminPanelTabs = ['overview', 'branding', 'login-settings', 'about-us', 'users', 'supervisors', 'dual-roles', 'invitations', 'deadlines', 'notifications', 'reports', 'pdf-report', 'group-requests', 'database', 'audit', 'profile-settings']
 
 const adminPanelPathAliases = {
   '': 'overview',
@@ -578,6 +695,10 @@ const adminPanelPathAliases = {
   'website-settings': 'branding',
   login: 'login-settings',
   'login-settings': 'login-settings',
+  'about-us': 'about-us',
+  about: 'about-us',
+  'about-us-customization': 'about-us',
+  'about-customization': 'about-us',
   users: 'users',
   roles: 'users',
   'users-roles': 'users',
@@ -1910,10 +2031,10 @@ function StatCard({ icon: Icon, title, value, detail }) {
   return (
     <div className={`card stat-card compact-dashboard-stat-card stat-${slug}`}>
       <div className="icon-box stat-card-icon"><Icon size={22} /></div>
-      <div>
+      <div className="stat-card-content">
         <p className="muted small stat-card-label">{title}</p>
         <h2>{value}</h2>
-        <p className="muted small">{detail}</p>
+        <p className="muted small stat-card-detail">{detail}</p>
       </div>
     </div>
   )
@@ -2262,6 +2383,7 @@ export default function App() {
   const [dataLoadError, setDataLoadError] = useState('')
   const [dataLoading, setDataLoading] = useState(false)
   const [websiteSettings, setWebsiteSettings] = useState(loadWebsiteSettings)
+  const [aboutUsPage, setAboutUsPage] = useState(loadAboutUsPageLocal)
   const [pdfReportSettings, setPdfReportSettings] = useState(loadPdfReportSettings)
   const [pdfReportSettingsByRole, setPdfReportSettingsByRole] = useState(loadPdfReportSettingsByRole)
   const [adminPanelTab, setAdminPanelTab] = useState(getInitialAdminPanelTab)
@@ -2298,6 +2420,7 @@ export default function App() {
 
   useEffect(() => {
     loadWebsiteSettingsFromSupabase()
+    loadAboutUsPageFromSupabase()
     loadPdfReportSettingsFromSupabase()
   }, [])
 
@@ -2750,6 +2873,102 @@ export default function App() {
       setMessage('Website settings saved locally for preview. Connect Supabase and run supabase/website_settings.sql to make settings global.')
     }
     return { ok: true, settings: nextSettings }
+  }
+
+  async function loadAboutUsPageFromSupabase() {
+    if (!isSupabaseConfigured) return
+    try {
+      const { data: page, error } = await supabase
+        .from('site_pages')
+        .select('*')
+        .eq('page_key', ABOUT_US_PAGE_KEY)
+        .maybeSingle()
+      if (error) {
+        console.warn('About Us page load failed. Run supabase/migrations/202607040001_about_us_page_customization.sql if needed:', error)
+        return
+      }
+      if (page) {
+        const normalized = normalizeAboutUsPage(page)
+        setAboutUsPage(normalized)
+        saveAboutUsPageLocal(normalized)
+      }
+    } catch (error) {
+      console.warn('About Us page load failed:', error)
+    }
+  }
+
+  async function updateAboutUsPage(nextValues, options = {}) {
+    if (currentUser?.role !== 'admin') {
+      setMessage('Only Admin accounts can edit the About Us page.')
+      return { ok: false }
+    }
+
+    const nextPage = normalizeAboutUsPage({ ...aboutUsPage, ...nextValues, updated_at: new Date().toISOString() })
+    setAboutUsPage(nextPage)
+    saveAboutUsPageLocal(nextPage)
+
+    if (isSupabaseConfigured) {
+      try {
+        const payload = {
+          page_key: ABOUT_US_PAGE_KEY,
+          title: nextPage.title,
+          subtitle: nextPage.subtitle,
+          content_html: nextPage.content_html,
+          content_json: { ...(nextPage.content_json || {}), image_url: nextPage.image_url || '' },
+          image_url: nextPage.image_url || '',
+          is_published: nextPage.is_published,
+          updated_by: currentUser?.id || null,
+          updated_at: new Date().toISOString(),
+        }
+        const { data: savedPage, error } = await supabase
+          .from('site_pages')
+          .upsert(payload, { onConflict: 'page_key' })
+          .select('*')
+          .maybeSingle()
+        if (error) throw error
+        const normalized = normalizeAboutUsPage(savedPage || nextPage)
+        setAboutUsPage(normalized)
+        saveAboutUsPageLocal(normalized)
+        if (!options.silent) {
+          await addAudit(currentUser.full_name, 'updated', 'About Us page', {
+            action_type: 'about_us_page_updated',
+            description: `${currentUser.full_name || currentUser.email || 'Admin'} updated the About Us page.`,
+          })
+          setMessage('About Us page updated successfully.')
+        }
+        return { ok: true, page: normalized }
+      } catch (error) {
+        if (!options.silent) setMessage(`Failed to update About Us page. Run supabase/migrations/202607040001_about_us_page_customization.sql in Supabase SQL Editor, then try again. ${error.message || ''}`)
+        return { ok: false, error }
+      }
+    }
+
+    if (!options.silent) setMessage('About Us page updated locally. Connect Supabase and run the About Us SQL migration to save globally.')
+    return { ok: true, page: nextPage }
+  }
+
+  async function uploadAboutUsImage(file) {
+    if (currentUser?.role !== 'admin') return { ok: false, error: new Error('Only Admin accounts can upload About Us images.') }
+    if (!file?.type?.startsWith('image/')) return { ok: false, error: new Error('Please choose a valid image file.') }
+    try {
+      const outputType = file.type === 'image/png' || file.type === 'image/webp' ? file.type : 'image/jpeg'
+      const dataUrl = await optimizeImageFile(file, { maxWidth: 1400, maxHeight: 900, quality: 0.88, outputType })
+      if (!isSupabaseConfigured) return { ok: true, url: dataUrl }
+      const blob = await fetch(dataUrl).then((response) => response.blob())
+      const extension = outputType === 'image/png' ? 'png' : outputType === 'image/webp' ? 'webp' : 'jpg'
+      const safeName = sanitizeFileName(file.name || 'about-us-image').toLowerCase()
+      const filePath = `about-us/about-us-${Date.now()}-${safeName}.${extension}`
+      const upload = await supabase.storage
+        .from('app-assets')
+        .upload(filePath, blob, { contentType: outputType, cacheControl: '3600', upsert: true })
+      if (upload.error) throw upload.error
+      const { data: publicData } = supabase.storage.from('app-assets').getPublicUrl(filePath)
+      const publicUrl = publicData?.publicUrl || ''
+      if (!publicUrl) throw new Error('Image uploaded, but Supabase did not return a public URL.')
+      return { ok: true, url: publicUrl, path: filePath }
+    } catch (error) {
+      return { ok: false, error }
+    }
   }
 
   async function resetWebsiteSettings() {
@@ -6078,6 +6297,9 @@ export default function App() {
     return (
       <AdminControlPanel
         settings={websiteSettings}
+        aboutUsPage={aboutUsPage}
+        updateAboutUsPage={updateAboutUsPage}
+        uploadAboutUsImage={uploadAboutUsImage}
         pdfReportSettings={getPdfReportSettingsForRole('admin', pdfReportSettingsByRole, pdfReportSettings)}
         pdfReportSettingsByRole={pdfReportSettingsByRole}
         globalPdfReportSettings={pdfReportSettings}
@@ -6141,8 +6363,6 @@ export default function App() {
     { id: 'audit', label: 'Audit Log', icon: ShieldCheck, show: allowedRole === 'admin' },
     { id: 'reports', label: 'Print/PDF Reports', icon: Printer, show: true },
   ].filter((item) => item.show)
-  const activeNavItem = mainNavItems.find((item) => item.id === tab) || mainNavItems[0]
-
   function handleMainNavClick(tabId) {
     setTab(tabId)
     setSidebarOpen(false)
@@ -6194,10 +6414,6 @@ export default function App() {
           })}
         </nav>
 
-        <div className="sidebar-foot-note">
-          <span>Active section</span>
-          <b>{activeNavItem?.label || 'Dashboard'}</b>
-        </div>
       </aside>
 
       {sidebarOpen && <button type="button" className="sidebar-backdrop no-print" aria-label="Close navigation" onClick={() => setSidebarOpen(false)} />}
@@ -6217,6 +6433,7 @@ export default function App() {
                 <p>College of Pharmacy Research Platform</p>
               </div>
             </div>
+            <button type="button" className={`top-about-link ${tab === 'about-us' ? 'active' : ''}`} onClick={() => handleMainNavClick('about-us')}>About Us</button>
           </div>
           <div className="main-header-actions">
             <NotificationBellMenu
@@ -6261,6 +6478,7 @@ export default function App() {
           </>
         )}
 
+        {tab === 'about-us' && <AboutUsPage page={aboutUsPage} />}
         {tab === 'profile-settings' && <ProfileSettingsPage currentUser={currentUser} onBack={() => setTab('dashboard')} updateOwnProfile={updateOwnProfile} uploadOwnProfilePhoto={uploadOwnProfilePhoto} updateOwnPassword={updateOwnPassword} />}
         {tab === 'questions' && allowedRole === 'student' && roleContextReady && <StudentQuestionsTab data={data} currentUser={activeRoleUser} dataLoading={dataLoading} submitStudentQuestion={submitStudentQuestion} openQuestionAttachment={openQuestionAttachment} />}
         {tab === 'questions' && allowedRole === 'supervisor' && roleContextReady && <SupervisorQuestionsTab data={data} currentUser={activeRoleUser} dataLoading={dataLoading} answerStudentQuestion={answerStudentQuestion} openQuestionAttachment={openQuestionAttachment} />}
@@ -6278,6 +6496,194 @@ export default function App() {
   )
 }
 
+
+
+function AboutUsPage({ page }) {
+  const normalized = normalizeAboutUsPage(page)
+  return (
+    <section className="about-us-page-shell">
+      <article className="about-us-hero-card">
+        <div>
+          <p className="eyebrow"><BookOpen size={16} /> About the Platform</p>
+          <h1>{normalized.title}</h1>
+          {normalized.subtitle && <p>{normalized.subtitle}</p>}
+        </div>
+        {normalized.image_url && <img src={normalized.image_url} alt="About Us" />}
+      </article>
+      <article className="about-us-content-card">
+        <div className="about-us-rich-content" dangerouslySetInnerHTML={{ __html: normalized.content_html }} />
+      </article>
+    </section>
+  )
+}
+
+function AboutUsCustomizationPanel({ page, updatePage, uploadImage }) {
+  const [draft, setDraft] = useState(() => normalizeAboutUsPage(page))
+  const [status, setStatus] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const editorRef = useRef(null)
+
+  useEffect(() => {
+    const normalized = normalizeAboutUsPage(page)
+    setDraft(normalized)
+    if (editorRef.current) editorRef.current.innerHTML = normalized.content_html || ''
+  }, [page])
+
+  function updateDraft(key, value) {
+    setDraft((current) => ({ ...current, [key]: value }))
+  }
+
+  function editorCommand(command, value = null) {
+    editorRef.current?.focus()
+    document.execCommand(command, false, value)
+    updateDraft('content_html', editorRef.current?.innerHTML || '')
+  }
+
+  function setBlock(block) {
+    editorCommand('formatBlock', block)
+  }
+
+  function addLink() {
+    const url = window.prompt('Enter link URL')
+    if (!url) return
+    const cleanUrl = /^(https?:|mailto:|#|\/)/i.test(url.trim()) ? url.trim() : `https://${url.trim()}`
+    editorCommand('createLink', cleanUrl)
+  }
+
+  async function handleImageUpload(file) {
+    if (!file || uploading) return
+    setUploading(true)
+    setStatus('Uploading About Us image...')
+    try {
+      const result = await uploadImage?.(file)
+      if (!result?.ok) throw result?.error || new Error('Failed to upload image.')
+      updateDraft('image_url', result.url)
+      editorRef.current?.focus()
+      document.execCommand('insertImage', false, result.url)
+      updateDraft('content_html', editorRef.current?.innerHTML || '')
+      setStatus('Image uploaded. Preview it below, then save the About Us page.')
+    } catch (error) {
+      setStatus(error.message || 'Failed to upload image.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  async function handleSave() {
+    if (saving) return
+    if (!String(draft.title || '').trim()) {
+      setStatus('Page title is required.')
+      return
+    }
+    setSaving(true)
+    setStatus('Saving About Us content...')
+    try {
+      const cleanContent = sanitizeRichHtml(editorRef.current?.innerHTML || draft.content_html || '')
+      const result = await updatePage?.({ ...draft, content_html: cleanContent })
+      setStatus(result?.ok ? 'About Us page updated successfully.' : 'Failed to update About Us page.')
+    } catch (error) {
+      setStatus(error.message || 'Failed to update About Us page.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function handleReset() {
+    const normalized = normalizeAboutUsPage(page)
+    setDraft(normalized)
+    if (editorRef.current) editorRef.current.innerHTML = normalized.content_html || ''
+    setStatus('Changes reset.')
+  }
+
+  const preview = normalizeAboutUsPage({ ...draft, content_html: sanitizeRichHtml(editorRef.current?.innerHTML || draft.content_html || '') })
+
+  return (
+    <section className="admin-panel-stack about-admin-panel">
+      <div className="admin-management-card">
+        <SectionHeader icon={BookOpen} title="About Us Customization" subtitle="Edit the About Us page shown on the main website for all logged-in users" />
+        <div className="form-grid">
+          <label className="field">
+            <span>Page title</span>
+            <input value={draft.title} onChange={(e) => updateDraft('title', e.target.value)} placeholder="About Us" />
+          </label>
+          <label className="field">
+            <span>Subtitle</span>
+            <input value={draft.subtitle} onChange={(e) => updateDraft('subtitle', e.target.value)} placeholder="College of Pharmacy Research Platform" />
+          </label>
+          <label className="field">
+            <span>Header image URL</span>
+            <input value={draft.image_url || ''} onChange={(e) => updateDraft('image_url', e.target.value)} placeholder="Optional image URL" />
+          </label>
+          <label className="field about-publish-field">
+            <span>Publication status</span>
+            <select value={draft.is_published ? 'published' : 'draft'} onChange={(e) => updateDraft('is_published', e.target.value === 'published')}>
+              <option value="published">Published</option>
+              <option value="draft">Draft / hidden</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div className="admin-management-card rich-editor-card">
+        <div className="rich-editor-toolbar" aria-label="About Us formatting toolbar">
+          <button type="button" onClick={() => editorCommand('bold')}><b>B</b></button>
+          <button type="button" onClick={() => editorCommand('italic')}><i>I</i></button>
+          <button type="button" onClick={() => editorCommand('underline')}><u>U</u></button>
+          <select aria-label="Text style" onChange={(e) => e.target.value && setBlock(e.target.value)} defaultValue="">
+            <option value="">Heading / Paragraph</option>
+            <option value="H2">Heading</option>
+            <option value="H3">Subheading</option>
+            <option value="P">Paragraph</option>
+          </select>
+          <select aria-label="Font size" onChange={(e) => e.target.value && editorCommand('fontSize', e.target.value)} defaultValue="">
+            <option value="">Font size</option>
+            <option value="2">Small</option>
+            <option value="3">Normal</option>
+            <option value="4">Large</option>
+            <option value="5">Extra large</option>
+          </select>
+          <label className="toolbar-color-field">
+            <span>Color</span>
+            <input type="color" onChange={(e) => editorCommand('foreColor', e.target.value)} />
+          </label>
+          <button type="button" onClick={() => editorCommand('justifyLeft')}>Left</button>
+          <button type="button" onClick={() => editorCommand('justifyCenter')}>Center</button>
+          <button type="button" onClick={() => editorCommand('justifyRight')}>Right</button>
+          <button type="button" onClick={() => editorCommand('justifyFull')}>Justify</button>
+          <button type="button" onClick={() => editorCommand('insertUnorderedList')}>• List</button>
+          <button type="button" onClick={() => editorCommand('insertOrderedList')}>1. List</button>
+          <button type="button" onClick={addLink}>Link</button>
+          <button type="button" onClick={() => editorCommand('removeFormat')}>Clear</button>
+          <label className="toolbar-upload-button">
+            {uploading ? 'Uploading image...' : 'Upload image'}
+            <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => handleImageUpload(e.target.files?.[0])} disabled={uploading} />
+          </label>
+        </div>
+        <div
+          ref={editorRef}
+          className="rich-text-editor"
+          contentEditable
+          suppressContentEditableWarning
+          onInput={() => updateDraft('content_html', editorRef.current?.innerHTML || '')}
+          dangerouslySetInnerHTML={{ __html: draft.content_html || '' }}
+        />
+        <div className="action-row">
+          <button type="button" className="primary" onClick={handleSave} disabled={saving || uploading}>
+            <ButtonContent loading={saving} loadingText="Saving About Us content...">Save About Us Page</ButtonContent>
+          </button>
+          <button type="button" className="secondary" onClick={handleReset} disabled={saving || uploading}>Reset / Cancel</button>
+        </div>
+        {status && <div className="message">{status}</div>}
+      </div>
+
+      <div className="admin-management-card about-preview-panel">
+        <SectionHeader icon={Eye} title="Preview" subtitle="This is how the About Us page will appear on the main website" />
+        <AboutUsPage page={preview} />
+      </div>
+    </section>
+  )
+}
 
 function RoleSwitchDropdown({ activeRole, mode = 'committee', onChange }) {
   const options = mode === 'admin'
@@ -6744,6 +7150,7 @@ function AdminControlPanel({
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'branding', label: 'Website Settings', icon: SlidersHorizontal },
     { id: 'login-settings', label: 'Login Page Settings', icon: Lock },
+    { id: 'about-us', label: 'About Us Customization', icon: BookOpen },
     { id: 'users', label: 'Users & Roles', icon: Users },
     { id: 'supervisors', label: 'Supervisor Management', icon: UserCog },
     { id: 'dual-roles', label: 'Dual Role Management', icon: ShieldCheck },
@@ -6914,7 +7321,7 @@ function AdminControlPanel({
         <header className="admin-panel-topbar no-print">
           <div>
             <p className="eyebrow"><UserCog size={16} /> Admin subdomain</p>
-            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'supervisors' ? 'Supervisor Management' : adminPanelTab === 'dual-roles' ? 'Dual Role Management' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Notifications' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'pdf-report' ? 'PDF Report Customization' : adminPanelTab === 'group-requests' ? 'Group Join Requests' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : adminPanelTab === 'profile-settings' ? 'Profile Settings' : 'Control Center'}</h1>
+            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'about-us' ? 'About Us Customization' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'supervisors' ? 'Supervisor Management' : adminPanelTab === 'dual-roles' ? 'Dual Role Management' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Notifications' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'pdf-report' ? 'PDF Report Customization' : adminPanelTab === 'group-requests' ? 'Group Join Requests' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : adminPanelTab === 'profile-settings' ? 'Profile Settings' : 'Control Center'}</h1>
             <p>{settings.adminWelcome}</p>
           </div>
           <a className="admin-preview-link" href="/" target="_blank" rel="noreferrer">Open main website</a>
@@ -6924,6 +7331,7 @@ function AdminControlPanel({
         {dataLoading && <LoadingBlock text="Loading admin records..." />}
 
         {adminPanelTab === 'profile-settings' && <ProfileSettingsPage currentUser={currentUser} onBack={() => changeAdminPanelTab('overview')} updateOwnProfile={updateOwnProfile} uploadOwnProfilePhoto={uploadOwnProfilePhoto} updateOwnPassword={updateOwnPassword} />}
+        {adminPanelTab === 'about-us' && <AboutUsCustomizationPanel page={aboutUsPage} updatePage={updateAboutUsPage} uploadImage={uploadAboutUsImage} currentUser={currentUser} />}
 
         {adminPanelTab === 'overview' && (
           <div className="admin-panel-stack">
