@@ -10,6 +10,7 @@ import {
   FileText,
   Filter,
   Image as ImageIcon,
+  Info,
   GraduationCap,
   LayoutDashboard,
   Lock,
@@ -6406,7 +6407,7 @@ export default function App() {
             const Icon = item.icon
             return (
               <button key={item.id} type="button" onClick={() => handleMainNavClick(item.id)} className={tab === item.id ? 'active' : ''}>
-                <Icon size={18} />
+                <span className="side-nav-icon"><Icon size={18} /></span>
                 <span>{item.label}</span>
                 {item.badge > 0 && <span className="tab-badge">{item.badge}</span>}
               </button>
@@ -6426,14 +6427,16 @@ export default function App() {
               <span></span>
               <span></span>
             </button>
-            <div className="main-mobile-brand">
-              <img src="/favicon.svg" alt="Hawler Medical University" />
-              <div>
-                <h1>Hawler Medical University</h1>
-                <p>College of Pharmacy Research Platform</p>
-              </div>
-            </div>
-            <button type="button" className={`top-about-link ${tab === 'about-us' ? 'active' : ''}`} onClick={() => handleMainNavClick('about-us')}>About Us</button>
+            <button
+              type="button"
+              className={`top-about-link ${tab === 'about-us' ? 'active' : ''}`}
+              onClick={() => handleMainNavClick('about-us')}
+              aria-current={tab === 'about-us' ? 'page' : undefined}
+            >
+              <span className="top-about-icon"><Info size={17} /></span>
+              <span>About Us</span>
+            </button>
+
           </div>
           <div className="main-header-actions">
             <NotificationBellMenu
@@ -7091,6 +7094,9 @@ function UserProfileMenu({ currentUser, onLogout, onOpenProfile }) {
 
 function AdminControlPanel({
   settings,
+  aboutUsPage = defaultAboutUsPage,
+  updateAboutUsPage,
+  uploadAboutUsImage,
   pdfReportSettings = defaultPdfReportSettings,
   pdfReportSettingsByRole = {},
   globalPdfReportSettings = defaultPdfReportSettings,

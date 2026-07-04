@@ -7980,23 +7980,51 @@ button .button-spinner {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: fit-content;
+  gap: 8px;
+  width: auto;
+  min-width: 0;
+  flex: 0 0 auto;
   white-space: nowrap;
-  min-height: 38px;
-  padding: 8px 14px;
-  border-radius: 999px;
-  border: 1px solid rgba(191, 219, 254, .95);
-  background: #ffffff;
-  color: #1d4ed8;
+  min-height: 42px;
+  padding: 7px 12px 7px 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(125, 211, 252, .75);
+  background: rgba(255, 255, 255, .92);
+  color: #075985;
   font-weight: 950;
-  box-shadow: 0 8px 20px rgba(37, 99, 235, .06);
+  line-height: 1;
+  box-shadow: 0 10px 22px rgba(14, 116, 144, .07);
 }
 
 .top-about-link:hover,
+.top-about-link:focus-visible,
 .top-about-link.active {
-  background: #eff6ff;
+  background: linear-gradient(135deg, #e0f2fe 0%, #ffffff 100%);
+  border-color: #7dd3fc;
+  color: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(14, 116, 144, .11);
+}
+
+.top-about-icon {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 9px;
+  border: 1px solid rgba(125, 211, 252, .8);
+  background: #f8fbff;
+  color: #0284c7;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .72);
+}
+
+.top-about-link.active .top-about-icon,
+.top-about-link:hover .top-about-icon,
+.top-about-link:focus-visible .top-about-icon {
+  background: #dbeafe;
   border-color: #93c5fd;
-  color: #0f172a;
+  color: #1d4ed8;
 }
 
 .about-us-page-shell {
@@ -8245,5 +8273,106 @@ button .button-spinner {
   .toolbar-color-field {
     flex: 1 1 auto;
     justify-content: center;
+  }
+}
+
+/* About Us sidebar icon and nav alignment fix */
+.main-side-nav button {
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+}
+
+.main-side-nav .side-nav-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  display: inline-grid;
+  place-items: center;
+  background: linear-gradient(135deg, #e0f2fe 0%, #f8fbff 100%);
+  border: 1px solid rgba(125, 211, 252, .6);
+  color: #0284c7;
+  flex: 0 0 30px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .72);
+}
+
+.main-side-nav .side-nav-icon svg {
+  color: currentColor;
+  width: 18px;
+  height: 18px;
+}
+
+.main-side-nav button:hover .side-nav-icon,
+.main-side-nav button.active .side-nav-icon {
+  background: linear-gradient(135deg, #dbeafe 0%, #ffffff 100%);
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+
+
+@media (max-width: 760px) {
+  .top-about-link {
+    padding: 7px 10px 7px 7px;
+    min-height: 40px;
+    font-size: 13px;
+  }
+  .top-about-icon {
+    width: 28px;
+    height: 28px;
+    flex-basis: 28px;
+  }
+}
+
+@media (max-width: 520px) {
+  .main-header-actions {
+    gap: 8px;
+  }
+  .top-about-link span:last-child {
+    display: none;
+  }
+  .top-about-link {
+    padding: 6px;
+    border-radius: 12px;
+  }
+}
+
+/* About Us top-header placement: keep only the About Us button on the left side of the top header. */
+.main-dashboard-with-sidebar .main-compact-left {
+  flex: 0 1 auto;
+  max-width: none;
+  overflow: visible;
+}
+
+.main-dashboard-with-sidebar .main-header-brand,
+.main-dashboard-with-sidebar .main-mobile-brand.main-header-brand {
+  display: none !important;
+}
+
+.main-dashboard-with-sidebar .main-compact-left .top-about-link {
+  margin-left: 0;
+  flex: 0 0 auto;
+}
+
+.main-dashboard-with-sidebar .main-header-actions .top-about-link {
+  display: none !important;
+}
+
+@media (max-width: 640px) {
+  .main-dashboard-with-sidebar .main-compact-left {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .main-dashboard-with-sidebar .main-compact-left .top-about-link {
+    padding: 6px 9px 6px 6px;
+  }
+
+  .main-dashboard-with-sidebar .main-compact-left .top-about-link span:last-child {
+    display: inline;
+  }
+}
+
+@media (max-width: 420px) {
+  .main-dashboard-with-sidebar .main-compact-left .top-about-link span:last-child {
+    display: none;
   }
 }
