@@ -7966,7 +7966,6 @@ function StudentDashboard({ data, projects, currentUser, createWeeklyReport, dat
           <SectionHeader icon={MessageSquareText} title="Submit Weekly Report" subtitle="Submit progress and upload evidence file" />
           {selectedProject && canSubmitWeeklyReport ? (
             <>
-              {weeklyReportPermission.mode === 'single_student' && <div className="notice info compact-notice"><b>You are the only student in this project and can submit weekly reports.</b></div>}
               <div className="form-grid weekly-report-form-grid">
                 <TextArea label="Work completed this week" value={reportForm.completed_work} onChange={(v) => setReportForm({ ...reportForm, completed_work: v })} />
                 <TextArea label="Problems or challenges" value={reportForm.challenges} onChange={(v) => setReportForm({ ...reportForm, challenges: v })} />
@@ -8146,9 +8145,9 @@ function SupervisorWeeklyReportReviewCard({ data, projects, currentUser, reviewR
                     </div>
                   ) : (
                     <div className="supervisor-feedback-actions decision-actions">
-                      <button onClick={() => handleReviewAction(r.id, 'Accepted', 'Accepted. Continue with the next milestone.')} disabled={Boolean(reviewLoadingKey)} className="accept-btn approve-btn decision-btn min-button-width"><ButtonContent loading={reviewLoadingKey === `${r.id}-Accepted`} loadingText="Accepting..." icon={CheckCircle2}>Approve</ButtonContent></button>
-                      <button onClick={() => handleReviewAction(r.id, 'Revision Required', 'Revision required. Please add more detail.')} disabled={Boolean(reviewLoadingKey)} className="revision-btn decision-btn min-button-width"><ButtonContent loading={reviewLoadingKey === `${r.id}-Revision Required`} loadingText="Requesting..." icon={RefreshCw}>Request Revision</ButtonContent></button>
-                      <button onClick={() => handleReviewAction(r.id, 'Rejected', 'Rejected. Please meet your supervisor for guidance.')} disabled={Boolean(reviewLoadingKey)} className="reject-btn danger-btn min-button-width"><ButtonContent loading={reviewLoadingKey === `${r.id}-Rejected`} loadingText="Rejecting..." icon={XCircle}>Reject</ButtonContent></button>
+                      <button onClick={() => handleReviewAction(r.id, 'Accepted', 'Accepted. Continue with the next milestone.')} disabled={Boolean(reviewLoadingKey)} className="accept-btn approve-btn decision-btn min-button-width weekly-report-decision-btn weekly-report-accept-btn"><ButtonContent loading={reviewLoadingKey === `${r.id}-Accepted`} loadingText="Accepting..." icon={CheckCircle2}>Approve</ButtonContent></button>
+                      <button onClick={() => handleReviewAction(r.id, 'Revision Required', 'Revision required. Please add more detail.')} disabled={Boolean(reviewLoadingKey)} className="revision-btn decision-btn min-button-width weekly-report-decision-btn weekly-report-revision-btn"><ButtonContent loading={reviewLoadingKey === `${r.id}-Revision Required`} loadingText="Requesting..." icon={RefreshCw}>Request Revision</ButtonContent></button>
+                      <button onClick={() => handleReviewAction(r.id, 'Rejected', 'Rejected. Please meet your supervisor for guidance.')} disabled={Boolean(reviewLoadingKey)} className="reject-btn danger-btn min-button-width weekly-report-decision-btn weekly-report-reject-btn"><ButtonContent loading={reviewLoadingKey === `${r.id}-Rejected`} loadingText="Rejecting..." icon={XCircle}>Reject</ButtonContent></button>
                     </div>
                   )}
                 </div>
