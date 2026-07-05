@@ -112,6 +112,9 @@ function makeInvitationToken() {
 }
 
 const REPORT_PROGRESS_INCREMENT = 6.25
+const RESEARCH_GUIDELINES_PDF_URL = '/research-guidelines.pdf'
+const RESEARCH_GUIDELINES_PAGE_COUNT = 23
+const RESEARCH_GUIDELINES_PAGE_IMAGES = Array.from({ length: RESEARCH_GUIDELINES_PAGE_COUNT }, (_, index) => `/research-guidelines-pages/page-${String(index + 1).padStart(2, '0')}.jpg`)
 
 function clampProgress(value) {
   const numeric = Number(value || 0)
@@ -683,7 +686,7 @@ function optimizeImageFile(file, options = {}) {
   })
 }
 
-const adminPanelTabs = ['overview', 'branding', 'login-settings', 'about-us', 'users', 'supervisors', 'dual-roles', 'invitations', 'deadlines', 'notifications', 'reports', 'pdf-report', 'group-requests', 'database', 'audit', 'profile-settings']
+const adminPanelTabs = ['overview', 'branding', 'login-settings', 'about-us', 'research-guidelines', 'users', 'supervisors', 'dual-roles', 'invitations', 'deadlines', 'notifications', 'reports', 'pdf-report', 'group-requests', 'database', 'audit', 'profile-settings']
 
 const adminPanelPathAliases = {
   '': 'overview',
@@ -700,6 +703,9 @@ const adminPanelPathAliases = {
   about: 'about-us',
   'about-us-customization': 'about-us',
   'about-customization': 'about-us',
+  'research-guidelines': 'research-guidelines',
+  guidelines: 'research-guidelines',
+  'graduation-research-guidelines': 'research-guidelines',
   users: 'users',
   roles: 'users',
   'users-roles': 'users',
@@ -1275,6 +1281,24 @@ function getProjectDecisionTone(project = {}) {
   if (key === 'accepted') return 'green'
   if (key === 'revision') return 'amber'
   if (key === 'rejected') return 'red'
+  return 'amber'
+}
+
+function normalizeReviewDecisionKey(value) {
+  return normalizeText(value).replace(/[^a-z0-9]+/g, '')
+}
+
+function isFinalWeeklyReportDecision(reportOrStatus = {}) {
+  const status = typeof reportOrStatus === 'string' ? reportOrStatus : reportOrStatus?.status
+  const key = normalizeReviewDecisionKey(status)
+  return ['accepted', 'rejected', 'revisionrequired', 'revisionrequested', 'needsrevision'].includes(key)
+}
+
+function getWeeklyReportDecisionTone(status) {
+  const key = normalizeReviewDecisionKey(status)
+  if (key === 'accepted') return 'green'
+  if (key === 'rejected') return 'red'
+  if (['revisionrequired', 'revisionrequested', 'needsrevision'].includes(key)) return 'amber'
   return 'amber'
 }
 
@@ -3849,6 +3873,10 @@ export default function App() {
     if (currentUser?.role === 'supervisor' && !supervisorCanAccessReport(data, targetReport, currentUser)) {
       return setMessage('You do not have permission to view this report.')
     }
+    if (isFinalWeeklyReportDecision(targetReport)) {
+      setMessage('This weekly report has already received a final decision.')
+      return { ok: false, alreadyDecided: true }
+    }
 
     const updatedReports = data.reports.map((report) =>
       String(report.id) === String(reportId)
@@ -3858,10 +3886,22 @@ export default function App() {
     const nextProgress = calculateProjectProgressFromReports(updatedReports, targetReport.project_id)
 
     if (isSupabaseConfigured) {
-      const { error } = await supabase.from('weekly_reports').update({ status, supervisor_feedback: feedback }).eq('id', reportId)
+      const finalStatusGuard = '("Accepted","Rejected","Revision Required","Revision Requested","accepted","rejected","revision_requested")'
+      const { data: reviewedRow, error } = await supabase
+        .from('weekly_reports')
+        .update({ status, supervisor_feedback: feedback })
+        .eq('id', reportId)
+        .not('status', 'in', finalStatusGuard)
+        .select('id,status')
+        .maybeSingle()
       if (error) {
         setMessage(error.message)
         return { ok: false, error: error.message }
+      }
+      if (!reviewedRow) {
+        setMessage('This weekly report has already received a final decision.')
+        await loadFromSupabase(currentUser)
+        return { ok: false, alreadyDecided: true }
       }
 
       const progressUpdate = await supabase.from('research_projects').update({ progress: nextProgress }).eq('id', targetReport.project_id)
@@ -4409,6 +4449,11 @@ export default function App() {
       setMessage('This project is not approved by the Research Committee yet. Students can only join approved projects.')
       return { ok: false }
     }
+    const currentStudentGroup = normalizedStatus === 'Accepted' ? getStudentCurrentResearchGroup(data, student) : null
+    if (currentStudentGroup?.id && String(currentStudentGroup.id) !== String(group.id)) {
+      setMessage('This student is already assigned to a research group.')
+      return { ok: false, blocked: true }
+    }
 
     const decidedAt = new Date().toISOString()
     const decisionUpdates = {
@@ -4422,6 +4467,16 @@ export default function App() {
 
     try {
       if (isSupabaseConfigured) {
+        let savedByRpc = false
+        const rpcName = normalizedStatus === 'Accepted' ? 'accept_group_join_request' : 'reject_group_join_request'
+        const { error: rpcError } = await supabase.rpc(rpcName, { request_id: requestId, decision_message: decisionUpdates.decision_message })
+        if (!rpcError) {
+          savedByRpc = true
+        } else if (!isMissingRpcFunction(rpcError)) {
+          throw rpcError
+        }
+
+        if (!savedByRpc) {
         const { data: updated, error } = await supabase
           .from('group_join_requests')
           .update(decisionUpdates)
@@ -4465,17 +4520,7 @@ export default function App() {
             console.warn('research_group_members table is not available yet. Run supabase/group_join_requests.sql to enable official group membership records.', membershipError)
           }
 
-          const profileUpdate = await supabase
-            .from('profiles')
-            .update({
-              current_research_group_id: group.id,
-              current_research_group_name: group.group_name || group.title || 'Research Group',
-              assigned_supervisor_id: group.supervisor_id || student.assigned_supervisor_id || null,
-              assigned_supervisor_email: group.supervisor_email || student.assigned_supervisor_email || '',
-              assigned_supervisor_name: group.supervisor_name || student.assigned_supervisor_name || '',
-            })
-            .eq('id', student.id)
-          if (profileUpdate.error) throw profileUpdate.error
+        }
         }
 
         await createGroupJoinNotification({
@@ -4535,7 +4580,7 @@ export default function App() {
           ...current,
           groupJoinRequests: (current.groupJoinRequests || []).map((item) => String(item.id) === String(requestId) ? { ...item, ...decisionUpdates } : item),
           projects: (current.projects || []).map((project) => String(project.id) === String(group.id) ? { ...project, students: nextStudents } : project),
-          profiles: (current.profiles || []).map((profile) => String(profile.id) === String(student.id) ? { ...profile, current_research_group_id: normalizedStatus === 'Accepted' ? group.id : profile.current_research_group_id, current_research_group_name: normalizedStatus === 'Accepted' ? group.group_name : profile.current_research_group_name, assigned_supervisor_id: normalizedStatus === 'Accepted' ? (group.supervisor_id || profile.assigned_supervisor_id || null) : profile.assigned_supervisor_id, assigned_supervisor_email: normalizedStatus === 'Accepted' ? (group.supervisor_email || profile.assigned_supervisor_email || '') : profile.assigned_supervisor_email, assigned_supervisor_name: normalizedStatus === 'Accepted' ? (group.supervisor_name || profile.assigned_supervisor_name || '') : profile.assigned_supervisor_name } : profile),
+          profiles: (current.profiles || []).map((profile) => String(profile.id) === String(student.id) ? { ...profile, current_research_group_id: normalizedStatus === 'Accepted' ? group.id : profile.current_research_group_id, current_research_group_name: normalizedStatus === 'Accepted' ? group.group_name : profile.current_research_group_name } : profile),
           groupMembers: normalizedStatus === 'Accepted' ? [{ id: crypto.randomUUID(), group_id: group.id, project_id: group.id, student_id: student.id || null, student_email: student.email || null, student_name: student.full_name || student.email || 'Student', supervisor_id: group.supervisor_id || null, supervisor_email: group.supervisor_email || '', supervisor_name: group.supervisor_name || '', status: 'Active', joined_at: decidedAt }, ...(current.groupMembers || [])] : (current.groupMembers || []),
           notifications: [notification, ...(current.notifications || [])],
         }))
@@ -4653,17 +4698,6 @@ export default function App() {
           }, { onConflict: student.id ? 'group_id,student_id' : 'group_id,student_email' })
           if (membershipUpdate.error) throw membershipUpdate.error
 
-          if (student.id) {
-            const profileUpdate = await supabase.from('profiles').update({
-              current_research_group_id: group.id,
-              current_research_group_name: group.group_name || group.title || 'Research Group',
-              assigned_supervisor_id: group.supervisor_id || null,
-              assigned_supervisor_email: group.supervisor_email || '',
-              assigned_supervisor_name: group.supervisor_name || '',
-            }).eq('id', student.id)
-            if (profileUpdate.error) throw profileUpdate.error
-          }
-
           const profile = findProfileByIdentity(data, { id: student.id, email: student.email }) || { id: student.id, email: student.email, full_name: student.name, role: 'student' }
           await createGroupJoinNotification({
             recipient: profile,
@@ -4719,7 +4753,7 @@ export default function App() {
         setLocal((current) => ({
           ...current,
           projects: current.projects.map((project) => String(project.id) === String(group.id) ? { ...project, students: nextStudentLabels } : project),
-          profiles: current.profiles.map((profile) => studentsToAdd.some((student) => String(student.id) === String(profile.id)) ? { ...profile, current_research_group_id: group.id, current_research_group_name: group.group_name || group.title || 'Research Group', assigned_supervisor_id: group.supervisor_id || null, assigned_supervisor_email: group.supervisor_email || '', assigned_supervisor_name: group.supervisor_name || '' } : profile),
+          profiles: current.profiles.map((profile) => studentsToAdd.some((student) => String(student.id) === String(profile.id)) ? { ...profile, current_research_group_id: group.id, current_research_group_name: group.group_name || group.title || 'Research Group' } : profile),
           groupMembers: [...studentsToAdd.map((student) => ({ id: crypto.randomUUID(), group_id: group.id, project_id: group.id, student_id: student.id || null, student_email: student.email || null, student_name: student.name || student.email || 'Student', supervisor_id: group.supervisor_id || null, supervisor_email: group.supervisor_email || '', supervisor_name: group.supervisor_name || '', status: 'Active', joined_at: now, added_by: currentUser?.id || null })), ...(current.groupMembers || [])],
           notifications: [...notifications, ...(current.notifications || [])],
         }))
@@ -4781,8 +4815,6 @@ export default function App() {
             console.warn('research_group_members table is not available yet. Run supabase/group_join_requests.sql to enable official group membership records.', membershipError)
           }
           if (!student.id) continue
-          const profileUpdate = await supabase.from('profiles').update({ current_research_group_id: group.id, current_research_group_name: group.group_name || group.title || 'Research Group', assigned_supervisor_id: group.supervisor_id || currentUser?.id || null, assigned_supervisor_email: group.supervisor_email || currentUser?.email || '', assigned_supervisor_name: group.supervisor_name || currentUser?.full_name || '' }).eq('id', student.id)
-          if (profileUpdate.error) throw profileUpdate.error
           const profile = findProfileByIdentity(data, { id: student.id, email: student.email }) || { id: student.id, email: student.email, full_name: student.name, role: 'student' }
           await createGroupJoinNotification({
             recipient: profile,
@@ -4798,7 +4830,7 @@ export default function App() {
         setLocal((current) => ({
           ...current,
           projects: current.projects.map((project) => String(project.id) === String(group.id) ? { ...project, students: nextStudentLabels } : project),
-          profiles: current.profiles.map((profile) => selectedStudents.some((student) => String(student.id) === String(profile.id)) ? { ...profile, current_research_group_id: group.id, current_research_group_name: group.group_name || group.title || 'Research Group', assigned_supervisor_id: group.supervisor_id || currentUser?.id || null, assigned_supervisor_email: group.supervisor_email || currentUser?.email || '', assigned_supervisor_name: group.supervisor_name || currentUser?.full_name || '' } : profile),
+          profiles: current.profiles.map((profile) => selectedStudents.some((student) => String(student.id) === String(profile.id)) ? { ...profile, current_research_group_id: group.id, current_research_group_name: group.group_name || group.title || 'Research Group' } : profile),
           groupMembers: [...selectedStudents.map((student) => ({ id: crypto.randomUUID(), group_id: group.id, project_id: group.id, student_id: student.id || null, student_email: student.email || null, student_name: student.name || student.email || 'Student', supervisor_id: group.supervisor_id || currentUser?.id || null, supervisor_email: group.supervisor_email || currentUser?.email || '', supervisor_name: group.supervisor_name || currentUser?.full_name || '', status: 'Active', joined_at: new Date().toISOString() })), ...(current.groupMembers || [])],
         }))
       }
@@ -5020,8 +5052,8 @@ export default function App() {
     const targetProject = (data.projects || []).find((project) => String(project.id) === String(projectId)) || {}
     const nextFields = { ...fields }
     const approvalChanged = Object.prototype.hasOwnProperty.call(nextFields, 'approval') && String(targetProject.approval || '') !== String(nextFields.approval || '')
-    if (approvalChanged && isProjectCommitteeDecided(targetProject) && currentUser?.role !== 'admin') {
-      return setMessage('This project already has a committee decision.')
+    if (approvalChanged && isProjectCommitteeDecided(targetProject)) {
+      return setMessage('This title submission has already received a final decision.')
     }
     if (approvalChanged) {
       nextFields.reviewed_at = new Date().toISOString()
@@ -5031,8 +5063,9 @@ export default function App() {
     }
     let emailFailed = false
     if (isSupabaseConfigured) {
-      const { error } = await supabase.from('research_projects').update(nextFields).eq('id', projectId)
+      const { data: projectUpdateRow, error } = await supabase.from('research_projects').update(nextFields).eq('id', projectId).select('id').maybeSingle()
       if (error) return setMessage(error.message || 'Project update failed.')
+      if (approvalChanged && !projectUpdateRow) return setMessage('This title submission has already received a final decision.')
       if (approvalChanged) {
         const supervisor = findSupervisorProfileForProject(data, targetProject) || { id: targetProject.supervisor_id, email: targetProject.supervisor_email, full_name: targetProject.supervisor_name, role: 'supervisor' }
         if (supervisor?.id || supervisor?.email) {
@@ -6263,7 +6296,7 @@ export default function App() {
 
   const stats = useMemo(() => {
     const approved = visibleProjects.filter(isApprovedResearchProject).length
-    const pendingReports = visibleReports.filter((r) => ['Submitted', 'Revision Required'].includes(r.status)).length
+    const pendingReports = visibleReports.filter((r) => !isFinalWeeklyReportDecision(r)).length
     const averageProgress = visibleProjects.length ? Math.round(visibleProjects.reduce((sum, p) => sum + Number(p.progress || 0), 0) / visibleProjects.length) : 0
     const unread = data.notifications.filter((n) => !n.is_read && notificationForUser(n, currentUser, allowedRole)).length
     const activeUsers = allowedRole === 'admin' ? data.profiles.filter((u) => u.status === 'Active').length : 0
@@ -6277,7 +6310,7 @@ export default function App() {
       return [
         { icon: Users, title: 'Registered users', value: data.profiles.length, detail: `${stats.activeUsers} active, ${stats.pendingUsers} pending` },
         { icon: BookOpen, title: 'Research projects', value: data.projects.length, detail: `${data.projects.filter(isApprovedResearchProject).length} accepted topics` },
-        { icon: MessageSquareText, title: 'Reports needing review', value: data.reports.filter((r) => ['Submitted', 'Revision Required'].includes(r.status)).length, detail: 'Submitted or revision-required' },
+        { icon: MessageSquareText, title: 'Reports needing review', value: data.reports.filter((r) => !isFinalWeeklyReportDecision(r)).length, detail: 'Reports without final decision' },
         { icon: CheckCircle2, title: 'Average progress', value: `${data.projects.length ? Math.round(data.projects.reduce((sum, p) => sum + Number(p.progress || 0), 0) / data.projects.length) : 0}%`, detail: 'Across active projects' },
       ]
     }
@@ -6466,6 +6499,15 @@ export default function App() {
               <span className="top-about-icon"><Info size={17} /></span>
               <span>About Us</span>
             </button>
+            <button
+              type="button"
+              className={`top-about-link top-guidelines-link ${tab === 'research-guidelines' ? 'active' : ''}`}
+              onClick={() => handleMainNavClick('research-guidelines')}
+              aria-current={tab === 'research-guidelines' ? 'page' : undefined}
+            >
+              <span className="top-about-icon"><FileText size={17} /></span>
+              <span>Research Guidelines</span>
+            </button>
             <a
               className="top-about-link top-scholar-link"
               href="https://scholar.google.com/citations?hl=en&view_op=search_authors&mauthors=hawler+medical+universty&btnG="
@@ -6522,6 +6564,7 @@ export default function App() {
         )}
 
         {tab === 'about-us' && <AboutUsPage page={aboutUsPage} />}
+        {tab === 'research-guidelines' && <ResearchGuidelinesPage onBack={() => setTab('dashboard')} />}
         {tab === 'profile-settings' && <ProfileSettingsPage currentUser={currentUser} onBack={() => setTab('dashboard')} updateOwnProfile={updateOwnProfile} uploadOwnProfilePhoto={uploadOwnProfilePhoto} updateOwnPassword={updateOwnPassword} />}
         {tab === 'questions' && allowedRole === 'student' && roleContextReady && <StudentQuestionsTab data={data} currentUser={activeRoleUser} dataLoading={dataLoading} submitStudentQuestion={submitStudentQuestion} openQuestionAttachment={openQuestionAttachment} />}
         {tab === 'questions' && allowedRole === 'supervisor' && roleContextReady && <SupervisorQuestionsTab data={data} currentUser={activeRoleUser} dataLoading={dataLoading} answerStudentQuestion={answerStudentQuestion} openQuestionAttachment={openQuestionAttachment} />}
@@ -6555,6 +6598,40 @@ function AboutUsPage({ page }) {
       </article>
       <article className="about-us-content-card">
         <div className="about-us-rich-content" dangerouslySetInnerHTML={{ __html: normalized.content_html }} />
+      </article>
+    </section>
+  )
+}
+
+
+function ResearchGuidelinesPage({ onBack }) {
+  return (
+    <section className="research-guidelines-page">
+      <div className="research-guidelines-toolbar no-print">
+        <button type="button" className="secondary research-guidelines-back" onClick={onBack}>Back to Dashboard</button>
+        <div className="research-guidelines-actions">
+          <a className="secondary research-guidelines-open" href={RESEARCH_GUIDELINES_PDF_URL} target="_blank" rel="noopener noreferrer">Open PDF</a>
+          <a className="primary research-guidelines-download" href={RESEARCH_GUIDELINES_PDF_URL} download>Download PDF</a>
+        </div>
+      </div>
+
+      <article className="research-guidelines-card">
+        <div className="research-guidelines-header research-guidelines-header-compact">
+          <p className="eyebrow"><FileText size={16} /> Research Guidelines</p>
+        </div>
+        <div className="research-guidelines-viewer" aria-label="Research Guidelines pages">
+          {RESEARCH_GUIDELINES_PAGE_IMAGES.map((pageSrc, index) => (
+            <figure className="research-guidelines-page-frame" key={pageSrc}>
+              <img
+                src={pageSrc}
+                alt={`Research Guidelines page ${index + 1}`}
+                loading={index < 2 ? 'eager' : 'lazy'}
+                decoding="async"
+              />
+              <figcaption>Page {index + 1} of {RESEARCH_GUIDELINES_PAGE_COUNT}</figcaption>
+            </figure>
+          ))}
+        </div>
       </article>
     </section>
   )
@@ -7386,10 +7463,13 @@ function AdminControlPanel({
         <header className="admin-panel-topbar no-print">
           <div>
             <p className="eyebrow"><UserCog size={16} /> Admin subdomain</p>
-            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'about-us' ? 'About Us Customization' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'supervisors' ? 'Supervisor Management' : adminPanelTab === 'dual-roles' ? 'Dual Role Management' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Notifications' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'pdf-report' ? 'PDF Report Customization' : adminPanelTab === 'group-requests' ? 'Group Join Requests' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : adminPanelTab === 'profile-settings' ? 'Profile Settings' : 'Control Center'}</h1>
+            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'about-us' ? 'About Us Customization' : adminPanelTab === 'research-guidelines' ? 'Research Guidelines' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'supervisors' ? 'Supervisor Management' : adminPanelTab === 'dual-roles' ? 'Dual Role Management' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Notifications' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'pdf-report' ? 'PDF Report Customization' : adminPanelTab === 'group-requests' ? 'Group Join Requests' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : adminPanelTab === 'profile-settings' ? 'Profile Settings' : 'Control Center'}</h1>
             <p>{settings.adminWelcome}</p>
           </div>
-          <a className="admin-preview-link" href="/" target="_blank" rel="noreferrer">Open main website</a>
+          <div className="admin-topbar-actions">
+            <button type="button" className={`admin-preview-link admin-guidelines-link ${adminPanelTab === 'research-guidelines' ? 'active' : ''}`} onClick={() => changeAdminPanelTab('research-guidelines')}><FileText size={16} /> Research Guidelines</button>
+            <a className="admin-preview-link" href="/" target="_blank" rel="noreferrer">Open main website</a>
+          </div>
         </header>
 
         {message && <div className="message no-print">{message}</div>}
@@ -7397,6 +7477,7 @@ function AdminControlPanel({
 
         {adminPanelTab === 'profile-settings' && <ProfileSettingsPage currentUser={currentUser} onBack={() => changeAdminPanelTab('overview')} updateOwnProfile={updateOwnProfile} uploadOwnProfilePhoto={uploadOwnProfilePhoto} updateOwnPassword={updateOwnPassword} />}
         {adminPanelTab === 'about-us' && <AboutUsCustomizationPanel page={aboutUsPage} updatePage={updateAboutUsPage} uploadImage={uploadAboutUsImage} currentUser={currentUser} />}
+        {adminPanelTab === 'research-guidelines' && <ResearchGuidelinesPage onBack={() => changeAdminPanelTab('overview')} />}
 
         {adminPanelTab === 'overview' && (
           <div className="admin-panel-stack">
@@ -8095,12 +8176,20 @@ function SupervisorWeeklyReportReviewCard({ data, projects, currentUser, reviewR
                     value={feedback[r.id] ?? r.supervisor_feedback ?? ''}
                     onChange={(e) => setFeedback({ ...feedback, [r.id]: e.target.value })}
                     placeholder="Supervisor feedback"
+                    disabled={isFinalWeeklyReportDecision(r)}
                   />
-                  <div className="supervisor-feedback-actions">
-                    <button onClick={() => handleReviewAction(r.id, 'Accepted', 'Accepted. Continue with the next milestone.')} disabled={Boolean(reviewLoadingKey)} className="success min-button-width"><ButtonContent loading={reviewLoadingKey === `${r.id}-Accepted`} loadingText="Accepting..." icon={CheckCircle2}>Approve</ButtonContent></button>
-                    <button onClick={() => handleReviewAction(r.id, 'Revision Required', 'Revision required. Please add more detail.')} disabled={Boolean(reviewLoadingKey)} className="warning min-button-width"><ButtonContent loading={reviewLoadingKey === `${r.id}-Revision Required`} loadingText="Requesting..." icon={RefreshCw}>Request Revision</ButtonContent></button>
-                    <button onClick={() => handleReviewAction(r.id, 'Rejected', 'Rejected. Please meet your supervisor for guidance.')} disabled={Boolean(reviewLoadingKey)} className="danger min-button-width"><ButtonContent loading={reviewLoadingKey === `${r.id}-Rejected`} loadingText="Rejecting..." icon={XCircle}>Reject</ButtonContent></button>
-                  </div>
+                  {isFinalWeeklyReportDecision(r) ? (
+                    <div className="final-decision-note">
+                      <Pill tone={getWeeklyReportDecisionTone(r.status)}>{r.status}</Pill>
+                      <span>This weekly report has already received a final decision.</span>
+                    </div>
+                  ) : (
+                    <div className="supervisor-feedback-actions decision-actions">
+                      <button onClick={() => handleReviewAction(r.id, 'Accepted', 'Accepted. Continue with the next milestone.')} disabled={Boolean(reviewLoadingKey)} className="accept-btn approve-btn decision-btn min-button-width"><ButtonContent loading={reviewLoadingKey === `${r.id}-Accepted`} loadingText="Accepting..." icon={CheckCircle2}>Approve</ButtonContent></button>
+                      <button onClick={() => handleReviewAction(r.id, 'Revision Required', 'Revision required. Please add more detail.')} disabled={Boolean(reviewLoadingKey)} className="revision-btn decision-btn min-button-width"><ButtonContent loading={reviewLoadingKey === `${r.id}-Revision Required`} loadingText="Requesting..." icon={RefreshCw}>Request Revision</ButtonContent></button>
+                      <button onClick={() => handleReviewAction(r.id, 'Rejected', 'Rejected. Please meet your supervisor for guidance.')} disabled={Boolean(reviewLoadingKey)} className="reject-btn danger-btn min-button-width"><ButtonContent loading={reviewLoadingKey === `${r.id}-Rejected`} loadingText="Rejecting..." icon={XCircle}>Reject</ButtonContent></button>
+                    </div>
+                  )}
                 </div>
               </div>
             )
@@ -8773,7 +8862,7 @@ function SupervisorResearchGroupManagementTab({ data, currentUser, dataLoading =
                 <div className="question-card-header"><div><b>{label.studentName}</b><p className="muted small">{label.studentEmail || 'No email'} • Requested group: {label.groupName}</p></div><GroupRequestStatusBadge status={request.status} /></div>
                 {request.request_message && <p>{request.request_message}</p>}
                 <p className="muted small">Requested: {request.requested_at ? new Date(request.requested_at).toLocaleString() : '-'}</p>
-                {isPending && <div className="inline-actions"><button className="success min-button-width" disabled={Boolean(decisionLoading)} onClick={() => handleDecision(request.id, 'Accepted')}><ButtonContent loading={decisionLoading === `${request.id}-Accepted`} loadingText="Approving..." icon={CheckCircle2}>Accept</ButtonContent></button><button className="danger min-button-width" disabled={Boolean(decisionLoading)} onClick={() => handleDecision(request.id, 'Rejected')}><ButtonContent loading={decisionLoading === `${request.id}-Rejected`} loadingText="Rejecting..." icon={XCircle}>Reject</ButtonContent></button></div>}
+                {isPending && <div className="inline-actions group-join-actions"><button className="accept-btn decision-btn min-button-width group-join-accept-btn" disabled={Boolean(decisionLoading)} onClick={() => handleDecision(request.id, 'Accepted')}><ButtonContent loading={decisionLoading === `${request.id}-Accepted`} loadingText="Approving..." icon={CheckCircle2}>Accept</ButtonContent></button><button className="reject-btn danger-btn min-button-width group-join-reject-btn" disabled={Boolean(decisionLoading)} onClick={() => handleDecision(request.id, 'Rejected')}><ButtonContent loading={decisionLoading === `${request.id}-Rejected`} loadingText="Rejecting..." icon={XCircle}>Reject</ButtonContent></button></div>}
               </div>
             })}
           </div>
@@ -8882,7 +8971,7 @@ function AdminGroupJoinRequestsTab({ data, currentUser, dataLoading = false, dec
                   <p className="muted small">Request date: {request.requested_at ? new Date(request.requested_at).toLocaleString() : '-'}</p>
                   {isPending && <label className="field wide-field compact-decision-field"><span>Optional rejection/decision comment</span><input value={decisionMessages[request.id] || ''} onChange={(e) => setDecisionMessages((current) => ({ ...current, [request.id]: e.target.value }))} placeholder="Optional comment for student" /></label>}
                 </div>
-                {isPending && <div className="inline-actions"><button className="success min-button-width" disabled={Boolean(loadingKey)} onClick={() => handleDecision(request.id, 'Accepted')}><ButtonContent loading={loadingKey === `${request.id}-Accepted`} loadingText="Accepting..." icon={CheckCircle2}>Accept</ButtonContent></button><button className="danger min-button-width" disabled={Boolean(loadingKey)} onClick={() => handleDecision(request.id, 'Rejected')}><ButtonContent loading={loadingKey === `${request.id}-Rejected`} loadingText="Rejecting..." icon={XCircle}>Reject</ButtonContent></button></div>}
+                {isPending && <div className="inline-actions group-join-actions"><button className="accept-btn decision-btn min-button-width group-join-accept-btn" disabled={Boolean(loadingKey)} onClick={() => handleDecision(request.id, 'Accepted')}><ButtonContent loading={loadingKey === `${request.id}-Accepted`} loadingText="Accepting..." icon={CheckCircle2}>Accept</ButtonContent></button><button className="reject-btn danger-btn min-button-width group-join-reject-btn" disabled={Boolean(loadingKey)} onClick={() => handleDecision(request.id, 'Rejected')}><ButtonContent loading={loadingKey === `${request.id}-Rejected`} loadingText="Rejecting..." icon={XCircle}>Reject</ButtonContent></button></div>}
               </div>
             })}
           </div>
@@ -10226,7 +10315,7 @@ function ProjectDecisionTable({ projects, updateProject, data = emptyData, repor
     if (decisionLoading) return
     const project = projects.find((item) => String(item.id) === String(projectId)) || {}
     if (isProjectCommitteeDecided(project)) {
-      window.alert('This project already has a committee decision.')
+      window.alert('This title submission has already received a final decision.')
       return
     }
     let comment = ''
@@ -10271,9 +10360,9 @@ function ProjectDecisionTable({ projects, updateProject, data = emptyData, repor
             ) : (
               <div className="project-decision-status">
                 <div className="inline-actions decision-actions">
-                  <button className="success min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'Approved')}><ButtonContent loading={decisionLoading === approvedKey} loadingText="Accepting..." icon={CheckCircle2}>Accept</ButtonContent></button>
-                  <button className="warning min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'Revision Required')}><ButtonContent loading={decisionLoading === reviseKey} loadingText="Requesting..." icon={RefreshCw}>Revision</ButtonContent></button>
-                  <button className="danger min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'Rejected')}><ButtonContent loading={decisionLoading === rejectKey} loadingText="Rejecting..." icon={XCircle}>Reject</ButtonContent></button>
+                  <button className="accept-btn approve-btn decision-btn min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'Approved')}><ButtonContent loading={decisionLoading === approvedKey} loadingText="Accepting..." icon={CheckCircle2}>Accept</ButtonContent></button>
+                  <button className="revision-btn decision-btn min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'Revision Required')}><ButtonContent loading={decisionLoading === reviseKey} loadingText="Requesting..." icon={RefreshCw}>Revision</ButtonContent></button>
+                  <button className="reject-btn danger-btn min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'Rejected')}><ButtonContent loading={decisionLoading === rejectKey} loadingText="Rejecting..." icon={XCircle}>Reject</ButtonContent></button>
                 </div>
                 <Pill tone={getProjectDecisionTone(p)}>{getProjectDecisionLabel(p)}</Pill>
                 {comment && <p className="muted small">Comment: {comment}</p>}
