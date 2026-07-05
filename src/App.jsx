@@ -1111,7 +1111,7 @@ function ProjectMembersCompact({ members = [], emptyText = 'No project members f
             return (
               <span className={`project-member-chip ${isLeader ? 'leader' : ''}`} key={member.id || member.email || member.full_name || index}>
                 <b>{member.full_name || member.name || member.email || 'Student'}</b>
-                {isLeader && <small>Project Leader</small>}
+                {isLeader && <small className="project-leader-badge">Project Leader</small>}
               </span>
             )
           })}
@@ -2015,8 +2015,8 @@ function notificationForUser(notification, user, role) {
   return false
 }
 
-function Pill({ children, tone = 'slate' }) {
-  return <span className={`pill ${tone}`}>{children}</span>
+function Pill({ children, tone = 'slate', className = '' }) {
+  return <span className={`pill ${tone} ${className}`.trim()}>{children}</span>
 }
 
 function ProgressBar({ value }) {
@@ -2073,7 +2073,7 @@ function EmptyState({ title = 'No records available.', text = 'No records availa
 }
 
 function LoadingSpinner({ size = 14 }) {
-  return <span className="button-spinner" style={{ width: size, height: size }} aria-hidden="true" />
+  return <span className="button-spinner loading-spinner" style={{ width: size, height: size }} aria-hidden="true" />
 }
 
 function LoadingBlock({ text = 'Loading records...' }) {
@@ -2140,6 +2140,20 @@ function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = fa
     : isRegister
       ? invitation ? 'Your invitation details are pre-filled below. Complete registration to continue.' : 'Fill in your details to create your account and access the platform.'
       : 'Welcome back! Please enter your details.'
+
+  const loginGrayTextButtonStyle = {
+    color: '#4d4c4d',
+    WebkitTextFillColor: '#4d4c4d',
+    fontWeight: 700,
+    background: 'transparent',
+    backgroundColor: 'transparent',
+    border: '0',
+    boxShadow: 'none',
+    padding: 0,
+    margin: 0,
+    borderRadius: 0,
+    cursor: 'pointer',
+  }
 
   return (
     <div className="login-page modern-login-page">
@@ -2239,7 +2253,15 @@ function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = fa
                     <input type="checkbox" checked={form.remember_me} onChange={(e) => setForm({ ...form, remember_me: e.target.checked })} />
                     <span>Remember for 30 days</span>
                   </label>
-                  <button type="button" className="auth-text-link forgot-password-link" onClick={() => setMode('forgot')}>Forgot password?</button>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="gray-login-text-button plain-login-action forgot-password-link"
+                    data-login-action="forgot-password"
+                    style={loginGrayTextButtonStyle}
+                    onClick={() => setMode('forgot')}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setMode('forgot') } }}
+                  >Forgot password?</span>
                 </div>
               )}
 
@@ -2253,11 +2275,11 @@ function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = fa
               {message && <div className="message login-message">{message}</div>}
 
               {isForgotPassword ? (
-                <button className="primary wide auth-submit-button login-submit-button sign-in-button" disabled={loading} onClick={() => onForgotPassword(form.email)}>
+                <button id="login-auth-submit-button" data-login-submit="true" className="wide auth-submit-button login-submit-button sign-in-button" disabled={loading} onClick={() => onForgotPassword(form.email)}>
                   <Mail size={18} /> {loading ? 'Sending reset link...' : 'Send password reset email'}
                 </button>
               ) : (
-                <button className="primary wide auth-submit-button login-submit-button sign-in-button" disabled={loading} onClick={() => onLogin({ ...form, mode, adminPortal: adminOnly })}>
+                <button id="login-auth-submit-button" data-login-submit="true" className="wide auth-submit-button login-submit-button sign-in-button" disabled={loading} onClick={() => onLogin({ ...form, mode, adminPortal: adminOnly })}>
                   <Lock size={18} /> {loading ? 'Please wait...' : isRegister ? 'Create account' : 'Sign in'}
                 </button>
               )}
@@ -2267,7 +2289,15 @@ function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = fa
                   {isRegister ? (
                     <p>Already have an account? <button type="button" className="auth-text-link inline" onClick={() => setMode('login')}>Sign in</button></p>
                   ) : (
-                    <p>Don’t have an account? <button type="button" className="auth-text-link inline signup-link" onClick={() => setMode('register')}>Sign up for free</button></p>
+                    <p>Don’t have an account? <span
+                      role="button"
+                      tabIndex={0}
+                      className="gray-login-text-button plain-login-action signup-link"
+                      data-login-action="signup"
+                      style={loginGrayTextButtonStyle}
+                      onClick={() => setMode('register')}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setMode('register') } }}
+                    >Sign up for free</span></p>
                   )}
                 </div>
               )}
@@ -6787,7 +6817,19 @@ function NotificationBellMenu({ data, role, currentUser, dataLoading = false, un
             <b>Updates</b>
             <small>{unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}</small>
           </div>
-          <button type="button" className="notification-popover-close" onClick={() => setOpen(false)} aria-label="Close updates">×</button>
+          <span
+            role="button"
+            tabIndex={0}
+            className="notification-x-plain"
+            onClick={() => setOpen(false)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                setOpen(false)
+              }
+            }}
+            aria-label="Close updates"
+          >×</span>
         </div>
 
         <div className="notification-popover-list">
@@ -6798,26 +6840,35 @@ function NotificationBellMenu({ data, role, currentUser, dataLoading = false, un
             const reading = String(readingNotificationId) === String(notification.id)
             return (
               <article className={`notification-popover-item ${notification.is_read ? '' : 'unread'}`} key={notification.id}>
-                <button
-                  type="button"
-                  className="notification-popover-content"
-                  onClick={() => !notification.is_read && handleMarkRead(notification.id)}
-                  disabled={reading || removing}
+                <div
+                  role="button"
+                  tabIndex={reading || removing ? -1 : 0}
+                  className="notification-popover-content notification-text-button notification-content"
+                  onClick={() => {
+                    if (!reading && !removing && !notification.is_read) handleMarkRead(notification.id)
+                  }}
+                  onKeyDown={(event) => {
+                    if ((event.key === 'Enter' || event.key === ' ') && !reading && !removing && !notification.is_read) {
+                      event.preventDefault()
+                      handleMarkRead(notification.id)
+                    }
+                  }}
+                  aria-disabled={reading || removing}
                 >
                   <span className="notification-dot" aria-hidden="true" />
-                  <span>
-                    <b>{notification.title || notification.type || 'Update'}</b>
-                    <small>{notification.message || 'You have a new update.'}</small>
-                    <em>{String(notification.created_at || '').slice(0, 16).replace('T', ' ') || 'Date unavailable'}</em>
+                  <span className="notification-text-stack notification-text notification-body">
+                    <b className="notification-title">{notification.title || notification.type || 'Update'}</b>
+                    <small className="notification-message">{notification.message || 'You have a new update.'}</small>
+                    <em className="notification-time">{String(notification.created_at || '').slice(0, 16).replace('T', ' ') || 'Date unavailable'}</em>
                   </span>
-                </button>
+                </div>
                 <div className="notification-popover-actions">
                   {!notification.is_read && (
-                    <button type="button" onClick={() => handleMarkRead(notification.id)} disabled={reading || removing}>
+                    <button type="button" className="notification-read-button" onClick={() => handleMarkRead(notification.id)} disabled={reading || removing}>
                       <ButtonContent loading={reading} loadingText="Saving...">Read</ButtonContent>
                     </button>
                   )}
-                  <button type="button" className="danger ghost-icon-button" onClick={() => handleRemove(notification.id)} disabled={removing} aria-label="Remove update">
+                  <button type="button" className="danger ghost-icon-button notification-delete-button" onClick={() => handleRemove(notification.id)} disabled={removing} aria-label="Remove update">
                     <ButtonContent loading={removing} loadingText="..."><Trash2 size={14} /></ButtonContent>
                   </button>
                 </div>
@@ -9752,7 +9803,7 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
                             <b>{member.full_name || member.email || 'Student'}</b>
                             <p className="small muted">{member.email || 'No email'}{member.joined_at ? ` • Joined ${String(member.joined_at).slice(0, 10)}` : ''}</p>
                           </div>
-                          <Pill tone={isLeader ? 'blue' : 'slate'}>{isLeader ? 'Project Leader' : 'Member'}</Pill>
+                          <Pill tone={isLeader ? 'blue' : 'slate'} className={isLeader ? 'project-leader-badge' : ''}>{isLeader ? 'Project Leader' : 'Member'}</Pill>
                         </div>
                       )
                     }) : <EmptyState title="No project members found." text="Only students who are already project/group members can become Project Leader." icon={Users} />}
@@ -10294,8 +10345,8 @@ function NotificationsTab({ data, role, currentUser, dataLoading = false, create
                     <p className="small muted">{n.type} • {String(n.created_at).slice(0, 16).replace('T', ' ')}</p>
                   </div>
                   <div className="notification-actions">
-                    <button type="button" className="min-button-width" onClick={() => handleMarkNotificationRead(n.id)} disabled={removing || Boolean(readingNotificationId) || n.is_read}><ButtonContent loading={String(readingNotificationId) === String(n.id)} loadingText="Updating...">{n.is_read ? 'Read' : 'Mark read'}</ButtonContent></button>
-                    <button type="button" className="danger compact-button" onClick={() => handleRemoveNotification(n.id)} disabled={removing}>
+                    <button type="button" className="min-button-width notification-read-button" onClick={() => handleMarkNotificationRead(n.id)} disabled={removing || Boolean(readingNotificationId) || n.is_read}><ButtonContent loading={String(readingNotificationId) === String(n.id)} loadingText="Updating...">{n.is_read ? 'Read' : 'Mark read'}</ButtonContent></button>
+                    <button type="button" className="danger compact-button notification-delete-button" onClick={() => handleRemoveNotification(n.id)} disabled={removing}>
                       <ButtonContent loading={removing} loadingText="Removing..." icon={Trash2} iconSize={14}>Remove</ButtonContent>
                     </button>
                   </div>
