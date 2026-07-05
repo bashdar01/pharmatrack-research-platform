@@ -36,7 +36,6 @@ import {
   Trash2,
 } from 'lucide-react'
 import { supabase, isSupabaseConfigured } from './lib/supabaseClient'
-import researchGuidelinesPdfUrl from './assets/research-guidelines.pdf?url'
 
 const roleButtons = [
   { id: 'student', label: 'Student', icon: GraduationCap },
@@ -113,12 +112,8 @@ function makeInvitationToken() {
 }
 
 const REPORT_PROGRESS_INCREMENT = 6.25
-const RESEARCH_GUIDELINES_PDF_URL = researchGuidelinesPdfUrl
-const RESEARCH_GUIDELINES_PAGE_MODULES = import.meta.glob('./assets/research-guidelines-pages/page-*.jpg', { eager: true, query: '?url', import: 'default' })
-const RESEARCH_GUIDELINES_PAGE_IMAGES = Object.entries(RESEARCH_GUIDELINES_PAGE_MODULES)
-  .sort(([a], [b]) => a.localeCompare(b))
-  .map(([, src]) => src)
-const RESEARCH_GUIDELINES_PAGE_COUNT = RESEARCH_GUIDELINES_PAGE_IMAGES.length
+const RESEARCH_GUIDELINES_PDF_URL = '/research-guidelines.pdf'
+const RESEARCH_GUIDELINES_DOWNLOAD_NAME = 'Research-Guidelines.pdf'
 
 function clampProgress(value) {
   const numeric = Number(value || 0)
@@ -690,7 +685,7 @@ function optimizeImageFile(file, options = {}) {
   })
 }
 
-const adminPanelTabs = ['overview', 'branding', 'login-settings', 'about-us', 'research-guidelines', 'users', 'supervisors', 'dual-roles', 'invitations', 'deadlines', 'notifications', 'reports', 'pdf-report', 'group-requests', 'database', 'audit', 'profile-settings']
+const adminPanelTabs = ['overview', 'branding', 'login-settings', 'about-us', 'users', 'supervisors', 'dual-roles', 'invitations', 'deadlines', 'notifications', 'reports', 'pdf-report', 'group-requests', 'database', 'audit', 'profile-settings']
 
 const adminPanelPathAliases = {
   '': 'overview',
@@ -707,9 +702,9 @@ const adminPanelPathAliases = {
   about: 'about-us',
   'about-us-customization': 'about-us',
   'about-customization': 'about-us',
-  'research-guidelines': 'research-guidelines',
-  guidelines: 'research-guidelines',
-  'graduation-research-guidelines': 'research-guidelines',
+  'research-guidelines': 'overview',
+  guidelines: 'overview',
+  'graduation-research-guidelines': 'overview',
   users: 'users',
   roles: 'users',
   'users-roles': 'users',
@@ -6464,15 +6459,15 @@ export default function App() {
               <span className="top-about-icon"><Info size={17} /></span>
               <span>About Us</span>
             </button>
-            <button
-              type="button"
-              className={`top-about-link top-guidelines-link ${tab === 'research-guidelines' ? 'active' : ''}`}
-              onClick={() => handleMainNavClick('research-guidelines')}
-              aria-current={tab === 'research-guidelines' ? 'page' : undefined}
+            <a
+              className="top-about-link top-guidelines-link"
+              href={RESEARCH_GUIDELINES_PDF_URL}
+              download={RESEARCH_GUIDELINES_DOWNLOAD_NAME}
+              aria-label="Download Research Guidelines PDF"
             >
               <span className="top-about-icon"><FileText size={17} /></span>
               <span>Research Guidelines</span>
-            </button>
+            </a>
             <a
               className="top-about-link top-scholar-link"
               href="https://scholar.google.com/citations?hl=en&view_op=search_authors&mauthors=hawler+medical+universty&btnG="
@@ -6529,7 +6524,6 @@ export default function App() {
         )}
 
         {tab === 'about-us' && <AboutUsPage page={aboutUsPage} />}
-        {tab === 'research-guidelines' && <ResearchGuidelinesPage onBack={() => setTab('dashboard')} />}
         {tab === 'profile-settings' && <ProfileSettingsPage currentUser={currentUser} onBack={() => setTab('dashboard')} updateOwnProfile={updateOwnProfile} uploadOwnProfilePhoto={uploadOwnProfilePhoto} updateOwnPassword={updateOwnPassword} />}
         {tab === 'questions' && allowedRole === 'student' && roleContextReady && <StudentQuestionsTab data={data} currentUser={activeRoleUser} dataLoading={dataLoading} submitStudentQuestion={submitStudentQuestion} openQuestionAttachment={openQuestionAttachment} />}
         {tab === 'questions' && allowedRole === 'supervisor' && roleContextReady && <SupervisorQuestionsTab data={data} currentUser={activeRoleUser} dataLoading={dataLoading} answerStudentQuestion={answerStudentQuestion} openQuestionAttachment={openQuestionAttachment} />}
@@ -6569,57 +6563,6 @@ function AboutUsPage({ page }) {
 }
 
 
-function ResearchGuidelinesPage({ onBack }) {
-  const [usePdfFallback, setUsePdfFallback] = useState(false)
-  const showPdfFallback = usePdfFallback || RESEARCH_GUIDELINES_PAGE_IMAGES.length === 0
-
-  return (
-    <section className="research-guidelines-page">
-      <div className="research-guidelines-toolbar no-print">
-        <button type="button" className="secondary research-guidelines-back" onClick={onBack}>Back to Dashboard</button>
-        <div className="research-guidelines-actions">
-          <a className="secondary research-guidelines-open" href={RESEARCH_GUIDELINES_PDF_URL} target="_blank" rel="noopener noreferrer">Open PDF</a>
-          <a className="primary research-guidelines-download" href={RESEARCH_GUIDELINES_PDF_URL} download>Download PDF</a>
-        </div>
-      </div>
-
-      <article className="research-guidelines-card">
-        <div className="research-guidelines-header research-guidelines-header-compact">
-          <p className="eyebrow"><FileText size={16} /> Research Guidelines</p>
-        </div>
-
-        {showPdfFallback ? (
-          <div className="research-guidelines-pdf-shell">
-            <iframe
-              src={`${RESEARCH_GUIDELINES_PDF_URL}#toolbar=1&navpanes=0&view=FitH`}
-              title="Research Guidelines PDF"
-              className="research-guidelines-pdf-fallback"
-              loading="eager"
-            />
-            <p className="research-guidelines-fallback-note">
-              If the PDF preview does not open, use Open PDF or Download PDF above.
-            </p>
-          </div>
-        ) : (
-          <div className="research-guidelines-viewer" aria-label="Research Guidelines pages">
-            {RESEARCH_GUIDELINES_PAGE_IMAGES.map((pageSrc, index) => (
-              <figure className="research-guidelines-page-frame" key={pageSrc}>
-                <img
-                  src={pageSrc}
-                  alt={`Research Guidelines page ${index + 1}`}
-                  loading={index < 2 ? 'eager' : 'lazy'}
-                  decoding="async"
-                  onError={() => setUsePdfFallback(true)}
-                />
-                <figcaption>Page {index + 1} of {RESEARCH_GUIDELINES_PAGE_COUNT}</figcaption>
-              </figure>
-            ))}
-          </div>
-        )}
-      </article>
-    </section>
-  )
-}
 
 function AboutUsCustomizationPanel({ page, updatePage, uploadImage }) {
   const [draft, setDraft] = useState(() => normalizeAboutUsPage(page))
@@ -7447,11 +7390,11 @@ function AdminControlPanel({
         <header className="admin-panel-topbar no-print">
           <div>
             <p className="eyebrow"><UserCog size={16} /> Admin subdomain</p>
-            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'about-us' ? 'About Us Customization' : adminPanelTab === 'research-guidelines' ? 'Research Guidelines' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'supervisors' ? 'Supervisor Management' : adminPanelTab === 'dual-roles' ? 'Dual Role Management' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Notifications' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'pdf-report' ? 'PDF Report Customization' : adminPanelTab === 'group-requests' ? 'Group Join Requests' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : adminPanelTab === 'profile-settings' ? 'Profile Settings' : 'Control Center'}</h1>
+            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'about-us' ? 'About Us Customization' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'supervisors' ? 'Supervisor Management' : adminPanelTab === 'dual-roles' ? 'Dual Role Management' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Notifications' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'pdf-report' ? 'PDF Report Customization' : adminPanelTab === 'group-requests' ? 'Group Join Requests' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : adminPanelTab === 'profile-settings' ? 'Profile Settings' : 'Control Center'}</h1>
             <p>{settings.adminWelcome}</p>
           </div>
           <div className="admin-topbar-actions">
-            <button type="button" className={`admin-preview-link admin-guidelines-link ${adminPanelTab === 'research-guidelines' ? 'active' : ''}`} onClick={() => changeAdminPanelTab('research-guidelines')}><FileText size={16} /> Research Guidelines</button>
+            <a className="admin-preview-link admin-guidelines-link" href={RESEARCH_GUIDELINES_PDF_URL} download={RESEARCH_GUIDELINES_DOWNLOAD_NAME}><FileText size={16} /> Research Guidelines</a>
             <a className="admin-preview-link" href="/" target="_blank" rel="noreferrer">Open main website</a>
           </div>
         </header>
@@ -7461,7 +7404,6 @@ function AdminControlPanel({
 
         {adminPanelTab === 'profile-settings' && <ProfileSettingsPage currentUser={currentUser} onBack={() => changeAdminPanelTab('overview')} updateOwnProfile={updateOwnProfile} uploadOwnProfilePhoto={uploadOwnProfilePhoto} updateOwnPassword={updateOwnPassword} />}
         {adminPanelTab === 'about-us' && <AboutUsCustomizationPanel page={aboutUsPage} updatePage={updateAboutUsPage} uploadImage={uploadAboutUsImage} currentUser={currentUser} />}
-        {adminPanelTab === 'research-guidelines' && <ResearchGuidelinesPage onBack={() => changeAdminPanelTab('overview')} />}
 
         {adminPanelTab === 'overview' && (
           <div className="admin-panel-stack">
