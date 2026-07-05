@@ -2239,7 +2239,7 @@ function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = fa
                     <input type="checkbox" checked={form.remember_me} onChange={(e) => setForm({ ...form, remember_me: e.target.checked })} />
                     <span>Remember for 30 days</span>
                   </label>
-                  <button type="button" className="auth-text-link" onClick={() => setMode('forgot')}>Forgot password?</button>
+                  <button type="button" className="auth-text-link forgot-password-link" onClick={() => setMode('forgot')}>Forgot password?</button>
                 </div>
               )}
 
@@ -2253,11 +2253,11 @@ function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = fa
               {message && <div className="message login-message">{message}</div>}
 
               {isForgotPassword ? (
-                <button className="primary wide auth-submit-button" disabled={loading} onClick={() => onForgotPassword(form.email)}>
+                <button className="primary wide auth-submit-button login-submit-button sign-in-button" disabled={loading} onClick={() => onForgotPassword(form.email)}>
                   <Mail size={18} /> {loading ? 'Sending reset link...' : 'Send password reset email'}
                 </button>
               ) : (
-                <button className="primary wide auth-submit-button" disabled={loading} onClick={() => onLogin({ ...form, mode, adminPortal: adminOnly })}>
+                <button className="primary wide auth-submit-button login-submit-button sign-in-button" disabled={loading} onClick={() => onLogin({ ...form, mode, adminPortal: adminOnly })}>
                   <Lock size={18} /> {loading ? 'Please wait...' : isRegister ? 'Create account' : 'Sign in'}
                 </button>
               )}
@@ -2267,7 +2267,7 @@ function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = fa
                   {isRegister ? (
                     <p>Already have an account? <button type="button" className="auth-text-link inline" onClick={() => setMode('login')}>Sign in</button></p>
                   ) : (
-                    <p>Don’t have an account? <button type="button" className="auth-text-link inline" onClick={() => setMode('register')}>Sign up for free</button></p>
+                    <p>Don’t have an account? <button type="button" className="auth-text-link inline signup-link" onClick={() => setMode('register')}>Sign up for free</button></p>
                   )}
                 </div>
               )}
@@ -6712,9 +6712,8 @@ function RoleSwitchDropdown({ activeRole, mode = 'committee', onChange }) {
       ]
   const value = mode === 'admin' ? activeRole || 'admin' : activeRole === 'supervisor' ? 'supervisor' : 'committee'
   return (
-    <label className="role-switch-dropdown no-print">
-      <span>Role</span>
-      <select value={value} onChange={(e) => onChange?.(e.target.value)}>
+    <label className="role-switch-dropdown role-switch-label-hidden no-print" aria-label="Role">
+      <select value={value} onChange={(e) => onChange?.(e.target.value)} aria-label="Role">
         {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
     </label>
@@ -7074,7 +7073,6 @@ function UserProfileMenu({ currentUser, onLogout, onOpenProfile }) {
       </button>
       {menuVisible && (
         <div className="student-profile-dropdown redesigned-profile-card">
-          <div className="profile-cover" />
           <div className="profile-card-body simplified-profile-card">
             <div className="profile-avatar-shell">
               <div className="student-profile-large redesigned">

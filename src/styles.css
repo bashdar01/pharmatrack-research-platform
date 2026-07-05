@@ -4415,7 +4415,7 @@ button:disabled {
   .profile-menu-button.logout:hover {
     background: #fecaca !important;
     color: #991b1b !important;
-    border-color: #fca5a5 !important;
+    border-color: #fee2e2 !important;
   }
 
   .admin-logout,
@@ -4433,7 +4433,7 @@ button:disabled {
   button.danger:hover:not(:disabled) {
     background: #fecaca !important;
     color: #991b1b !important;
-    border-color: #fca5a5 !important;
+    border-color: #fee2e2 !important;
   }
 }
 
@@ -8400,4 +8400,4748 @@ button .button-spinner {
   .main-dashboard-with-sidebar .main-compact-left {
     flex-wrap: wrap;
   }
+}
+
+/* =========================================================
+   Brighter red + black theme update
+   Previous/original stylesheet is saved as:
+   src/styles.original-before-red-black.css
+   This section only overrides colors/visuals. It does not change logic.
+   ========================================================= */
+:root {
+  --bg: #f7f7f8;
+  --card: #ffffff;
+  --card-soft: #fbf7f7;
+  --text: #111111;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --accent: #b91c1c;
+  --accent-text: #ffffff;
+  --input: #ffffff;
+  --shadow: rgba(17, 17, 17, .08);
+  --main-red: #b91c1c;
+  --main-red-dark: #7f1d1d;
+  --main-red-soft: #fff1f2;
+  --main-black: #111111;
+  --main-ink: #111111;
+  --main-muted: #6b7280;
+  --main-border: #ead4d4;
+  --main-surface: rgba(255, 255, 255, .96);
+}
+
+body {
+  background: #f7f7f8;
+}
+
+/* Main app shell */
+.app-main-shell,
+.app-main-shell.main-dashboard-with-sidebar {
+  background:
+    radial-gradient(circle at top left, rgba(185, 28, 28, .10), transparent 34%),
+    linear-gradient(135deg, #f7f7f8 0%, #fff7f7 48%, #ffffff 100%) !important;
+  color: #111111;
+}
+
+/* Sidebar and header use the same red/black identity */
+.app-main-shell .main-sidebar {
+  background: linear-gradient(180deg, #dc2626 0%, #b91c1c 58%, #991b1b 100%) !important;
+  border-right: 1px solid rgba(254, 202, 202, .34) !important;
+  box-shadow: 14px 0 36px rgba(127, 29, 29, .20) !important;
+}
+
+.main-compact-header,
+.dashboard-topbar {
+  background: linear-gradient(90deg, #dc2626 0%, #b91c1c 58%, #991b1b 100%) !important;
+  border-bottom: 1px solid rgba(254, 202, 202, .30) !important;
+  border-color: rgba(254, 202, 202, .30) !important;
+  box-shadow: 0 14px 34px rgba(127, 29, 29, .18) !important;
+  color: #ffffff !important;
+}
+
+.main-compact-header .muted,
+.main-compact-header small,
+.dashboard-topbar p,
+.dashboard-topbar .muted {
+  color: rgba(255, 255, 255, .72) !important;
+}
+
+/* Sidebar brand */
+.sidebar-brand {
+  background: rgba(255, 255, 255, .12) !important;
+  border: 1px solid rgba(255, 255, 255, .22) !important;
+  box-shadow: inset 0 0 0 1px rgba(254, 202, 202, .14) !important;
+}
+
+.sidebar-brand img {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 4px;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, .20);
+}
+
+.sidebar-brand b,
+.sidebar-role-card strong {
+  color: #ffffff !important;
+}
+
+.sidebar-brand span,
+.sidebar-role-card span,
+.sidebar-role-card small {
+  color: rgba(255, 255, 255, .68) !important;
+}
+
+.sidebar-role-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, .16), rgba(254, 202, 202, .12)) !important;
+  border: 1px solid rgba(254, 202, 202, .35) !important;
+  box-shadow: 0 18px 36px rgba(127, 29, 29, .18) !important;
+}
+
+/* Sidebar navigation */
+.main-side-nav button {
+  color: rgba(255, 255, 255, .82) !important;
+}
+
+.main-side-nav button svg,
+.main-side-nav .side-nav-icon svg {
+  color: #fee2e2 !important;
+}
+
+.main-side-nav button:hover,
+.main-side-nav button.active {
+  background: rgba(255, 255, 255, .18) !important;
+  border-color: rgba(254, 202, 202, .48) !important;
+  color: #ffffff !important;
+  box-shadow: 0 14px 28px rgba(127, 29, 29, .22) !important;
+}
+
+.main-side-nav button.active::before {
+  background: #fee2e2 !important;
+}
+
+.tab-badge,
+.main-pill-tabs .tab-badge {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+/* Top header About/Scholar buttons */
+.top-about-link,
+.top-scholar-link,
+.role-switch-compact,
+.role-switch-dropdown,
+.role-mode-select,
+.main-notification-button {
+  background: rgba(255, 255, 255, .14) !important;
+  color: #ffffff !important;
+  border-color: rgba(254, 202, 202, .45) !important;
+  box-shadow: none !important;
+}
+
+.top-about-link:hover,
+.top-about-link.active,
+.top-scholar-link:hover,
+.main-notification-button:hover,
+.main-notification-button.active {
+  background: rgba(255, 255, 255, .22) !important;
+  border-color: rgba(254, 202, 202, .72) !important;
+  color: #ffffff !important;
+}
+
+.top-about-icon,
+.main-notification-button svg {
+  color: #fecaca !important;
+}
+
+.main-profile-summary {
+  border-left-color: rgba(255, 255, 255, .18) !important;
+}
+
+.main-profile-summary b {
+  color: #ffffff !important;
+}
+
+.main-profile-summary small {
+  color: rgba(255, 255, 255, .70) !important;
+}
+
+.main-header-actions .student-profile-trigger,
+.main-header-actions .student-profile-trigger.redesigned,
+.main-header-actions .user-profile-menu .student-profile-trigger.redesigned,
+.student-profile-trigger {
+  color: #ffffff !important;
+  background: #b91c1c !important;
+  border-color: rgba(254, 202, 202, .55) !important;
+  box-shadow: 0 10px 22px rgba(185, 28, 28, .24) !important;
+}
+
+.sidebar-menu-toggle {
+  background: rgba(255, 255, 255, .14) !important;
+  border: 1px solid rgba(248, 113, 113, .35) !important;
+}
+
+.sidebar-menu-toggle span {
+  background: #fecaca !important;
+}
+
+/* Main cards and dashboard surfaces */
+.app-main-shell .card,
+.app-main-shell .stat-card,
+.app-main-shell .soft-box,
+.app-main-shell .mini-card,
+.app-main-shell .review-card,
+.app-main-shell .empty-state,
+.app-main-shell .project-card,
+.app-main-shell .filter-card,
+.app-main-shell .reminder,
+.app-main-shell .total-box,
+.card,
+.soft-box,
+.mini-card,
+.review-card,
+.empty-state,
+.project-card,
+.filter-card {
+  background: #ffffff !important;
+  border-color: #ead4d4 !important;
+  box-shadow: 0 12px 30px rgba(17, 17, 17, .07) !important;
+}
+
+.app-main-shell .stat-card.compact-dashboard-stat-card::after,
+.main-dashboard-no-sidebar .stat-card.compact-dashboard-stat-card::after {
+  background: #b91c1c !important;
+}
+
+.app-main-shell .stat-card.compact-dashboard-stat-card:nth-child(4)::after,
+.main-dashboard-no-sidebar .stat-card.compact-dashboard-stat-card:nth-child(4)::after {
+  background: #111111 !important;
+}
+
+.app-main-shell .icon-box,
+.icon-box,
+.main-dashboard-no-sidebar .icon-box,
+.main-dashboard-no-sidebar .stat-card .stat-card-icon {
+  background: #fff1f2 !important;
+  color: #b91c1c !important;
+  border: 1px solid #fecaca !important;
+  box-shadow: inset 0 0 0 1px rgba(185, 28, 28, .08) !important;
+}
+
+.icon-box.dark,
+.app-main-shell .icon-box.dark,
+.main-dashboard-no-sidebar .section-header .icon-box.dark {
+  background: #111111 !important;
+  color: #ffffff !important;
+  border-color: #111111 !important;
+}
+
+.section-header,
+.app-main-shell .section-header,
+.main-dashboard-no-sidebar .section-header {
+  border-bottom-color: #ead4d4 !important;
+}
+
+.section-header h3,
+.app-main-shell .section-header h3,
+.main-dashboard-no-sidebar .section-header h3,
+.card h3,
+.project-card h3,
+.page-context-card h2 {
+  color: #111111 !important;
+}
+
+.muted,
+.small,
+.card p,
+.project-card p,
+td p {
+  color: #6b7280 !important;
+}
+
+/* Buttons and controls */
+.primary,
+.app-main-shell .primary,
+.main-dashboard-no-sidebar .primary,
+.app-main-shell .secondary,
+.main-dashboard-no-sidebar .secondary:not(.wide):not(.min-button-width) {
+  background: #b91c1c !important;
+  color: #ffffff !important;
+  border-color: #b91c1c !important;
+  box-shadow: 0 10px 20px rgba(185, 28, 28, .16) !important;
+}
+
+.secondary,
+.ghost-button,
+.compact-button:not(.danger):not(.warning):not(.success),
+.app-main-shell .ghost-button,
+.app-main-shell .compact-button:not(.danger):not(.warning):not(.success),
+.main-dashboard-no-sidebar .ghost-button,
+.main-dashboard-no-sidebar .compact-button:not(.danger):not(.warning):not(.success) {
+  background: #fff7f7 !important;
+  color: #7f1d1d !important;
+  border: 1px solid #fecaca !important;
+  box-shadow: none !important;
+}
+
+.success { background: #15803d !important; color: #ffffff !important; }
+.warning { background: #b45309 !important; color: #ffffff !important; }
+.danger { background: #fee2e2 !important; color: #ffffff !important; }
+
+input,
+textarea,
+select,
+.input-icon,
+.app-main-shell input,
+.app-main-shell textarea,
+.app-main-shell select,
+.app-main-shell .input-icon,
+.main-dashboard-no-sidebar input,
+.main-dashboard-no-sidebar textarea,
+.main-dashboard-no-sidebar select,
+.main-dashboard-no-sidebar .input-icon {
+  background: #ffffff !important;
+  border-color: #e5e7eb !important;
+  color: #111111 !important;
+}
+
+input:focus,
+textarea:focus,
+select:focus,
+.app-main-shell input:focus,
+.app-main-shell textarea:focus,
+.app-main-shell select:focus,
+.main-dashboard-no-sidebar input:focus,
+.main-dashboard-no-sidebar textarea:focus,
+.main-dashboard-no-sidebar select:focus {
+  border-color: #b91c1c !important;
+  box-shadow: 0 0 0 4px rgba(185, 28, 28, .13) !important;
+}
+
+/* Tables, progress, messages */
+.table-wrap,
+.invitation-table-wrap,
+.rubric-table-wrap,
+.app-main-shell .table-wrap,
+.app-main-shell .invitation-table-wrap,
+.app-main-shell .rubric-table-wrap,
+.main-dashboard-no-sidebar .table-wrap,
+.main-dashboard-no-sidebar .invitation-table-wrap,
+.main-dashboard-no-sidebar .rubric-table-wrap {
+  border-color: #ead4d4 !important;
+  background: #ffffff !important;
+}
+
+th,
+.app-main-shell th,
+.main-dashboard-no-sidebar th {
+  background: #fff1f2 !important;
+  color: #7f1d1d !important;
+  border-bottom-color: #fecaca !important;
+}
+
+td,
+.app-main-shell td,
+.main-dashboard-no-sidebar td {
+  border-bottom-color: #f1e3e3 !important;
+}
+
+tbody tr:hover,
+.app-main-shell tbody tr:hover,
+.main-dashboard-no-sidebar tbody tr:hover {
+  background: #fff7f7 !important;
+}
+
+.progress,
+.app-main-shell .progress,
+.main-dashboard-no-sidebar .progress {
+  background: #e5e7eb !important;
+}
+
+.progress div,
+.app-main-shell .progress div,
+.main-dashboard-no-sidebar .progress > div {
+  background: linear-gradient(90deg, #ef4444, #991b1b) !important;
+}
+
+.message,
+.app-main-shell .message,
+.main-dashboard-no-sidebar .message {
+  background: #fff1f2 !important;
+  color: #7f1d1d !important;
+  border-color: #fecaca !important;
+}
+
+.total-box {
+  background: #111111 !important;
+  color: #ffffff !important;
+  border-color: #111111 !important;
+}
+
+/* Status pills */
+.pill.blue,
+.pill.slate,
+.status-chip {
+  background: #f9fafb !important;
+  color: #111827 !important;
+  border-color: #e5e7eb !important;
+}
+
+.pill.green { background: #f0fdf4 !important; color: #166534 !important; border-color: #bbf7d0 !important; }
+.pill.amber { background: #fffbeb !important; color: #92400e !important; border-color: #fde68a !important; }
+.pill.red { background: #fff1f2 !important; color: #991b1b !important; border-color: #fecaca !important; }
+
+/* Admin subdomain/control center visual alignment */
+.admin-portal-shell,
+.admin-panel-page {
+  background: linear-gradient(135deg, #f7f7f8 0%, #fff7f7 54%, #ffffff 100%) !important;
+}
+
+.admin-sidebar,
+.admin-side-nav,
+.admin-portal-sidebar {
+  background: linear-gradient(180deg, #dc2626 0%, #b91c1c 58%, #991b1b 100%) !important;
+  border-color: rgba(185, 28, 28, .34) !important;
+}
+
+.admin-side-nav button,
+.admin-sidebar button {
+  color: rgba(255, 255, 255, .82) !important;
+}
+
+.admin-side-nav button svg,
+.admin-sidebar button svg {
+  color: #fee2e2 !important;
+}
+
+.admin-side-nav button.active,
+.admin-side-nav button:hover,
+.admin-sidebar button.active,
+.admin-sidebar button:hover {
+  background: rgba(255, 255, 255, .18) !important;
+  border-color: rgba(254, 202, 202, .48) !important;
+  color: #ffffff !important;
+}
+
+.admin-panel-topbar,
+.admin-portal-header {
+  background: linear-gradient(90deg, #dc2626 0%, #b91c1c 58%, #991b1b 100%) !important;
+  color: #ffffff !important;
+  border-color: rgba(254, 202, 202, .30) !important;
+}
+
+.admin-panel-topbar h1,
+.admin-portal-header h1,
+.admin-panel-topbar p,
+.admin-portal-header p {
+  color: #ffffff !important;
+}
+
+.admin-management-card,
+.admin-denied-card,
+.admin-hero-preview,
+.admin-image-preview,
+.settings-note {
+  background: #ffffff !important;
+  border-color: #ead4d4 !important;
+}
+
+/* Mobile sidebar/header */
+.sidebar-backdrop {
+  background: rgba(17, 17, 17, .54) !important;
+}
+
+@media (max-width: 900px) {
+  .app-main-shell .mobile-tabs button {
+    background: #ffffff !important;
+    color: #7f1d1d !important;
+    border-color: #fecaca !important;
+  }
+  .app-main-shell .mobile-tabs button.active {
+    background: #b91c1c !important;
+    color: #ffffff !important;
+  }
+}
+
+/* =========================================================
+   Custom dark charcoal + warm cream theme override
+   User requested:
+   - Sidebar/top header: #4d4c4d
+   - Cards/background surfaces: #ffffff
+   Visual-only CSS override. No logic or Supabase changes.
+   ========================================================= */
+:root {
+  --bg: #ffffff;
+  --card: #ffffff;
+  --card-soft: #ffffff;
+  --input: #ffffff;
+  --text: #4d4c4d;
+  --muted: #67635a;
+  --border: rgba(41, 40, 41, .18);
+  --accent: #b91c1c;
+  --accent-text: #ffffff;
+  --shadow: rgba(41, 40, 41, .10);
+  --theme-charcoal: #4d4c4d;
+  --theme-cream: #ffffff;
+  --theme-cream-soft: #ffffff;
+  --theme-cream-border: rgba(41, 40, 41, .16);
+  --main-ink: #4d4c4d;
+  --main-muted: #67635a;
+  --main-border: rgba(41, 40, 41, .16);
+  --main-surface: #ffffff;
+}
+
+body,
+.app,
+.app-main-shell,
+.app-main-shell.main-dashboard-with-sidebar,
+.admin-portal-shell,
+.admin-panel-page,
+.login-page {
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+}
+
+/* Main sidebar and top header */
+.app-main-shell .main-sidebar,
+.app-main-shell.main-dashboard-with-sidebar .main-sidebar,
+.admin-sidebar,
+.admin-side-nav,
+.admin-portal-sidebar {
+  background: #4d4c4d !important;
+  border-color: rgba(250, 250, 227, .18) !important;
+  box-shadow: 12px 0 30px rgba(41, 40, 41, .22) !important;
+}
+
+.main-compact-header,
+.dashboard-topbar,
+.admin-panel-topbar,
+.admin-portal-header {
+  background: #4d4c4d !important;
+  border-color: rgba(250, 250, 227, .18) !important;
+  box-shadow: 0 12px 26px rgba(41, 40, 41, .16) !important;
+  color: #ffffff !important;
+}
+
+.main-compact-header :where(b, strong, h1, h2, h3, span),
+.dashboard-topbar :where(b, strong, h1, h2, h3, span),
+.admin-panel-topbar :where(b, strong, h1, h2, h3, span),
+.admin-portal-header :where(b, strong, h1, h2, h3, span) {
+  color: #ffffff !important;
+}
+
+.main-compact-header .muted,
+.main-compact-header small,
+.dashboard-topbar p,
+.dashboard-topbar .muted,
+.admin-panel-topbar p,
+.admin-portal-header p {
+  color: rgba(250, 250, 227, .72) !important;
+}
+
+/* Sidebar brand/navigation on charcoal */
+.sidebar-brand,
+.sidebar-role-card {
+  background: rgba(250, 250, 227, .08) !important;
+  border-color: rgba(250, 250, 227, .22) !important;
+  box-shadow: none !important;
+}
+
+.sidebar-brand b,
+.sidebar-role-card strong,
+.admin-sidebar :where(h1, h2, h3, strong, b),
+.admin-side-nav :where(h1, h2, h3, strong, b) {
+  color: #ffffff !important;
+}
+
+.sidebar-brand span,
+.sidebar-role-card span,
+.sidebar-role-card small,
+.admin-sidebar p,
+.admin-side-nav p {
+  color: rgba(250, 250, 227, .68) !important;
+}
+
+.main-side-nav button,
+.admin-side-nav button,
+.admin-sidebar button {
+  color: rgba(250, 250, 227, .82) !important;
+  border-color: transparent !important;
+}
+
+.main-side-nav button svg,
+.main-side-nav .side-nav-icon svg,
+.admin-side-nav button svg,
+.admin-sidebar button svg {
+  color: rgba(250, 250, 227, .86) !important;
+}
+
+.main-side-nav .side-nav-icon {
+  background: rgba(250, 250, 227, .10) !important;
+  border-color: rgba(250, 250, 227, .20) !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+.main-side-nav button:hover,
+.main-side-nav button.active,
+.admin-side-nav button:hover,
+.admin-side-nav button.active,
+.admin-sidebar button:hover,
+.admin-sidebar button.active {
+  background: #ffffff !important;
+  border-color: #ffffff !important;
+  color: #4d4c4d !important;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, .16) !important;
+}
+
+.main-side-nav button:hover svg,
+.main-side-nav button.active svg,
+.main-side-nav button:hover .side-nav-icon,
+.main-side-nav button.active .side-nav-icon,
+.admin-side-nav button:hover svg,
+.admin-side-nav button.active svg,
+.admin-sidebar button:hover svg,
+.admin-sidebar button.active svg {
+  color: #4d4c4d !important;
+}
+
+.main-side-nav button:hover .side-nav-icon,
+.main-side-nav button.active .side-nav-icon {
+  background: rgba(41, 40, 41, .08) !important;
+  border-color: rgba(41, 40, 41, .14) !important;
+}
+
+.main-side-nav button.active::before {
+  background: #b91c1c !important;
+}
+
+/* Header controls on charcoal */
+.top-about-link,
+.top-scholar-link,
+.role-switch-compact,
+.role-switch-dropdown,
+.role-mode-select,
+.main-notification-button,
+.sidebar-menu-toggle {
+  background: rgba(250, 250, 227, .10) !important;
+  color: #ffffff !important;
+  border-color: rgba(250, 250, 227, .28) !important;
+  box-shadow: none !important;
+}
+
+.top-about-link:hover,
+.top-about-link.active,
+.top-scholar-link:hover,
+.top-scholar-link:focus-visible,
+.main-notification-button:hover,
+.main-notification-button.active,
+.role-switch-dropdown:hover,
+.role-switch-compact:hover {
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+  border-color: #ffffff !important;
+}
+
+.top-about-icon,
+.main-notification-button svg,
+.sidebar-menu-toggle span {
+  color: #ffffff !important;
+}
+
+.top-about-link:hover .top-about-icon,
+.top-about-link.active .top-about-icon,
+.top-scholar-link:hover .top-about-icon,
+.main-notification-button:hover svg,
+.main-notification-button.active svg {
+  color: #4d4c4d !important;
+}
+
+.main-header-actions .student-profile-trigger,
+.main-header-actions .student-profile-trigger.redesigned,
+.main-header-actions .user-profile-menu .student-profile-trigger.redesigned,
+.student-profile-trigger {
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+  border-color: rgba(250, 250, 227, .35) !important;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, .16) !important;
+}
+
+.main-profile-summary {
+  border-left-color: rgba(250, 250, 227, .18) !important;
+}
+
+.main-profile-summary b {
+  color: #ffffff !important;
+}
+
+.main-profile-summary small {
+  color: rgba(250, 250, 227, .70) !important;
+}
+
+/* Warm cream cards/surfaces */
+.card,
+.stat-card,
+.soft-box,
+.mini-card,
+.review-card,
+.empty-state,
+.project-card,
+.filter-card,
+.reminder,
+.total-box,
+.table-wrap,
+.invitation-table-wrap,
+.rubric-table-wrap,
+.login-card,
+.message,
+.three-cols div,
+.report-grid p,
+.admin-management-card,
+.admin-denied-card,
+.admin-hero-preview,
+.admin-image-preview,
+.settings-note,
+.about-us-hero-card,
+.about-us-content-card,
+.rich-editor-toolbar,
+.rich-text-editor,
+.student-profile-dropdown,
+.student-profile-dropdown.redesigned-profile-card,
+.user-profile-menu .student-profile-dropdown.redesigned-profile-card,
+.profile-info-grid > div,
+.project-progress-card-surface,
+.project-progress-wide-card,
+.admin-users-and-roles-card,
+.admin-assignment-card,
+.admin-delete-management-card,
+.admin-user-management-card {
+  background: #ffffff !important;
+  border-color: rgba(41, 40, 41, .16) !important;
+  color: #4d4c4d !important;
+  box-shadow: 0 10px 24px rgba(41, 40, 41, .08) !important;
+}
+
+.soft-box,
+.mini-card,
+.review-card,
+.empty-state,
+.card .soft-box,
+.card .mini-card,
+.filter-card,
+.report-grid p,
+.three-cols div {
+  background: #ffffff !important;
+}
+
+.section-header,
+.app-main-shell .section-header,
+.main-dashboard-no-sidebar .section-header {
+  border-bottom-color: rgba(41, 40, 41, .14) !important;
+}
+
+.section-header h3,
+.card h3,
+.project-card h3,
+.page-context-card h2,
+.about-us-hero-card h1,
+.about-us-rich-content :where(h1, h2, h3, h4),
+.empty-state h3,
+.empty-state h4 {
+  color: #4d4c4d !important;
+}
+
+.muted,
+.small,
+.card p,
+.project-card p,
+td p,
+.about-us-hero-card p:not(.eyebrow),
+.about-us-rich-content {
+  color: #67635a !important;
+}
+
+/* Inputs, tables, and inner controls stay cream with clear borders */
+input,
+textarea,
+select,
+.input-icon,
+.rich-editor-toolbar button,
+.rich-editor-toolbar select,
+.toolbar-upload-button,
+.toolbar-color-field {
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+  border-color: rgba(41, 40, 41, .20) !important;
+}
+
+input:focus,
+textarea:focus,
+select:focus,
+.rich-text-editor:focus {
+  border-color: #4d4c4d !important;
+  box-shadow: 0 0 0 4px rgba(41, 40, 41, .10) !important;
+}
+
+th,
+.app-main-shell th,
+.main-dashboard-no-sidebar th {
+  background: rgba(41, 40, 41, .08) !important;
+  color: #4d4c4d !important;
+  border-bottom-color: rgba(41, 40, 41, .18) !important;
+}
+
+td,
+.app-main-shell td,
+.main-dashboard-no-sidebar td {
+  border-bottom-color: rgba(41, 40, 41, .12) !important;
+}
+
+tbody tr:hover,
+.app-main-shell tbody tr:hover,
+.main-dashboard-no-sidebar tbody tr:hover {
+  background: rgba(41, 40, 41, .045) !important;
+}
+
+/* Keep important action colors readable */
+.primary,
+.app-main-shell .primary,
+.main-dashboard-no-sidebar .primary {
+  background: #4d4c4d !important;
+  color: #ffffff !important;
+  border-color: #4d4c4d !important;
+  box-shadow: 0 10px 20px rgba(41, 40, 41, .18) !important;
+}
+
+.secondary,
+.ghost-button,
+.compact-button:not(.danger):not(.warning):not(.success),
+.app-main-shell .secondary,
+.app-main-shell .ghost-button,
+.app-main-shell .compact-button:not(.danger):not(.warning):not(.success),
+.profile-menu-button.subtle {
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+  border: 1px solid rgba(41, 40, 41, .22) !important;
+  box-shadow: none !important;
+}
+
+.icon-box,
+.app-main-shell .icon-box,
+.main-dashboard-no-sidebar .icon-box,
+.main-dashboard-no-sidebar .stat-card .stat-card-icon {
+  background: rgba(41, 40, 41, .08) !important;
+  color: #4d4c4d !important;
+  border: 1px solid rgba(41, 40, 41, .14) !important;
+  box-shadow: none !important;
+}
+
+.icon-box.dark,
+.app-main-shell .icon-box.dark,
+.main-dashboard-no-sidebar .section-header .icon-box.dark {
+  background: #4d4c4d !important;
+  color: #ffffff !important;
+  border-color: #4d4c4d !important;
+}
+
+.progress,
+.app-main-shell .progress,
+.main-dashboard-no-sidebar .progress {
+  background: rgba(41, 40, 41, .14) !important;
+}
+
+.progress div,
+.app-main-shell .progress div,
+.main-dashboard-no-sidebar .progress > div {
+  background: #4d4c4d !important;
+}
+
+.app-main-shell .stat-card.compact-dashboard-stat-card::after,
+.main-dashboard-no-sidebar .stat-card.compact-dashboard-stat-card::after,
+.stat-average-progress::after,
+.stat-my-progress::after {
+  background: #4d4c4d !important;
+}
+
+.message,
+.app-main-shell .message,
+.main-dashboard-no-sidebar .message {
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+  border-color: rgba(41, 40, 41, .18) !important;
+}
+
+.pill.blue,
+.pill.slate,
+.status-chip {
+  background: rgba(41, 40, 41, .08) !important;
+  color: #4d4c4d !important;
+  border-color: rgba(41, 40, 41, .16) !important;
+}
+
+/* Mobile overlay */
+.sidebar-backdrop {
+  background: rgba(41, 40, 41, .54) !important;
+}
+
+/* Final charcoal/white cleanup: remove remaining light-blue UI accents from logged-in app */
+:root {
+  --charcoal: #4d4c4d;
+  --text-charcoal: #4d4c4d;
+  --text-primary: #4d4c4d;
+  --surface-white: #ffffff;
+  --surface-cream: #ffffff;
+  --border-neutral: rgba(41, 40, 41, .16);
+  --border-neutral-strong: rgba(41, 40, 41, .26);
+}
+
+/* Keep the requested charcoal shell while using clean white content surfaces */
+.app-main-shell,
+.main-dashboard-no-sidebar,
+body:has(.app-main-shell) {
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+}
+
+.app-main-shell .main-sidebar,
+.main-compact-header,
+.dashboard-topbar,
+.admin-layout .admin-sidebar,
+.admin-topbar,
+.admin-header {
+  background: #4d4c4d !important;
+  color: #ffffff !important;
+  border-color: rgba(250, 250, 227, .16) !important;
+  box-shadow: 0 14px 34px rgba(41, 40, 41, .18) !important;
+}
+
+/* Sidebar/header text must stay readable on charcoal; active items invert to white/charcoal. */
+.main-sidebar :where(.sidebar-brand b, .sidebar-brand span, .sidebar-role-card span, .sidebar-role-card small, .sidebar-role-card strong),
+.main-side-nav button,
+.main-side-nav button svg,
+.main-side-nav button .side-nav-icon,
+.main-compact-header :where(h1, h2, h3, b, strong, span, small, p),
+.dashboard-topbar :where(h1, h2, h3, b, strong, span, small, p),
+.admin-sidebar :where(b, strong, span, small, button),
+.admin-topbar :where(b, strong, span, small, p) {
+  color: #ffffff !important;
+}
+
+.main-side-nav button:hover,
+.main-side-nav button.active,
+.admin-side-nav button:hover,
+.admin-side-nav button.active,
+.admin-sidebar button:hover,
+.admin-sidebar button.active {
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+  border-color: rgba(41, 40, 41, .14) !important;
+}
+
+.main-side-nav button:hover svg,
+.main-side-nav button.active svg,
+.main-side-nav button:hover .side-nav-icon,
+.main-side-nav button.active .side-nav-icon,
+.admin-side-nav button:hover svg,
+.admin-side-nav button.active svg,
+.admin-sidebar button:hover svg,
+.admin-sidebar button.active svg,
+.admin-side-nav button:hover span,
+.admin-side-nav button.active span,
+.admin-sidebar button:hover span,
+.admin-sidebar button.active span {
+  color: #4d4c4d !important;
+}
+
+/* Cards, tables, forms, dropdowns, project/review/report/deadline/question areas = white. */
+.app-main-shell :where(
+  .card,
+  .stat-card,
+  .summary-card,
+  .dashboard-card,
+  .overview-card,
+  .metric-card,
+  .soft-box,
+  .mini-card,
+  .review-card,
+  .empty-state,
+  .project-card,
+  .filter-card,
+  .reminder,
+  .total-box,
+  .table-wrap,
+  .invitation-table-wrap,
+  .rubric-table-wrap,
+  .message,
+  .three-cols div,
+  .report-grid p,
+  .admin-management-card,
+  .admin-denied-card,
+  .admin-hero-preview,
+  .admin-image-preview,
+  .settings-note,
+  .about-us-hero-card,
+  .about-us-content-card,
+  .rich-editor-toolbar,
+  .rich-text-editor,
+  .student-profile-dropdown,
+  .redesigned-profile-card,
+  .profile-info-grid > div,
+  .project-progress-card-surface,
+  .project-progress-wide-card,
+  .admin-users-and-roles-card,
+  .admin-assignment-card,
+  .admin-delete-management-card,
+  .admin-user-management-card,
+  .question-card,
+  .student-weekly-report-card,
+  .deadline-card,
+  .group-card,
+  .managed-item,
+  .page-context-card,
+  .profile-settings-card,
+  .profile-settings-hero,
+  .admin-profile-card,
+  .notification-card,
+  .question-answer-box
+),
+.admin-layout :where(
+  .card,
+  .stat-card,
+  .summary-card,
+  .dashboard-card,
+  .overview-card,
+  .metric-card,
+  .soft-box,
+  .mini-card,
+  .review-card,
+  .empty-state,
+  .project-card,
+  .filter-card,
+  .reminder,
+  .total-box,
+  .table-wrap,
+  .invitation-table-wrap,
+  .rubric-table-wrap,
+  .message,
+  .three-cols div,
+  .report-grid p,
+  .admin-management-card,
+  .admin-denied-card,
+  .admin-hero-preview,
+  .admin-image-preview,
+  .settings-note,
+  .rich-editor-toolbar,
+  .rich-text-editor,
+  .student-profile-dropdown,
+  .redesigned-profile-card,
+  .profile-info-grid > div,
+  .project-progress-card-surface,
+  .project-progress-wide-card,
+  .admin-users-and-roles-card,
+  .admin-assignment-card,
+  .admin-delete-management-card,
+  .admin-user-management-card,
+  .question-card,
+  .deadline-card,
+  .group-card,
+  .managed-item,
+  .profile-settings-card,
+  .profile-settings-hero
+) {
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+  border-color: rgba(41, 40, 41, .14) !important;
+  box-shadow: 0 10px 24px rgba(41, 40, 41, .07) !important;
+}
+
+/* Charcoal text for all main content labels, names, titles, and table/form text. */
+.app-main-shell main.app-content-panel :where(
+  h1, h2, h3, h4, h5, h6,
+  p, b, strong, span, small, label,
+  td, th, li, dt, dd,
+  .section-header h3,
+  .section-header p,
+  .card-title,
+  .project-title,
+  .project-card-title,
+  .project-members-title,
+  .project-member-chip,
+  .project-member-chip b,
+  .member-name,
+  .student-name,
+  .supervisor-name,
+  .committee-name,
+  .profile-display-name,
+  .notification-title,
+  .notification-card,
+  .deadline-title,
+  .weekly-report-title,
+  .question-title,
+  .question-text,
+  .answer-text,
+  .project-progress-title,
+  .report-title,
+  .tab-label
+),
+.admin-layout main :where(
+  h1, h2, h3, h4, h5, h6,
+  p, b, strong, span, small, label,
+  td, th, li, dt, dd,
+  .section-header h3,
+  .section-header p,
+  .card-title,
+  .project-title,
+  .project-card-title,
+  .project-members-title,
+  .project-member-chip,
+  .project-member-chip b,
+  .member-name,
+  .student-name,
+  .supervisor-name,
+  .committee-name,
+  .profile-display-name,
+  .notification-title,
+  .deadline-title,
+  .weekly-report-title,
+  .question-title,
+  .question-text,
+  .answer-text,
+  .project-progress-title,
+  .report-title,
+  .tab-label
+) {
+  color: #4d4c4d !important;
+}
+
+.app-main-shell main.app-content-panel :where(.muted, .small, .hint, .description, .subtitle, .subtext),
+.admin-layout main :where(.muted, .small, .hint, .description, .subtitle, .subtext) {
+  color: rgba(41, 40, 41, .68) !important;
+}
+
+/* White avatar/name/initial circles with charcoal initials. */
+:where(
+  .status-avatar,
+  .small-avatar,
+  .profile-avatar-shell,
+  .profile-photo-preview,
+  .avatar,
+  .user-avatar,
+  .initials-avatar,
+  .student-avatar,
+  .member-avatar,
+  .profile-initials,
+  .admin-profile-mini .status-avatar,
+  .student-profile-trigger,
+  .student-profile-trigger.redesigned,
+  .main-header-actions .student-profile-trigger,
+  .main-header-actions .student-profile-trigger.redesigned,
+  .main-header-actions .user-profile-menu .student-profile-trigger.redesigned,
+  .sidebar-logo-mark,
+  .admin-logo-mark,
+  .icon-circle,
+  .name-circle
+) {
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+  border: 1px solid rgba(41, 40, 41, .16) !important;
+  box-shadow: 0 8px 18px rgba(41, 40, 41, .08) !important;
+}
+
+:where(.status-avatar, .small-avatar, .profile-avatar-shell, .profile-photo-preview, .avatar, .user-avatar, .initials-avatar) img {
+  background: #ffffff !important;
+}
+
+/* Project members are white chips with charcoal names; only leader badge gets contrast. */
+.project-members-compact,
+.project-member-chips,
+.project-member-chip {
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+  border-color: rgba(41, 40, 41, .14) !important;
+}
+
+.project-member-chip b,
+.project-members-title,
+.project-members-title svg,
+.project-members-empty {
+  color: #4d4c4d !important;
+}
+
+.project-member-chip.leader {
+  background: #ffffff !important;
+  border-color: rgba(41, 40, 41, .24) !important;
+}
+
+.project-member-chip.leader small,
+.pill.blue,
+.pill.slate,
+.status-chip,
+.tab-badge,
+.badge,
+.role-badge {
+  background: #4d4c4d !important;
+  color: #ffffff !important;
+  border-color: #4d4c4d !important;
+}
+
+/* Inputs/dropdowns use white backgrounds and charcoal text. */
+.app-main-shell :where(input, textarea, select, .input-icon),
+.admin-layout :where(input, textarea, select, .input-icon),
+.rich-editor-toolbar :where(button, select, input),
+.toolbar-upload-button,
+.toolbar-color-field {
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+  border-color: rgba(41, 40, 41, .20) !important;
+}
+
+.app-main-shell :where(input, textarea, select):focus,
+.admin-layout :where(input, textarea, select):focus,
+.rich-text-editor:focus {
+  border-color: #4d4c4d !important;
+  box-shadow: 0 0 0 4px rgba(41, 40, 41, .10) !important;
+}
+
+/* Remove lingering light-blue text/icon colors from content areas. */
+.app-main-shell main.app-content-panel :where(a, svg:not(.lucide-check):not(.lucide-x)),
+.admin-layout main :where(a, svg:not(.lucide-check):not(.lucide-x)) {
+  color: #4d4c4d !important;
+}
+
+.icon-box,
+.stat-card .stat-card-icon,
+.app-main-shell .icon-box,
+.main-dashboard-no-sidebar .icon-box,
+.main-dashboard-no-sidebar .stat-card .stat-card-icon {
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+  border: 1px solid rgba(41, 40, 41, .16) !important;
+}
+
+.icon-box.dark,
+.app-main-shell .icon-box.dark,
+.main-dashboard-no-sidebar .section-header .icon-box.dark {
+  background: #4d4c4d !important;
+  color: #ffffff !important;
+  border-color: #4d4c4d !important;
+}
+
+/* Role dropdown: compact with a visible chevron arrow. */
+.role-switch-dropdown,
+.role-switch-compact,
+.role-mode-select {
+  display: inline-flex !important;
+  align-items: center !important;
+  width: fit-content !important;
+  min-width: 0 !important;
+  max-width: max-content !important;
+  flex: 0 0 auto !important;
+  flex-grow: 0 !important;
+  gap: 6px !important;
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+  border: 1px solid rgba(41, 40, 41, .18) !important;
+  box-shadow: 0 8px 18px rgba(41, 40, 41, .08) !important;
+}
+
+.role-switch-dropdown span,
+.role-switch-compact span {
+  color: rgba(41, 40, 41, .70) !important;
+}
+
+.role-switch-dropdown select,
+.role-switch-compact select,
+.role-mode-select select {
+  color: #4d4c4d !important;
+  background-color: transparent !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234d4c4d' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 2px center !important;
+  background-size: 14px 14px !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  padding-right: 20px !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: max-content !important;
+  flex: 0 0 auto !important;
+}
+
+.role-switch-dropdown:hover,
+.role-switch-compact:hover,
+.role-mode-select:hover {
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+  border-color: rgba(41, 40, 41, .28) !important;
+}
+
+/* Top header quick links remain compact and readable on charcoal. */
+.top-about-link,
+.top-scholar-link,
+.main-notification-button,
+.sidebar-menu-toggle {
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+  border-color: rgba(41, 40, 41, .18) !important;
+}
+
+.top-about-link :where(span, b),
+.top-scholar-link :where(span, b),
+.top-about-icon,
+.top-scholar-link .top-about-icon,
+.main-notification-button svg,
+.sidebar-menu-toggle span {
+  color: #4d4c4d !important;
+}
+
+.top-about-link:hover,
+.top-about-link.active,
+.top-scholar-link:hover,
+.top-scholar-link:focus-visible,
+.main-notification-button:hover,
+.main-notification-button.active,
+.sidebar-menu-toggle:hover {
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+  border-color: rgba(41, 40, 41, .28) !important;
+}
+
+/* Progress and subtle hover states use charcoal instead of blue. */
+.progress,
+.app-main-shell .progress,
+.main-dashboard-no-sidebar .progress {
+  background: rgba(41, 40, 41, .14) !important;
+}
+.progress div,
+.app-main-shell .progress div,
+.main-dashboard-no-sidebar .progress > div,
+.admin-progress-inline .progress > div {
+  background: #4d4c4d !important;
+}
+
+.app-main-shell .stat-card.compact-dashboard-stat-card::after,
+.main-dashboard-no-sidebar .stat-card.compact-dashboard-stat-card::after,
+.stat-average-progress::after,
+.stat-my-progress::after,
+.stat-deadlines::after {
+  background: #4d4c4d !important;
+}
+
+/* Preserve semantic action colors only for actual action/status buttons. */
+.success, .success button, button.success { color: #ffffff !important; }
+.warning, .warning button, button.warning { color: #4d4c4d !important; }
+.danger, .danger button, button.danger { color: #ffffff !important; }
+
+/* =========================================================
+   Final icon-tile cleanup
+   Make card/section icon blocks match the clean rounded-square style:
+   white background, charcoal icon, soft gray border.
+   ========================================================= */
+:root {
+  --icon-tile-bg: #ffffff;
+  --icon-tile-ink: #4d4c4d;
+  --icon-tile-border: rgba(41, 40, 41, .18);
+}
+
+.app-main-shell :where(
+  .icon-box,
+  .icon-box.dark,
+  .stat-card-icon,
+  .stat-card .stat-card-icon,
+  .section-header .icon-box,
+  .section-header .icon-box.dark,
+  .dashboard-card-icon,
+  .summary-card-icon,
+  .overview-card-icon,
+  .metric-card-icon,
+  .card-icon,
+  .empty-state-icon,
+  .profile-section-icon,
+  .admin-section-icon,
+  .project-card-icon,
+  .deadline-card-icon,
+  .question-card-icon,
+  .report-card-icon,
+  .group-card-icon,
+  .notification-card-icon
+),
+.main-dashboard-no-sidebar :where(
+  .icon-box,
+  .icon-box.dark,
+  .stat-card-icon,
+  .stat-card .stat-card-icon,
+  .section-header .icon-box,
+  .section-header .icon-box.dark,
+  .dashboard-card-icon,
+  .summary-card-icon,
+  .overview-card-icon,
+  .metric-card-icon,
+  .card-icon,
+  .empty-state-icon
+),
+.admin-layout :where(
+  .icon-box,
+  .icon-box.dark,
+  .stat-card-icon,
+  .stat-card .stat-card-icon,
+  .section-header .icon-box,
+  .section-header .icon-box.dark,
+  .dashboard-card-icon,
+  .summary-card-icon,
+  .overview-card-icon,
+  .metric-card-icon,
+  .card-icon,
+  .empty-state-icon,
+  .admin-section-icon
+) {
+  background: var(--icon-tile-bg) !important;
+  color: var(--icon-tile-ink) !important;
+  border: 1px solid var(--icon-tile-border) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 8px 18px rgba(41, 40, 41, .06) !important;
+}
+
+.app-main-shell :where(
+  .icon-box,
+  .icon-box.dark,
+  .stat-card-icon,
+  .section-header .icon-box,
+  .dashboard-card-icon,
+  .summary-card-icon,
+  .overview-card-icon,
+  .metric-card-icon,
+  .card-icon,
+  .empty-state-icon,
+  .profile-section-icon,
+  .admin-section-icon,
+  .project-card-icon,
+  .deadline-card-icon,
+  .question-card-icon,
+  .report-card-icon,
+  .group-card-icon,
+  .notification-card-icon
+) :where(svg, i, span),
+.main-dashboard-no-sidebar :where(
+  .icon-box,
+  .icon-box.dark,
+  .stat-card-icon,
+  .section-header .icon-box,
+  .dashboard-card-icon,
+  .summary-card-icon,
+  .overview-card-icon,
+  .metric-card-icon,
+  .card-icon,
+  .empty-state-icon
+) :where(svg, i, span),
+.admin-layout :where(
+  .icon-box,
+  .icon-box.dark,
+  .stat-card-icon,
+  .section-header .icon-box,
+  .dashboard-card-icon,
+  .summary-card-icon,
+  .overview-card-icon,
+  .metric-card-icon,
+  .card-icon,
+  .empty-state-icon,
+  .admin-section-icon
+) :where(svg, i, span) {
+  color: var(--icon-tile-ink) !important;
+  stroke: currentColor !important;
+}
+
+/* Keep sidebar navigation icons separate: white tile on charcoal sidebar, charcoal icon. */
+.main-side-nav .side-nav-icon,
+.admin-side-nav .side-nav-icon,
+.admin-sidebar .side-nav-icon {
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+  border-color: rgba(255, 255, 255, .55) !important;
+  border-radius: 12px !important;
+}
+
+.main-side-nav .side-nav-icon svg,
+.admin-side-nav .side-nav-icon svg,
+.admin-sidebar .side-nav-icon svg {
+  color: #4d4c4d !important;
+  stroke: currentColor !important;
+}
+
+/* =========================================================
+   Targeted correction: keep cream project cards, fix dark icons
+   and clean delete/remove buttons.
+   ========================================================= */
+:root {
+  --charcoal: #4d4c4d;
+  --danger-red: #b91c1c;
+  --danger-border: #fecaca;
+  --danger-hover-bg: #fef2f2;
+  --cream-surface: #ffffff;
+}
+
+/* Keep intentionally cream/yellow project/workflow cards instead of forcing white. */
+:where(
+  .admin-research-title-card .managed-item,
+  .admin-delete-management-card .managed-item,
+  .admin-project-progress-card .managed-item,
+  .admin-report-deletion-card .managed-item,
+  .project-card.cream,
+  .research-title-card,
+  .title-deletion-card
+) {
+  background: var(--cream-surface) !important;
+  color: var(--charcoal) !important;
+  border-color: rgba(185, 28, 28, .18) !important;
+}
+
+/* Icon tiles: no dark filled icon circles/blobs anywhere in content or admin panels. */
+:where(
+  .icon-box,
+  .icon-box.dark,
+  .section-header .icon-box,
+  .section-header .icon-box.dark,
+  .stat-card-icon,
+  .stat-card .stat-card-icon,
+  .dashboard-card-icon,
+  .summary-card-icon,
+  .overview-card-icon,
+  .metric-card-icon,
+  .card-icon,
+  .empty-state-icon,
+  .profile-section-icon,
+  .admin-section-icon,
+  .project-card-icon,
+  .deadline-card-icon,
+  .question-card-icon,
+  .report-card-icon,
+  .group-card-icon,
+  .notification-card-icon,
+  .page-context-card .icon-box,
+  .admin-delete-management-card .icon-box,
+  .admin-research-title-card .icon-box,
+  .admin-project-progress-card .icon-box,
+  .admin-report-deletion-card .icon-box
+) {
+  background: #ffffff !important;
+  color: var(--charcoal) !important;
+  border: 1px solid rgba(41, 40, 41, .18) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 8px 18px rgba(41, 40, 41, .06) !important;
+}
+
+:where(
+  .icon-box,
+  .icon-box.dark,
+  .section-header .icon-box,
+  .section-header .icon-box.dark,
+  .stat-card-icon,
+  .dashboard-card-icon,
+  .summary-card-icon,
+  .overview-card-icon,
+  .metric-card-icon,
+  .card-icon,
+  .empty-state-icon,
+  .profile-section-icon,
+  .admin-section-icon,
+  .project-card-icon,
+  .deadline-card-icon,
+  .question-card-icon,
+  .report-card-icon,
+  .group-card-icon,
+  .notification-card-icon
+) :where(svg, i, span) {
+  color: var(--charcoal) !important;
+  stroke: currentColor !important;
+  fill: none;
+}
+
+/* Clean readable danger/delete/remove buttons: white background, red text/icon. */
+:where(
+  button.danger,
+  .danger,
+  .delete-btn,
+  .danger-btn,
+  .delete-item-button,
+  .admin-panel-delete-button,
+  .ghost-icon-button.danger,
+  .compact-button.danger,
+  .min-button-width.danger
+) {
+  background: #ffffff !important;
+  color: var(--danger-red) !important;
+  border: 1px solid var(--danger-border) !important;
+  box-shadow: 0 8px 18px rgba(185, 28, 28, .08) !important;
+}
+
+:where(
+  button.danger,
+  .danger,
+  .delete-btn,
+  .danger-btn,
+  .delete-item-button,
+  .admin-panel-delete-button,
+  .ghost-icon-button.danger,
+  .compact-button.danger,
+  .min-button-width.danger
+) :where(svg, span, b, strong) {
+  color: var(--danger-red) !important;
+  stroke: currentColor !important;
+}
+
+:where(
+  button.danger,
+  .danger,
+  .delete-btn,
+  .danger-btn,
+  .delete-item-button,
+  .admin-panel-delete-button,
+  .ghost-icon-button.danger,
+  .compact-button.danger,
+  .min-button-width.danger
+):hover:not(:disabled) {
+  background: var(--danger-hover-bg) !important;
+  color: var(--danger-red) !important;
+  border-color: #fca5a5 !important;
+  transform: translateY(-1px);
+}
+
+:where(
+  button.danger,
+  .danger,
+  .delete-btn,
+  .danger-btn,
+  .delete-item-button,
+  .admin-panel-delete-button,
+  .ghost-icon-button.danger,
+  .compact-button.danger,
+  .min-button-width.danger
+):disabled {
+  opacity: .65 !important;
+  cursor: not-allowed !important;
+}
+
+/* Charcoal text in deletion/project sections with softer gray metadata. */
+:where(
+  .admin-delete-management-card,
+  .admin-research-title-card,
+  .admin-project-progress-card,
+  .admin-report-deletion-card,
+  .managed-item,
+  .research-title-card,
+  .title-deletion-card
+) :where(h1, h2, h3, h4, b, strong, label, span, td, th) {
+  color: var(--charcoal) !important;
+}
+
+:where(
+  .admin-delete-management-card,
+  .admin-research-title-card,
+  .admin-project-progress-card,
+  .admin-report-deletion-card,
+  .managed-item,
+  .research-title-card,
+  .title-deletion-card
+) :where(p, small, .muted, .small) {
+  color: rgba(41, 40, 41, .68) !important;
+}
+
+/* =========================================================
+   FINAL OVERRIDE: enforce clean icon tiles and danger buttons.
+   Earlier theme rules used high-specificity !important selectors,
+   so these rules intentionally use higher specificity at the end.
+   ========================================================= */
+html body #root .icon-box,
+html body #root .icon-box.dark,
+html body #root .section-header .icon-box,
+html body #root .section-header .icon-box.dark,
+html body #root .card .icon-box,
+html body #root .card .icon-box.dark,
+html body #root .mini-card .icon-box,
+html body #root .mini-card .icon-box.dark,
+html body #root .stat-card .stat-card-icon,
+html body #root .compact-dashboard-stat-card .stat-card-icon,
+html body #root .dashboard-card-icon,
+html body #root .summary-card-icon,
+html body #root .overview-card-icon,
+html body #root .metric-card-icon,
+html body #root .card-icon,
+html body #root .empty-state-icon,
+html body #root .profile-section-icon,
+html body #root .admin-section-icon,
+html body #root .project-card-icon,
+html body #root .deadline-card-icon,
+html body #root .question-card-icon,
+html body #root .report-card-icon,
+html body #root .group-card-icon,
+html body #root .notification-card-icon,
+html body #root .admin-delete-management-card .section-header .icon-box,
+html body #root .admin-research-title-card .section-header .icon-box,
+html body #root .admin-project-progress-card .section-header .icon-box,
+html body #root .admin-report-deletion-card .section-header .icon-box,
+html body #root .admin-uploaded-document-card .section-header .icon-box,
+html body #root .admin-research-group-card .section-header .icon-box {
+  background-color: #ffffff !important;
+  background-image: none !important;
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+  border: 1px solid rgba(41, 40, 41, .18) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 8px 18px rgba(41, 40, 41, .06) !important;
+}
+
+html body #root .icon-box svg,
+html body #root .icon-box.dark svg,
+html body #root .section-header .icon-box svg,
+html body #root .section-header .icon-box.dark svg,
+html body #root .card .icon-box svg,
+html body #root .mini-card .icon-box svg,
+html body #root .stat-card .stat-card-icon svg,
+html body #root .compact-dashboard-stat-card .stat-card-icon svg,
+html body #root .dashboard-card-icon svg,
+html body #root .summary-card-icon svg,
+html body #root .overview-card-icon svg,
+html body #root .metric-card-icon svg,
+html body #root .card-icon svg,
+html body #root .empty-state-icon svg,
+html body #root .profile-section-icon svg,
+html body #root .admin-section-icon svg,
+html body #root .project-card-icon svg,
+html body #root .deadline-card-icon svg,
+html body #root .question-card-icon svg,
+html body #root .report-card-icon svg,
+html body #root .group-card-icon svg,
+html body #root .notification-card-icon svg,
+html body #root .icon-box i,
+html body #root .icon-box.dark i,
+html body #root .icon-box span,
+html body #root .icon-box.dark span {
+  color: #4d4c4d !important;
+  stroke: #4d4c4d !important;
+  fill: none !important;
+}
+
+/* Keep sidebar navigation icon tiles consistent too: white tile, charcoal icon. */
+html body #root .main-side-nav .side-nav-icon,
+html body #root .admin-side-nav .side-nav-icon,
+html body #root .admin-sidebar .side-nav-icon {
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+  border: 1px solid rgba(41, 40, 41, .18) !important;
+  border-radius: 12px !important;
+}
+
+html body #root .main-side-nav .side-nav-icon svg,
+html body #root .admin-side-nav .side-nav-icon svg,
+html body #root .admin-sidebar .side-nav-icon svg {
+  color: #4d4c4d !important;
+  stroke: #4d4c4d !important;
+  fill: none !important;
+}
+
+/* Strong final danger button correction: white button, readable red text/icon. */
+html body #root button.danger,
+html body #root .danger.delete-btn,
+html body #root .delete-btn,
+html body #root .danger-btn,
+html body #root .delete-item-button,
+html body #root .admin-panel-delete-button,
+html body #root .ghost-icon-button.danger,
+html body #root .compact-button.danger,
+html body #root .min-button-width.danger,
+html body #root button[class*="delete"],
+html body #root button[class*="Delete"] {
+  background: #ffffff !important;
+  background-image: none !important;
+  color: #b91c1c !important;
+  border: 1px solid #fecaca !important;
+  box-shadow: 0 8px 18px rgba(185, 28, 28, .08) !important;
+}
+
+html body #root button.danger svg,
+html body #root .delete-btn svg,
+html body #root .danger-btn svg,
+html body #root .delete-item-button svg,
+html body #root .admin-panel-delete-button svg,
+html body #root .ghost-icon-button.danger svg,
+html body #root .compact-button.danger svg,
+html body #root .min-button-width.danger svg,
+html body #root button[class*="delete"] svg,
+html body #root button[class*="Delete"] svg,
+html body #root button.danger span,
+html body #root .delete-btn span,
+html body #root .danger-btn span,
+html body #root .delete-item-button span,
+html body #root .admin-panel-delete-button span,
+html body #root .ghost-icon-button.danger span,
+html body #root .compact-button.danger span,
+html body #root .min-button-width.danger span,
+html body #root button[class*="delete"] span,
+html body #root button[class*="Delete"] span {
+  color: #b91c1c !important;
+  stroke: #b91c1c !important;
+}
+
+html body #root button.danger:hover:not(:disabled),
+html body #root .delete-btn:hover:not(:disabled),
+html body #root .danger-btn:hover:not(:disabled),
+html body #root .delete-item-button:hover:not(:disabled),
+html body #root .admin-panel-delete-button:hover:not(:disabled),
+html body #root .ghost-icon-button.danger:hover:not(:disabled),
+html body #root .compact-button.danger:hover:not(:disabled),
+html body #root .min-button-width.danger:hover:not(:disabled),
+html body #root button[class*="delete"]:hover:not(:disabled),
+html body #root button[class*="Delete"]:hover:not(:disabled) {
+  background: #fef2f2 !important;
+  color: #b91c1c !important;
+  border-color: #fca5a5 !important;
+}
+
+
+/* =========================================================
+   Remove remaining light yellow / cream backgrounds
+   User requested no yellow/cream page, card, or project surfaces.
+   Keep charcoal header/sidebar and white content surfaces.
+   ========================================================= */
+:root {
+  --bg: #ffffff;
+  --card: #ffffff;
+  --card-soft: #ffffff;
+  --input: #ffffff;
+  --main-surface: #ffffff;
+  --theme-cream: #ffffff;
+  --theme-cream-soft: #ffffff;
+  --surface-cream: #ffffff;
+  --cream-surface: #ffffff;
+}
+
+body,
+.app,
+.app-main-shell,
+.app-main-shell.main-dashboard-with-sidebar,
+.admin-portal-shell,
+.admin-panel-page,
+.login-page,
+.app-content-panel,
+.main-dashboard-no-sidebar,
+main,
+.page-context-card,
+.dashboard-content,
+.content-panel {
+  background: #ffffff !important;
+}
+
+:where(
+  .card,
+  .stat-card,
+  .soft-box,
+  .mini-card,
+  .review-card,
+  .empty-state,
+  .project-card,
+  .filter-card,
+  .reminder,
+  .total-box,
+  .table-wrap,
+  .invitation-table-wrap,
+  .rubric-table-wrap,
+  .login-card,
+  .message,
+  .three-cols div,
+  .report-grid p,
+  .admin-management-card,
+  .admin-denied-card,
+  .admin-hero-preview,
+  .admin-image-preview,
+  .settings-note,
+  .about-us-hero-card,
+  .about-us-content-card,
+  .rich-editor-toolbar,
+  .rich-text-editor,
+  .student-profile-dropdown,
+  .student-profile-dropdown.redesigned-profile-card,
+  .user-profile-menu .student-profile-dropdown.redesigned-profile-card,
+  .profile-info-grid > div,
+  .project-progress-card-surface,
+  .project-progress-wide-card,
+  .admin-users-and-roles-card,
+  .admin-assignment-card,
+  .admin-delete-management-card,
+  .admin-user-management-card,
+  .managed-item,
+  .admin-research-title-card .managed-item,
+  .admin-delete-management-card .managed-item,
+  .admin-project-progress-card .managed-item,
+  .admin-report-deletion-card .managed-item,
+  .project-card.cream,
+  .research-title-card,
+  .title-deletion-card
+) {
+  background: #ffffff !important;
+}
+
+:where(input, textarea, select, .input-icon, .rich-editor-toolbar button, .rich-editor-toolbar select, .toolbar-upload-button, .toolbar-color-field) {
+  background: #ffffff !important;
+}
+
+.top-about-link:hover,
+.top-about-link.active,
+.top-scholar-link:hover,
+.top-scholar-link:focus-visible,
+.main-notification-button:hover,
+.main-notification-button.active,
+.sidebar-menu-toggle:hover,
+.secondary,
+.ghost-button,
+.compact-button:not(.danger):not(.warning):not(.success),
+.profile-menu-button.subtle {
+  background: #ffffff !important;
+}
+
+/* =========================================================
+   FINAL OVERRIDE: remove red/blue outlines from cards and
+   header buttons. Keep white surfaces, charcoal text/icons,
+   and neutral light-gray borders only.
+   ========================================================= */
+:root {
+  --neutral-border: rgba(41, 40, 41, .16);
+  --neutral-border-soft: rgba(41, 40, 41, .10);
+  --neutral-shadow: 0 10px 24px rgba(41, 40, 41, .06);
+}
+
+html body #root :where(
+  .card,
+  .stat-card,
+  .compact-dashboard-stat-card,
+  .summary-card,
+  .dashboard-card,
+  .overview-card,
+  .metric-card,
+  .soft-box,
+  .mini-card,
+  .review-card,
+  .empty-state,
+  .project-card,
+  .project-progress-card-surface,
+  .project-progress-wide-card,
+  .research-title-card,
+  .title-deletion-card,
+  .managed-item,
+  .filter-card,
+  .reminder,
+  .total-box,
+  .table-wrap,
+  .invitation-table-wrap,
+  .rubric-table-wrap,
+  .login-card,
+  .message,
+  .admin-management-card,
+  .admin-denied-card,
+  .admin-hero-preview,
+  .admin-image-preview,
+  .settings-note,
+  .admin-users-and-roles-card,
+  .admin-assignment-card,
+  .admin-delete-management-card,
+  .admin-user-management-card,
+  .admin-research-title-card,
+  .admin-project-progress-card,
+  .admin-report-deletion-card,
+  .admin-uploaded-document-card,
+  .admin-research-group-card,
+  .about-us-hero-card,
+  .about-us-content-card,
+  .rich-editor-toolbar,
+  .rich-text-editor,
+  .profile-info-grid > div,
+  .student-profile-dropdown,
+  .student-profile-dropdown.redesigned-profile-card,
+  .user-profile-menu .student-profile-dropdown.redesigned-profile-card,
+  .section-panel,
+  .content-panel,
+  .page-context-card,
+  .dashboard-section,
+  .report-card,
+  .deadline-card,
+  .question-card,
+  .notification-card,
+  .group-card,
+  .project-member-card,
+  .member-card,
+  .student-card,
+  .supervisor-card
+) {
+  border-color: var(--neutral-border) !important;
+  outline: none !important;
+  box-shadow: var(--neutral-shadow) !important;
+}
+
+html body #root :where(
+  .card,
+  .stat-card,
+  .compact-dashboard-stat-card,
+  .summary-card,
+  .dashboard-card,
+  .overview-card,
+  .metric-card,
+  .soft-box,
+  .mini-card,
+  .review-card,
+  .empty-state,
+  .project-card,
+  .project-progress-card-surface,
+  .project-progress-wide-card,
+  .research-title-card,
+  .title-deletion-card,
+  .managed-item,
+  .filter-card,
+  .table-wrap,
+  .admin-management-card,
+  .admin-delete-management-card,
+  .admin-user-management-card,
+  .admin-research-title-card,
+  .admin-project-progress-card,
+  .admin-report-deletion-card,
+  .about-us-hero-card,
+  .about-us-content-card
+) :where(.card, .soft-box, .empty-state, .managed-item, .project-card, .mini-card, .review-card) {
+  border-color: var(--neutral-border-soft) !important;
+  box-shadow: none !important;
+}
+
+html body #root :where(
+  .top-about-link,
+  .top-scholar-link,
+  .main-notification-button,
+  .sidebar-menu-toggle,
+  .role-switch,
+  .role-switcher,
+  .role-select-wrap,
+  .role-select,
+  .role-mode-selector,
+  .profile-avatar,
+  .user-avatar,
+  .profile-photo-button,
+  .profile-menu-button,
+  .profile-menu-button.subtle
+) {
+  border-color: var(--neutral-border) !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+html body #root :where(.top-about-link .top-nav-icon, .top-scholar-link .top-nav-icon, .main-notification-button .notification-icon, .profile-avatar, .user-avatar, .initials-avatar) {
+  background: #ffffff !important;
+  border-color: var(--neutral-border) !important;
+  color: #4d4c4d !important;
+}
+
+html body #root :where(.top-about-link svg, .top-scholar-link svg, .main-notification-button svg, .profile-avatar svg, .user-avatar svg, .initials-avatar svg) {
+  color: #4d4c4d !important;
+  stroke: #4d4c4d !important;
+}
+
+html body #root :where(hr, .section-divider, .divider, .card-divider, .table-divider) {
+  border-color: var(--neutral-border-soft) !important;
+  background: var(--neutral-border-soft) !important;
+}
+
+html body #root :where(input, textarea, select, .rich-text-editor, .rich-editor-toolbar, .toolbar-upload-button, .toolbar-color-field) {
+  border-color: var(--neutral-border) !important;
+  outline: none !important;
+}
+
+html body #root :where(input:focus, textarea:focus, select:focus, .rich-text-editor:focus, .toolbar-upload-button:focus-visible) {
+  border-color: rgba(41, 40, 41, .28) !important;
+  box-shadow: 0 0 0 3px rgba(41, 40, 41, .08) !important;
+}
+
+/* Keep danger buttons red, but do not let their parent cards inherit red outlines. */
+html body #root :where(.delete-btn, .danger-btn, button.danger, .compact-button.danger, .ghost-icon-button.danger, button[class*="delete"], button[class*="Delete"]) {
+  border-color: #fecaca !important;
+  box-shadow: none !important;
+}
+
+/* =========================================================
+   FINAL UI CLEANUP: neutral profile popup, neutral section
+   borders, and remove sidebar active red strip.
+   Visual-only overrides. No functionality changes.
+   ========================================================= */
+:root {
+  --ui-gray: #4d4c4d;
+  --ui-gray-soft: rgba(77, 76, 77, .16);
+  --ui-gray-softer: rgba(77, 76, 77, .10);
+  --ui-white: #ffffff;
+}
+
+/* Remove the active navigation stripe/line completely. */
+html body #root .app-main-shell .main-side-nav button.active::before,
+html body #root .app-main-shell .main-side-nav button::before,
+html body #root .main-side-nav button.active::before,
+html body #root .main-side-nav button::before {
+  content: none !important;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+
+html body #root .app-main-shell .main-side-nav button,
+html body #root .main-side-nav button {
+  color: var(--ui-gray) !important;
+  border-left: 1px solid transparent !important;
+  box-shadow: none !important;
+}
+
+html body #root .app-main-shell .main-side-nav button:hover,
+html body #root .app-main-shell .main-side-nav button.active,
+html body #root .main-side-nav button:hover,
+html body #root .main-side-nav button.active {
+  background: #ffffff !important;
+  color: var(--ui-gray) !important;
+  border-color: var(--ui-gray-soft) !important;
+  border-left-color: var(--ui-gray-soft) !important;
+  transform: none !important;
+  box-shadow: 0 8px 20px rgba(77, 76, 77, .08) !important;
+}
+
+html body #root .app-main-shell .main-side-nav button svg,
+html body #root .main-side-nav button svg,
+html body #root .side-nav-icon,
+html body #root .side-nav-icon svg {
+  color: var(--ui-gray) !important;
+  stroke: var(--ui-gray) !important;
+}
+
+/* Profile popup/card: white, neutral, no blue fills or blue cover. */
+html body #root .student-profile-dropdown,
+html body #root .student-profile-dropdown.redesigned-profile-card,
+html body #root .user-profile-menu .student-profile-dropdown.redesigned-profile-card,
+html body #root .student-profile-menu.user-profile-menu .student-profile-dropdown {
+  background: #ffffff !important;
+  background-image: none !important;
+  border: 1px solid var(--ui-gray-soft) !important;
+  color: var(--ui-gray) !important;
+  box-shadow: 0 18px 46px rgba(77, 76, 77, .16) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html body #root .student-profile-dropdown.redesigned-profile-card .profile-cover,
+html body #root .user-profile-menu .student-profile-dropdown.redesigned-profile-card .profile-cover,
+html body #root .profile-cover {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+}
+
+html body #root .student-profile-dropdown.redesigned-profile-card .profile-card-body,
+html body #root .user-profile-menu .student-profile-dropdown.redesigned-profile-card .profile-card-body,
+html body #root .profile-card-body.simplified-profile-card {
+  background: #ffffff !important;
+  padding-top: 16px !important;
+  color: var(--ui-gray) !important;
+}
+
+html body #root .student-profile-trigger,
+html body #root .student-profile-trigger.redesigned,
+html body #root .user-profile-menu .student-profile-trigger.redesigned,
+html body #root .student-profile-large,
+html body #root .student-profile-large.redesigned,
+html body #root .user-profile-menu .student-profile-large.redesigned,
+html body #root .status-avatar,
+html body #root .profile-avatar,
+html body #root .user-avatar,
+html body #root .initials-avatar,
+html body #root .admin-profile-mini .status-avatar {
+  background: #ffffff !important;
+  background-image: none !important;
+  color: var(--ui-gray) !important;
+  border-color: var(--ui-gray-soft) !important;
+  box-shadow: 0 6px 16px rgba(77, 76, 77, .08) !important;
+}
+
+html body #root .student-profile-trigger span,
+html body #root .student-profile-large span,
+html body #root .status-avatar,
+html body #root .initials-avatar {
+  color: var(--ui-gray) !important;
+}
+
+html body #root .student-profile-trigger img,
+html body #root .student-profile-large img {
+  background: #ffffff !important;
+  border: 0 !important;
+}
+
+html body #root .profile-avatar-shell {
+  margin-top: 0 !important;
+}
+
+html body #root .profile-identity h3,
+html body #root .simplified-profile-identity h3,
+html body #root .student-profile-head h3,
+html body #root .profile-info-grid b,
+html body #root .admin-profile-mini b,
+html body #root .main-profile-summary b {
+  color: var(--ui-gray) !important;
+}
+
+html body #root .profile-identity p,
+html body #root .simplified-profile-identity p,
+html body #root .student-profile-head p,
+html body #root .profile-info-grid span,
+html body #root .admin-profile-mini p,
+html body #root .main-profile-summary small {
+  color: rgba(77, 76, 77, .78) !important;
+}
+
+/* Profile popup buttons: neutral white buttons, readable logout. */
+html body #root .profile-upload-button,
+html body #root .profile-upload-button.redesigned,
+html body #root .student-profile-dropdown.redesigned-profile-card .profile-upload-button.redesigned,
+html body #root .user-profile-menu .profile-upload-button.redesigned,
+html body #root .profile-menu-button,
+html body #root .profile-menu-button.subtle,
+html body #root .profile-menu-actions .profile-menu-button,
+html body #root .profile-menu-actions .profile-menu-button.subtle {
+  background: #ffffff !important;
+  background-image: none !important;
+  color: var(--ui-gray) !important;
+  border: 1px solid var(--ui-gray-soft) !important;
+  box-shadow: none !important;
+}
+
+html body #root .profile-upload-button:hover:not(:disabled),
+html body #root .profile-upload-button.redesigned:hover:not(:disabled),
+html body #root .profile-menu-button:hover:not(:disabled),
+html body #root .profile-menu-button.subtle:hover:not(:disabled),
+html body #root .profile-menu-actions .profile-menu-button:hover:not(:disabled) {
+  background: #f7f7f7 !important;
+  color: var(--ui-gray) !important;
+  border-color: rgba(77, 76, 77, .24) !important;
+}
+
+html body #root .profile-upload-button svg,
+html body #root .profile-menu-button svg,
+html body #root .profile-menu-actions .profile-menu-button svg {
+  color: var(--ui-gray) !important;
+  stroke: var(--ui-gray) !important;
+}
+
+html body #root .profile-menu-button.logout,
+html body #root .profile-menu-actions .profile-menu-button.logout,
+html body #root .student-profile-dropdown.redesigned-profile-card .profile-menu-button.logout,
+html body #root .user-profile-menu .profile-menu-button.logout {
+  background: #fff5f5 !important;
+  background-image: none !important;
+  color: #b91c1c !important;
+  border: 1px solid #fecaca !important;
+  box-shadow: none !important;
+}
+
+html body #root .profile-menu-button.logout svg,
+html body #root .profile-menu-actions .profile-menu-button.logout svg,
+html body #root .student-profile-dropdown.redesigned-profile-card .profile-menu-button.logout svg,
+html body #root .user-profile-menu .profile-menu-button.logout svg {
+  color: #b91c1c !important;
+  stroke: #b91c1c !important;
+}
+
+html body #root .profile-menu-button.logout:hover:not(:disabled),
+html body #root .profile-menu-actions .profile-menu-button.logout:hover:not(:disabled),
+html body #root .student-profile-dropdown.redesigned-profile-card .profile-menu-button.logout:hover:not(:disabled),
+html body #root .user-profile-menu .profile-menu-button.logout:hover:not(:disabled) {
+  background: #fef2f2 !important;
+  color: #991b1b !important;
+  border-color: #fca5a5 !important;
+}
+
+/* Top/header/section boxes: no bright blue outlines. */
+html body #root .dashboard-topbar,
+html body #root .main-compact-header,
+html body #root .app-main-shell .message,
+html body #root .message,
+html body #root .section-header,
+html body #root .question-card-header,
+html body #root .project-progress-header,
+html body #root .pdf-report-header,
+html body #root .page-context-card,
+html body #root .content-panel,
+html body #root .dashboard-section,
+html body #root .section-panel,
+html body #root .top-about-link,
+html body #root .top-scholar-link,
+html body #root .main-notification-button,
+html body #root .role-switch,
+html body #root .role-select-wrap,
+html body #root .role-mode-selector,
+html body #root .sidebar-menu-toggle {
+  border-color: var(--ui-gray-soft) !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+html body #root .dashboard-topbar,
+html body #root .app-main-shell .message,
+html body #root .message,
+html body #root .page-context-card,
+html body #root .content-panel,
+html body #root .dashboard-section,
+html body #root .section-panel {
+  background: #ffffff !important;
+  color: var(--ui-gray) !important;
+}
+
+html body #root .top-about-link,
+html body #root .top-scholar-link,
+html body #root .main-notification-button,
+html body #root .sidebar-menu-toggle,
+html body #root .role-switch,
+html body #root .role-select-wrap,
+html body #root .role-mode-selector {
+  background: #ffffff !important;
+  color: var(--ui-gray) !important;
+}
+
+html body #root .top-about-link .top-about-icon,
+html body #root .top-about-link .top-nav-icon,
+html body #root .top-scholar-link .top-about-icon,
+html body #root .top-scholar-link .top-nav-icon,
+html body #root .main-notification-button .notification-icon {
+  background: #ffffff !important;
+  border-color: var(--ui-gray-soft) !important;
+  color: var(--ui-gray) !important;
+}
+
+html body #root .top-about-link svg,
+html body #root .top-scholar-link svg,
+html body #root .main-notification-button svg,
+html body #root .sidebar-menu-toggle span {
+  color: var(--ui-gray) !important;
+  stroke: var(--ui-gray) !important;
+}
+
+html body #root .dashboard-eyebrow,
+html body #root .pill.blue,
+html body #root .role-chip,
+html body #root .tab-badge,
+html body #root .selected-student-chip {
+  background: #ffffff !important;
+  color: var(--ui-gray) !important;
+  border-color: var(--ui-gray-soft) !important;
+}
+
+/* =========================================================
+   FINAL SIDEBAR TAB STATES CLEANUP
+   Default: transparent on dark sidebar with white text/icons.
+   Hover/active: white rounded item with #4d4c4d text/icons.
+   Removes all red/blue accent strips and filled sidebar icon tiles.
+   Visual-only override.
+   ========================================================= */
+:root {
+  --sidebar-active-text: #4d4c4d;
+  --sidebar-active-bg: #ffffff;
+  --sidebar-hover-bg: #ffffff;
+  --sidebar-nav-border: rgba(255, 255, 255, .26);
+  --sidebar-nav-active-border: rgba(77, 76, 77, .18);
+}
+
+html body #root :where(.main-side-nav button, .admin-side-nav button, .admin-sidebar .admin-side-nav button) {
+  position: relative !important;
+  background: transparent !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  border: 1px solid transparent !important;
+  border-left: 1px solid transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html body #root :where(.main-side-nav button::before, .main-side-nav button::after, .admin-side-nav button::before, .admin-side-nav button::after, .admin-sidebar .admin-side-nav button::before, .admin-sidebar .admin-side-nav button::after) {
+  content: none !important;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  opacity: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+html body #root :where(.main-side-nav button span, .main-side-nav button b, .main-side-nav button strong, .admin-side-nav button span, .admin-side-nav button b, .admin-side-nav button strong) {
+  color: inherit !important;
+}
+
+html body #root :where(.main-side-nav button svg, .admin-side-nav button svg, .admin-sidebar .admin-side-nav button svg) {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  fill: none !important;
+}
+
+html body #root :where(.main-side-nav .side-nav-icon, .admin-side-nav .side-nav-icon, .admin-sidebar .side-nav-icon) {
+  background: transparent !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  border: 1px solid transparent !important;
+  box-shadow: none !important;
+}
+
+html body #root :where(.main-side-nav .side-nav-icon svg, .admin-side-nav .side-nav-icon svg, .admin-sidebar .side-nav-icon svg) {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  fill: none !important;
+}
+
+html body #root :where(.main-side-nav button:hover, .main-side-nav button.active, .admin-side-nav button:hover, .admin-side-nav button.active, .admin-sidebar .admin-side-nav button:hover, .admin-sidebar .admin-side-nav button.active) {
+  background: var(--sidebar-active-bg) !important;
+  background-image: none !important;
+  color: var(--sidebar-active-text) !important;
+  border: 1px solid var(--sidebar-nav-active-border) !important;
+  border-left: 1px solid var(--sidebar-nav-active-border) !important;
+  box-shadow: 0 8px 20px rgba(77, 76, 77, .10) !important;
+  transform: none !important;
+}
+
+html body #root :where(.main-side-nav button:hover span, .main-side-nav button.active span, .main-side-nav button:hover b, .main-side-nav button.active b, .main-side-nav button:hover strong, .main-side-nav button.active strong, .admin-side-nav button:hover span, .admin-side-nav button.active span, .admin-side-nav button:hover b, .admin-side-nav button.active b, .admin-side-nav button:hover strong, .admin-side-nav button.active strong) {
+  color: var(--sidebar-active-text) !important;
+}
+
+html body #root :where(.main-side-nav button:hover svg, .main-side-nav button.active svg, .admin-side-nav button:hover svg, .admin-side-nav button.active svg, .admin-sidebar .admin-side-nav button:hover svg, .admin-sidebar .admin-side-nav button.active svg) {
+  color: var(--sidebar-active-text) !important;
+  stroke: var(--sidebar-active-text) !important;
+  fill: none !important;
+}
+
+html body #root :where(.main-side-nav button:hover .side-nav-icon, .main-side-nav button.active .side-nav-icon, .admin-side-nav button:hover .side-nav-icon, .admin-side-nav button.active .side-nav-icon, .admin-sidebar .admin-side-nav button:hover .side-nav-icon, .admin-sidebar .admin-side-nav button.active .side-nav-icon) {
+  background: transparent !important;
+  background-image: none !important;
+  color: var(--sidebar-active-text) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html body #root :where(.main-side-nav button:hover .side-nav-icon svg, .main-side-nav button.active .side-nav-icon svg, .admin-side-nav button:hover .side-nav-icon svg, .admin-side-nav button.active .side-nav-icon svg, .admin-sidebar .admin-side-nav button:hover .side-nav-icon svg, .admin-sidebar .admin-side-nav button.active .side-nav-icon svg) {
+  color: var(--sidebar-active-text) !important;
+  stroke: var(--sidebar-active-text) !important;
+  fill: none !important;
+}
+
+html body #root .main-side-nav .tab-badge {
+  background: rgba(255, 255, 255, .18) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, .26) !important;
+}
+
+html body #root :where(.main-side-nav button:hover .tab-badge, .main-side-nav button.active .tab-badge) {
+  background: var(--sidebar-active-text) !important;
+  color: #ffffff !important;
+  border-color: var(--sidebar-active-text) !important;
+}
+
+/* =========================================================
+   FINAL FIX: Sidebar inactive/default tabs
+   Inactive = gray button background with white text/icons.
+   Hover/active = white background with gray text/icons.
+   ========================================================= */
+:root {
+  --sidebar-inactive-bg: rgba(255, 255, 255, .10);
+  --sidebar-inactive-border: rgba(255, 255, 255, .14);
+  --sidebar-inactive-text: #ffffff;
+  --sidebar-active-bg: #ffffff;
+  --sidebar-active-text: #4d4c4d;
+  --sidebar-active-border: rgba(77, 76, 77, .18);
+}
+
+html body #root :where(.main-side-nav button:not(.active):not(:hover), .admin-side-nav button:not(.active):not(:hover), .admin-sidebar .admin-side-nav button:not(.active):not(:hover)) {
+  background: var(--sidebar-inactive-bg) !important;
+  background-image: none !important;
+  color: var(--sidebar-inactive-text) !important;
+  border: 1px solid var(--sidebar-inactive-border) !important;
+  border-left: 1px solid var(--sidebar-inactive-border) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html body #root :where(.main-side-nav button:not(.active):not(:hover) span, .main-side-nav button:not(.active):not(:hover) b, .main-side-nav button:not(.active):not(:hover) strong, .admin-side-nav button:not(.active):not(:hover) span, .admin-side-nav button:not(.active):not(:hover) b, .admin-side-nav button:not(.active):not(:hover) strong, .admin-sidebar .admin-side-nav button:not(.active):not(:hover) span, .admin-sidebar .admin-side-nav button:not(.active):not(:hover) b, .admin-sidebar .admin-side-nav button:not(.active):not(:hover) strong) {
+  color: var(--sidebar-inactive-text) !important;
+}
+
+html body #root :where(.main-side-nav button:not(.active):not(:hover) svg, .admin-side-nav button:not(.active):not(:hover) svg, .admin-sidebar .admin-side-nav button:not(.active):not(:hover) svg) {
+  color: var(--sidebar-inactive-text) !important;
+  stroke: var(--sidebar-inactive-text) !important;
+  fill: none !important;
+}
+
+html body #root :where(.main-side-nav button:not(.active):not(:hover) .side-nav-icon, .admin-side-nav button:not(.active):not(:hover) .side-nav-icon, .admin-sidebar .admin-side-nav button:not(.active):not(:hover) .side-nav-icon) {
+  background: transparent !important;
+  background-image: none !important;
+  color: var(--sidebar-inactive-text) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html body #root :where(.main-side-nav button:hover, .main-side-nav button.active, .admin-side-nav button:hover, .admin-side-nav button.active, .admin-sidebar .admin-side-nav button:hover, .admin-sidebar .admin-side-nav button.active) {
+  background: var(--sidebar-active-bg) !important;
+  background-image: none !important;
+  color: var(--sidebar-active-text) !important;
+  border: 1px solid var(--sidebar-active-border) !important;
+  border-left: 1px solid var(--sidebar-active-border) !important;
+  box-shadow: 0 8px 20px rgba(77, 76, 77, .10) !important;
+}
+
+html body #root :where(.main-side-nav button:hover span, .main-side-nav button.active span, .main-side-nav button:hover b, .main-side-nav button.active b, .main-side-nav button:hover strong, .main-side-nav button.active strong, .admin-side-nav button:hover span, .admin-side-nav button.active span, .admin-side-nav button:hover b, .admin-side-nav button.active b, .admin-side-nav button:hover strong, .admin-side-nav button.active strong, .admin-sidebar .admin-side-nav button:hover span, .admin-sidebar .admin-side-nav button.active span) {
+  color: var(--sidebar-active-text) !important;
+}
+
+html body #root :where(.main-side-nav button:hover svg, .main-side-nav button.active svg, .admin-side-nav button:hover svg, .admin-side-nav button.active svg, .admin-sidebar .admin-side-nav button:hover svg, .admin-sidebar .admin-side-nav button.active svg) {
+  color: var(--sidebar-active-text) !important;
+  stroke: var(--sidebar-active-text) !important;
+  fill: none !important;
+}
+
+html body #root :where(.main-side-nav button::before, .main-side-nav button::after, .admin-side-nav button::before, .admin-side-nav button::after, .admin-sidebar .admin-side-nav button::before, .admin-sidebar .admin-side-nav button::after) {
+  content: none !important;
+  display: none !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+
+/* =========================================================
+   FINAL GLOBAL BUTTON COLOR CLEANUP
+   Visual-only: keeps every handler/action unchanged.
+   Normal inactive/default buttons = #4d4c4d background with white text/icons,
+   soft gray border. Hover/active buttons = white with #4d4c4d text/icons. Danger/delete/logout buttons = red/neutral.
+   Sidebar states are re-applied after this block so inactive
+   sidebar tabs stay gray with white text.
+   ========================================================= */
+:root {
+  --button-gray: #4d4c4d;
+  --button-bg: #4d4c4d;
+  --button-default-text: #ffffff;
+  --button-hover-bg: #ffffff;
+  --button-border: rgba(77, 76, 77, .22);
+  --button-border-hover: rgba(77, 76, 77, .36);
+  --button-shadow: rgba(77, 76, 77, .10);
+  --button-danger: #b91c1c;
+  --button-danger-dark: #991b1b;
+  --button-danger-border: #fecaca;
+  --button-danger-border-hover: #fca5a5;
+  --button-danger-bg: #ffffff;
+  --button-danger-hover-bg: #fef2f2;
+}
+
+/* Normal buttons and button-like links across the app. */
+html body #root :where(
+  button,
+  .primary,
+  .secondary,
+  .success,
+  .warning,
+  .ghost-button,
+  .ghost-dark,
+  .compact-button,
+  .role-button,
+  .tabs button,
+  .admin-user-tabs button,
+  .admin-preview-link,
+  .compact-link,
+  .top-about-link,
+  .top-scholar-link,
+  .profile-upload-button,
+  .profile-upload-button.redesigned,
+  .profile-menu-button,
+  .admin-profile-settings-button,
+  .action-row button,
+  .mini-card button,
+  .invitation-row-actions button,
+  .notification-actions button,
+  .notification-popover-close,
+  .toolbar-upload-button,
+  .auth-switch button,
+  .auth-submit-button,
+  .email-report-button,
+  .weekly-submit-button,
+  .min-button-width
+):not(:disabled) {
+  background: var(--button-bg) !important;
+  background-image: none !important;
+  color: var(--button-default-text) !important;
+  border: 1px solid var(--button-border) !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+html body #root :where(
+  button,
+  .primary,
+  .secondary,
+  .success,
+  .warning,
+  .ghost-button,
+  .ghost-dark,
+  .compact-button,
+  .role-button,
+  .tabs button,
+  .admin-user-tabs button,
+  .admin-preview-link,
+  .compact-link,
+  .top-about-link,
+  .top-scholar-link,
+  .profile-upload-button,
+  .profile-upload-button.redesigned,
+  .profile-menu-button,
+  .admin-profile-settings-button,
+  .action-row button,
+  .mini-card button,
+  .invitation-row-actions button,
+  .notification-actions button,
+  .notification-popover-close,
+  .toolbar-upload-button,
+  .auth-switch button,
+  .auth-submit-button,
+  .email-report-button,
+  .weekly-submit-button,
+  .min-button-width
+):hover:not(:disabled),
+html body #root :where(
+  button,
+  .primary,
+  .secondary,
+  .success,
+  .warning,
+  .ghost-button,
+  .ghost-dark,
+  .compact-button,
+  .role-button,
+  .tabs button,
+  .admin-user-tabs button,
+  .admin-preview-link,
+  .compact-link,
+  .top-about-link,
+  .top-scholar-link,
+  .profile-upload-button,
+  .profile-upload-button.redesigned,
+  .profile-menu-button,
+  .admin-profile-settings-button,
+  .action-row button,
+  .mini-card button,
+  .invitation-row-actions button,
+  .notification-actions button,
+  .notification-popover-close,
+  .toolbar-upload-button,
+  .auth-switch button,
+  .auth-submit-button,
+  .email-report-button,
+  .weekly-submit-button,
+  .min-button-width
+):focus-visible:not(:disabled),
+html body #root :where(
+  button.active,
+  .primary.active,
+  .secondary.active,
+  .success.active,
+  .warning.active,
+  .ghost-button.active,
+  .compact-button.active,
+  .role-button.active,
+  .tabs button.active,
+  .admin-user-tabs button.active,
+  .auth-switch button.active
+):not(:disabled) {
+  background: var(--button-hover-bg) !important;
+  background-image: none !important;
+  color: var(--button-gray) !important;
+  border: 1px solid var(--button-border-hover) !important;
+  box-shadow: 0 8px 18px var(--button-shadow) !important;
+  outline: none !important;
+  text-shadow: none !important;
+}
+
+/* Keep all normal button text and icons gray. */
+html body #root :where(
+  button,
+  .primary,
+  .secondary,
+  .success,
+  .warning,
+  .ghost-button,
+  .ghost-dark,
+  .compact-button,
+  .role-button,
+  .tabs button,
+  .admin-user-tabs button,
+  .admin-preview-link,
+  .compact-link,
+  .top-about-link,
+  .top-scholar-link,
+  .profile-upload-button,
+  .profile-menu-button,
+  .admin-profile-settings-button,
+  .action-row button,
+  .mini-card button,
+  .invitation-row-actions button,
+  .notification-actions button,
+  .notification-popover-close,
+  .toolbar-upload-button,
+  .auth-switch button,
+  .auth-submit-button,
+  .email-report-button,
+  .weekly-submit-button,
+  .min-button-width
+) :where(span, strong, b, small) {
+  color: inherit !important;
+}
+
+html body #root :where(
+  button,
+  .primary,
+  .secondary,
+  .success,
+  .warning,
+  .ghost-button,
+  .ghost-dark,
+  .compact-button,
+  .role-button,
+  .tabs button,
+  .admin-user-tabs button,
+  .admin-preview-link,
+  .compact-link,
+  .top-about-link,
+  .top-scholar-link,
+  .profile-upload-button,
+  .profile-menu-button,
+  .admin-profile-settings-button,
+  .action-row button,
+  .mini-card button,
+  .invitation-row-actions button,
+  .notification-actions button,
+  .notification-popover-close,
+  .toolbar-upload-button,
+  .auth-switch button,
+  .auth-submit-button,
+  .email-report-button,
+  .weekly-submit-button,
+  .min-button-width
+) svg {
+  color: currentColor !important;
+  stroke: currentColor !important;
+  fill: none !important;
+}
+
+/* Remove dark/blue icon backgrounds inside buttons. */
+html body #root :where(button, .primary, .secondary, .success, .warning, .ghost-button, .compact-button, .top-about-link, .top-scholar-link, .profile-menu-button, .profile-upload-button) :where(.icon-box, .button-icon, .btn-icon, .top-about-icon, .top-nav-icon) {
+  background: #ffffff !important;
+  background-image: none !important;
+  color: var(--button-gray) !important;
+  border-color: var(--button-border) !important;
+  box-shadow: none !important;
+}
+
+/* Danger/delete/remove/logout buttons stay readable red, never pink with white text. */
+html body #root :where(
+  .danger,
+  .danger-btn,
+  .delete-btn,
+  .delete-item-button,
+  .admin-panel-delete-button,
+  .profile-menu-button.logout,
+  .admin-logout,
+  .ghost-icon-button,
+  button[aria-label*="Delete"],
+  button[aria-label*="delete"],
+  button[aria-label*="Remove"],
+  button[aria-label*="remove"]
+):not(:disabled) {
+  background: var(--button-danger-bg) !important;
+  background-image: none !important;
+  color: var(--button-danger) !important;
+  border: 1px solid var(--button-danger-border) !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+html body #root :where(
+  .danger,
+  .danger-btn,
+  .delete-btn,
+  .delete-item-button,
+  .admin-panel-delete-button,
+  .profile-menu-button.logout,
+  .admin-logout,
+  .ghost-icon-button,
+  button[aria-label*="Delete"],
+  button[aria-label*="delete"],
+  button[aria-label*="Remove"],
+  button[aria-label*="remove"]
+):hover:not(:disabled),
+html body #root :where(
+  .danger,
+  .danger-btn,
+  .delete-btn,
+  .delete-item-button,
+  .admin-panel-delete-button,
+  .profile-menu-button.logout,
+  .admin-logout,
+  .ghost-icon-button,
+  button[aria-label*="Delete"],
+  button[aria-label*="delete"],
+  button[aria-label*="Remove"],
+  button[aria-label*="remove"]
+):focus-visible:not(:disabled) {
+  background: var(--button-danger-hover-bg) !important;
+  color: var(--button-danger-dark) !important;
+  border-color: var(--button-danger-border-hover) !important;
+  box-shadow: 0 8px 18px rgba(185, 28, 28, .12) !important;
+}
+
+html body #root :where(
+  .danger,
+  .danger-btn,
+  .delete-btn,
+  .delete-item-button,
+  .admin-panel-delete-button,
+  .profile-menu-button.logout,
+  .admin-logout,
+  .ghost-icon-button,
+  button[aria-label*="Delete"],
+  button[aria-label*="delete"],
+  button[aria-label*="Remove"],
+  button[aria-label*="remove"]
+) svg {
+  color: currentColor !important;
+  stroke: currentColor !important;
+  fill: none !important;
+}
+
+/* Loading/disabled buttons stay visually connected but muted. */
+html body #root :where(button, .primary, .secondary, .success, .warning, .danger, .compact-button, .profile-menu-button, .profile-upload-button):disabled {
+  opacity: .62 !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* Re-apply sidebar states after the global button cleanup. */
+html body #root :where(.main-side-nav button:not(.active):not(:hover), .admin-side-nav button:not(.active):not(:hover), .admin-sidebar .admin-side-nav button:not(.active):not(:hover)) {
+  background: var(--sidebar-inactive-bg) !important;
+  background-image: none !important;
+  color: var(--sidebar-inactive-text) !important;
+  border: 1px solid var(--sidebar-inactive-border) !important;
+  border-left: 1px solid var(--sidebar-inactive-border) !important;
+  box-shadow: none !important;
+}
+
+html body #root :where(.main-side-nav button:not(.active):not(:hover) span, .main-side-nav button:not(.active):not(:hover) b, .main-side-nav button:not(.active):not(:hover) strong, .admin-side-nav button:not(.active):not(:hover) span, .admin-side-nav button:not(.active):not(:hover) b, .admin-side-nav button:not(.active):not(:hover) strong) {
+  color: var(--sidebar-inactive-text) !important;
+}
+
+html body #root :where(.main-side-nav button:not(.active):not(:hover) svg, .admin-side-nav button:not(.active):not(:hover) svg, .admin-sidebar .admin-side-nav button:not(.active):not(:hover) svg) {
+  color: var(--sidebar-inactive-text) !important;
+  stroke: var(--sidebar-inactive-text) !important;
+  fill: none !important;
+}
+
+html body #root :where(.main-side-nav button:not(.active):not(:hover) .side-nav-icon, .admin-side-nav button:not(.active):not(:hover) .side-nav-icon, .admin-sidebar .admin-side-nav button:not(.active):not(:hover) .side-nav-icon) {
+  background: transparent !important;
+  color: var(--sidebar-inactive-text) !important;
+  border-color: transparent !important;
+}
+
+html body #root :where(.main-side-nav button:hover, .main-side-nav button.active, .admin-side-nav button:hover, .admin-side-nav button.active, .admin-sidebar .admin-side-nav button:hover, .admin-sidebar .admin-side-nav button.active) {
+  background: #ffffff !important;
+  background-image: none !important;
+  color: #4d4c4d !important;
+  border: 1px solid rgba(77, 76, 77, .18) !important;
+  border-left: 1px solid rgba(77, 76, 77, .18) !important;
+  box-shadow: 0 8px 20px rgba(77, 76, 77, .10) !important;
+}
+
+html body #root :where(.main-side-nav button:hover span, .main-side-nav button.active span, .main-side-nav button:hover b, .main-side-nav button.active b, .main-side-nav button:hover strong, .main-side-nav button.active strong, .admin-side-nav button:hover span, .admin-side-nav button.active span, .admin-side-nav button:hover b, .admin-side-nav button.active b, .admin-side-nav button:hover strong, .admin-side-nav button.active strong) {
+  color: #4d4c4d !important;
+}
+
+html body #root :where(.main-side-nav button:hover svg, .main-side-nav button.active svg, .admin-side-nav button:hover svg, .admin-side-nav button.active svg, .admin-sidebar .admin-side-nav button:hover svg, .admin-sidebar .admin-side-nav button.active svg) {
+  color: #4d4c4d !important;
+  stroke: #4d4c4d !important;
+  fill: none !important;
+}
+
+
+/* Final correction: normal inactive buttons use #4d4c4d background; hover/active remain white. */
+html body #root :where(
+  button,
+  .primary,
+  .secondary,
+  .success,
+  .warning,
+  .ghost-button,
+  .ghost-dark,
+  .compact-button,
+  .role-button,
+  .tabs button,
+  .admin-user-tabs button,
+  .admin-preview-link,
+  .compact-link,
+  .top-about-link,
+  .top-scholar-link,
+  .profile-upload-button,
+  .profile-upload-button.redesigned,
+  .profile-menu-button,
+  .admin-profile-settings-button,
+  .action-row button,
+  .mini-card button,
+  .invitation-row-actions button,
+  .notification-actions button,
+  .notification-popover-close,
+  .toolbar-upload-button,
+  .auth-switch button,
+  .auth-submit-button,
+  .email-report-button,
+  .weekly-submit-button,
+  .min-button-width
+):not(:disabled):not(:hover):not(:focus-visible):not(.active):not(.danger):not(.danger-btn):not(.delete-btn):not(.delete-item-button):not(.admin-panel-delete-button):not(.logout):not(.admin-logout) {
+  background: #4d4c4d !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  border-color: rgba(77, 76, 77, .34) !important;
+  box-shadow: none !important;
+}
+
+html body #root :where(
+  button,
+  .primary,
+  .secondary,
+  .success,
+  .warning,
+  .ghost-button,
+  .ghost-dark,
+  .compact-button,
+  .role-button,
+  .tabs button,
+  .admin-user-tabs button,
+  .admin-preview-link,
+  .compact-link,
+  .top-about-link,
+  .top-scholar-link,
+  .profile-upload-button,
+  .profile-upload-button.redesigned,
+  .profile-menu-button,
+  .admin-profile-settings-button,
+  .action-row button,
+  .mini-card button,
+  .invitation-row-actions button,
+  .notification-actions button,
+  .notification-popover-close,
+  .toolbar-upload-button,
+  .auth-switch button,
+  .auth-submit-button,
+  .email-report-button,
+  .weekly-submit-button,
+  .min-button-width
+):not(:disabled):not(:hover):not(:focus-visible):not(.active):not(.danger):not(.danger-btn):not(.delete-btn):not(.delete-item-button):not(.admin-panel-delete-button):not(.logout):not(.admin-logout) :where(span, strong, b, small, svg) {
+  color: #ffffff !important;
+  stroke: currentColor !important;
+}
+
+html body #root :where(
+  button,
+  .primary,
+  .secondary,
+  .success,
+  .warning,
+  .ghost-button,
+  .ghost-dark,
+  .compact-button,
+  .role-button,
+  .tabs button,
+  .admin-user-tabs button,
+  .admin-preview-link,
+  .compact-link,
+  .top-about-link,
+  .top-scholar-link,
+  .profile-upload-button,
+  .profile-upload-button.redesigned,
+  .profile-menu-button,
+  .admin-profile-settings-button,
+  .action-row button,
+  .mini-card button,
+  .invitation-row-actions button,
+  .notification-actions button,
+  .notification-popover-close,
+  .toolbar-upload-button,
+  .auth-switch button,
+  .auth-submit-button,
+  .email-report-button,
+  .weekly-submit-button,
+  .min-button-width
+):hover:not(:disabled),
+html body #root :where(
+  button,
+  .primary,
+  .secondary,
+  .success,
+  .warning,
+  .ghost-button,
+  .ghost-dark,
+  .compact-button,
+  .role-button,
+  .tabs button,
+  .admin-user-tabs button,
+  .admin-preview-link,
+  .compact-link,
+  .top-about-link,
+  .top-scholar-link,
+  .profile-upload-button,
+  .profile-upload-button.redesigned,
+  .profile-menu-button,
+  .admin-profile-settings-button,
+  .action-row button,
+  .mini-card button,
+  .invitation-row-actions button,
+  .notification-actions button,
+  .notification-popover-close,
+  .toolbar-upload-button,
+  .auth-switch button,
+  .auth-submit-button,
+  .email-report-button,
+  .weekly-submit-button,
+  .min-button-width
+).active:not(:disabled) {
+  background: #ffffff !important;
+  background-image: none !important;
+  color: #4d4c4d !important;
+  border-color: rgba(77, 76, 77, .36) !important;
+}
+
+/* Final icon + outline correction: #4d4c4d icons, #636263 outlines. */
+:root {
+  --ui-icon-gray: #4d4c4d;
+  --ui-outline-gray: #636263;
+}
+
+/* Standard icon tiles/cards: white tile, charcoal icon, gray outline. */
+html body #root :where(
+  .icon-box,
+  .section-icon,
+  .stat-icon,
+  .summary-icon,
+  .dashboard-icon,
+  .card-icon,
+  .metric-icon,
+  .overview-icon,
+  .member-icon,
+  .project-icon,
+  .deadline-icon,
+  .report-icon,
+  .question-icon,
+  .side-nav-icon,
+  .top-about-icon,
+  .top-scholar-icon,
+  .top-nav-icon,
+  .button-icon,
+  .btn-icon
+) {
+  background: #ffffff !important;
+  background-image: none !important;
+  color: var(--ui-icon-gray) !important;
+  border: 1px solid var(--ui-outline-gray) !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+
+html body #root :where(
+  .icon-box,
+  .section-icon,
+  .stat-icon,
+  .summary-icon,
+  .dashboard-icon,
+  .card-icon,
+  .metric-icon,
+  .overview-icon,
+  .member-icon,
+  .project-icon,
+  .deadline-icon,
+  .report-icon,
+  .question-icon,
+  .side-nav-icon,
+  .top-about-icon,
+  .top-scholar-icon,
+  .top-nav-icon,
+  .button-icon,
+  .btn-icon
+) :where(svg, i, span) {
+  color: var(--ui-icon-gray) !important;
+  stroke: var(--ui-icon-gray) !important;
+  fill: none !important;
+}
+
+/* Button outlines use #636263, while keeping existing click handlers and states unchanged. */
+html body #root :where(
+  button,
+  .primary,
+  .secondary,
+  .success,
+  .warning,
+  .ghost-button,
+  .ghost-dark,
+  .compact-button,
+  .role-button,
+  .tabs button,
+  .admin-user-tabs button,
+  .admin-preview-link,
+  .compact-link,
+  .top-about-link,
+  .top-scholar-link,
+  .profile-upload-button,
+  .profile-upload-button.redesigned,
+  .profile-menu-button,
+  .admin-profile-settings-button,
+  .action-row button,
+  .mini-card button,
+  .invitation-row-actions button,
+  .notification-actions button,
+  .notification-popover-close,
+  .toolbar-upload-button,
+  .auth-switch button,
+  .auth-submit-button,
+  .email-report-button,
+  .weekly-submit-button,
+  .min-button-width
+):not(.danger):not(.danger-btn):not(.delete-btn):not(.delete-item-button):not(.admin-panel-delete-button):not(.logout):not(.admin-logout) {
+  border-color: var(--ui-outline-gray) !important;
+}
+
+/* Icons in white/hover/active buttons should be #4d4c4d. */
+html body #root :where(
+  button:hover,
+  button:focus-visible,
+  button.active,
+  .primary:hover,
+  .secondary:hover,
+  .success:hover,
+  .warning:hover,
+  .ghost-button:hover,
+  .ghost-dark:hover,
+  .compact-button:hover,
+  .role-button:hover,
+  .role-button.active,
+  .tabs button:hover,
+  .tabs button.active,
+  .top-about-link:hover,
+  .top-scholar-link:hover,
+  .profile-upload-button:hover,
+  .profile-menu-button:hover,
+  .action-row button:hover,
+  .mini-card button:hover,
+  .notification-actions button:hover,
+  .auth-switch button:hover,
+  .auth-switch button.active,
+  .auth-submit-button:hover,
+  .email-report-button:hover,
+  .weekly-submit-button:hover
+):not(.danger):not(.danger-btn):not(.delete-btn):not(.delete-item-button):not(.admin-panel-delete-button):not(.logout):not(.admin-logout) :where(svg, i, .button-icon, .btn-icon, .top-about-icon, .top-scholar-icon, .top-nav-icon) {
+  color: var(--ui-icon-gray) !important;
+  stroke: var(--ui-icon-gray) !important;
+  fill: none !important;
+}
+
+/* Sidebar defaults keep readable white icons on the dark/gray sidebar; hover/active gets white tile with #4d4c4d icon. */
+html body #root :where(.main-side-nav button:not(.active):not(:hover) .side-nav-icon, .admin-side-nav button:not(.active):not(:hover) .side-nav-icon) {
+  background: transparent !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+}
+html body #root :where(.main-side-nav button:not(.active):not(:hover) .side-nav-icon svg, .admin-side-nav button:not(.active):not(:hover) .side-nav-icon svg) {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+html body #root :where(.main-side-nav button.active .side-nav-icon, .main-side-nav button:hover .side-nav-icon, .admin-side-nav button.active .side-nav-icon, .admin-side-nav button:hover .side-nav-icon) {
+  background: #ffffff !important;
+  color: var(--ui-icon-gray) !important;
+  border: 1px solid var(--ui-outline-gray) !important;
+}
+html body #root :where(.main-side-nav button.active .side-nav-icon svg, .main-side-nav button:hover .side-nav-icon svg, .admin-side-nav button.active .side-nav-icon svg, .admin-side-nav button:hover .side-nav-icon svg) {
+  color: var(--ui-icon-gray) !important;
+  stroke: var(--ui-icon-gray) !important;
+}
+
+/* Final sidebar icon override: every sidebar icon tile must be outlined white tile with gray icon. */
+html body #root .main-side-nav button .side-nav-icon,
+html body #root .main-side-nav button:not(.active):not(:hover) .side-nav-icon,
+html body #root .main-side-nav button:hover .side-nav-icon,
+html body #root .main-side-nav button.active .side-nav-icon,
+html body #root .admin-side-nav button .side-nav-icon,
+html body #root .admin-side-nav button:not(.active):not(:hover) .side-nav-icon,
+html body #root .admin-side-nav button:hover .side-nav-icon,
+html body #root .admin-side-nav button.active .side-nav-icon,
+html body #root .admin-sidebar button .side-nav-icon,
+html body #root .admin-sidebar button:not(.active):not(:hover) .side-nav-icon,
+html body #root .admin-sidebar button:hover .side-nav-icon,
+html body #root .admin-sidebar button.active .side-nav-icon {
+  background: #ffffff !important;
+  background-image: none !important;
+  color: #4d4c4d !important;
+  border: 1px solid #636263 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+
+html body #root .main-side-nav button .side-nav-icon :where(svg, i, span),
+html body #root .main-side-nav button:not(.active):not(:hover) .side-nav-icon :where(svg, i, span),
+html body #root .main-side-nav button:hover .side-nav-icon :where(svg, i, span),
+html body #root .main-side-nav button.active .side-nav-icon :where(svg, i, span),
+html body #root .admin-side-nav button .side-nav-icon :where(svg, i, span),
+html body #root .admin-side-nav button:not(.active):not(:hover) .side-nav-icon :where(svg, i, span),
+html body #root .admin-side-nav button:hover .side-nav-icon :where(svg, i, span),
+html body #root .admin-side-nav button.active .side-nav-icon :where(svg, i, span),
+html body #root .admin-sidebar button .side-nav-icon :where(svg, i, span),
+html body #root .admin-sidebar button:not(.active):not(:hover) .side-nav-icon :where(svg, i, span),
+html body #root .admin-sidebar button:hover .side-nav-icon :where(svg, i, span),
+html body #root .admin-sidebar button.active .side-nav-icon :where(svg, i, span) {
+  color: #4d4c4d !important;
+  stroke: #4d4c4d !important;
+  fill: none !important;
+}
+
+/* Final sidebar inactive state correction: gray tab backgrounds with white text */
+.main-side-nav button:not(.active),
+.admin-side-nav button:not(.active) {
+  background: #4d4c4d !important;
+  color: #ffffff !important;
+  border: 1px solid #636263 !important;
+  box-shadow: none !important;
+}
+
+.main-side-nav button:not(.active) > span:not(.side-nav-icon):not(.tab-badge),
+.admin-side-nav button:not(.active) > span:not(.side-nav-icon):not(.tab-badge),
+.main-side-nav button:not(.active) .nav-label,
+.admin-side-nav button:not(.active) .nav-label {
+  color: #ffffff !important;
+}
+
+.main-side-nav button .side-nav-icon,
+.main-side-nav button:not(.active) .side-nav-icon,
+.admin-side-nav button .side-nav-icon,
+.admin-side-nav button:not(.active) .side-nav-icon {
+  background: #ffffff !important;
+  border: 1px solid #636263 !important;
+  color: #4d4c4d !important;
+  box-shadow: none !important;
+}
+
+.main-side-nav button .side-nav-icon svg,
+.main-side-nav button:not(.active) .side-nav-icon svg,
+.admin-side-nav button .side-nav-icon svg,
+.admin-side-nav button:not(.active) .side-nav-icon svg {
+  color: #4d4c4d !important;
+  stroke: #4d4c4d !important;
+}
+
+.main-side-nav button:hover,
+.main-side-nav button.active,
+.admin-side-nav button:hover,
+.admin-side-nav button.active {
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+  border: 1px solid #636263 !important;
+  box-shadow: 0 10px 22px rgba(77, 76, 77, .14) !important;
+}
+
+.main-side-nav button:hover > span:not(.side-nav-icon):not(.tab-badge),
+.main-side-nav button.active > span:not(.side-nav-icon):not(.tab-badge),
+.admin-side-nav button:hover > span:not(.side-nav-icon):not(.tab-badge),
+.admin-side-nav button.active > span:not(.side-nav-icon):not(.tab-badge),
+.main-side-nav button:hover .nav-label,
+.main-side-nav button.active .nav-label,
+.admin-side-nav button:hover .nav-label,
+.admin-side-nav button.active .nav-label {
+  color: #4d4c4d !important;
+}
+
+.main-side-nav button.active::before,
+.admin-side-nav button.active::before {
+  display: none !important;
+  content: none !important;
+}
+
+/* FINAL ICON COLOR CORRECTION
+   All normal button/sidebar icons stay #4d4c4d in default, hover, and active states.
+   Danger/delete/logout icons remain red. This does not change click logic. */
+:root {
+  --final-icon-gray: #4d4c4d;
+  --final-icon-outline: #636263;
+  --final-danger-red: #b91c1c;
+}
+
+/* Sidebar icon tile: white tile, gray icon, gray outline in every state. */
+html body #root :where(
+  .main-side-nav button .side-nav-icon,
+  .main-side-nav button:not(.active):not(:hover) .side-nav-icon,
+  .main-side-nav button:hover .side-nav-icon,
+  .main-side-nav button.active .side-nav-icon,
+  .admin-side-nav button .side-nav-icon,
+  .admin-side-nav button:not(.active):not(:hover) .side-nav-icon,
+  .admin-side-nav button:hover .side-nav-icon,
+  .admin-side-nav button.active .side-nav-icon,
+  .admin-sidebar button .side-nav-icon,
+  .admin-sidebar button:not(.active):not(:hover) .side-nav-icon,
+  .admin-sidebar button:hover .side-nav-icon,
+  .admin-sidebar button.active .side-nav-icon
+) {
+  background: #ffffff !important;
+  background-image: none !important;
+  color: var(--final-icon-gray) !important;
+  border: 1px solid var(--final-icon-outline) !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+html body #root :where(
+  .main-side-nav button .side-nav-icon svg,
+  .main-side-nav button:not(.active):not(:hover) .side-nav-icon svg,
+  .main-side-nav button:hover .side-nav-icon svg,
+  .main-side-nav button.active .side-nav-icon svg,
+  .admin-side-nav button .side-nav-icon svg,
+  .admin-side-nav button:not(.active):not(:hover) .side-nav-icon svg,
+  .admin-side-nav button:hover .side-nav-icon svg,
+  .admin-side-nav button.active .side-nav-icon svg,
+  .admin-sidebar button .side-nav-icon svg,
+  .admin-sidebar button:not(.active):not(:hover) .side-nav-icon svg,
+  .admin-sidebar button:hover .side-nav-icon svg,
+  .admin-sidebar button.active .side-nav-icon svg,
+  .main-side-nav button > svg,
+  .main-side-nav button:not(.active):not(:hover) > svg,
+  .main-side-nav button:hover > svg,
+  .main-side-nav button.active > svg,
+  .admin-side-nav button > svg,
+  .admin-side-nav button:not(.active):not(:hover) > svg,
+  .admin-side-nav button:hover > svg,
+  .admin-side-nav button.active > svg
+) {
+  color: var(--final-icon-gray) !important;
+  stroke: var(--final-icon-gray) !important;
+  fill: none !important;
+}
+
+html body #root :where(
+  .main-side-nav button .side-nav-icon *,
+  .main-side-nav button:not(.active):not(:hover) .side-nav-icon *,
+  .main-side-nav button:hover .side-nav-icon *,
+  .main-side-nav button.active .side-nav-icon *,
+  .admin-side-nav button .side-nav-icon *,
+  .admin-side-nav button:not(.active):not(:hover) .side-nav-icon *,
+  .admin-side-nav button:hover .side-nav-icon *,
+  .admin-side-nav button.active .side-nav-icon *
+) {
+  color: var(--final-icon-gray) !important;
+  stroke: var(--final-icon-gray) !important;
+}
+
+/* Keep sidebar text rules separate: inactive text stays white; hover/active text gray. */
+html body #root :where(.main-side-nav button:not(.active):not(:hover), .admin-side-nav button:not(.active):not(:hover), .admin-sidebar .admin-side-nav button:not(.active):not(:hover)) > :where(span:not(.side-nav-icon):not(.tab-badge), strong, b, small, .nav-label) {
+  color: #ffffff !important;
+}
+html body #root :where(.main-side-nav button:hover, .main-side-nav button.active, .admin-side-nav button:hover, .admin-side-nav button.active, .admin-sidebar .admin-side-nav button:hover, .admin-sidebar .admin-side-nav button.active) > :where(span:not(.side-nav-icon):not(.tab-badge), strong, b, small, .nav-label) {
+  color: var(--final-icon-gray) !important;
+}
+
+/* Normal button icons: gray in default, hover, focus, and active states. */
+html body #root :where(
+  button,
+  .btn,
+  .button,
+  .primary,
+  .secondary,
+  .success,
+  .warning,
+  .ghost-button,
+  .compact-button,
+  .action-button,
+  .icon-button,
+  .top-about-link,
+  .top-scholar-link,
+  .profile-menu-button,
+  .profile-upload-button,
+  .role-button,
+  .notification-button,
+  .notification-actions button,
+  .weekly-submit-button,
+  .email-report-button,
+  .toolbar-upload-button,
+  .auth-submit-button,
+  .auth-switch button,
+  .table-actions button,
+  .action-row button,
+  .mini-card button,
+  .project-actions button,
+  .deadline-actions button,
+  .question-actions button,
+  .report-actions button
+):not(.danger):not(.danger-btn):not(.delete-btn):not(.delete-item-button):not(.admin-panel-delete-button):not(.logout):not(.admin-logout):not([aria-label*="Delete"]):not([aria-label*="Remove"]):not([aria-label*="Logout"]) :where(svg, i, .button-icon, .btn-icon, .top-about-icon, .top-scholar-icon, .top-nav-icon, .icon-box, .section-icon, .stat-icon, .summary-icon, .dashboard-icon, .card-icon, .metric-icon, .overview-icon) {
+  color: var(--final-icon-gray) !important;
+  stroke: var(--final-icon-gray) !important;
+}
+
+html body #root :where(
+  button,
+  .btn,
+  .button,
+  .primary,
+  .secondary,
+  .success,
+  .warning,
+  .ghost-button,
+  .compact-button,
+  .action-button,
+  .icon-button,
+  .top-about-link,
+  .top-scholar-link,
+  .profile-menu-button,
+  .profile-upload-button,
+  .role-button,
+  .notification-button,
+  .notification-actions button,
+  .weekly-submit-button,
+  .email-report-button,
+  .toolbar-upload-button,
+  .auth-submit-button,
+  .auth-switch button,
+  .table-actions button,
+  .action-row button,
+  .mini-card button,
+  .project-actions button,
+  .deadline-actions button,
+  .question-actions button,
+  .report-actions button
+):not(.danger):not(.danger-btn):not(.delete-btn):not(.delete-item-button):not(.admin-panel-delete-button):not(.logout):not(.admin-logout):not([aria-label*="Delete"]):not([aria-label*="Remove"]):not([aria-label*="Logout"]) :where(svg) {
+  fill: none !important;
+}
+
+/* Header/profile/role/notification icons and dropdown caret. */
+html body #root :where(
+  .main-compact-header svg,
+  .top-about-link svg,
+  .top-scholar-link svg,
+  .main-notification-button svg,
+  .profile-trigger svg,
+  .profile-dropdown svg,
+  .role-switch svg,
+  .role-switch-select,
+  .role-select,
+  select
+):not(.danger):not(.logout) {
+  color: var(--final-icon-gray) !important;
+  stroke: var(--final-icon-gray) !important;
+}
+
+/* Danger/delete/logout exceptions stay red. */
+html body #root :where(
+  .danger,
+  .danger-btn,
+  .delete-btn,
+  .delete-item-button,
+  .admin-panel-delete-button,
+  .logout,
+  .admin-logout,
+  button[aria-label*="Delete"],
+  button[aria-label*="Remove"],
+  button[aria-label*="Logout"]
+) :where(svg, i, .button-icon, .btn-icon) {
+  color: var(--final-danger-red) !important;
+  stroke: var(--final-danger-red) !important;
+}
+
+/* TOP HEADER ICON COLOR OVERRIDE
+   Keep About Us, HMU Google Scholar, notification, role dropdown, and profile/header icons #4d4c4d in default, hover, focus, and active states. */
+html body #root :where(
+  .main-compact-header .top-about-link,
+  .main-compact-header .top-scholar-link,
+  .main-compact-header .main-notification-button,
+  .main-compact-header .role-switch-dropdown,
+  .main-compact-header .role-switch-compact,
+  .main-compact-header .role-switch,
+  .main-compact-header .role-select-wrap,
+  .main-compact-header .student-profile-trigger,
+  .main-compact-header .student-profile-trigger.redesigned,
+  .main-compact-header .user-profile-menu .student-profile-trigger.redesigned,
+  .main-header-actions .main-notification-button,
+  .main-header-actions .role-switch-dropdown,
+  .main-header-actions .student-profile-trigger,
+  .main-header-actions .student-profile-trigger.redesigned
+),
+html body #root :where(
+  .main-compact-header .top-about-link:hover,
+  .main-compact-header .top-scholar-link:hover,
+  .main-compact-header .top-about-link:focus-visible,
+  .main-compact-header .top-scholar-link:focus-visible,
+  .main-compact-header .top-about-link.active,
+  .main-compact-header .top-scholar-link.active,
+  .main-compact-header .main-notification-button:hover,
+  .main-compact-header .main-notification-button:focus-visible,
+  .main-compact-header .main-notification-button.active,
+  .main-compact-header .role-switch-dropdown:hover,
+  .main-compact-header .role-switch-dropdown:focus-within,
+  .main-compact-header .student-profile-trigger:hover,
+  .main-compact-header .student-profile-trigger:focus-visible
+) {
+  color: #4d4c4d !important;
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: #636263 !important;
+}
+
+html body #root :where(
+  .main-compact-header .top-about-link span,
+  .main-compact-header .top-scholar-link span,
+  .main-compact-header .main-notification-button span:not(.notification-badge),
+  .main-compact-header .role-switch-dropdown span,
+  .main-compact-header .role-switch-compact span,
+  .main-compact-header .student-profile-trigger span,
+  .main-header-actions .top-about-link span,
+  .main-header-actions .top-scholar-link span,
+  .main-header-actions .main-notification-button span:not(.notification-badge),
+  .main-header-actions .role-switch-dropdown span
+) {
+  color: #4d4c4d !important;
+}
+
+html body #root :where(
+  .main-compact-header .top-about-link svg,
+  .main-compact-header .top-scholar-link svg,
+  .main-compact-header .top-about-icon svg,
+  .main-compact-header .top-scholar-icon svg,
+  .main-compact-header .top-nav-icon svg,
+  .main-compact-header .main-notification-button svg,
+  .main-compact-header .notification-icon svg,
+  .main-compact-header .role-switch-dropdown svg,
+  .main-compact-header .role-switch-compact svg,
+  .main-compact-header .student-profile-trigger svg,
+  .main-header-actions .top-about-link svg,
+  .main-header-actions .top-scholar-link svg,
+  .main-header-actions .main-notification-button svg,
+  .main-header-actions .role-switch-dropdown svg,
+  .main-header-actions .student-profile-trigger svg
+) {
+  color: #4d4c4d !important;
+  stroke: #4d4c4d !important;
+  fill: none !important;
+}
+
+html body #root :where(
+  .main-compact-header .top-about-icon,
+  .main-compact-header .top-scholar-icon,
+  .main-compact-header .top-nav-icon,
+  .main-compact-header .main-notification-button .notification-icon,
+  .main-header-actions .top-about-icon,
+  .main-header-actions .top-scholar-icon,
+  .main-header-actions .top-nav-icon,
+  .main-header-actions .main-notification-button .notification-icon
+) {
+  background: #ffffff !important;
+  background-image: none !important;
+  color: #4d4c4d !important;
+  border: 1px solid #636263 !important;
+}
+
+html body #root :where(
+  .main-compact-header .role-switch-dropdown select,
+  .main-compact-header .role-switch-compact select,
+  .main-compact-header .role-select,
+  .main-compact-header .role-switch-select,
+  .main-header-actions .role-switch-dropdown select,
+  .main-header-actions .role-switch-compact select,
+  .main-header-actions .role-select,
+  .main-header-actions .role-switch-select
+) {
+  color: #4d4c4d !important;
+  background-color: transparent !important;
+  border-color: transparent !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234d4c4d' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 2px center !important;
+  background-size: 14px 14px !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+}
+
+/* Preserve red only for top-header danger/logout controls if any appear there. */
+html body #root :where(
+  .main-compact-header .danger,
+  .main-compact-header .danger-btn,
+  .main-compact-header .delete-btn,
+  .main-compact-header .logout,
+  .main-compact-header .admin-logout,
+  .main-header-actions .danger,
+  .main-header-actions .danger-btn,
+  .main-header-actions .delete-btn,
+  .main-header-actions .logout,
+  .main-header-actions .admin-logout
+) :where(svg, i, .button-icon, .btn-icon) {
+  color: #b91c1c !important;
+  stroke: #b91c1c !important;
+}
+
+/* Final exact fix: make the actual About Us and HMU Google Scholar header icons visible inside their white icon boxes. */
+html body #root .main-compact-header .top-about-link > .top-about-icon,
+html body #root .main-compact-header .top-scholar-link > .top-about-icon,
+html body #root .main-compact-header .top-scholar-link > .top-scholar-icon,
+html body #root .main-header-actions .top-about-link > .top-about-icon,
+html body #root .main-header-actions .top-scholar-link > .top-about-icon,
+html body #root .main-header-actions .top-scholar-link > .top-scholar-icon {
+  background: #ffffff !important;
+  background-image: none !important;
+  color: #4d4c4d !important;
+  border-color: #636263 !important;
+}
+
+html body #root .main-compact-header .top-about-link > .top-about-icon svg,
+html body #root .main-compact-header .top-about-link > .top-about-icon svg *,
+html body #root .main-compact-header .top-scholar-link > .top-about-icon svg,
+html body #root .main-compact-header .top-scholar-link > .top-about-icon svg *,
+html body #root .main-compact-header .top-scholar-link > .top-scholar-icon svg,
+html body #root .main-compact-header .top-scholar-link > .top-scholar-icon svg *,
+html body #root .main-header-actions .top-about-link > .top-about-icon svg,
+html body #root .main-header-actions .top-about-link > .top-about-icon svg *,
+html body #root .main-header-actions .top-scholar-link > .top-about-icon svg,
+html body #root .main-header-actions .top-scholar-link > .top-about-icon svg *,
+html body #root .main-header-actions .top-scholar-link > .top-scholar-icon svg,
+html body #root .main-header-actions .top-scholar-link > .top-scholar-icon svg * {
+  color: #4d4c4d !important;
+  stroke: #4d4c4d !important;
+  fill: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+html body #root .main-compact-header .top-about-link:hover > .top-about-icon,
+html body #root .main-compact-header .top-about-link:focus-visible > .top-about-icon,
+html body #root .main-compact-header .top-about-link.active > .top-about-icon,
+html body #root .main-compact-header .top-scholar-link:hover > .top-about-icon,
+html body #root .main-compact-header .top-scholar-link:focus-visible > .top-about-icon,
+html body #root .main-compact-header .top-scholar-link.active > .top-about-icon {
+  color: #4d4c4d !important;
+  background: #ffffff !important;
+  border-color: #636263 !important;
+}
+
+/* FINAL FIX: top-header role dropdown spacing and label cleanup.
+   Shows only the selected role + arrow, keeps behavior unchanged. */
+html body #root .main-compact-header .main-header-actions,
+html body #root .main-dashboard-with-sidebar .main-header-actions,
+html body #root .top-header-actions,
+html body #root .profile-actions {
+  gap: 0.45rem !important;
+  column-gap: 0.45rem !important;
+}
+
+html body #root .main-compact-header .role-switch-dropdown,
+html body #root .main-header-actions .role-switch-dropdown,
+html body #root .role-switch-dropdown.role-switch-label-hidden {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: fit-content !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  flex: 0 0 auto !important;
+  flex-grow: 0 !important;
+  flex-shrink: 0 !important;
+  margin: 0 !important;
+  padding: 0.55rem 0.7rem !important;
+  gap: 0 !important;
+}
+
+html body #root .main-compact-header .role-switch-dropdown > span,
+html body #root .main-header-actions .role-switch-dropdown > span,
+html body #root .role-switch-dropdown.role-switch-label-hidden > span {
+  display: none !important;
+}
+
+html body #root .main-compact-header .role-switch-dropdown select,
+html body #root .main-header-actions .role-switch-dropdown select,
+html body #root .role-switch-dropdown.role-switch-label-hidden select {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  flex: 0 0 auto !important;
+  field-sizing: content;
+  padding: 0.05rem 1.35rem 0.05rem 0.05rem !important;
+  margin: 0 !important;
+  color: #4d4c4d !important;
+  font-weight: 900 !important;
+  line-height: 1.1 !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234d4c4d' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0 center !important;
+  background-size: 1rem 1rem !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+}
+
+html body #root .main-compact-header .main-profile-summary,
+html body #root .main-header-actions .main-profile-summary {
+  margin-left: 0 !important;
+  padding-left: 0.35rem !important;
+  padding-right: 0 !important;
+  border-left: 0 !important;
+  flex: 0 0 auto !important;
+}
+
+html body #root .main-compact-header .student-profile-menu,
+html body #root .main-header-actions .student-profile-menu,
+html body #root .main-compact-header .student-profile-trigger,
+html body #root .main-header-actions .student-profile-trigger,
+html body #root .main-compact-header .student-profile-trigger.redesigned,
+html body #root .main-header-actions .student-profile-trigger.redesigned,
+html body #root .main-header-actions .user-profile-menu .student-profile-trigger.redesigned {
+  margin-left: 0 !important;
+}
+
+html body #root .main-compact-header .role-switch-dropdown svg,
+html body #root .main-header-actions .role-switch-dropdown svg {
+  color: #4d4c4d !important;
+  stroke: #4d4c4d !important;
+}
+
+@media (max-width: 760px) {
+  html body #root .main-compact-header .main-header-actions,
+  html body #root .main-dashboard-with-sidebar .main-header-actions {
+    gap: 0.35rem !important;
+  }
+  html body #root .main-compact-header .role-switch-dropdown,
+  html body #root .main-header-actions .role-switch-dropdown {
+    padding: 0.5rem 0.6rem !important;
+  }
+  html body #root .main-compact-header .role-switch-dropdown select,
+  html body #root .main-header-actions .role-switch-dropdown select {
+    padding-right: 1.15rem !important;
+    max-width: 12rem !important;
+  }
+}
+
+/* FINAL FIX: top-header profile user display.
+   Visual-only: stack name/role in white text and keep the avatar circle white. */
+html body #root .main-compact-header .main-header-actions,
+html body #root .main-dashboard-with-sidebar .main-header-actions,
+html body #root .dashboard-topbar .main-header-actions {
+  align-items: center !important;
+  gap: 0.5rem !important;
+  column-gap: 0.5rem !important;
+}
+
+html body #root .main-compact-header .main-profile-summary,
+html body #root .main-header-actions .main-profile-summary,
+html body #root .dashboard-topbar .main-profile-summary {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  gap: 0.12rem !important;
+  min-width: 0 !important;
+  max-width: 150px !important;
+  margin: 0 !important;
+  padding: 0 0.1rem !important;
+  border-left: 0 !important;
+  border-right: 0 !important;
+  color: #ffffff !important;
+  line-height: 1.1 !important;
+  flex: 0 1 auto !important;
+}
+
+html body #root .main-compact-header .main-profile-summary b,
+html body #root .main-header-actions .main-profile-summary b,
+html body #root .dashboard-topbar .main-profile-summary b,
+html body #root .header-user-name,
+html body #root .profile-user-name {
+  display: block !important;
+  width: 100% !important;
+  max-width: 150px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  color: #ffffff !important;
+  font-size: 0.92rem !important;
+  font-weight: 900 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.08 !important;
+}
+
+html body #root .main-compact-header .main-profile-summary small,
+html body #root .main-header-actions .main-profile-summary small,
+html body #root .dashboard-topbar .main-profile-summary small,
+html body #root .header-user-role,
+html body #root .profile-user-role {
+  display: block !important;
+  width: 100% !important;
+  max-width: 150px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  color: #ffffff !important;
+  opacity: 0.9 !important;
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  line-height: 1.08 !important;
+}
+
+html body #root .main-compact-header .student-profile-menu.user-profile-menu,
+html body #root .main-header-actions .student-profile-menu.user-profile-menu,
+html body #root .main-compact-header .user-profile-menu,
+html body #root .main-header-actions .user-profile-menu {
+  margin: 0 !important;
+  padding: 0 !important;
+  flex: 0 0 auto !important;
+}
+
+html body #root .main-compact-header .student-profile-trigger,
+html body #root .main-compact-header .student-profile-trigger.redesigned,
+html body #root .main-compact-header .user-profile-menu .student-profile-trigger.redesigned,
+html body #root .main-header-actions .student-profile-trigger,
+html body #root .main-header-actions .student-profile-trigger.redesigned,
+html body #root .main-header-actions .user-profile-menu .student-profile-trigger.redesigned,
+html body #root .profile-avatar,
+html body #root .avatar-circle,
+html body #root .user-avatar {
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  display: grid !important;
+  place-items: center !important;
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  background: #ffffff !important;
+  background-image: none !important;
+  color: #4d4c4d !important;
+  border: 1px solid rgba(255, 255, 255, 0.72) !important;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14) !important;
+}
+
+html body #root .main-compact-header .student-profile-trigger span:not(.profile-online-dot),
+html body #root .main-compact-header .student-profile-trigger.redesigned span:not(.profile-online-dot),
+html body #root .main-header-actions .student-profile-trigger span:not(.profile-online-dot),
+html body #root .main-header-actions .student-profile-trigger.redesigned span:not(.profile-online-dot),
+html body #root .profile-avatar span,
+html body #root .avatar-circle span,
+html body #root .user-avatar span {
+  color: #4d4c4d !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+}
+
+html body #root .main-compact-header .student-profile-trigger img,
+html body #root .main-compact-header .student-profile-trigger.redesigned img,
+html body #root .main-header-actions .student-profile-trigger img,
+html body #root .main-header-actions .student-profile-trigger.redesigned img,
+html body #root .profile-avatar img,
+html body #root .avatar-circle img,
+html body #root .user-avatar img {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: inherit !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+html body #root .main-compact-header .profile-online-dot,
+html body #root .main-header-actions .profile-online-dot {
+  right: 1px !important;
+  bottom: 1px !important;
+  background: #d1d5db !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: none !important;
+}
+
+html body #root .main-compact-header .main-header-actions > .divider,
+html body #root .main-compact-header .main-header-actions > .header-divider,
+html body #root .main-header-actions > .divider,
+html body #root .main-header-actions > .header-divider,
+html body #root .main-compact-header .main-header-actions::before,
+html body #root .main-compact-header .main-header-actions::after {
+  display: none !important;
+  content: none !important;
+}
+
+@media (max-width: 760px) {
+  html body #root .main-compact-header .main-profile-summary,
+  html body #root .main-header-actions .main-profile-summary {
+    max-width: 110px !important;
+  }
+  html body #root .main-compact-header .main-profile-summary b,
+  html body #root .main-header-actions .main-profile-summary b,
+  html body #root .main-compact-header .main-profile-summary small,
+  html body #root .main-header-actions .main-profile-summary small {
+    max-width: 110px !important;
+  }
+}
+
+
+/* Final profile dropdown avatar cleanup: remove the rectangular frame/panel behind the avatar. */
+html body #root .student-profile-dropdown.redesigned-profile-card .profile-cover,
+html body #root .user-profile-menu .student-profile-dropdown.redesigned-profile-card .profile-cover,
+html body #root .profile-cover {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+html body #root .student-profile-dropdown.redesigned-profile-card .profile-card-body,
+html body #root .user-profile-menu .student-profile-dropdown.redesigned-profile-card .profile-card-body,
+html body #root .profile-card-body.simplified-profile-card {
+  padding-top: 20px !important;
+}
+
+html body #root .student-profile-dropdown.redesigned-profile-card .profile-avatar-shell,
+html body #root .user-profile-menu .student-profile-dropdown.redesigned-profile-card .profile-avatar-shell,
+html body #root .profile-card-body .profile-avatar-shell {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 auto 12px !important;
+  border: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+html body #root .student-profile-dropdown.redesigned-profile-card .profile-avatar-shell::before,
+html body #root .student-profile-dropdown.redesigned-profile-card .profile-avatar-shell::after,
+html body #root .user-profile-menu .student-profile-dropdown.redesigned-profile-card .profile-avatar-shell::before,
+html body #root .user-profile-menu .student-profile-dropdown.redesigned-profile-card .profile-avatar-shell::after {
+  content: none !important;
+  display: none !important;
+}
+
+html body #root .student-profile-dropdown.redesigned-profile-card .student-profile-large.redesigned,
+html body #root .user-profile-menu .student-profile-dropdown.redesigned-profile-card .student-profile-large.redesigned {
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+  border: 4px solid rgba(77, 76, 77, .14) !important;
+  box-shadow: 0 8px 20px rgba(77, 76, 77, .12) !important;
+}
+
+html body #root .student-profile-dropdown.redesigned-profile-card .student-profile-large.redesigned span,
+html body #root .user-profile-menu .student-profile-dropdown.redesigned-profile-card .student-profile-large.redesigned span {
+  color: #4d4c4d !important;
+}
+
+/* Login page only: restore original clean light-blue auth controls.
+   This is intentionally scoped to .login-page so dashboard/sidebar buttons keep their current style. */
+html body #root .login-page .auth-submit-button,
+html body #root .login-page button.auth-submit-button,
+html body #root .modern-login-page .auth-submit-button,
+html body #root .modern-login-page button.auth-submit-button {
+  background: #d8efff !important;
+  background-image: none !important;
+  color: #075985 !important;
+  border: 1px solid #9fd8ff !important;
+  border-radius: 18px !important;
+  box-shadow: 0 14px 32px rgba(7, 89, 133, .14) !important;
+  text-shadow: none !important;
+}
+
+html body #root .login-page .auth-submit-button svg,
+html body #root .login-page .auth-submit-button svg *,
+html body #root .modern-login-page .auth-submit-button svg,
+html body #root .modern-login-page .auth-submit-button svg * {
+  color: #075985 !important;
+  stroke: #075985 !important;
+  fill: none !important;
+}
+
+html body #root .login-page .auth-submit-button:hover:not(:disabled),
+html body #root .login-page button.auth-submit-button:hover:not(:disabled),
+html body #root .modern-login-page .auth-submit-button:hover:not(:disabled),
+html body #root .modern-login-page button.auth-submit-button:hover:not(:disabled),
+html body #root .login-page .auth-submit-button:focus-visible,
+html body #root .modern-login-page .auth-submit-button:focus-visible {
+  background: #c8e8ff !important;
+  background-image: none !important;
+  color: #075985 !important;
+  border-color: #7ccfff !important;
+  box-shadow: 0 18px 38px rgba(7, 89, 133, .18) !important;
+  transform: translateY(-1px);
+}
+
+html body #root .login-page .auth-submit-button:hover:not(:disabled) svg,
+html body #root .login-page .auth-submit-button:hover:not(:disabled) svg *,
+html body #root .login-page .auth-submit-button:focus-visible svg,
+html body #root .login-page .auth-submit-button:focus-visible svg *,
+html body #root .modern-login-page .auth-submit-button:hover:not(:disabled) svg,
+html body #root .modern-login-page .auth-submit-button:hover:not(:disabled) svg *,
+html body #root .modern-login-page .auth-submit-button:focus-visible svg,
+html body #root .modern-login-page .auth-submit-button:focus-visible svg * {
+  color: #075985 !important;
+  stroke: #075985 !important;
+  fill: none !important;
+}
+
+html body #root .login-page .auth-submit-button:disabled,
+html body #root .modern-login-page .auth-submit-button:disabled {
+  opacity: .72 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+html body #root .login-page .auth-text-link,
+html body #root .login-page button.auth-text-link,
+html body #root .modern-login-page .auth-text-link,
+html body #root .modern-login-page button.auth-text-link {
+  appearance: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #075985 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  font-weight: 800 !important;
+  text-decoration: none !important;
+  text-shadow: none !important;
+}
+
+html body #root .login-page .auth-text-link:hover,
+html body #root .login-page button.auth-text-link:hover,
+html body #root .login-page .auth-text-link:focus-visible,
+html body #root .modern-login-page .auth-text-link:hover,
+html body #root .modern-login-page button.auth-text-link:hover,
+html body #root .modern-login-page .auth-text-link:focus-visible {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #0369a1 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  text-decoration: underline !important;
+  transform: none !important;
+}
+
+html body #root .login-page .auth-bottom-row,
+html body #root .modern-login-page .auth-bottom-row,
+html body #root .login-page .auth-bottom-row p,
+html body #root .modern-login-page .auth-bottom-row p {
+  color: #475569 !important;
+  background: transparent !important;
+}
+
+html body #root .login-page .auth-meta-row,
+html body #root .modern-login-page .auth-meta-row {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+html body #root .login-page .auth-checkbox,
+html body #root .modern-login-page .auth-checkbox,
+html body #root .login-page .auth-checkbox span,
+html body #root .modern-login-page .auth-checkbox span {
+  color: #475569 !important;
+  background: transparent !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+}
+
+html body #root .login-page .auth-checkbox input,
+html body #root .modern-login-page .auth-checkbox input {
+  width: 18px !important;
+  height: 18px !important;
+  min-height: auto !important;
+  accent-color: #0ea5e9 !important;
+  border: 1px solid #9fd8ff !important;
+  box-shadow: none !important;
+}
+
+html body #root .login-page .login-message,
+html body #root .modern-login-page .login-message,
+html body #root .login-page .message.login-message,
+html body #root .modern-login-page .message.login-message {
+  background: #eff6ff !important;
+  background-image: none !important;
+  color: #334155 !important;
+  border: 1px solid #bfdbfe !important;
+  border-radius: 16px !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+html body #root .login-page .auth-note-box,
+html body #root .modern-login-page .auth-note-box,
+html body #root .login-page .invitation-lock-note,
+html body #root .modern-login-page .invitation-lock-note {
+  background: #eff6ff !important;
+  background-image: none !important;
+  color: #334155 !important;
+  border: 1px solid #bfdbfe !important;
+  box-shadow: none !important;
+}
+
+/* FINAL LOGIN PAGE OVERRIDE: keep dashboard/global button styles away from auth links. */
+html body #root .login-page button.auth-text-link,
+html body #root .login-page .auth-text-link,
+html body #root .login-page button.forgot-password-link,
+html body #root .login-page .forgot-password-link,
+html body #root .login-page button.signup-link,
+html body #root .login-page .signup-link,
+html body #root .modern-login-page button.auth-text-link,
+html body #root .modern-login-page .auth-text-link,
+html body #root .modern-login-page button.forgot-password-link,
+html body #root .modern-login-page .forgot-password-link,
+html body #root .modern-login-page button.signup-link,
+html body #root .modern-login-page .signup-link {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  display: inline !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #0284c7 !important;
+  border: 0 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  width: auto !important;
+  font-weight: 800 !important;
+  line-height: inherit !important;
+  text-decoration: none !important;
+  text-shadow: none !important;
+  transform: none !important;
+}
+
+html body #root .login-page button.auth-text-link::before,
+html body #root .login-page button.auth-text-link::after,
+html body #root .login-page .auth-text-link::before,
+html body #root .login-page .auth-text-link::after,
+html body #root .login-page button.forgot-password-link::before,
+html body #root .login-page button.forgot-password-link::after,
+html body #root .login-page button.signup-link::before,
+html body #root .login-page button.signup-link::after,
+html body #root .modern-login-page button.auth-text-link::before,
+html body #root .modern-login-page button.auth-text-link::after,
+html body #root .modern-login-page .auth-text-link::before,
+html body #root .modern-login-page .auth-text-link::after,
+html body #root .modern-login-page button.forgot-password-link::before,
+html body #root .modern-login-page button.forgot-password-link::after,
+html body #root .modern-login-page button.signup-link::before,
+html body #root .modern-login-page button.signup-link::after {
+  content: none !important;
+  display: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html body #root .login-page button.auth-text-link:hover,
+html body #root .login-page .auth-text-link:hover,
+html body #root .login-page button.auth-text-link:focus-visible,
+html body #root .login-page button.forgot-password-link:hover,
+html body #root .login-page button.signup-link:hover,
+html body #root .modern-login-page button.auth-text-link:hover,
+html body #root .modern-login-page .auth-text-link:hover,
+html body #root .modern-login-page button.auth-text-link:focus-visible,
+html body #root .modern-login-page button.forgot-password-link:hover,
+html body #root .modern-login-page button.signup-link:hover {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #0369a1 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  text-decoration: underline !important;
+  transform: none !important;
+}
+
+html body #root .login-page .login-submit-button,
+html body #root .login-page .sign-in-button,
+html body #root .login-page button.auth-submit-button,
+html body #root .login-page button[type="submit"],
+html body #root .modern-login-page .login-submit-button,
+html body #root .modern-login-page .sign-in-button,
+html body #root .modern-login-page button.auth-submit-button,
+html body #root .modern-login-page button[type="submit"] {
+  background: #d8efff !important;
+  background-color: #d8efff !important;
+  background-image: none !important;
+  color: #075985 !important;
+  border: 1px solid #9fd8ff !important;
+  border-radius: 18px !important;
+  box-shadow: 0 10px 25px rgba(14, 165, 233, .16) !important;
+  text-shadow: none !important;
+}
+
+html body #root .login-page .login-submit-button:hover:not(:disabled),
+html body #root .login-page .sign-in-button:hover:not(:disabled),
+html body #root .login-page button.auth-submit-button:hover:not(:disabled),
+html body #root .login-page button[type="submit"]:hover:not(:disabled),
+html body #root .modern-login-page .login-submit-button:hover:not(:disabled),
+html body #root .modern-login-page .sign-in-button:hover:not(:disabled),
+html body #root .modern-login-page button.auth-submit-button:hover:not(:disabled),
+html body #root .modern-login-page button[type="submit"]:hover:not(:disabled) {
+  background: #c8e8ff !important;
+  background-color: #c8e8ff !important;
+  color: #075985 !important;
+  border-color: #7ccfff !important;
+  box-shadow: 0 14px 30px rgba(14, 165, 233, .18) !important;
+}
+
+html body #root .login-page .login-submit-button svg,
+html body #root .login-page .login-submit-button svg *,
+html body #root .login-page .sign-in-button svg,
+html body #root .login-page .sign-in-button svg *,
+html body #root .login-page button.auth-submit-button svg,
+html body #root .login-page button.auth-submit-button svg *,
+html body #root .modern-login-page .login-submit-button svg,
+html body #root .modern-login-page .login-submit-button svg *,
+html body #root .modern-login-page .sign-in-button svg,
+html body #root .modern-login-page .sign-in-button svg *,
+html body #root .modern-login-page button.auth-submit-button svg,
+html body #root .modern-login-page button.auth-submit-button svg * {
+  color: #075985 !important;
+  stroke: #075985 !important;
+  fill: none !important;
+}
+
+/* LOGIN LINKS FINAL OVERRIDE: no background/highlight box, light-blue text only. */
+html body #root .login-page button.forgot-password-link,
+html body #root .login-page .forgot-password-link,
+html body #root .login-page button.signup-link,
+html body #root .login-page .signup-link,
+html body #root .modern-login-page button.forgot-password-link,
+html body #root .modern-login-page .forgot-password-link,
+html body #root .modern-login-page button.signup-link,
+html body #root .modern-login-page .signup-link {
+  all: unset !important;
+  display: inline !important;
+  color: #38bdf8 !important;
+  -webkit-text-fill-color: #38bdf8 !important;
+  background: none !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font: inherit !important;
+  font-weight: 800 !important;
+  line-height: inherit !important;
+  text-decoration: none !important;
+  text-shadow: none !important;
+  cursor: pointer !important;
+  transform: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+html body #root .login-page button.forgot-password-link *,
+html body #root .login-page .forgot-password-link *,
+html body #root .login-page button.signup-link *,
+html body #root .login-page .signup-link *,
+html body #root .modern-login-page button.forgot-password-link *,
+html body #root .modern-login-page .forgot-password-link *,
+html body #root .modern-login-page button.signup-link *,
+html body #root .modern-login-page .signup-link * {
+  color: #38bdf8 !important;
+  -webkit-text-fill-color: #38bdf8 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+html body #root .login-page button.forgot-password-link:hover,
+html body #root .login-page .forgot-password-link:hover,
+html body #root .login-page button.signup-link:hover,
+html body #root .login-page .signup-link:hover,
+html body #root .login-page button.forgot-password-link:focus,
+html body #root .login-page .forgot-password-link:focus,
+html body #root .login-page button.signup-link:focus,
+html body #root .login-page .signup-link:focus,
+html body #root .login-page button.forgot-password-link:active,
+html body #root .login-page .forgot-password-link:active,
+html body #root .login-page button.signup-link:active,
+html body #root .login-page .signup-link:active,
+html body #root .modern-login-page button.forgot-password-link:hover,
+html body #root .modern-login-page .forgot-password-link:hover,
+html body #root .modern-login-page button.signup-link:hover,
+html body #root .modern-login-page .signup-link:hover,
+html body #root .modern-login-page button.forgot-password-link:focus,
+html body #root .modern-login-page .forgot-password-link:focus,
+html body #root .modern-login-page button.signup-link:focus,
+html body #root .modern-login-page .signup-link:focus,
+html body #root .modern-login-page button.forgot-password-link:active,
+html body #root .modern-login-page .forgot-password-link:active,
+html body #root .modern-login-page button.signup-link:active,
+html body #root .modern-login-page .signup-link:active {
+  color: #0ea5e9 !important;
+  -webkit-text-fill-color: #0ea5e9 !important;
+  background: none !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  text-decoration: underline !important;
+  transform: none !important;
+}
+
+html body #root .login-page button.forgot-password-link::before,
+html body #root .login-page button.forgot-password-link::after,
+html body #root .login-page .forgot-password-link::before,
+html body #root .login-page .forgot-password-link::after,
+html body #root .login-page button.signup-link::before,
+html body #root .login-page button.signup-link::after,
+html body #root .login-page .signup-link::before,
+html body #root .login-page .signup-link::after,
+html body #root .modern-login-page button.forgot-password-link::before,
+html body #root .modern-login-page button.forgot-password-link::after,
+html body #root .modern-login-page .forgot-password-link::before,
+html body #root .modern-login-page .forgot-password-link::after,
+html body #root .modern-login-page button.signup-link::before,
+html body #root .modern-login-page button.signup-link::after,
+html body #root .modern-login-page .signup-link::before,
+html body #root .modern-login-page .signup-link::after {
+  content: none !important;
+  display: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html body #root .login-page button.forgot-password-link::selection,
+html body #root .login-page .forgot-password-link::selection,
+html body #root .login-page button.signup-link::selection,
+html body #root .login-page .signup-link::selection,
+html body #root .modern-login-page button.forgot-password-link::selection,
+html body #root .modern-login-page .forgot-password-link::selection,
+html body #root .modern-login-page button.signup-link::selection,
+html body #root .modern-login-page .signup-link::selection {
+  background: transparent !important;
+  color: #38bdf8 !important;
+  -webkit-text-fill-color: #38bdf8 !important;
+}
+
+/* FINAL FIX: login text links have no inactive/default background at all. */
+html body #root .login-page button.auth-text-link.forgot-password-link:not(:hover):not(:focus):not(:active),
+html body #root .login-page button.auth-text-link.signup-link:not(:hover):not(:focus):not(:active),
+html body #root .login-page .auth-text-link.forgot-password-link:not(:hover):not(:focus):not(:active),
+html body #root .login-page .auth-text-link.signup-link:not(:hover):not(:focus):not(:active),
+html body #root .modern-login-page button.auth-text-link.forgot-password-link:not(:hover):not(:focus):not(:active),
+html body #root .modern-login-page button.auth-text-link.signup-link:not(:hover):not(:focus):not(:active),
+html body #root .modern-login-page .auth-text-link.forgot-password-link:not(:hover):not(:focus):not(:active),
+html body #root .modern-login-page .auth-text-link.signup-link:not(:hover):not(:focus):not(:active) {
+  all: unset !important;
+  display: inline !important;
+  color: #38bdf8 !important;
+  -webkit-text-fill-color: #38bdf8 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  font: inherit !important;
+  font-weight: 800 !important;
+  line-height: inherit !important;
+  text-decoration: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  cursor: pointer !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+html body #root .login-page button.auth-text-link.forgot-password-link:not(:hover):not(:focus):not(:active) *,
+html body #root .login-page button.auth-text-link.signup-link:not(:hover):not(:focus):not(:active) *,
+html body #root .modern-login-page button.auth-text-link.forgot-password-link:not(:hover):not(:focus):not(:active) *,
+html body #root .modern-login-page button.auth-text-link.signup-link:not(:hover):not(:focus):not(:active) * {
+  color: #38bdf8 !important;
+  -webkit-text-fill-color: #38bdf8 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+html body #root .login-page button.auth-text-link.forgot-password-link:not(:hover):not(:focus):not(:active)::before,
+html body #root .login-page button.auth-text-link.forgot-password-link:not(:hover):not(:focus):not(:active)::after,
+html body #root .login-page button.auth-text-link.signup-link:not(:hover):not(:focus):not(:active)::before,
+html body #root .login-page button.auth-text-link.signup-link:not(:hover):not(:focus):not(:active)::after,
+html body #root .modern-login-page button.auth-text-link.forgot-password-link:not(:hover):not(:focus):not(:active)::before,
+html body #root .modern-login-page button.auth-text-link.forgot-password-link:not(:hover):not(:focus):not(:active)::after,
+html body #root .modern-login-page button.auth-text-link.signup-link:not(:hover):not(:focus):not(:active)::before,
+html body #root .modern-login-page button.auth-text-link.signup-link:not(:hover):not(:focus):not(:active)::after {
+  content: none !important;
+  display: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* FINAL LOGIN LINK BACKGROUND FIX: replace any gray text highlight/selection behind Forgot password / Sign up with white. */
+html body #root .login-page button.forgot-password-link,
+html body #root .login-page .forgot-password-link,
+html body #root .login-page button.signup-link,
+html body #root .login-page .signup-link,
+html body #root .modern-login-page button.forgot-password-link,
+html body #root .modern-login-page .forgot-password-link,
+html body #root .modern-login-page button.signup-link,
+html body #root .modern-login-page .signup-link,
+html body #root .login-page button.auth-text-link.forgot-password-link,
+html body #root .login-page button.auth-text-link.signup-link,
+html body #root .modern-login-page button.auth-text-link.forgot-password-link,
+html body #root .modern-login-page button.auth-text-link.signup-link {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: linear-gradient(#ffffff, #ffffff) !important;
+  color: #38bdf8 !important;
+  -webkit-text-fill-color: #38bdf8 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  box-decoration-break: clone !important;
+  -webkit-box-decoration-break: clone !important;
+}
+
+html body #root .login-page button.forgot-password-link:hover,
+html body #root .login-page .forgot-password-link:hover,
+html body #root .login-page button.signup-link:hover,
+html body #root .login-page .signup-link:hover,
+html body #root .modern-login-page button.forgot-password-link:hover,
+html body #root .modern-login-page .forgot-password-link:hover,
+html body #root .modern-login-page button.signup-link:hover,
+html body #root .modern-login-page .signup-link:hover,
+html body #root .login-page button.auth-text-link.forgot-password-link:hover,
+html body #root .login-page button.auth-text-link.signup-link:hover,
+html body #root .modern-login-page button.auth-text-link.forgot-password-link:hover,
+html body #root .modern-login-page button.auth-text-link.signup-link:hover {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: linear-gradient(#ffffff, #ffffff) !important;
+  color: #0ea5e9 !important;
+  -webkit-text-fill-color: #0ea5e9 !important;
+  text-decoration: underline !important;
+}
+
+html body #root .login-page button.forgot-password-link::selection,
+html body #root .login-page .forgot-password-link::selection,
+html body #root .login-page button.signup-link::selection,
+html body #root .login-page .signup-link::selection,
+html body #root .modern-login-page button.forgot-password-link::selection,
+html body #root .modern-login-page .forgot-password-link::selection,
+html body #root .modern-login-page button.signup-link::selection,
+html body #root .modern-login-page .signup-link::selection {
+  background: #ffffff !important;
+  color: #38bdf8 !important;
+  -webkit-text-fill-color: #38bdf8 !important;
+}
+
+/* FINAL LOGIN LINK TEXT BACKPLATE: mask browser/global gray highlight with a white rectangle. */
+html body #root .login-page .forgot-password-link,
+html body #root .login-page .signup-link,
+html body #root .modern-login-page .forgot-password-link,
+html body #root .modern-login-page .signup-link {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+html body #root .login-page .forgot-password-link .login-link-bg,
+html body #root .login-page .signup-link .login-link-bg,
+html body #root .modern-login-page .forgot-password-link .login-link-bg,
+html body #root .modern-login-page .signup-link .login-link-bg {
+  display: inline-block !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: linear-gradient(#ffffff, #ffffff) !important;
+  color: #0ea5e9 !important;
+  -webkit-text-fill-color: #0ea5e9 !important;
+  padding: 0 0.08rem !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  text-shadow: none !important;
+  box-decoration-break: clone !important;
+  -webkit-box-decoration-break: clone !important;
+}
+
+html body #root .login-page .forgot-password-link:hover .login-link-bg,
+html body #root .login-page .signup-link:hover .login-link-bg,
+html body #root .login-page .forgot-password-link:focus .login-link-bg,
+html body #root .login-page .signup-link:focus .login-link-bg,
+html body #root .login-page .forgot-password-link:active .login-link-bg,
+html body #root .login-page .signup-link:active .login-link-bg,
+html body #root .modern-login-page .forgot-password-link:hover .login-link-bg,
+html body #root .modern-login-page .signup-link:hover .login-link-bg,
+html body #root .modern-login-page .forgot-password-link:focus .login-link-bg,
+html body #root .modern-login-page .signup-link:focus .login-link-bg,
+html body #root .modern-login-page .forgot-password-link:active .login-link-bg,
+html body #root .modern-login-page .signup-link:active .login-link-bg {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: linear-gradient(#ffffff, #ffffff) !important;
+  color: #0ea5e9 !important;
+  -webkit-text-fill-color: #0ea5e9 !important;
+  text-decoration: underline !important;
+}
+
+html body #root .login-page .forgot-password-link .login-link-bg::selection,
+html body #root .login-page .signup-link .login-link-bg::selection,
+html body #root .modern-login-page .forgot-password-link .login-link-bg::selection,
+html body #root .modern-login-page .signup-link .login-link-bg::selection {
+  background: #ffffff !important;
+  color: #0ea5e9 !important;
+  -webkit-text-fill-color: #0ea5e9 !important;
+}
+
+/* LOGIN PAGE FINAL COLOR RESET
+   Keeps auth logic untouched and prevents dashboard/sidebar button styles from affecting login links/buttons. */
+.login-page button,
+.login-page a,
+.login-page .btn,
+.login-page .button,
+.login-page .action-button,
+.login-page .primary-btn,
+.login-page .secondary-btn {
+  text-shadow: none !important;
+}
+
+.login-page .forgot-password-link,
+.login-page .signup-link,
+.login-page a.forgot-password-link,
+.login-page a.signup-link,
+.login-page button.forgot-password-link,
+.login-page button.signup-link,
+.login-page .auth-text-link.forgot-password-link,
+.login-page .auth-text-link.signup-link,
+.login-page .auth-text-link.inline.signup-link,
+.modern-login-page .forgot-password-link,
+.modern-login-page .signup-link,
+.modern-login-page button.forgot-password-link,
+.modern-login-page button.signup-link {
+  all: unset !important;
+  display: inline !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  color: #0284c7 !important;
+  -webkit-text-fill-color: #0284c7 !important;
+  font: inherit !important;
+  font-weight: 700 !important;
+  line-height: inherit !important;
+  text-decoration: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  cursor: pointer !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+.login-page .forgot-password-link *,
+.login-page .signup-link *,
+.login-page button.forgot-password-link *,
+.login-page button.signup-link *,
+.modern-login-page .forgot-password-link *,
+.modern-login-page .signup-link * {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #0284c7 !important;
+  -webkit-text-fill-color: #0284c7 !important;
+  border: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.login-page .forgot-password-link:hover,
+.login-page .forgot-password-link:focus,
+.login-page .forgot-password-link:active,
+.login-page .signup-link:hover,
+.login-page .signup-link:focus,
+.login-page .signup-link:active,
+.login-page button.forgot-password-link:hover,
+.login-page button.forgot-password-link:focus,
+.login-page button.forgot-password-link:active,
+.login-page button.signup-link:hover,
+.login-page button.signup-link:focus,
+.login-page button.signup-link:active,
+.modern-login-page .forgot-password-link:hover,
+.modern-login-page .forgot-password-link:focus,
+.modern-login-page .forgot-password-link:active,
+.modern-login-page .signup-link:hover,
+.modern-login-page .signup-link:focus,
+.modern-login-page .signup-link:active {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #0369a1 !important;
+  -webkit-text-fill-color: #0369a1 !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  text-decoration: underline !important;
+}
+
+.login-page .forgot-password-link::before,
+.login-page .forgot-password-link::after,
+.login-page .signup-link::before,
+.login-page .signup-link::after,
+.modern-login-page .forgot-password-link::before,
+.modern-login-page .forgot-password-link::after,
+.modern-login-page .signup-link::before,
+.modern-login-page .signup-link::after {
+  content: none !important;
+  display: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.login-page .forgot-password-link::selection,
+.login-page .signup-link::selection,
+.login-page .forgot-password-link *::selection,
+.login-page .signup-link *::selection,
+.modern-login-page .forgot-password-link::selection,
+.modern-login-page .signup-link::selection {
+  background: transparent !important;
+  color: #0284c7 !important;
+  -webkit-text-fill-color: #0284c7 !important;
+}
+
+.login-page .login-submit-button,
+.login-page .sign-in-button,
+.login-page form button[type="submit"],
+.login-page button.auth-submit-button,
+.modern-login-page .login-submit-button,
+.modern-login-page .sign-in-button,
+.modern-login-page form button[type="submit"],
+.modern-login-page button.auth-submit-button {
+  background: #d8efff !important;
+  background-color: #d8efff !important;
+  background-image: none !important;
+  color: #075985 !important;
+  -webkit-text-fill-color: #075985 !important;
+  border: 1px solid #9fd8ff !important;
+  border-radius: 22px !important;
+  box-shadow: 0 10px 25px rgba(14, 165, 233, 0.16) !important;
+  font-weight: 800 !important;
+}
+
+.login-page .login-submit-button:hover,
+.login-page .login-submit-button:focus,
+.login-page .login-submit-button:active,
+.login-page .sign-in-button:hover,
+.login-page .sign-in-button:focus,
+.login-page .sign-in-button:active,
+.login-page form button[type="submit"]:hover,
+.login-page form button[type="submit"]:focus,
+.login-page form button[type="submit"]:active,
+.login-page button.auth-submit-button:hover,
+.login-page button.auth-submit-button:focus,
+.login-page button.auth-submit-button:active,
+.modern-login-page .login-submit-button:hover,
+.modern-login-page .login-submit-button:focus,
+.modern-login-page .login-submit-button:active,
+.modern-login-page .sign-in-button:hover,
+.modern-login-page .sign-in-button:focus,
+.modern-login-page .sign-in-button:active,
+.modern-login-page form button[type="submit"]:hover,
+.modern-login-page form button[type="submit"]:focus,
+.modern-login-page form button[type="submit"]:active,
+.modern-login-page button.auth-submit-button:hover,
+.modern-login-page button.auth-submit-button:focus,
+.modern-login-page button.auth-submit-button:active {
+  background: #c8e8ff !important;
+  background-color: #c8e8ff !important;
+  background-image: none !important;
+  color: #075985 !important;
+  -webkit-text-fill-color: #075985 !important;
+  border-color: #7ccfff !important;
+  box-shadow: 0 12px 28px rgba(14, 165, 233, 0.2) !important;
+}
+
+.login-page .login-submit-button svg,
+.login-page .sign-in-button svg,
+.login-page form button[type="submit"] svg,
+.login-page button.auth-submit-button svg,
+.modern-login-page .login-submit-button svg,
+.modern-login-page .sign-in-button svg,
+.modern-login-page form button[type="submit"] svg,
+.modern-login-page button.auth-submit-button svg {
+  color: #075985 !important;
+  stroke: #075985 !important;
+  fill: none !important;
+}
+
+.login-page .auth-checkbox,
+.login-page .auth-checkbox span {
+  background: transparent !important;
+  color: #334155 !important;
+  box-shadow: none !important;
+}
+
+.login-page .auth-checkbox input[type="checkbox"] {
+  accent-color: #0284c7 !important;
+}
+
+.login-page .login-message,
+.login-page .message {
+  background: #f0f9ff !important;
+  color: #334155 !important;
+  border: 1px solid #bae6fd !important;
+  box-shadow: none !important;
 }
