@@ -12347,801 +12347,487 @@ html body #root .user-profile-menu .student-profile-dropdown.redesigned-profile-
   color: #4d4c4d !important;
 }
 
-/* Login page only: restore original clean light-blue auth controls.
-   This is intentionally scoped to .login-page so dashboard/sidebar buttons keep their current style. */
-html body #root .login-page .auth-submit-button,
-html body #root .login-page button.auth-submit-button,
-html body #root .modern-login-page .auth-submit-button,
-html body #root .modern-login-page button.auth-submit-button {
-  background: #d8efff !important;
-  background-image: none !important;
-  color: #075985 !important;
-  border: 1px solid #9fd8ff !important;
-  border-radius: 18px !important;
-  box-shadow: 0 14px 32px rgba(7, 89, 133, .14) !important;
-  text-shadow: none !important;
-}
-
-html body #root .login-page .auth-submit-button svg,
-html body #root .login-page .auth-submit-button svg *,
-html body #root .modern-login-page .auth-submit-button svg,
-html body #root .modern-login-page .auth-submit-button svg * {
-  color: #075985 !important;
-  stroke: #075985 !important;
-  fill: none !important;
-}
-
-html body #root .login-page .auth-submit-button:hover:not(:disabled),
-html body #root .login-page button.auth-submit-button:hover:not(:disabled),
-html body #root .modern-login-page .auth-submit-button:hover:not(:disabled),
-html body #root .modern-login-page button.auth-submit-button:hover:not(:disabled),
-html body #root .login-page .auth-submit-button:focus-visible,
-html body #root .modern-login-page .auth-submit-button:focus-visible {
-  background: #c8e8ff !important;
-  background-image: none !important;
-  color: #075985 !important;
-  border-color: #7ccfff !important;
-  box-shadow: 0 18px 38px rgba(7, 89, 133, .18) !important;
-  transform: translateY(-1px);
-}
-
-html body #root .login-page .auth-submit-button:hover:not(:disabled) svg,
-html body #root .login-page .auth-submit-button:hover:not(:disabled) svg *,
-html body #root .login-page .auth-submit-button:focus-visible svg,
-html body #root .login-page .auth-submit-button:focus-visible svg *,
-html body #root .modern-login-page .auth-submit-button:hover:not(:disabled) svg,
-html body #root .modern-login-page .auth-submit-button:hover:not(:disabled) svg *,
-html body #root .modern-login-page .auth-submit-button:focus-visible svg,
-html body #root .modern-login-page .auth-submit-button:focus-visible svg * {
-  color: #075985 !important;
-  stroke: #075985 !important;
-  fill: none !important;
-}
-
-html body #root .login-page .auth-submit-button:disabled,
-html body #root .modern-login-page .auth-submit-button:disabled {
-  opacity: .72 !important;
-  cursor: not-allowed !important;
-  transform: none !important;
-}
-
-html body #root .login-page .auth-text-link,
-html body #root .login-page button.auth-text-link,
-html body #root .modern-login-page .auth-text-link,
-html body #root .modern-login-page button.auth-text-link {
-  appearance: none !important;
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  color: #075985 !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  outline: none !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  border-radius: 0 !important;
-  font-weight: 800 !important;
-  text-decoration: none !important;
-  text-shadow: none !important;
-}
-
-html body #root .login-page .auth-text-link:hover,
-html body #root .login-page button.auth-text-link:hover,
-html body #root .login-page .auth-text-link:focus-visible,
-html body #root .modern-login-page .auth-text-link:hover,
-html body #root .modern-login-page button.auth-text-link:hover,
-html body #root .modern-login-page .auth-text-link:focus-visible {
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  color: #0369a1 !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  text-decoration: underline !important;
-  transform: none !important;
-}
-
-html body #root .login-page .auth-bottom-row,
-html body #root .modern-login-page .auth-bottom-row,
-html body #root .login-page .auth-bottom-row p,
-html body #root .modern-login-page .auth-bottom-row p {
-  color: #475569 !important;
-  background: transparent !important;
-}
-
-html body #root .login-page .auth-meta-row,
-html body #root .modern-login-page .auth-meta-row {
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-}
-
-html body #root .login-page .auth-checkbox,
-html body #root .modern-login-page .auth-checkbox,
-html body #root .login-page .auth-checkbox span,
-html body #root .modern-login-page .auth-checkbox span {
-  color: #475569 !important;
-  background: transparent !important;
-  font-weight: 700 !important;
-  box-shadow: none !important;
-}
-
-html body #root .login-page .auth-checkbox input,
-html body #root .modern-login-page .auth-checkbox input {
-  width: 18px !important;
-  height: 18px !important;
-  min-height: auto !important;
-  accent-color: #0ea5e9 !important;
-  border: 1px solid #9fd8ff !important;
-  box-shadow: none !important;
-}
-
-html body #root .login-page .login-message,
-html body #root .modern-login-page .login-message,
-html body #root .login-page .message.login-message,
-html body #root .modern-login-page .message.login-message {
-  background: #eff6ff !important;
-  background-image: none !important;
-  color: #334155 !important;
-  border: 1px solid #bfdbfe !important;
-  border-radius: 16px !important;
-  box-shadow: none !important;
-  text-shadow: none !important;
-}
-
-html body #root .login-page .auth-note-box,
-html body #root .modern-login-page .auth-note-box,
-html body #root .login-page .invitation-lock-note,
-html body #root .modern-login-page .invitation-lock-note {
-  background: #eff6ff !important;
-  background-image: none !important;
-  color: #334155 !important;
-  border: 1px solid #bfdbfe !important;
-  box-shadow: none !important;
-}
-
-/* FINAL LOGIN PAGE OVERRIDE: keep dashboard/global button styles away from auth links. */
-html body #root .login-page button.auth-text-link,
-html body #root .login-page .auth-text-link,
-html body #root .login-page button.forgot-password-link,
+/* FINAL LOGIN LINK CLEANUP: remove gray/dark button boxes only on the login page. */
 html body #root .login-page .forgot-password-link,
-html body #root .login-page button.signup-link,
+html body #root .login-page a.forgot-password-link,
+html body #root .login-page button.forgot-password-link,
 html body #root .login-page .signup-link,
-html body #root .modern-login-page button.auth-text-link,
-html body #root .modern-login-page .auth-text-link,
-html body #root .modern-login-page button.forgot-password-link,
-html body #root .modern-login-page .forgot-password-link,
-html body #root .modern-login-page button.signup-link,
-html body #root .modern-login-page .signup-link {
+html body #root .login-page a.signup-link,
+html body #root .login-page button.signup-link {
   appearance: none !important;
   -webkit-appearance: none !important;
-  display: inline !important;
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  color: #0284c7 !important;
-  border: 0 !important;
-  border-color: transparent !important;
-  box-shadow: none !important;
-  outline: none !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  border-radius: 0 !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
-  height: auto !important;
-  width: auto !important;
-  font-weight: 800 !important;
-  line-height: inherit !important;
-  text-decoration: none !important;
-  text-shadow: none !important;
-  transform: none !important;
-}
-
-html body #root .login-page button.auth-text-link::before,
-html body #root .login-page button.auth-text-link::after,
-html body #root .login-page .auth-text-link::before,
-html body #root .login-page .auth-text-link::after,
-html body #root .login-page button.forgot-password-link::before,
-html body #root .login-page button.forgot-password-link::after,
-html body #root .login-page button.signup-link::before,
-html body #root .login-page button.signup-link::after,
-html body #root .modern-login-page button.auth-text-link::before,
-html body #root .modern-login-page button.auth-text-link::after,
-html body #root .modern-login-page .auth-text-link::before,
-html body #root .modern-login-page .auth-text-link::after,
-html body #root .modern-login-page button.forgot-password-link::before,
-html body #root .modern-login-page button.forgot-password-link::after,
-html body #root .modern-login-page button.signup-link::before,
-html body #root .modern-login-page button.signup-link::after {
-  content: none !important;
-  display: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-html body #root .login-page button.auth-text-link:hover,
-html body #root .login-page .auth-text-link:hover,
-html body #root .login-page button.auth-text-link:focus-visible,
-html body #root .login-page button.forgot-password-link:hover,
-html body #root .login-page button.signup-link:hover,
-html body #root .modern-login-page button.auth-text-link:hover,
-html body #root .modern-login-page .auth-text-link:hover,
-html body #root .modern-login-page button.auth-text-link:focus-visible,
-html body #root .modern-login-page button.forgot-password-link:hover,
-html body #root .modern-login-page button.signup-link:hover {
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  color: #0369a1 !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  outline: none !important;
-  text-decoration: underline !important;
-  transform: none !important;
-}
-
-html body #root .login-page .login-submit-button,
-html body #root .login-page .sign-in-button,
-html body #root .login-page button.auth-submit-button,
-html body #root .login-page button[type="submit"],
-html body #root .modern-login-page .login-submit-button,
-html body #root .modern-login-page .sign-in-button,
-html body #root .modern-login-page button.auth-submit-button,
-html body #root .modern-login-page button[type="submit"] {
-  background: #d8efff !important;
-  background-color: #d8efff !important;
-  background-image: none !important;
-  color: #075985 !important;
-  border: 1px solid #9fd8ff !important;
-  border-radius: 18px !important;
-  box-shadow: 0 10px 25px rgba(14, 165, 233, .16) !important;
-  text-shadow: none !important;
-}
-
-html body #root .login-page .login-submit-button:hover:not(:disabled),
-html body #root .login-page .sign-in-button:hover:not(:disabled),
-html body #root .login-page button.auth-submit-button:hover:not(:disabled),
-html body #root .login-page button[type="submit"]:hover:not(:disabled),
-html body #root .modern-login-page .login-submit-button:hover:not(:disabled),
-html body #root .modern-login-page .sign-in-button:hover:not(:disabled),
-html body #root .modern-login-page button.auth-submit-button:hover:not(:disabled),
-html body #root .modern-login-page button[type="submit"]:hover:not(:disabled) {
-  background: #c8e8ff !important;
-  background-color: #c8e8ff !important;
-  color: #075985 !important;
-  border-color: #7ccfff !important;
-  box-shadow: 0 14px 30px rgba(14, 165, 233, .18) !important;
-}
-
-html body #root .login-page .login-submit-button svg,
-html body #root .login-page .login-submit-button svg *,
-html body #root .login-page .sign-in-button svg,
-html body #root .login-page .sign-in-button svg *,
-html body #root .login-page button.auth-submit-button svg,
-html body #root .login-page button.auth-submit-button svg *,
-html body #root .modern-login-page .login-submit-button svg,
-html body #root .modern-login-page .login-submit-button svg *,
-html body #root .modern-login-page .sign-in-button svg,
-html body #root .modern-login-page .sign-in-button svg *,
-html body #root .modern-login-page button.auth-submit-button svg,
-html body #root .modern-login-page button.auth-submit-button svg * {
-  color: #075985 !important;
-  stroke: #075985 !important;
-  fill: none !important;
-}
-
-/* LOGIN LINKS FINAL OVERRIDE: no background/highlight box, light-blue text only. */
-html body #root .login-page button.forgot-password-link,
-html body #root .login-page .forgot-password-link,
-html body #root .login-page button.signup-link,
-html body #root .login-page .signup-link,
-html body #root .modern-login-page button.forgot-password-link,
-html body #root .modern-login-page .forgot-password-link,
-html body #root .modern-login-page button.signup-link,
-html body #root .modern-login-page .signup-link {
-  all: unset !important;
-  display: inline !important;
-  color: #38bdf8 !important;
-  -webkit-text-fill-color: #38bdf8 !important;
-  background: none !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  border: 0 !important;
-  outline: 0 !important;
-  box-shadow: none !important;
-  border-radius: 0 !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  font: inherit !important;
-  font-weight: 800 !important;
-  line-height: inherit !important;
-  text-decoration: none !important;
-  text-shadow: none !important;
-  cursor: pointer !important;
-  transform: none !important;
-  -webkit-tap-highlight-color: transparent !important;
-}
-
-html body #root .login-page button.forgot-password-link *,
-html body #root .login-page .forgot-password-link *,
-html body #root .login-page button.signup-link *,
-html body #root .login-page .signup-link *,
-html body #root .modern-login-page button.forgot-password-link *,
-html body #root .modern-login-page .forgot-password-link *,
-html body #root .modern-login-page button.signup-link *,
-html body #root .modern-login-page .signup-link * {
-  color: #38bdf8 !important;
-  -webkit-text-fill-color: #38bdf8 !important;
-  background: transparent !important;
-  background-color: transparent !important;
-  box-shadow: none !important;
-  text-shadow: none !important;
-}
-
-html body #root .login-page button.forgot-password-link:hover,
-html body #root .login-page .forgot-password-link:hover,
-html body #root .login-page button.signup-link:hover,
-html body #root .login-page .signup-link:hover,
-html body #root .login-page button.forgot-password-link:focus,
-html body #root .login-page .forgot-password-link:focus,
-html body #root .login-page button.signup-link:focus,
-html body #root .login-page .signup-link:focus,
-html body #root .login-page button.forgot-password-link:active,
-html body #root .login-page .forgot-password-link:active,
-html body #root .login-page button.signup-link:active,
-html body #root .login-page .signup-link:active,
-html body #root .modern-login-page button.forgot-password-link:hover,
-html body #root .modern-login-page .forgot-password-link:hover,
-html body #root .modern-login-page button.signup-link:hover,
-html body #root .modern-login-page .signup-link:hover,
-html body #root .modern-login-page button.forgot-password-link:focus,
-html body #root .modern-login-page .forgot-password-link:focus,
-html body #root .modern-login-page button.signup-link:focus,
-html body #root .modern-login-page .signup-link:focus,
-html body #root .modern-login-page button.forgot-password-link:active,
-html body #root .modern-login-page .forgot-password-link:active,
-html body #root .modern-login-page button.signup-link:active,
-html body #root .modern-login-page .signup-link:active {
-  color: #0ea5e9 !important;
-  -webkit-text-fill-color: #0ea5e9 !important;
-  background: none !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  border: 0 !important;
-  outline: 0 !important;
-  box-shadow: none !important;
-  text-decoration: underline !important;
-  transform: none !important;
-}
-
-html body #root .login-page button.forgot-password-link::before,
-html body #root .login-page button.forgot-password-link::after,
-html body #root .login-page .forgot-password-link::before,
-html body #root .login-page .forgot-password-link::after,
-html body #root .login-page button.signup-link::before,
-html body #root .login-page button.signup-link::after,
-html body #root .login-page .signup-link::before,
-html body #root .login-page .signup-link::after,
-html body #root .modern-login-page button.forgot-password-link::before,
-html body #root .modern-login-page button.forgot-password-link::after,
-html body #root .modern-login-page .forgot-password-link::before,
-html body #root .modern-login-page .forgot-password-link::after,
-html body #root .modern-login-page button.signup-link::before,
-html body #root .modern-login-page button.signup-link::after,
-html body #root .modern-login-page .signup-link::before,
-html body #root .modern-login-page .signup-link::after {
-  content: none !important;
-  display: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-html body #root .login-page button.forgot-password-link::selection,
-html body #root .login-page .forgot-password-link::selection,
-html body #root .login-page button.signup-link::selection,
-html body #root .login-page .signup-link::selection,
-html body #root .modern-login-page button.forgot-password-link::selection,
-html body #root .modern-login-page .forgot-password-link::selection,
-html body #root .modern-login-page button.signup-link::selection,
-html body #root .modern-login-page .signup-link::selection {
-  background: transparent !important;
-  color: #38bdf8 !important;
-  -webkit-text-fill-color: #38bdf8 !important;
-}
-
-/* FINAL FIX: login text links have no inactive/default background at all. */
-html body #root .login-page button.auth-text-link.forgot-password-link:not(:hover):not(:focus):not(:active),
-html body #root .login-page button.auth-text-link.signup-link:not(:hover):not(:focus):not(:active),
-html body #root .login-page .auth-text-link.forgot-password-link:not(:hover):not(:focus):not(:active),
-html body #root .login-page .auth-text-link.signup-link:not(:hover):not(:focus):not(:active),
-html body #root .modern-login-page button.auth-text-link.forgot-password-link:not(:hover):not(:focus):not(:active),
-html body #root .modern-login-page button.auth-text-link.signup-link:not(:hover):not(:focus):not(:active),
-html body #root .modern-login-page .auth-text-link.forgot-password-link:not(:hover):not(:focus):not(:active),
-html body #root .modern-login-page .auth-text-link.signup-link:not(:hover):not(:focus):not(:active) {
-  all: unset !important;
-  display: inline !important;
-  color: #38bdf8 !important;
-  -webkit-text-fill-color: #38bdf8 !important;
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  border: 0 !important;
-  outline: 0 !important;
-  box-shadow: none !important;
-  border-radius: 0 !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
-  width: auto !important;
-  height: auto !important;
-  font: inherit !important;
-  font-weight: 800 !important;
-  line-height: inherit !important;
-  text-decoration: none !important;
-  text-shadow: none !important;
-  filter: none !important;
-  opacity: 1 !important;
-  transform: none !important;
-  cursor: pointer !important;
-  -webkit-tap-highlight-color: transparent !important;
-}
-
-html body #root .login-page button.auth-text-link.forgot-password-link:not(:hover):not(:focus):not(:active) *,
-html body #root .login-page button.auth-text-link.signup-link:not(:hover):not(:focus):not(:active) *,
-html body #root .modern-login-page button.auth-text-link.forgot-password-link:not(:hover):not(:focus):not(:active) *,
-html body #root .modern-login-page button.auth-text-link.signup-link:not(:hover):not(:focus):not(:active) * {
-  color: #38bdf8 !important;
-  -webkit-text-fill-color: #38bdf8 !important;
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  box-shadow: none !important;
-  text-shadow: none !important;
-  filter: none !important;
-}
-
-html body #root .login-page button.auth-text-link.forgot-password-link:not(:hover):not(:focus):not(:active)::before,
-html body #root .login-page button.auth-text-link.forgot-password-link:not(:hover):not(:focus):not(:active)::after,
-html body #root .login-page button.auth-text-link.signup-link:not(:hover):not(:focus):not(:active)::before,
-html body #root .login-page button.auth-text-link.signup-link:not(:hover):not(:focus):not(:active)::after,
-html body #root .modern-login-page button.auth-text-link.forgot-password-link:not(:hover):not(:focus):not(:active)::before,
-html body #root .modern-login-page button.auth-text-link.forgot-password-link:not(:hover):not(:focus):not(:active)::after,
-html body #root .modern-login-page button.auth-text-link.signup-link:not(:hover):not(:focus):not(:active)::before,
-html body #root .modern-login-page button.auth-text-link.signup-link:not(:hover):not(:focus):not(:active)::after {
-  content: none !important;
-  display: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-/* FINAL LOGIN LINK BACKGROUND FIX: replace any gray text highlight/selection behind Forgot password / Sign up with white. */
-html body #root .login-page button.forgot-password-link,
-html body #root .login-page .forgot-password-link,
-html body #root .login-page button.signup-link,
-html body #root .login-page .signup-link,
-html body #root .modern-login-page button.forgot-password-link,
-html body #root .modern-login-page .forgot-password-link,
-html body #root .modern-login-page button.signup-link,
-html body #root .modern-login-page .signup-link,
-html body #root .login-page button.auth-text-link.forgot-password-link,
-html body #root .login-page button.auth-text-link.signup-link,
-html body #root .modern-login-page button.auth-text-link.forgot-password-link,
-html body #root .modern-login-page button.auth-text-link.signup-link {
-  background: #ffffff !important;
-  background-color: #ffffff !important;
-  background-image: linear-gradient(#ffffff, #ffffff) !important;
-  color: #38bdf8 !important;
-  -webkit-text-fill-color: #38bdf8 !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  text-shadow: none !important;
-  padding: 0 !important;
-  border-radius: 0 !important;
-  box-decoration-break: clone !important;
-  -webkit-box-decoration-break: clone !important;
-}
-
-html body #root .login-page button.forgot-password-link:hover,
-html body #root .login-page .forgot-password-link:hover,
-html body #root .login-page button.signup-link:hover,
-html body #root .login-page .signup-link:hover,
-html body #root .modern-login-page button.forgot-password-link:hover,
-html body #root .modern-login-page .forgot-password-link:hover,
-html body #root .modern-login-page button.signup-link:hover,
-html body #root .modern-login-page .signup-link:hover,
-html body #root .login-page button.auth-text-link.forgot-password-link:hover,
-html body #root .login-page button.auth-text-link.signup-link:hover,
-html body #root .modern-login-page button.auth-text-link.forgot-password-link:hover,
-html body #root .modern-login-page button.auth-text-link.signup-link:hover {
-  background: #ffffff !important;
-  background-color: #ffffff !important;
-  background-image: linear-gradient(#ffffff, #ffffff) !important;
-  color: #0ea5e9 !important;
-  -webkit-text-fill-color: #0ea5e9 !important;
-  text-decoration: underline !important;
-}
-
-html body #root .login-page button.forgot-password-link::selection,
-html body #root .login-page .forgot-password-link::selection,
-html body #root .login-page button.signup-link::selection,
-html body #root .login-page .signup-link::selection,
-html body #root .modern-login-page button.forgot-password-link::selection,
-html body #root .modern-login-page .forgot-password-link::selection,
-html body #root .modern-login-page button.signup-link::selection,
-html body #root .modern-login-page .signup-link::selection {
-  background: #ffffff !important;
-  color: #38bdf8 !important;
-  -webkit-text-fill-color: #38bdf8 !important;
-}
-
-/* FINAL LOGIN LINK TEXT BACKPLATE: mask browser/global gray highlight with a white rectangle. */
-html body #root .login-page .forgot-password-link,
-html body #root .login-page .signup-link,
-html body #root .modern-login-page .forgot-password-link,
-html body #root .modern-login-page .signup-link {
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-}
-
-html body #root .login-page .forgot-password-link .login-link-bg,
-html body #root .login-page .signup-link .login-link-bg,
-html body #root .modern-login-page .forgot-password-link .login-link-bg,
-html body #root .modern-login-page .signup-link .login-link-bg {
-  display: inline-block !important;
-  background: #ffffff !important;
-  background-color: #ffffff !important;
-  background-image: linear-gradient(#ffffff, #ffffff) !important;
-  color: #0ea5e9 !important;
-  -webkit-text-fill-color: #0ea5e9 !important;
-  padding: 0 0.08rem !important;
-  border: 0 !important;
-  outline: 0 !important;
-  box-shadow: none !important;
-  border-radius: 0 !important;
-  text-shadow: none !important;
-  box-decoration-break: clone !important;
-  -webkit-box-decoration-break: clone !important;
-}
-
-html body #root .login-page .forgot-password-link:hover .login-link-bg,
-html body #root .login-page .signup-link:hover .login-link-bg,
-html body #root .login-page .forgot-password-link:focus .login-link-bg,
-html body #root .login-page .signup-link:focus .login-link-bg,
-html body #root .login-page .forgot-password-link:active .login-link-bg,
-html body #root .login-page .signup-link:active .login-link-bg,
-html body #root .modern-login-page .forgot-password-link:hover .login-link-bg,
-html body #root .modern-login-page .signup-link:hover .login-link-bg,
-html body #root .modern-login-page .forgot-password-link:focus .login-link-bg,
-html body #root .modern-login-page .signup-link:focus .login-link-bg,
-html body #root .modern-login-page .forgot-password-link:active .login-link-bg,
-html body #root .modern-login-page .signup-link:active .login-link-bg {
-  background: #ffffff !important;
-  background-color: #ffffff !important;
-  background-image: linear-gradient(#ffffff, #ffffff) !important;
-  color: #0ea5e9 !important;
-  -webkit-text-fill-color: #0ea5e9 !important;
-  text-decoration: underline !important;
-}
-
-html body #root .login-page .forgot-password-link .login-link-bg::selection,
-html body #root .login-page .signup-link .login-link-bg::selection,
-html body #root .modern-login-page .forgot-password-link .login-link-bg::selection,
-html body #root .modern-login-page .signup-link .login-link-bg::selection {
-  background: #ffffff !important;
-  color: #0ea5e9 !important;
-  -webkit-text-fill-color: #0ea5e9 !important;
-}
-
-/* LOGIN PAGE FINAL COLOR RESET
-   Keeps auth logic untouched and prevents dashboard/sidebar button styles from affecting login links/buttons. */
-.login-page button,
-.login-page a,
-.login-page .btn,
-.login-page .button,
-.login-page .action-button,
-.login-page .primary-btn,
-.login-page .secondary-btn {
-  text-shadow: none !important;
-}
-
-.login-page .forgot-password-link,
-.login-page .signup-link,
-.login-page a.forgot-password-link,
-.login-page a.signup-link,
-.login-page button.forgot-password-link,
-.login-page button.signup-link,
-.login-page .auth-text-link.forgot-password-link,
-.login-page .auth-text-link.signup-link,
-.login-page .auth-text-link.inline.signup-link,
-.modern-login-page .forgot-password-link,
-.modern-login-page .signup-link,
-.modern-login-page button.forgot-password-link,
-.modern-login-page button.signup-link {
-  all: unset !important;
   display: inline !important;
   width: auto !important;
   min-width: 0 !important;
   max-width: none !important;
   height: auto !important;
   min-height: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
   background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #0284c7 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  text-decoration: none !important;
+  font-weight: 600 !important;
+  line-height: inherit !important;
+  transform: none !important;
+  cursor: pointer !important;
+}
+
+html body #root .login-page .forgot-password-link:hover,
+html body #root .login-page .forgot-password-link:focus,
+html body #root .login-page .forgot-password-link:active,
+html body #root .login-page .signup-link:hover,
+html body #root .login-page .signup-link:focus,
+html body #root .login-page .signup-link:active {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #0369a1 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  text-decoration: underline !important;
+  transform: none !important;
+}
+
+/* Parent-wrapper safety: keep the rows clean without affecting login actions or logic. */
+html body #root .login-page .auth-meta-row,
+html body #root .login-page .auth-bottom-row,
+html body #root .login-page .auth-bottom-row p {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+/* ABSOLUTE RESET: these two login actions must render as plain blue text links, not buttons. */
+html body #root .login-page button.forgot-password-link,
+html body #root .login-page button.signup-link,
+html body #root .modern-login-page button.forgot-password-link,
+html body #root .modern-login-page button.signup-link {
+  all: unset !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  display: inline !important;
+  box-sizing: content-box !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+  background: none !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  outline-color: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  color: #0284c7 !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  font-style: inherit !important;
+  font-variant: inherit !important;
+  line-height: inherit !important;
+  font-weight: 700 !important;
+  letter-spacing: inherit !important;
+  text-align: inherit !important;
+  text-decoration: none !important;
+  text-shadow: none !important;
+  white-space: normal !important;
+  vertical-align: baseline !important;
+  transform: none !important;
+  filter: none !important;
+  cursor: pointer !important;
+}
+
+html body #root .login-page button.forgot-password-link::before,
+html body #root .login-page button.forgot-password-link::after,
+html body #root .login-page button.signup-link::before,
+html body #root .login-page button.signup-link::after,
+html body #root .modern-login-page button.forgot-password-link::before,
+html body #root .modern-login-page button.forgot-password-link::after,
+html body #root .modern-login-page button.signup-link::before,
+html body #root .modern-login-page button.signup-link::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+html body #root .login-page button.forgot-password-link:hover,
+html body #root .login-page button.forgot-password-link:focus,
+html body #root .login-page button.forgot-password-link:focus-visible,
+html body #root .login-page button.forgot-password-link:active,
+html body #root .login-page button.signup-link:hover,
+html body #root .login-page button.signup-link:focus,
+html body #root .login-page button.signup-link:focus-visible,
+html body #root .login-page button.signup-link:active,
+html body #root .modern-login-page button.forgot-password-link:hover,
+html body #root .modern-login-page button.forgot-password-link:focus,
+html body #root .modern-login-page button.forgot-password-link:focus-visible,
+html body #root .modern-login-page button.forgot-password-link:active,
+html body #root .modern-login-page button.signup-link:hover,
+html body #root .modern-login-page button.signup-link:focus,
+html body #root .modern-login-page button.signup-link:focus-visible,
+html body #root .modern-login-page button.signup-link:active {
+  all: unset !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  display: inline !important;
+  box-sizing: content-box !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+  background: none !important;
   background-color: transparent !important;
   background-image: none !important;
   border: none !important;
   border-radius: 0 !important;
   box-shadow: none !important;
-  outline: none !important;
-  color: #0284c7 !important;
-  -webkit-text-fill-color: #0284c7 !important;
-  font: inherit !important;
-  font-weight: 700 !important;
-  line-height: inherit !important;
-  text-decoration: none !important;
-  text-shadow: none !important;
-  filter: none !important;
-  opacity: 1 !important;
-  transform: none !important;
-  cursor: pointer !important;
-  appearance: none !important;
-  -webkit-appearance: none !important;
-  -webkit-tap-highlight-color: transparent !important;
-}
-
-.login-page .forgot-password-link *,
-.login-page .signup-link *,
-.login-page button.forgot-password-link *,
-.login-page button.signup-link *,
-.modern-login-page .forgot-password-link *,
-.modern-login-page .signup-link * {
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  color: #0284c7 !important;
-  -webkit-text-fill-color: #0284c7 !important;
-  border: none !important;
-  box-shadow: none !important;
-  text-shadow: none !important;
-}
-
-.login-page .forgot-password-link:hover,
-.login-page .forgot-password-link:focus,
-.login-page .forgot-password-link:active,
-.login-page .signup-link:hover,
-.login-page .signup-link:focus,
-.login-page .signup-link:active,
-.login-page button.forgot-password-link:hover,
-.login-page button.forgot-password-link:focus,
-.login-page button.forgot-password-link:active,
-.login-page button.signup-link:hover,
-.login-page button.signup-link:focus,
-.login-page button.signup-link:active,
-.modern-login-page .forgot-password-link:hover,
-.modern-login-page .forgot-password-link:focus,
-.modern-login-page .forgot-password-link:active,
-.modern-login-page .signup-link:hover,
-.modern-login-page .signup-link:focus,
-.modern-login-page .signup-link:active {
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
+  outline: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
   color: #0369a1 !important;
-  -webkit-text-fill-color: #0369a1 !important;
-  border: none !important;
-  box-shadow: none !important;
-  outline: none !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+  font-weight: 700 !important;
+  text-align: inherit !important;
+  text-shadow: none !important;
   text-decoration: underline !important;
+  vertical-align: baseline !important;
+  transform: none !important;
+  filter: none !important;
+  cursor: pointer !important;
 }
 
-.login-page .forgot-password-link::before,
-.login-page .forgot-password-link::after,
-.login-page .signup-link::before,
-.login-page .signup-link::after,
-.modern-login-page .forgot-password-link::before,
-.modern-login-page .forgot-password-link::after,
-.modern-login-page .signup-link::before,
-.modern-login-page .signup-link::after {
+html body #root .login-page .auth-meta-row > button.forgot-password-link,
+html body #root .login-page .auth-bottom-row button.signup-link,
+html body #root .modern-login-page .auth-meta-row > button.forgot-password-link,
+html body #root .modern-login-page .auth-bottom-row button.signup-link {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
+
+/* FINAL FIX v2: make inactive login links use the same clean appearance as hover.
+   These two actions are anchors now, so global button styling cannot create gray boxes. */
+html body #root .login-page a.forgot-password-link,
+html body #root .login-page a.signup-link,
+html body #root .modern-login-page a.forgot-password-link,
+html body #root .modern-login-page a.signup-link,
+html body #root .login-page a.forgot-password-link:link,
+html body #root .login-page a.signup-link:link,
+html body #root .login-page a.forgot-password-link:visited,
+html body #root .login-page a.signup-link:visited,
+html body #root .login-page a.forgot-password-link:not(:hover):not(:focus):not(:active),
+html body #root .login-page a.signup-link:not(:hover):not(:focus):not(:active) {
+  all: unset !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  display: inline !important;
+  box-sizing: content-box !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  color: #0369a1 !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+  font-weight: 700 !important;
+  letter-spacing: inherit !important;
+  text-align: inherit !important;
+  text-shadow: none !important;
+  text-decoration: underline !important;
+  vertical-align: baseline !important;
+  transform: none !important;
+  filter: none !important;
+  cursor: pointer !important;
+}
+
+html body #root .login-page a.forgot-password-link:hover,
+html body #root .login-page a.forgot-password-link:focus,
+html body #root .login-page a.forgot-password-link:focus-visible,
+html body #root .login-page a.forgot-password-link:active,
+html body #root .login-page a.signup-link:hover,
+html body #root .login-page a.signup-link:focus,
+html body #root .login-page a.signup-link:focus-visible,
+html body #root .login-page a.signup-link:active,
+html body #root .modern-login-page a.forgot-password-link:hover,
+html body #root .modern-login-page a.forgot-password-link:focus,
+html body #root .modern-login-page a.forgot-password-link:focus-visible,
+html body #root .modern-login-page a.forgot-password-link:active,
+html body #root .modern-login-page a.signup-link:hover,
+html body #root .modern-login-page a.signup-link:focus,
+html body #root .modern-login-page a.signup-link:focus-visible,
+html body #root .modern-login-page a.signup-link:active {
+  all: unset !important;
+  display: inline !important;
+  box-sizing: content-box !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  color: #0369a1 !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+  font-weight: 700 !important;
+  text-align: inherit !important;
+  text-shadow: none !important;
+  text-decoration: underline !important;
+  vertical-align: baseline !important;
+  transform: none !important;
+  filter: none !important;
+  cursor: pointer !important;
+}
+
+html body #root .login-page a.forgot-password-link::before,
+html body #root .login-page a.forgot-password-link::after,
+html body #root .login-page a.signup-link::before,
+html body #root .login-page a.signup-link::after {
   content: none !important;
   display: none !important;
   background: transparent !important;
   box-shadow: none !important;
+  border: 0 !important;
 }
 
-.login-page .forgot-password-link::selection,
-.login-page .signup-link::selection,
-.login-page .forgot-password-link *::selection,
-.login-page .signup-link *::selection,
-.modern-login-page .forgot-password-link::selection,
-.modern-login-page .signup-link::selection {
+/* Also remove browser text-selection dark fill on only these login links if the text is accidentally selected/click-dragged. */
+html body #root .login-page a.forgot-password-link::selection,
+html body #root .login-page a.signup-link::selection {
+  background: transparent !important;
+  color: #0369a1 !important;
+}
+
+/* FINAL FIX v3 - nuclear remove gray box from login text actions.
+   These are spans now, not buttons or anchors, so global button/link styles cannot apply. */
+html body #root .login-page .plain-login-action,
+html body #root .modern-login-page .plain-login-action,
+html body #root .login-page span.plain-login-action,
+html body #root .modern-login-page span.plain-login-action,
+html body #root .login-page [data-login-action="forgot-password"],
+html body #root .login-page [data-login-action="signup"] {
+  all: unset !important;
+  display: inline !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  background-clip: border-box !important;
+  box-decoration-break: slice !important;
+  -webkit-box-decoration-break: slice !important;
+  border: 0 !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  filter: none !important;
+  outline: 0 !important;
+  outline-offset: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  color: #0284c7 !important;
+  -webkit-text-fill-color: #0284c7 !important;
+  text-decoration: none !important;
+  text-shadow: none !important;
+  font: inherit !important;
+  font-weight: 700 !important;
+  line-height: inherit !important;
+  letter-spacing: inherit !important;
+  vertical-align: baseline !important;
+  transform: none !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+}
+
+html body #root .login-page .plain-login-action:hover,
+html body #root .login-page .plain-login-action:focus,
+html body #root .login-page .plain-login-action:focus-visible,
+html body #root .login-page .plain-login-action:active,
+html body #root .modern-login-page .plain-login-action:hover,
+html body #root .modern-login-page .plain-login-action:focus,
+html body #root .modern-login-page .plain-login-action:focus-visible,
+html body #root .modern-login-page .plain-login-action:active,
+html body #root .login-page [data-login-action="forgot-password"]:hover,
+html body #root .login-page [data-login-action="forgot-password"]:focus,
+html body #root .login-page [data-login-action="forgot-password"]:active,
+html body #root .login-page [data-login-action="signup"]:hover,
+html body #root .login-page [data-login-action="signup"]:focus,
+html body #root .login-page [data-login-action="signup"]:active {
+  all: unset !important;
+  display: inline !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  filter: none !important;
+  outline: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  color: #0369a1 !important;
+  -webkit-text-fill-color: #0369a1 !important;
+  text-decoration: underline !important;
+  text-shadow: none !important;
+  font: inherit !important;
+  font-weight: 700 !important;
+  line-height: inherit !important;
+  transform: none !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+html body #root .login-page .plain-login-action::before,
+html body #root .login-page .plain-login-action::after,
+html body #root .modern-login-page .plain-login-action::before,
+html body #root .modern-login-page .plain-login-action::after,
+html body #root .login-page [data-login-action="forgot-password"]::before,
+html body #root .login-page [data-login-action="forgot-password"]::after,
+html body #root .login-page [data-login-action="signup"]::before,
+html body #root .login-page [data-login-action="signup"]::after {
+  content: none !important;
+  display: none !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+html body #root .login-page .plain-login-action::selection,
+html body #root .login-page .plain-login-action *::selection,
+html body #root .login-page [data-login-action="forgot-password"]::selection,
+html body #root .login-page [data-login-action="signup"]::selection {
   background: transparent !important;
   color: #0284c7 !important;
   -webkit-text-fill-color: #0284c7 !important;
 }
 
-.login-page .login-submit-button,
-.login-page .sign-in-button,
-.login-page form button[type="submit"],
-.login-page button.auth-submit-button,
-.modern-login-page .login-submit-button,
-.modern-login-page .sign-in-button,
-.modern-login-page form button[type="submit"],
-.modern-login-page button.auth-submit-button {
-  background: #d8efff !important;
-  background-color: #d8efff !important;
-  background-image: none !important;
-  color: #075985 !important;
-  -webkit-text-fill-color: #075985 !important;
-  border: 1px solid #9fd8ff !important;
-  border-radius: 22px !important;
-  box-shadow: 0 10px 25px rgba(14, 165, 233, 0.16) !important;
-  font-weight: 800 !important;
-}
-
-.login-page .login-submit-button:hover,
-.login-page .login-submit-button:focus,
-.login-page .login-submit-button:active,
-.login-page .sign-in-button:hover,
-.login-page .sign-in-button:focus,
-.login-page .sign-in-button:active,
-.login-page form button[type="submit"]:hover,
-.login-page form button[type="submit"]:focus,
-.login-page form button[type="submit"]:active,
-.login-page button.auth-submit-button:hover,
-.login-page button.auth-submit-button:focus,
-.login-page button.auth-submit-button:active,
-.modern-login-page .login-submit-button:hover,
-.modern-login-page .login-submit-button:focus,
-.modern-login-page .login-submit-button:active,
-.modern-login-page .sign-in-button:hover,
-.modern-login-page .sign-in-button:focus,
-.modern-login-page .sign-in-button:active,
-.modern-login-page form button[type="submit"]:hover,
-.modern-login-page form button[type="submit"]:focus,
-.modern-login-page form button[type="submit"]:active,
-.modern-login-page button.auth-submit-button:hover,
-.modern-login-page button.auth-submit-button:focus,
-.modern-login-page button.auth-submit-button:active {
-  background: #c8e8ff !important;
-  background-color: #c8e8ff !important;
-  background-image: none !important;
-  color: #075985 !important;
-  -webkit-text-fill-color: #075985 !important;
-  border-color: #7ccfff !important;
-  box-shadow: 0 12px 28px rgba(14, 165, 233, 0.2) !important;
-}
-
-.login-page .login-submit-button svg,
-.login-page .sign-in-button svg,
-.login-page form button[type="submit"] svg,
-.login-page button.auth-submit-button svg,
-.modern-login-page .login-submit-button svg,
-.modern-login-page .sign-in-button svg,
-.modern-login-page form button[type="submit"] svg,
-.modern-login-page button.auth-submit-button svg {
-  color: #075985 !important;
-  stroke: #075985 !important;
-  fill: none !important;
-}
-
-.login-page .auth-checkbox,
-.login-page .auth-checkbox span {
+html body #root .login-page .auth-meta-row,
+html body #root .login-page .auth-bottom-row,
+html body #root .login-page .auth-bottom-row p,
+html body #root .modern-login-page .auth-meta-row,
+html body #root .modern-login-page .auth-bottom-row,
+html body #root .modern-login-page .auth-bottom-row p {
   background: transparent !important;
-  color: #334155 !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
   box-shadow: none !important;
+  outline: 0 !important;
 }
 
-.login-page .auth-checkbox input[type="checkbox"] {
-  accent-color: #0284c7 !important;
+/* FINAL LOGIN SIGN-IN BUTTON COLOR FIX
+   Keep login behavior unchanged; only force the auth submit button to light blue. */
+html body #root .login-page .auth-submit-button,
+html body #root .login-page button.auth-submit-button,
+html body #root .modern-login-page .auth-submit-button,
+html body #root .modern-login-page button.auth-submit-button,
+html body #root .login-page .primary.auth-submit-button,
+html body #root .login-page button.primary.wide.auth-submit-button {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: #38bdf8 !important;
+  background-color: #38bdf8 !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border: 0 !important;
+  box-shadow: 0 12px 24px rgba(56, 189, 248, 0.28) !important;
+  border-radius: 18px !important;
 }
 
-.login-page .login-message,
-.login-page .message {
-  background: #f0f9ff !important;
-  color: #334155 !important;
-  border: 1px solid #bae6fd !important;
-  box-shadow: none !important;
+html body #root .login-page .auth-submit-button:hover:not(:disabled),
+html body #root .login-page button.auth-submit-button:hover:not(:disabled),
+html body #root .modern-login-page .auth-submit-button:hover:not(:disabled),
+html body #root .modern-login-page button.auth-submit-button:hover:not(:disabled),
+html body #root .login-page .primary.auth-submit-button:hover:not(:disabled),
+html body #root .login-page button.primary.wide.auth-submit-button:hover:not(:disabled) {
+  background: #0ea5e9 !important;
+  background-color: #0ea5e9 !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border: 0 !important;
+  box-shadow: 0 16px 30px rgba(14, 165, 233, 0.34) !important;
+}
+
+html body #root .login-page .auth-submit-button:focus,
+html body #root .login-page .auth-submit-button:focus-visible,
+html body #root .modern-login-page .auth-submit-button:focus,
+html body #root .modern-login-page .auth-submit-button:focus-visible {
+  background: #38bdf8 !important;
+  background-color: #38bdf8 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  outline: 2px solid rgba(56, 189, 248, 0.35) !important;
+  outline-offset: 3px !important;
+}
+
+html body #root .login-page .auth-submit-button:disabled,
+html body #root .modern-login-page .auth-submit-button:disabled {
+  background: #7dd3fc !important;
+  background-color: #7dd3fc !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  opacity: 0.75 !important;
+  cursor: not-allowed !important;
 }
