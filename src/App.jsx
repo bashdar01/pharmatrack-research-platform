@@ -4467,60 +4467,21 @@ export default function App() {
 
     try {
       if (isSupabaseConfigured) {
-        let savedByRpc = false
         const rpcName = normalizedStatus === 'Accepted' ? 'accept_group_join_request' : 'reject_group_join_request'
-        const { error: rpcError } = await supabase.rpc(rpcName, { request_id: requestId, decision_message: decisionUpdates.decision_message })
-        if (!rpcError) {
-          savedByRpc = true
-        } else if (!isMissingRpcFunction(rpcError) && !String(rpcError.message || '').toLowerCase().includes('decision_message') && !String(rpcError.message || '').toLowerCase().includes('ambiguous')) {
+        const { error: rpcError } = await supabase.rpc(rpcName, {
+          request_id: requestId,
+          decision_message: decisionUpdates.decision_message || '',
+        })
+        if (rpcError) {
+          const rpcMessage = String(rpcError.message || '')
+          const rpcMessageLower = rpcMessage.toLowerCase()
+          if (isMissingRpcFunction(rpcError)) {
+            throw new Error('Group join approval backend function is missing. Run supabase/group_join_request_profile_safe_accept_fix.sql in Supabase SQL Editor, then try again.')
+          }
+          if (rpcMessageLower.includes('supervisor assignment cannot be changed') || rpcMessageLower.includes('decision_message') || rpcMessageLower.includes('ambiguous')) {
+            throw new Error('Group join approval database function needs the latest safe fix. Run supabase/group_join_request_profile_safe_accept_fix.sql in Supabase SQL Editor, then try again.')
+          }
           throw rpcError
-        }
-
-        if (!savedByRpc) {
-        const { data: updated, error } = await supabase
-          .from('group_join_requests')
-          .update(decisionUpdates)
-          .eq('id', requestId)
-          .eq('status', 'Pending')
-          .select()
-          .maybeSingle()
-        if (error) throw error
-        if (!updated) {
-          setMessage('This request has already been decided. Refresh the page to see the latest status.')
-          await loadFromSupabase(currentUser)
-          return { ok: false }
-        }
-
-        if (normalizedStatus === 'Accepted') {
-          const existingStudents = listValue(group.students)
-          const memberLabels = [student.full_name, student.email].filter(Boolean)
-          const nextStudents = uniqueTextList([...existingStudents, ...memberLabels])
-          const projectUpdate = await supabase.from('research_projects').update({ students: nextStudents }).eq('id', group.id)
-          if (projectUpdate.error) throw projectUpdate.error
-
-          const membershipRow = {
-            group_id: group.id,
-            project_id: group.id,
-            student_id: student.id || null,
-            student_email: student.email || request.student_email || null,
-            student_name: student.full_name || request.student_name || student.email || 'Student',
-            supervisor_id: group.supervisor_id || request.supervisor_id || null,
-            supervisor_email: group.supervisor_email || request.supervisor_email || '',
-            supervisor_name: group.supervisor_name || request.supervisor_name || '',
-            joined_via_request_id: requestId,
-            status: 'Active',
-            added_by: currentUser?.id || null,
-          }
-          try {
-            const membershipUpdate = await supabase.from('research_group_members').upsert(membershipRow, { onConflict: student.id ? 'group_id,student_id' : 'group_id,student_email' })
-            if (membershipUpdate.error) throw membershipUpdate.error
-          } catch (membershipError) {
-            const missingMembershipTable = String(membershipError.message || '').toLowerCase().includes('research_group_members') || String(membershipError.message || '').toLowerCase().includes('relation')
-            if (!missingMembershipTable) throw membershipError
-            console.warn('research_group_members table is not available yet. Run supabase/group_join_requests.sql to enable official group membership records.', membershipError)
-          }
-
-        }
         }
 
         await createGroupJoinNotification({
