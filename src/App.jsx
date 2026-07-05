@@ -36,6 +36,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { supabase, isSupabaseConfigured } from './lib/supabaseClient'
+import researchGuidelinesPdfUrl from './assets/research-guidelines.pdf?url'
 
 const roleButtons = [
   { id: 'student', label: 'Student', icon: GraduationCap },
@@ -112,9 +113,12 @@ function makeInvitationToken() {
 }
 
 const REPORT_PROGRESS_INCREMENT = 6.25
-const RESEARCH_GUIDELINES_PDF_URL = '/research-guidelines.pdf'
-const RESEARCH_GUIDELINES_PAGE_COUNT = 23
-const RESEARCH_GUIDELINES_PAGE_IMAGES = Array.from({ length: RESEARCH_GUIDELINES_PAGE_COUNT }, (_, index) => `/research-guidelines-pages/page-${String(index + 1).padStart(2, '0')}.jpg`)
+const RESEARCH_GUIDELINES_PDF_URL = researchGuidelinesPdfUrl
+const RESEARCH_GUIDELINES_PAGE_MODULES = import.meta.glob('./assets/research-guidelines-pages/page-*.jpg', { eager: true, query: '?url', import: 'default' })
+const RESEARCH_GUIDELINES_PAGE_IMAGES = Object.entries(RESEARCH_GUIDELINES_PAGE_MODULES)
+  .sort(([a], [b]) => a.localeCompare(b))
+  .map(([, src]) => src)
+const RESEARCH_GUIDELINES_PAGE_COUNT = RESEARCH_GUIDELINES_PAGE_IMAGES.length
 
 function clampProgress(value) {
   const numeric = Number(value || 0)
@@ -6566,6 +6570,9 @@ function AboutUsPage({ page }) {
 
 
 function ResearchGuidelinesPage({ onBack }) {
+  const [usePdfFallback, setUsePdfFallback] = useState(false)
+  const showPdfFallback = usePdfFallback || RESEARCH_GUIDELINES_PAGE_IMAGES.length === 0
+
   return (
     <section className="research-guidelines-page">
       <div className="research-guidelines-toolbar no-print">
@@ -6580,19 +6587,35 @@ function ResearchGuidelinesPage({ onBack }) {
         <div className="research-guidelines-header research-guidelines-header-compact">
           <p className="eyebrow"><FileText size={16} /> Research Guidelines</p>
         </div>
-        <div className="research-guidelines-viewer" aria-label="Research Guidelines pages">
-          {RESEARCH_GUIDELINES_PAGE_IMAGES.map((pageSrc, index) => (
-            <figure className="research-guidelines-page-frame" key={pageSrc}>
-              <img
-                src={pageSrc}
-                alt={`Research Guidelines page ${index + 1}`}
-                loading={index < 2 ? 'eager' : 'lazy'}
-                decoding="async"
-              />
-              <figcaption>Page {index + 1} of {RESEARCH_GUIDELINES_PAGE_COUNT}</figcaption>
-            </figure>
-          ))}
-        </div>
+
+        {showPdfFallback ? (
+          <div className="research-guidelines-pdf-shell">
+            <iframe
+              src={`${RESEARCH_GUIDELINES_PDF_URL}#toolbar=1&navpanes=0&view=FitH`}
+              title="Research Guidelines PDF"
+              className="research-guidelines-pdf-fallback"
+              loading="eager"
+            />
+            <p className="research-guidelines-fallback-note">
+              If the PDF preview does not open, use Open PDF or Download PDF above.
+            </p>
+          </div>
+        ) : (
+          <div className="research-guidelines-viewer" aria-label="Research Guidelines pages">
+            {RESEARCH_GUIDELINES_PAGE_IMAGES.map((pageSrc, index) => (
+              <figure className="research-guidelines-page-frame" key={pageSrc}>
+                <img
+                  src={pageSrc}
+                  alt={`Research Guidelines page ${index + 1}`}
+                  loading={index < 2 ? 'eager' : 'lazy'}
+                  decoding="async"
+                  onError={() => setUsePdfFallback(true)}
+                />
+                <figcaption>Page {index + 1} of {RESEARCH_GUIDELINES_PAGE_COUNT}</figcaption>
+              </figure>
+            ))}
+          </div>
+        )}
       </article>
     </section>
   )

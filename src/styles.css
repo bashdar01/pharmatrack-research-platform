@@ -14991,3 +14991,46 @@ html body #root .selected-student-chip :where(svg, span, b, strong) {
   color: #4d4c4d !important;
   stroke: #4d4c4d !important;
 }
+
+/* FINAL FIX: Research Guidelines reliable viewer */
+.research-guidelines-pdf-shell {
+  width: 100% !important;
+  min-height: 82vh !important;
+  display: grid !important;
+  gap: .75rem !important;
+  background: #ffffff !important;
+}
+
+.research-guidelines-pdf-fallback {
+  width: 100% !important;
+  min-height: 82vh !important;
+  height: 82vh !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 16px !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+}
+
+.research-guidelines-fallback-note {
+  margin: 0 !important;
+  color: #4d4c4d !important;
+  text-align: center !important;
+  font-weight: 600 !important;
+}
+
+.research-guidelines-viewer {
+  justify-items: center !important;
+  align-items: start !important;
+}
+
+.research-guidelines-page-frame {
+  width: 100% !important;
+  min-height: auto !important;
+}
+
+.research-guidelines-page-frame img {
+  width: min(100%, 980px) !important;
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
+}
