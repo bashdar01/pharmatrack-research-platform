@@ -4472,7 +4472,7 @@ export default function App() {
         const { error: rpcError } = await supabase.rpc(rpcName, { request_id: requestId, decision_message: decisionUpdates.decision_message })
         if (!rpcError) {
           savedByRpc = true
-        } else if (!isMissingRpcFunction(rpcError)) {
+        } else if (!isMissingRpcFunction(rpcError) && !String(rpcError.message || '').toLowerCase().includes('decision_message') && !String(rpcError.message || '').toLowerCase().includes('ambiguous')) {
           throw rpcError
         }
 

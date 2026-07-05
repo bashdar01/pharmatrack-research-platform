@@ -296,7 +296,7 @@ begin
     raise exception 'Not authenticated.';
   end if;
 
-  select * into target from public.group_join_requests where id = request_id for update;
+  select * into target from public.group_join_requests gjr where gjr.id = accept_group_join_request.request_id for update;
   if target.id is null then
     raise exception 'Group join request not found.';
   end if;
@@ -307,7 +307,7 @@ begin
     raise exception 'You do not have permission to manage this group join request.';
   end if;
 
-  select * into target_group from public.research_projects where id = target.requested_group_id;
+  select * into target_group from public.research_projects rp where rp.id = target.requested_group_id;
   if target_group.id is null then
     raise exception 'Research group not found.';
   end if;
@@ -328,11 +328,11 @@ begin
 
   update public.group_join_requests
      set status = 'Accepted',
-         decision_message = coalesce(decision_message, ''),
+         decision_message = coalesce(accept_group_join_request.decision_message, ''),
          decided_at = now(),
          decided_by = actor.id,
          decided_by_name = coalesce(actor.full_name, actor.email, 'Reviewer')
-   where id = request_id and status = 'Pending';
+   where public.group_join_requests.id = accept_group_join_request.request_id and public.group_join_requests.status = 'Pending';
 
   member_names := array_remove(array[
     nullif(coalesce(target_student.full_name, target.student_name), ''),
@@ -386,7 +386,7 @@ begin
       joined_via_request_id = excluded.joined_via_request_id;
   end if;
 
-  return jsonb_build_object('ok', true, 'status', 'Accepted', 'request_id', request_id);
+  return jsonb_build_object('ok', true, 'status', 'Accepted', 'request_id', accept_group_join_request.request_id);
 end;
 $$;
 
@@ -405,7 +405,7 @@ begin
     raise exception 'Not authenticated.';
   end if;
 
-  select * into target from public.group_join_requests where id = request_id for update;
+  select * into target from public.group_join_requests gjr where gjr.id = reject_group_join_request.request_id for update;
   if target.id is null then
     raise exception 'Group join request not found.';
   end if;
@@ -418,13 +418,13 @@ begin
 
   update public.group_join_requests
      set status = 'Rejected',
-         decision_message = coalesce(decision_message, ''),
+         decision_message = coalesce(reject_group_join_request.decision_message, ''),
          decided_at = now(),
          decided_by = actor.id,
          decided_by_name = coalesce(actor.full_name, actor.email, 'Reviewer')
-   where id = request_id and status = 'Pending';
+   where public.group_join_requests.id = reject_group_join_request.request_id and public.group_join_requests.status = 'Pending';
 
-  return jsonb_build_object('ok', true, 'status', 'Rejected', 'request_id', request_id);
+  return jsonb_build_object('ok', true, 'status', 'Rejected', 'request_id', reject_group_join_request.request_id);
 end;
 $$;
 
