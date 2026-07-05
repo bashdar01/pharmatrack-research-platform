@@ -4477,16 +4477,16 @@ button .button-spinner {
   gap: 0.65rem;
   width: 100%;
   padding: 1rem;
-  border: 1px dashed rgba(37, 99, 235, 0.28);
+  border: 1px dashed #d1d5db;
   border-radius: 14px;
-  background: rgba(37, 99, 235, 0.055);
-  color: #1e3a8a;
+  background: #f9fafb;
+  color: #4d4c4d;
   font-weight: 700;
   text-align: center;
 }
 
 .loading-state .button-spinner {
-  color: #2563eb;
+  color: #4d4c4d;
 }
 
 @media (max-width: 640px) {
@@ -9571,13 +9571,13 @@ body:has(.app-main-shell) {
   border-color: rgba(41, 40, 41, .24) !important;
 }
 
-.project-member-chip.leader small,
+/* Keep general pills/badges gray, but do NOT dark-fill the Project Leader label. */
 .pill.blue,
 .pill.slate,
 .status-chip,
 .tab-badge,
-.badge,
-.role-badge {
+.badge:not(.project-leader):not(.project-leader-badge),
+.role-badge:not(.project-leader-badge) {
   background: #4d4c4d !important;
   color: #ffffff !important;
   border-color: #4d4c4d !important;
@@ -12830,4 +12830,1279 @@ html body #root .modern-login-page .auth-submit-button:disabled {
   -webkit-text-fill-color: #ffffff !important;
   opacity: 0.75 !important;
   cursor: not-allowed !important;
+}
+
+/* ABSOLUTE FINAL FIX: login submit button must be blue even when NOT hovered.
+   This is intentionally placed at the very bottom to beat the global gray button reset. */
+html body #root .login-page button#login-auth-submit-button,
+html body #root .login-page button[data-login-submit="true"],
+html body #root .login-page .login-blue-submit-button,
+html body #root .modern-login-page button#login-auth-submit-button,
+html body #root .modern-login-page button[data-login-submit="true"],
+html body #root .modern-login-page .login-blue-submit-button {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  min-height: 58px !important;
+  padding: 14px 18px !important;
+  border-radius: 18px !important;
+  background: #0ea5e9 !important;
+  background-color: #0ea5e9 !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: 0 16px 30px rgba(14, 165, 233, 0.34) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 800 !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+  filter: none !important;
+  text-shadow: none !important;
+}
+
+html body #root .login-page button#login-auth-submit-button:hover:not(:disabled),
+html body #root .login-page button#login-auth-submit-button:focus:not(:disabled),
+html body #root .login-page button#login-auth-submit-button:focus-visible:not(:disabled),
+html body #root .login-page button#login-auth-submit-button:active:not(:disabled),
+html body #root .login-page button[data-login-submit="true"]:hover:not(:disabled),
+html body #root .login-page button[data-login-submit="true"]:focus:not(:disabled),
+html body #root .login-page button[data-login-submit="true"]:focus-visible:not(:disabled),
+html body #root .login-page button[data-login-submit="true"]:active:not(:disabled),
+html body #root .login-page .login-blue-submit-button:hover:not(:disabled),
+html body #root .login-page .login-blue-submit-button:focus:not(:disabled),
+html body #root .login-page .login-blue-submit-button:focus-visible:not(:disabled),
+html body #root .login-page .login-blue-submit-button:active:not(:disabled),
+html body #root .modern-login-page button#login-auth-submit-button:hover:not(:disabled),
+html body #root .modern-login-page button#login-auth-submit-button:focus:not(:disabled),
+html body #root .modern-login-page button#login-auth-submit-button:focus-visible:not(:disabled),
+html body #root .modern-login-page button#login-auth-submit-button:active:not(:disabled),
+html body #root .modern-login-page button[data-login-submit="true"]:hover:not(:disabled),
+html body #root .modern-login-page button[data-login-submit="true"]:focus:not(:disabled),
+html body #root .modern-login-page button[data-login-submit="true"]:focus-visible:not(:disabled),
+html body #root .modern-login-page button[data-login-submit="true"]:active:not(:disabled),
+html body #root .modern-login-page .login-blue-submit-button:hover:not(:disabled),
+html body #root .modern-login-page .login-blue-submit-button:focus:not(:disabled),
+html body #root .modern-login-page .login-blue-submit-button:focus-visible:not(:disabled),
+html body #root .modern-login-page .login-blue-submit-button:active:not(:disabled) {
+  background: #0ea5e9 !important;
+  background-color: #0ea5e9 !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: 0 16px 30px rgba(14, 165, 233, 0.34) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  opacity: 1 !important;
+  outline: 2px solid rgba(14, 165, 233, 0.28) !important;
+  outline-offset: 3px !important;
+  transform: none !important;
+}
+
+html body #root .login-page button#login-auth-submit-button:disabled,
+html body #root .login-page button[data-login-submit="true"]:disabled,
+html body #root .login-page .login-blue-submit-button:disabled,
+html body #root .modern-login-page button#login-auth-submit-button:disabled,
+html body #root .modern-login-page button[data-login-submit="true"]:disabled,
+html body #root .modern-login-page .login-blue-submit-button:disabled {
+  background: #38bdf8 !important;
+  background-color: #38bdf8 !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: 0 12px 24px rgba(56, 189, 248, 0.28) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  opacity: 0.85 !important;
+  cursor: not-allowed !important;
+}
+
+html body #root .login-page button#login-auth-submit-button svg,
+html body #root .login-page button[data-login-submit="true"] svg,
+html body #root .login-page .login-blue-submit-button svg,
+html body #root .modern-login-page button#login-auth-submit-button svg,
+html body #root .modern-login-page button[data-login-submit="true"] svg,
+html body #root .modern-login-page .login-blue-submit-button svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  fill: none !important;
+}
+
+/* FINAL LOGIN GRAY STYLE RESTORE
+   Only login page styling: Forgot password, Sign in submit button, and Sign up for free. */
+html body #root .login-page .forgot-password-link,
+html body #root .login-page .signup-link,
+html body #root .modern-login-page .forgot-password-link,
+html body #root .modern-login-page .signup-link,
+html body #root .login-page .plain-login-action,
+html body #root .modern-login-page .plain-login-action,
+html body #root .login-page [data-login-action="forgot-password"],
+html body #root .login-page [data-login-action="signup"] {
+  all: unset !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  display: inline !important;
+  box-sizing: content-box !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  color: #4d4c4d !important;
+  -webkit-text-fill-color: #4d4c4d !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+  font-weight: 700 !important;
+  letter-spacing: inherit !important;
+  text-align: inherit !important;
+  text-shadow: none !important;
+  text-decoration: none !important;
+  vertical-align: baseline !important;
+  transform: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+html body #root .login-page .forgot-password-link:hover,
+html body #root .login-page .forgot-password-link:focus,
+html body #root .login-page .forgot-password-link:focus-visible,
+html body #root .login-page .forgot-password-link:active,
+html body #root .login-page .signup-link:hover,
+html body #root .login-page .signup-link:focus,
+html body #root .login-page .signup-link:focus-visible,
+html body #root .login-page .signup-link:active,
+html body #root .modern-login-page .forgot-password-link:hover,
+html body #root .modern-login-page .forgot-password-link:focus,
+html body #root .modern-login-page .forgot-password-link:focus-visible,
+html body #root .modern-login-page .forgot-password-link:active,
+html body #root .modern-login-page .signup-link:hover,
+html body #root .modern-login-page .signup-link:focus,
+html body #root .modern-login-page .signup-link:focus-visible,
+html body #root .modern-login-page .signup-link:active,
+html body #root .login-page .plain-login-action:hover,
+html body #root .login-page .plain-login-action:focus,
+html body #root .login-page .plain-login-action:focus-visible,
+html body #root .login-page .plain-login-action:active,
+html body #root .login-page [data-login-action="forgot-password"]:hover,
+html body #root .login-page [data-login-action="forgot-password"]:focus,
+html body #root .login-page [data-login-action="forgot-password"]:focus-visible,
+html body #root .login-page [data-login-action="forgot-password"]:active,
+html body #root .login-page [data-login-action="signup"]:hover,
+html body #root .login-page [data-login-action="signup"]:focus,
+html body #root .login-page [data-login-action="signup"]:focus-visible,
+html body #root .login-page [data-login-action="signup"]:active {
+  all: unset !important;
+  display: inline !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  color: #3f3e3f !important;
+  -webkit-text-fill-color: #3f3e3f !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+  font-weight: 700 !important;
+  text-decoration: underline !important;
+  text-shadow: none !important;
+  transform: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+}
+
+html body #root .login-page .forgot-password-link::before,
+html body #root .login-page .forgot-password-link::after,
+html body #root .login-page .signup-link::before,
+html body #root .login-page .signup-link::after,
+html body #root .login-page .plain-login-action::before,
+html body #root .login-page .plain-login-action::after,
+html body #root .login-page [data-login-action="forgot-password"]::before,
+html body #root .login-page [data-login-action="forgot-password"]::after,
+html body #root .login-page [data-login-action="signup"]::before,
+html body #root .login-page [data-login-action="signup"]::after {
+  content: none !important;
+  display: none !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+html body #root .login-page button#login-auth-submit-button,
+html body #root .login-page button[data-login-submit="true"],
+html body #root .login-page .auth-submit-button,
+html body #root .login-page .login-submit-button,
+html body #root .login-page .sign-in-button,
+html body #root .login-page form button[type="submit"],
+html body #root .modern-login-page button#login-auth-submit-button,
+html body #root .modern-login-page button[data-login-submit="true"],
+html body #root .modern-login-page .auth-submit-button,
+html body #root .modern-login-page .login-submit-button,
+html body #root .modern-login-page .sign-in-button,
+html body #root .modern-login-page form button[type="submit"] {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  min-height: 58px !important;
+  padding: 14px 18px !important;
+  border-radius: 22px !important;
+  background: #4d4c4d !important;
+  background-color: #4d4c4d !important;
+  background-image: none !important;
+  border: 1px solid #4d4c4d !important;
+  box-shadow: 0 14px 26px rgba(77, 76, 77, 0.22) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 800 !important;
+  text-decoration: none !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+  filter: none !important;
+  transform: none !important;
+}
+
+html body #root .login-page button#login-auth-submit-button:hover:not(:disabled),
+html body #root .login-page button#login-auth-submit-button:focus:not(:disabled),
+html body #root .login-page button#login-auth-submit-button:focus-visible:not(:disabled),
+html body #root .login-page button#login-auth-submit-button:active:not(:disabled),
+html body #root .login-page button[data-login-submit="true"]:hover:not(:disabled),
+html body #root .login-page button[data-login-submit="true"]:focus:not(:disabled),
+html body #root .login-page button[data-login-submit="true"]:focus-visible:not(:disabled),
+html body #root .login-page button[data-login-submit="true"]:active:not(:disabled),
+html body #root .login-page .auth-submit-button:hover:not(:disabled),
+html body #root .login-page .auth-submit-button:focus:not(:disabled),
+html body #root .login-page .auth-submit-button:focus-visible:not(:disabled),
+html body #root .login-page .auth-submit-button:active:not(:disabled),
+html body #root .login-page .login-submit-button:hover:not(:disabled),
+html body #root .login-page .login-submit-button:focus:not(:disabled),
+html body #root .login-page .login-submit-button:focus-visible:not(:disabled),
+html body #root .login-page .login-submit-button:active:not(:disabled),
+html body #root .login-page .sign-in-button:hover:not(:disabled),
+html body #root .login-page .sign-in-button:focus:not(:disabled),
+html body #root .login-page .sign-in-button:focus-visible:not(:disabled),
+html body #root .login-page .sign-in-button:active:not(:disabled),
+html body #root .modern-login-page button#login-auth-submit-button:hover:not(:disabled),
+html body #root .modern-login-page button#login-auth-submit-button:focus:not(:disabled),
+html body #root .modern-login-page button#login-auth-submit-button:focus-visible:not(:disabled),
+html body #root .modern-login-page button#login-auth-submit-button:active:not(:disabled),
+html body #root .modern-login-page button[data-login-submit="true"]:hover:not(:disabled),
+html body #root .modern-login-page button[data-login-submit="true"]:focus:not(:disabled),
+html body #root .modern-login-page button[data-login-submit="true"]:focus-visible:not(:disabled),
+html body #root .modern-login-page button[data-login-submit="true"]:active:not(:disabled),
+html body #root .modern-login-page .auth-submit-button:hover:not(:disabled),
+html body #root .modern-login-page .auth-submit-button:focus:not(:disabled),
+html body #root .modern-login-page .auth-submit-button:focus-visible:not(:disabled),
+html body #root .modern-login-page .auth-submit-button:active:not(:disabled),
+html body #root .modern-login-page .login-submit-button:hover:not(:disabled),
+html body #root .modern-login-page .login-submit-button:focus:not(:disabled),
+html body #root .modern-login-page .login-submit-button:focus-visible:not(:disabled),
+html body #root .modern-login-page .login-submit-button:active:not(:disabled),
+html body #root .modern-login-page .sign-in-button:hover:not(:disabled),
+html body #root .modern-login-page .sign-in-button:focus:not(:disabled),
+html body #root .modern-login-page .sign-in-button:focus-visible:not(:disabled),
+html body #root .modern-login-page .sign-in-button:active:not(:disabled) {
+  background: #3f3e3f !important;
+  background-color: #3f3e3f !important;
+  background-image: none !important;
+  border-color: #3f3e3f !important;
+  box-shadow: 0 16px 30px rgba(63, 62, 63, 0.28) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  outline: 2px solid rgba(77, 76, 77, 0.24) !important;
+  outline-offset: 3px !important;
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+}
+
+html body #root .login-page button#login-auth-submit-button:disabled,
+html body #root .login-page button[data-login-submit="true"]:disabled,
+html body #root .login-page .auth-submit-button:disabled,
+html body #root .login-page .login-submit-button:disabled,
+html body #root .login-page .sign-in-button:disabled,
+html body #root .modern-login-page button#login-auth-submit-button:disabled,
+html body #root .modern-login-page button[data-login-submit="true"]:disabled,
+html body #root .modern-login-page .auth-submit-button:disabled,
+html body #root .modern-login-page .login-submit-button:disabled,
+html body #root .modern-login-page .sign-in-button:disabled {
+  background: #4d4c4d !important;
+  background-color: #4d4c4d !important;
+  background-image: none !important;
+  border: 1px solid #4d4c4d !important;
+  box-shadow: 0 10px 20px rgba(77, 76, 77, 0.16) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  opacity: 0.75 !important;
+  cursor: not-allowed !important;
+}
+
+html body #root .login-page button#login-auth-submit-button svg,
+html body #root .login-page button[data-login-submit="true"] svg,
+html body #root .login-page .auth-submit-button svg,
+html body #root .login-page .login-submit-button svg,
+html body #root .login-page .sign-in-button svg,
+html body #root .modern-login-page button#login-auth-submit-button svg,
+html body #root .modern-login-page button[data-login-submit="true"] svg,
+html body #root .modern-login-page .auth-submit-button svg,
+html body #root .modern-login-page .login-submit-button svg,
+html body #root .modern-login-page .sign-in-button svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  fill: none !important;
+}
+
+
+
+/* ABSOLUTE FINAL FIX: make login Forgot password and Sign up gray in normal/inactive state.
+   This is intentionally last and scoped only to the login page. */
+html body #root .login-page span.gray-login-text-button,
+html body #root .login-page span.forgot-password-link,
+html body #root .login-page span.signup-link,
+html body #root .modern-login-page span.gray-login-text-button,
+html body #root .modern-login-page span.forgot-password-link,
+html body #root .modern-login-page span.signup-link,
+html body #root .login-page [data-login-action="forgot-password"],
+html body #root .login-page [data-login-action="signup"] {
+  all: unset !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  display: inline !important;
+  box-sizing: content-box !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  color: #4d4c4d !important;
+  -webkit-text-fill-color: #4d4c4d !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+  font-weight: 700 !important;
+  letter-spacing: inherit !important;
+  text-align: inherit !important;
+  text-decoration: none !important;
+  text-shadow: none !important;
+  vertical-align: baseline !important;
+  transform: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+}
+
+html body #root .login-page span.gray-login-text-button:hover,
+html body #root .login-page span.gray-login-text-button:focus,
+html body #root .login-page span.gray-login-text-button:active,
+html body #root .login-page span.forgot-password-link:hover,
+html body #root .login-page span.forgot-password-link:focus,
+html body #root .login-page span.forgot-password-link:active,
+html body #root .login-page span.signup-link:hover,
+html body #root .login-page span.signup-link:focus,
+html body #root .login-page span.signup-link:active,
+html body #root .modern-login-page span.gray-login-text-button:hover,
+html body #root .modern-login-page span.gray-login-text-button:focus,
+html body #root .modern-login-page span.gray-login-text-button:active,
+html body #root .modern-login-page span.forgot-password-link:hover,
+html body #root .modern-login-page span.forgot-password-link:focus,
+html body #root .modern-login-page span.forgot-password-link:active,
+html body #root .modern-login-page span.signup-link:hover,
+html body #root .modern-login-page span.signup-link:focus,
+html body #root .modern-login-page span.signup-link:active,
+html body #root .login-page [data-login-action="forgot-password"]:hover,
+html body #root .login-page [data-login-action="forgot-password"]:focus,
+html body #root .login-page [data-login-action="forgot-password"]:active,
+html body #root .login-page [data-login-action="signup"]:hover,
+html body #root .login-page [data-login-action="signup"]:focus,
+html body #root .login-page [data-login-action="signup"]:active {
+  all: unset !important;
+  display: inline !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  color: #3f3e3f !important;
+  -webkit-text-fill-color: #3f3e3f !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+  font-weight: 700 !important;
+  text-decoration: underline !important;
+  cursor: pointer !important;
+}
+
+html body #root .login-page span.gray-login-text-button::before,
+html body #root .login-page span.gray-login-text-button::after,
+html body #root .login-page span.forgot-password-link::before,
+html body #root .login-page span.forgot-password-link::after,
+html body #root .login-page span.signup-link::before,
+html body #root .login-page span.signup-link::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* ABSOLUTE FINAL NOTIFICATION DROPDOWN FIX: white/gray popup, no blue outlines, no blue dot, no dark text box. */
+html body #root .notification-bell-menu,
+html body #root .notification-bell-menu * {
+  --notification-gray: #4d4c4d;
+  --notification-gray-hover: #3f3e3f;
+  --notification-border: #e5e7eb;
+  --notification-soft: #f9fafb;
+}
+
+html body #root .notification-bell-menu .notification-popover {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border: 1px solid #e5e7eb !important;
+  outline: 0 !important;
+  box-shadow: 0 18px 45px rgba(77, 76, 77, 0.12) !important;
+  color: #4d4c4d !important;
+}
+
+html body #root .notification-bell-menu .notification-popover-head {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+html body #root .notification-bell-menu .notification-popover-head b,
+html body #root .notification-bell-menu .notification-popover-head small,
+html body #root .notification-bell-menu .notification-popover-state {
+  color: #4d4c4d !important;
+  -webkit-text-fill-color: #4d4c4d !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+html body #root .notification-bell-menu .notification-popover-close,
+html body #root .notification-bell-menu .notification-popover-close:not(:disabled):not(:hover):not(:focus-visible):not(.active) {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: #4d4c4d !important;
+  -webkit-text-fill-color: #4d4c4d !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+html body #root .notification-bell-menu .notification-popover-close:hover,
+html body #root .notification-bell-menu .notification-popover-close:focus-visible,
+html body #root .notification-bell-menu .notification-popover-close:active {
+  background: #f9fafb !important;
+  background-color: #f9fafb !important;
+  color: #3f3e3f !important;
+  -webkit-text-fill-color: #3f3e3f !important;
+  border-color: #d1d5db !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+html body #root .notification-bell-menu .notification-popover-item,
+html body #root .notification-bell-menu .notification-popover-item.unread {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border: 1px solid #e5e7eb !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  color: #4d4c4d !important;
+}
+
+html body #root .notification-bell-menu .notification-popover-item.unread {
+  background: #f9fafb !important;
+  background-color: #f9fafb !important;
+}
+
+html body #root .notification-bell-menu .notification-popover-item:hover,
+html body #root .notification-bell-menu .notification-popover-item.unread:hover {
+  background: #f9fafb !important;
+  background-color: #f9fafb !important;
+  border-color: #d1d5db !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+html body #root .notification-bell-menu .notification-popover-content,
+html body #root .notification-bell-menu .notification-popover-content:not(:disabled):not(:hover):not(:focus-visible):not(.active),
+html body #root .notification-bell-menu .notification-popover-content:hover,
+html body #root .notification-bell-menu .notification-popover-content:focus,
+html body #root .notification-bell-menu .notification-popover-content:focus-visible,
+html body #root .notification-bell-menu .notification-popover-content:active,
+html body #root .notification-bell-menu .notification-text-button,
+html body #root .notification-bell-menu .notification-text-button:not(:disabled):not(:hover):not(:focus-visible):not(.active),
+html body #root .notification-bell-menu .notification-text-button:hover,
+html body #root .notification-bell-menu .notification-text-button:focus,
+html body #root .notification-bell-menu .notification-text-button:focus-visible,
+html body #root .notification-bell-menu .notification-text-button:active {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 0 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  text-align: left !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #4d4c4d !important;
+  -webkit-text-fill-color: #4d4c4d !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+  transform: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+}
+
+html body #root .notification-bell-menu .notification-popover-content > span:not(.notification-dot),
+html body #root .notification-bell-menu .notification-popover-content b,
+html body #root .notification-bell-menu .notification-popover-content small,
+html body #root .notification-bell-menu .notification-popover-content em {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #4d4c4d !important;
+  -webkit-text-fill-color: #4d4c4d !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+html body #root .notification-bell-menu .notification-popover-item.unread .notification-popover-content b {
+  font-weight: 950 !important;
+}
+
+html body #root .notification-bell-menu .notification-dot,
+html body #root .notification-bell-menu .notification-popover-item.unread .notification-dot,
+html body #root .notification-bell-menu .notification-dot::before,
+html body #root .notification-bell-menu .notification-dot::after {
+  display: none !important;
+  content: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+html body #root .notification-bell-menu .notification-popover-actions button.notification-read-button,
+html body #root .notification-bell-menu .notification-popover-actions button.notification-read-button:not(:disabled):not(:hover):not(:focus-visible):not(.active) {
+  background: #4d4c4d !important;
+  background-color: #4d4c4d !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border: 1px solid #4d4c4d !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+html body #root .notification-bell-menu .notification-popover-actions button.notification-read-button:hover,
+html body #root .notification-bell-menu .notification-popover-actions button.notification-read-button:focus-visible,
+html body #root .notification-bell-menu .notification-popover-actions button.notification-read-button:active {
+  background: #3f3e3f !important;
+  background-color: #3f3e3f !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border-color: #3f3e3f !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+html body #root .notification-bell-menu .notification-popover-actions button.notification-delete-button,
+html body #root .notification-bell-menu .notification-popover-actions button.notification-delete-button:not(:disabled):not(:hover):not(:focus-visible):not(.active) {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+  border: 1px solid #fecaca !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+html body #root .notification-bell-menu .notification-popover-actions button.notification-delete-button:hover,
+html body #root .notification-bell-menu .notification-popover-actions button.notification-delete-button:focus-visible,
+html body #root .notification-bell-menu .notification-popover-actions button.notification-delete-button:active {
+  background: #fef2f2 !important;
+  background-color: #fef2f2 !important;
+  color: #b91c1c !important;
+  -webkit-text-fill-color: #b91c1c !important;
+  border-color: #fca5a5 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+html body #root .notification-bell-menu .notification-popover-actions button.notification-delete-button svg {
+  color: #dc2626 !important;
+  stroke: #dc2626 !important;
+}
+
+/* Notification page/list cards: same gray/white style, no blue borders or blue unread styling. */
+html body #root .notification-list .notification-item,
+html body #root .notification-list .notification-item.unread,
+html body #root .mini-card.notification-item,
+html body #root .mini-card.notification-item.unread {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border: 1px solid #e5e7eb !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  color: #4d4c4d !important;
+}
+
+html body #root .notification-list .notification-item.unread,
+html body #root .mini-card.notification-item.unread {
+  background: #f9fafb !important;
+  background-color: #f9fafb !important;
+}
+
+html body #root .notification-list .notification-item b,
+html body #root .notification-list .notification-item p,
+html body #root .notification-list .notification-item .small,
+html body #root .notification-list .notification-item .muted {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #4d4c4d !important;
+  -webkit-text-fill-color: #4d4c4d !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+html body #root .notification-list .notification-actions .notification-read-button,
+html body #root .notification-list .notification-actions .notification-read-button:not(:disabled):not(:hover):not(:focus-visible):not(.active) {
+  background: #4d4c4d !important;
+  background-color: #4d4c4d !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border: 1px solid #4d4c4d !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+html body #root .notification-list .notification-actions .notification-read-button:hover,
+html body #root .notification-list .notification-actions .notification-read-button:focus-visible,
+html body #root .notification-list .notification-actions .notification-read-button:active {
+  background: #3f3e3f !important;
+  background-color: #3f3e3f !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border-color: #3f3e3f !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+html body #root .notification-list .notification-actions .notification-delete-button,
+html body #root .notification-list .notification-actions .notification-delete-button:not(:disabled):not(:hover):not(:focus-visible):not(.active) {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+  border: 1px solid #fecaca !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+html body #root .notification-list .notification-actions .notification-delete-button:hover,
+html body #root .notification-list .notification-actions .notification-delete-button:focus-visible,
+html body #root .notification-list .notification-actions .notification-delete-button:active {
+  background: #fef2f2 !important;
+  background-color: #fef2f2 !important;
+  color: #b91c1c !important;
+  -webkit-text-fill-color: #b91c1c !important;
+  border-color: #fca5a5 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+/* FINAL NOTIFICATION FIX 2: remove all inherited button gray boxes from notification text and close control. */
+html body #root .notification-bell-menu .notification-popover,
+html body #root .notification-bell-menu .notification-dropdown,
+html body #root .notification-bell-menu .notification-panel {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border: 1px solid #e5e7eb !important;
+  outline: 0 !important;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08) !important;
+}
+
+html body #root .notification-bell-menu .notification-popover-head,
+html body #root .notification-bell-menu .notification-popover-head > div,
+html body #root .notification-bell-menu .notification-popover-head b,
+html body #root .notification-bell-menu .notification-popover-head small {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #4d4c4d !important;
+  -webkit-text-fill-color: #4d4c4d !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+
+html body #root .notification-bell-menu .notification-popover .notification-popover-head span.notification-popover-close.notification-close-btn.close-notifications,
+html body #root .notification-bell-menu .notification-popover .notification-popover-head span.notification-popover-close.notification-close-btn.close-notifications:hover,
+html body #root .notification-bell-menu .notification-popover .notification-popover-head span.notification-popover-close.notification-close-btn.close-notifications:focus,
+html body #root .notification-bell-menu .notification-popover .notification-popover-head span.notification-popover-close.notification-close-btn.close-notifications:focus-visible,
+html body #root .notification-bell-menu .notification-popover .notification-popover-head span.notification-popover-close.notification-close-btn.close-notifications:active {
+  all: unset !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+  border-radius: 999px !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: #4d4c4d !important;
+  -webkit-text-fill-color: #4d4c4d !important;
+  border: 1px solid #e5e7eb !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  font-size: 24px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  text-align: center !important;
+  text-decoration: none !important;
+}
+
+html body #root .notification-bell-menu .notification-popover .notification-popover-head span.notification-popover-close.notification-close-btn.close-notifications:hover,
+html body #root .notification-bell-menu .notification-popover .notification-popover-head span.notification-popover-close.notification-close-btn.close-notifications:focus-visible {
+  background: #f3f4f6 !important;
+  background-color: #f3f4f6 !important;
+  color: #4d4c4d !important;
+  -webkit-text-fill-color: #4d4c4d !important;
+  border-color: #d1d5db !important;
+}
+
+html body #root .notification-bell-menu .notification-popover-list,
+html body #root .notification-bell-menu .notification-popover-item,
+html body #root .notification-bell-menu .notification-popover-item.unread,
+html body #root .notification-bell-menu .notification-popover-item:hover,
+html body #root .notification-bell-menu .notification-popover-item.unread:hover,
+html body #root .notification-bell-menu .notification-card,
+html body #root .notification-bell-menu .notification-card.unread,
+html body #root .notification-bell-menu .notification-item,
+html body #root .notification-bell-menu .notification-item.unread {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border-color: #e5e7eb !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  color: #4d4c4d !important;
+  -webkit-text-fill-color: #4d4c4d !important;
+}
+
+html body #root .notification-bell-menu .notification-popover-item.unread,
+html body #root .notification-bell-menu .notification-card.unread,
+html body #root .notification-bell-menu .notification-item.unread {
+  background: #f9fafb !important;
+  background-color: #f9fafb !important;
+}
+
+html body #root .notification-bell-menu .notification-popover .notification-popover-list article.notification-popover-item .notification-popover-content.notification-text-button.notification-content,
+html body #root .notification-bell-menu .notification-popover .notification-popover-list article.notification-popover-item .notification-popover-content.notification-text-button.notification-content:hover,
+html body #root .notification-bell-menu .notification-popover .notification-popover-list article.notification-popover-item .notification-popover-content.notification-text-button.notification-content:focus,
+html body #root .notification-bell-menu .notification-popover .notification-popover-list article.notification-popover-item .notification-popover-content.notification-text-button.notification-content:focus-visible,
+html body #root .notification-bell-menu .notification-popover .notification-popover-list article.notification-popover-item .notification-popover-content.notification-text-button.notification-content:active,
+html body #root .notification-bell-menu .notification-popover .notification-popover-list article.notification-popover-item.unread .notification-popover-content.notification-text-button.notification-content {
+  all: unset !important;
+  box-sizing: border-box !important;
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #4d4c4d !important;
+  -webkit-text-fill-color: #4d4c4d !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  text-align: left !important;
+  text-decoration: none !important;
+  text-shadow: none !important;
+  cursor: pointer !important;
+  transform: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+}
+
+html body #root .notification-bell-menu .notification-popover-content.notification-content *,
+html body #root .notification-bell-menu .notification-popover-content.notification-content .notification-text-stack,
+html body #root .notification-bell-menu .notification-popover-content.notification-content .notification-text,
+html body #root .notification-bell-menu .notification-popover-content.notification-content .notification-body,
+html body #root .notification-bell-menu .notification-popover-content.notification-content .notification-title,
+html body #root .notification-bell-menu .notification-popover-content.notification-content .notification-message,
+html body #root .notification-bell-menu .notification-popover-content.notification-content .notification-time,
+html body #root .notification-bell-menu .notification-text-stack,
+html body #root .notification-bell-menu .notification-text,
+html body #root .notification-bell-menu .notification-body,
+html body #root .notification-bell-menu .notification-title,
+html body #root .notification-bell-menu .notification-message,
+html body #root .notification-bell-menu .notification-time {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #4d4c4d !important;
+  -webkit-text-fill-color: #4d4c4d !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  border-radius: 0 !important;
+  text-shadow: none !important;
+}
+
+html body #root .notification-bell-menu .notification-popover-content.notification-content .notification-text-stack {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+html body #root .notification-bell-menu .notification-popover-content.notification-content .notification-title {
+  display: block !important;
+  font-weight: 950 !important;
+  font-size: 13px !important;
+  line-height: 1.28 !important;
+  word-break: break-word !important;
+}
+
+html body #root .notification-bell-menu .notification-popover-content.notification-content .notification-message {
+  display: block !important;
+  margin-top: 4px !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  word-break: break-word !important;
+}
+
+html body #root .notification-bell-menu .notification-popover-content.notification-content .notification-time {
+  display: block !important;
+  margin-top: 5px !important;
+  font-style: normal !important;
+  font-weight: 800 !important;
+  font-size: 11px !important;
+  line-height: 1.25 !important;
+  color: #6b7280 !important;
+  -webkit-text-fill-color: #6b7280 !important;
+}
+
+html body #root .notification-bell-menu .notification-dot,
+html body #root .notification-bell-menu .notification-dot::before,
+html body #root .notification-bell-menu .notification-dot::after,
+html body #root .notification-bell-menu .notification-popover-item.unread .notification-dot,
+html body #root .notification-bell-menu .notification-popover-item.unread .notification-dot::before,
+html body #root .notification-bell-menu .notification-popover-item.unread .notification-dot::after {
+  display: none !important;
+  content: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+html body #root .notification-bell-menu .notification-popover-actions button.notification-read-button,
+html body #root .notification-bell-menu .notification-popover-actions button.notification-read-button:not(:disabled):not(:hover):not(:focus-visible):not(.active) {
+  background: #4d4c4d !important;
+  background-color: #4d4c4d !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border: 1px solid #4d4c4d !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+html body #root .notification-bell-menu .notification-popover-actions button.notification-read-button *,
+html body #root .notification-bell-menu .notification-popover-actions button.notification-read-button span {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+html body #root .notification-bell-menu .notification-popover-actions button.notification-delete-button,
+html body #root .notification-bell-menu .notification-popover-actions button.notification-delete-button:not(:disabled):not(:hover):not(:focus-visible):not(.active) {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+  border: 1px solid #fecaca !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+/* FINAL CLOSE X FIX: make notification close control plain, smaller, and never gray-filled. */
+html body #root .notification-bell-menu .notification-popover .notification-popover-head .notification-x-plain,
+html body #root .notification-bell-menu .notification-popover .notification-popover-head .notification-x-plain:hover,
+html body #root .notification-bell-menu .notification-popover .notification-popover-head .notification-x-plain:focus,
+html body #root .notification-bell-menu .notification-popover .notification-popover-head .notification-x-plain:focus-visible,
+html body #root .notification-bell-menu .notification-popover .notification-popover-head .notification-x-plain:active,
+html body #root .notification-bell-menu .notification-popover .notification-popover-head .notification-popover-close,
+html body #root .notification-bell-menu .notification-popover .notification-popover-head .notification-popover-close:hover,
+html body #root .notification-bell-menu .notification-popover .notification-popover-head .notification-popover-close:focus,
+html body #root .notification-bell-menu .notification-popover .notification-popover-head .notification-popover-close:focus-visible,
+html body #root .notification-bell-menu .notification-popover .notification-popover-head .notification-popover-close:active {
+  all: unset !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  min-height: 26px !important;
+  max-width: 26px !important;
+  max-height: 26px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #4d4c4d !important;
+  -webkit-text-fill-color: #4d4c4d !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  text-decoration: none !important;
+  text-shadow: none !important;
+  cursor: pointer !important;
+  transform: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+}
+
+html body #root .notification-bell-menu .notification-popover .notification-popover-head .notification-x-plain::before,
+html body #root .notification-bell-menu .notification-popover .notification-popover-head .notification-x-plain::after,
+html body #root .notification-bell-menu .notification-popover .notification-popover-head .notification-popover-close::before,
+html body #root .notification-bell-menu .notification-popover .notification-popover-head .notification-popover-close::after {
+  display: none !important;
+  content: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+
+/* FINAL LOADING UI GRAY FIX
+   Only loading/reloading indicators: spinners, loading text, loading states, and loading bars.
+   Does not change any reload/refetch/Supabase/auth/routing logic. */
+html body #root .button-spinner,
+html body #root .loading-spinner,
+html body #root .spinner,
+html body #root .reload-spinner,
+html body #root .submit-spinner,
+html body #root .submitting-spinner,
+html body #root .saving-spinner,
+html body #root .deleting-spinner,
+html body #root .uploading-spinner {
+  color: #4d4c4d !important;
+  border: 2px solid #d1d5db !important;
+  border-top-color: #4d4c4d !important;
+  border-right-color: transparent !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+html body #root button .button-spinner,
+html body #root button .loading-spinner,
+html body #root .primary .button-spinner,
+html body #root .secondary .button-spinner,
+html body #root .danger .button-spinner,
+html body #root .success .button-spinner,
+html body #root .warning .button-spinner {
+  color: #4d4c4d !important;
+  border-color: #d1d5db !important;
+  border-top-color: #4d4c4d !important;
+  border-right-color: transparent !important;
+}
+
+html body #root .loading-spinner svg,
+html body #root .spinner svg,
+html body #root .reload-spinner svg,
+html body #root .button-spinner svg,
+html body #root .submit-spinner svg,
+html body #root .saving-spinner svg,
+html body #root .deleting-spinner svg,
+html body #root .uploading-spinner svg,
+html body #root svg.loading-spinner,
+html body #root svg.spinner,
+html body #root svg.reload-spinner {
+  color: #4d4c4d !important;
+  stroke: #4d4c4d !important;
+  fill: none !important;
+}
+
+html body #root .loading-state,
+html body #root .loading-block,
+html body #root .reload-state,
+html body #root .refetch-state {
+  color: #4d4c4d !important;
+  background: #f9fafb !important;
+  background-color: #f9fafb !important;
+  background-image: none !important;
+  border-color: #d1d5db !important;
+  box-shadow: none !important;
+}
+
+html body #root .loading-state span,
+html body #root .loading-text,
+html body #root .loading-message,
+html body #root .reload-text,
+html body #root .submitting-text,
+html body #root .saving-text,
+html body #root .deleting-text,
+html body #root .uploading-text {
+  color: #4d4c4d !important;
+  -webkit-text-fill-color: #4d4c4d !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+html body #root .progress-loader,
+html body #root .loading-bar,
+html body #root .reload-bar,
+html body #root .refetch-bar,
+html body #root .saving-bar,
+html body #root .uploading-bar {
+  background: #4d4c4d !important;
+  background-color: #4d4c4d !important;
+  background-image: none !important;
+  color: #4d4c4d !important;
+  box-shadow: none !important;
+}
+
+html body #root .skeleton,
+html body #root .skeleton-line,
+html body #root .loading-skeleton,
+html body #root .shimmer,
+html body #root .skeleton-shimmer {
+  background-color: #f3f4f6 !important;
+  background-image: linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 50%, #f3f4f6 100%) !important;
+  box-shadow: none !important;
+}
+
+/* FINAL OVERRIDE: Project Leader label should be a clean light-gray pill, not a dark rectangle */
+html body #root .project-member-chip.leader small.project-leader-badge,
+html body #root .project-member-chip.leader > small,
+html body #root .project-leader-badge,
+html body #root .leader-badge,
+html body #root .member-role-badge,
+html body #root .badge.project-leader,
+html body #root span.project-leader,
+html body #root span.leader-badge,
+html body #root .project-leader-management-card .pill.blue.project-leader-badge,
+html body #root .supervisor-leader-card .pill.blue.project-leader-badge,
+html body #root .project-member-chip .project-leader-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #f3f4f6 !important;
+  background-color: #f3f4f6 !important;
+  background-image: none !important;
+  color: #4d4c4d !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 999px !important;
+  padding: 0.15rem 0.5rem !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  line-height: 1.1 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  white-space: nowrap !important;
+}
+
+html body #root .project-member-chip.leader small.project-leader-badge:hover,
+html body #root .project-member-chip.leader > small:hover,
+html body #root .project-leader-badge:hover,
+html body #root .leader-badge:hover,
+html body #root .member-role-badge:hover,
+html body #root .badge.project-leader:hover,
+html body #root span.project-leader:hover,
+html body #root span.leader-badge:hover,
+html body #root .project-leader-management-card .pill.blue.project-leader-badge:hover,
+html body #root .supervisor-leader-card .pill.blue.project-leader-badge:hover,
+html body #root .project-member-chip .project-leader-badge:hover {
+  background: #f3f4f6 !important;
+  background-color: #f3f4f6 !important;
+  color: #4d4c4d !important;
+  border-color: #d1d5db !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+
+/* =========================================================
+   ALL ROLES FINAL OVERRIDE: Project Leader label beside member names
+   This is global so Admin, Student, Supervisor, Research Committee,
+   and role-switch dashboards all use the same light-gray badge.
+   Visual-only: no leader/member logic is changed.
+   ========================================================= */
+html body #root .project-member-chip.leader,
+html body #root .project-member-chip:has(.project-leader-badge) {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: #4d4c4d !important;
+  border-color: rgba(209, 213, 219, .95) !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+html body #root .project-member-chip.leader small,
+html body #root .project-member-chip.leader > small,
+html body #root .project-member-chip .project-leader-badge,
+html body #root .project-leader-badge,
+html body #root .leader-badge,
+html body #root .member-role-badge,
+html body #root .badge.project-leader,
+html body #root span.project-leader,
+html body #root span.leader-badge,
+html body #root .pill.project-leader-badge,
+html body #root .pill.blue.project-leader-badge,
+html body #root .pill.slate.project-leader-badge,
+html body #root .supervisor-project-member-row .project-leader-badge,
+html body #root .student-dashboard .project-leader-badge,
+html body #root .supervisor-dashboard .project-leader-badge,
+html body #root .admin-dashboard .project-leader-badge,
+html body #root .research-committee-dashboard .project-leader-badge,
+html body #root .main-dashboard-no-sidebar .project-leader-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  background: #f3f4f6 !important;
+  background-color: #f3f4f6 !important;
+  background-image: none !important;
+  color: #4d4c4d !important;
+  border: 1px solid #d1d5db !important;
+  border-color: #d1d5db !important;
+  border-radius: 999px !important;
+  padding: 0.15rem 0.5rem !important;
+  margin-inline-start: 0.25rem !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  line-height: 1.1 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  white-space: nowrap !important;
+}
+
+html body #root .project-member-chip.leader small:hover,
+html body #root .project-member-chip.leader > small:hover,
+html body #root .project-member-chip .project-leader-badge:hover,
+html body #root .project-leader-badge:hover,
+html body #root .leader-badge:hover,
+html body #root .member-role-badge:hover,
+html body #root .badge.project-leader:hover,
+html body #root span.project-leader:hover,
+html body #root span.leader-badge:hover,
+html body #root .pill.project-leader-badge:hover,
+html body #root .pill.blue.project-leader-badge:hover,
+html body #root .pill.slate.project-leader-badge:hover,
+html body #root .supervisor-project-member-row .project-leader-badge:hover {
+  background: #f3f4f6 !important;
+  background-color: #f3f4f6 !important;
+  background-image: none !important;
+  color: #4d4c4d !important;
+  border-color: #d1d5db !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
 }
