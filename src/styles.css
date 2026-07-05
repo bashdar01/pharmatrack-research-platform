@@ -15034,3 +15034,24 @@ html body #root .selected-student-chip :where(svg, span, b, strong) {
   height: auto !important;
   max-height: none !important;
 }
+
+/* FINAL FIX: remove underline from Research Guidelines top-header download button */
+.top-guidelines-link,
+.top-guidelines-link:link,
+.top-guidelines-link:visited,
+.top-guidelines-link:hover,
+.top-guidelines-link:focus,
+.top-guidelines-link:active,
+.admin-guidelines-link,
+.admin-guidelines-link:link,
+.admin-guidelines-link:visited,
+.admin-guidelines-link:hover,
+.admin-guidelines-link:focus,
+.admin-guidelines-link:active {
+  text-decoration: none !important;
+}
+
+.top-guidelines-link *,
+.admin-guidelines-link * {
+  text-decoration: none !important;
+}
