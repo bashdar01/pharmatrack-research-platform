@@ -14106,3 +14106,175 @@ html body #root .supervisor-project-member-row .project-leader-badge:hover {
   box-shadow: none !important;
   text-shadow: none !important;
 }
+
+/* =========================================================
+   FINAL OVERRIDE: PDF no-records + question attachment cards
+   Visual-only fix. Keeps report/question/upload/download logic unchanged.
+   ========================================================= */
+html body #root .pdf-report .empty-state,
+html body #root .pdf-report .no-records,
+html body #root .pdf-report .no-data,
+html body #root .pdf-report .no-records-message,
+html body #root .pdf-report-template .empty-state,
+html body #root .pdf-report-template .no-records,
+html body #root .pdf-report-template .no-data,
+html body #root .pdf-report-template .no-records-message,
+html body #root .print-report .empty-state,
+html body #root .print-report .no-records,
+html body #root .print-report .no-data,
+html body #root .print-report .no-records-message,
+html body #root .report-section .empty-state,
+html body #root .report-section .no-records,
+html body #root .report-section .no-data,
+html body #root .report-section .no-records-message,
+html body #root .no-records-message {
+  background: #f3f4f6 !important;
+  background-color: #f3f4f6 !important;
+  background-image: none !important;
+  color: #4d4c4d !important;
+  border: 1px dashed #d1d5db !important;
+  border-color: #d1d5db !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  text-shadow: none !important;
+}
+
+html body #root .pdf-report .empty-state *,
+html body #root .pdf-report-template .empty-state *,
+html body #root .print-report .empty-state *,
+html body #root .report-section .empty-state *,
+html body #root .no-records-message * {
+  color: #4d4c4d !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+html body #root .question-attachment-box,
+html body #root .question-attachment-card,
+html body #root .answer-attachment-card,
+html body #root .attachment-card,
+html body #root .uploaded-file-card,
+html body #root .file-attachment,
+html body #root .attachment-preview,
+html body #root .report-attachment:not(.empty),
+html body #root .student-question-attachment,
+html body #root .supervisor-answer-attachment {
+  background: #f3f4f6 !important;
+  background-color: #f3f4f6 !important;
+  background-image: none !important;
+  color: #4d4c4d !important;
+  border: 1px solid #d1d5db !important;
+  border-color: #d1d5db !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  text-shadow: none !important;
+}
+
+html body #root .question-attachment-box .attachment-file-info,
+html body #root .question-attachment-box .attachment-file-info *,
+html body #root .question-attachment-card .attachment-file-info,
+html body #root .answer-attachment-card .attachment-file-info,
+html body #root .attachment-card .attachment-file-info,
+html body #root .uploaded-file-card .attachment-file-info,
+html body #root .file-attachment .attachment-file-info,
+html body #root .attachment-preview .attachment-file-info,
+html body #root .report-attachment > div,
+html body #root .report-attachment > div *,
+html body #root .question-attachment-box b,
+html body #root .question-attachment-box p {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #4d4c4d !important;
+  border-color: #d1d5db !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+html body #root .question-card input[type="file"],
+html body #root .question-form-card input[type="file"],
+html body #root .question-card .file-input,
+html body #root .question-form-card .file-input {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: #4d4c4d !important;
+  border: 1px dashed #d1d5db !important;
+  border-color: #d1d5db !important;
+  box-shadow: none !important;
+  outline-color: #d1d5db !important;
+}
+
+html body #root .download-attachment-btn,
+html body #root .attachment-download-btn,
+html body #root button.download-attachment,
+html body #root a.download-attachment,
+html body #root .question-attachment-box .download-attachment-btn,
+html body #root .question-attachment-box .attachment-download-btn {
+  background: #4d4c4d !important;
+  background-color: #4d4c4d !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border: 1px solid #4d4c4d !important;
+  border-color: #4d4c4d !important;
+  border-radius: 16px !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  text-shadow: none !important;
+}
+
+html body #root .download-attachment-btn *,
+html body #root .attachment-download-btn *,
+html body #root button.download-attachment *,
+html body #root a.download-attachment *,
+html body #root .download-attachment-btn svg,
+html body #root .attachment-download-btn svg,
+html body #root button.download-attachment svg,
+html body #root a.download-attachment svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  fill: none !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html body #root .download-attachment-btn:hover,
+html body #root .download-attachment-btn:focus,
+html body #root .download-attachment-btn:active,
+html body #root .attachment-download-btn:hover,
+html body #root .attachment-download-btn:focus,
+html body #root .attachment-download-btn:active,
+html body #root button.download-attachment:hover,
+html body #root button.download-attachment:focus,
+html body #root button.download-attachment:active,
+html body #root a.download-attachment:hover,
+html body #root a.download-attachment:focus,
+html body #root a.download-attachment:active {
+  background: #3f3e3f !important;
+  background-color: #3f3e3f !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border-color: #3f3e3f !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+html body #root .download-attachment-btn:hover *,
+html body #root .download-attachment-btn:focus *,
+html body #root .download-attachment-btn:active *,
+html body #root .attachment-download-btn:hover *,
+html body #root .attachment-download-btn:focus *,
+html body #root .attachment-download-btn:active *,
+html body #root button.download-attachment:hover *,
+html body #root button.download-attachment:focus *,
+html body #root button.download-attachment:active *,
+html body #root a.download-attachment:hover *,
+html body #root a.download-attachment:focus *,
+html body #root a.download-attachment:active * {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}

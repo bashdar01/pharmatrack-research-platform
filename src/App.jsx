@@ -8319,13 +8319,14 @@ function QuestionStatusBadge({ status }) {
 function QuestionAttachmentBox({ question, type = 'question', onOpenAttachment }) {
   const attachment = getQuestionAttachment(question, type)
   if (!attachment) return null
+  const attachmentTypeClass = type === 'answer' ? 'answer-attachment-card' : 'question-attachment-card'
   return (
-    <div className="question-attachment-box">
-      <div>
+    <div className={`question-attachment-box ${attachmentTypeClass} attachment-card file-attachment uploaded-file-card attachment-preview`}>
+      <div className="attachment-file-info">
         <b>{attachment.file_name || 'Attached file'}</b>
         <p className="muted small">{type === 'answer' ? 'Supervisor answer attachment' : 'Student question attachment'}{formatFileSize(attachment.file_size) ? ` • ${formatFileSize(attachment.file_size)}` : ''}</p>
       </div>
-      <button className="secondary compact-link" type="button" onClick={() => onOpenAttachment?.(question, type)}>
+      <button className="secondary compact-link download-attachment-btn attachment-download-btn download-attachment" type="button" onClick={() => onOpenAttachment?.(question, type)}>
         <Download size={15} /> Download Attachment
       </button>
     </div>
