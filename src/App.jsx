@@ -1941,6 +1941,52 @@ function projectStudentIdentityMatches(project = {}, student = {}) {
   )
 }
 
+function getAcceptedJoinRequestProjectIdsForStudent(data = {}, student = {}) {
+  return (data.groupJoinRequests || [])
+    .filter((request) => requestOwnedByStudent(request, student) && normalizeText(request.status) === 'accepted')
+    .flatMap((request) => [request.requested_group_id, request.group_id, request.project_id, request.research_project_id])
+    .map((value) => String(value || ''))
+    .filter(Boolean)
+}
+
+function studentCanViewProject(data = {}, project = {}, student = {}) {
+  if (!project || !student) return false
+  if (projectStudentIdentityMatches(project, student) || isOwnStudentProject(project, student)) return true
+
+  const membershipProject = getStudentMembershipRecords(data, student)
+    .map((member) => getProjectByMembershipRecord(data, member))
+    .some((item) => item && String(item.id) === String(project.id))
+  if (membershipProject) return true
+
+  const acceptedProjectIds = getAcceptedJoinRequestProjectIdsForStudent(data, student)
+  if (acceptedProjectIds.includes(String(project.id))) return true
+
+  const projectIds = getProjectIdentityValues(project)
+  const membershipRecord = getStudentMembershipRecords(data, student).some((member) => {
+    const memberIds = [member.group_id, member.project_id, member.research_project_id, member.requested_group_id]
+      .map((value) => String(value || ''))
+      .filter(Boolean)
+    if (memberIds.some((id) => projectIds.includes(id))) return true
+    const memberNames = [member.group_name, member.project_name, member.research_group_name, member.requested_group_name].map(normalizeText).filter(Boolean)
+    const projectNames = [project.group_name, project.title, project.project_name, project.research_group_name].map(normalizeText).filter(Boolean)
+    return memberNames.some((name) => projectNames.includes(name))
+  })
+  return Boolean(membershipRecord)
+}
+
+function getStudentVisibleProjects(data = {}, studentUser = {}) {
+  const profile = findProfileForUser(data, studentUser) || studentUser || {}
+  const seen = new Set()
+  return (data.projects || [])
+    .filter((project) => isApprovedResearchProject(project) && studentCanViewProject(data, project, profile))
+    .filter((project) => {
+      const key = String(project.id || `${project.group_name || ''}-${project.title || ''}`)
+      if (!key || seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+}
+
 function getStudentCurrentResearchGroup(data = {}, studentUser = {}) {
   const profile = findProfileForUser(data, studentUser) || studentUser || {}
   const activeMembershipProject = getStudentMembershipRecords(data, profile)
@@ -1957,13 +2003,11 @@ function getStudentCurrentResearchGroup(data = {}, studentUser = {}) {
     const project = (data.projects || []).find((item) => normalizeText(item.group_name) === normalizeText(groupName))
     return project || { id: null, group_name: groupName }
   }
-  const memberProject = (data.projects || []).find((project) => projectStudentIdentityMatches(project, profile))
+  const memberProject = (data.projects || []).find((project) => studentCanViewProject(data, project, profile))
   if (memberProject) return memberProject
-  const acceptedRequest = (data.groupJoinRequests || []).find((request) => requestOwnedByStudent(request, profile) && request.status === 'Accepted')
-  if (acceptedRequest) {
-    const project = (data.projects || []).find((item) => String(item.id) === String(acceptedRequest.requested_group_id))
-    if (project) return project
-  }
+  const acceptedProjectIds = getAcceptedJoinRequestProjectIdsForStudent(data, profile)
+  const acceptedProject = (data.projects || []).find((item) => acceptedProjectIds.includes(String(item.id)))
+  if (acceptedProject) return acceptedProject
   return null
 }
 
@@ -2460,6 +2504,42 @@ function ResetPasswordPage({ onUpdatePassword, onBackToLogin, message, loading, 
   )
 }
 
+function mergeRowsById(primary = [], extra = []) {
+  const rows = [...(primary || [])]
+  const seen = new Set(rows.map((item) => String(item?.id || '')).filter(Boolean))
+  ;(extra || []).forEach((item) => {
+    const key = String(item?.id || '')
+    if (key && seen.has(key)) return
+    if (key) seen.add(key)
+    rows.push(item)
+  })
+  return rows
+}
+
+async function loadStudentMemberDashboardViaRpc(user = {}) {
+  if (!isSupabaseConfigured || !user || normalizeText(user.role) !== 'student') {
+    return { projects: [], reports: [], uploadedFiles: [], deadlines: [], groupMembers: [] }
+  }
+  try {
+    const { data: result, error } = await supabase.rpc('get_student_project_member_dashboard')
+    if (error) {
+      console.warn('Student member dashboard RPC not available:', error.message || error)
+      return { projects: [], reports: [], uploadedFiles: [], deadlines: [], groupMembers: [] }
+    }
+    return {
+      projects: Array.isArray(result?.projects) ? result.projects : [],
+      reports: Array.isArray(result?.reports) ? result.reports : [],
+      uploadedFiles: Array.isArray(result?.uploadedFiles) ? result.uploadedFiles : [],
+      deadlines: Array.isArray(result?.deadlines) ? result.deadlines : [],
+      groupMembers: Array.isArray(result?.groupMembers) ? result.groupMembers : [],
+    }
+  } catch (error) {
+    console.warn('Student member dashboard RPC failed:', error.message || error)
+    return { projects: [], reports: [], uploadedFiles: [], deadlines: [], groupMembers: [] }
+  }
+}
+
+
 export default function App() {
   const [role, setRole] = useState('student')
   const [tab, setTab] = useState('dashboard')
@@ -2612,16 +2692,21 @@ export default function App() {
         groupMembersData = []
       }
 
-      const reportsData = reports.data || []
-      const projectsData = enrichProjectsWithGroupMembers(projects.data || [], profiles.data || [], groupMembersData).map((project) => ({
-        ...project,
-        progress: getProjectProgress(project, reportsData),
-      }))
-
       const freshProfile = (profiles.data || []).find((profile) =>
         (!!userOverride?.id && String(profile.id) === String(userOverride.id)) ||
         (!!userOverride?.email && normalizeText(profile.email) === normalizeText(userOverride.email))
       )
+      const memberDashboardData = await loadStudentMemberDashboardViaRpc(freshProfile || userOverride)
+      groupMembersData = mergeRowsById(groupMembersData, memberDashboardData.groupMembers)
+      const reportsData = mergeRowsById(reports.data || [], memberDashboardData.reports)
+      const uploadedFilesData = mergeRowsById(uploadedFiles.data || [], memberDashboardData.uploadedFiles)
+      const deadlinesData = mergeRowsById(deadlines.data || [], memberDashboardData.deadlines)
+      const rawProjectsData = mergeRowsById(projects.data || [], memberDashboardData.projects)
+      const projectsData = enrichProjectsWithGroupMembers(rawProjectsData, profiles.data || [], groupMembersData).map((project) => ({
+        ...project,
+        progress: getProjectProgress(project, reportsData),
+      }))
+
       if (freshProfile) {
         const mergedUser = { ...userOverride, ...freshProfile }
         setCurrentUser(mergedUser)
@@ -2633,8 +2718,8 @@ export default function App() {
         profiles: profiles.data || [],
         projects: projectsData,
         reports: reportsData,
-        uploadedFiles: uploadedFiles.data || [],
-        deadlines: deadlines.data || [],
+        uploadedFiles: uploadedFilesData,
+        deadlines: deadlinesData,
         notifications: notifications.data || [],
         evaluations: evaluations.data || [],
         auditLogs: auditLogs.data || [],
@@ -7890,8 +7975,9 @@ function StudentDashboard({ data, projects, currentUser, createWeeklyReport, dat
   const studentProfile = findProfileForUser(data, currentUser) || currentUser
   const studentProjectContext = getStudentProjectContext(data, studentProfile)
   const joinedProject = studentProjectContext.project
+  const visibleMemberProjects = getStudentVisibleProjects(data, studentProfile)
   const ownProjects = projects.filter((p) => isOwnStudentProject(p, studentProfile) && isApprovedResearchProject(p))
-  const selectedProject = joinedProject || ownProjects[0] || data.projects.find((p) => isOwnStudentProject(p, studentProfile) && isApprovedResearchProject(p))
+  const selectedProject = joinedProject || visibleMemberProjects[0] || ownProjects[0] || data.projects.find((p) => studentCanViewProject(data, p, studentProfile) && isApprovedResearchProject(p))
   const selectedProjectContext = selectedProject ? getProjectContext(data, selectedProject) : studentProjectContext
   const reports = selectedProject ? getReportsForProject(data, selectedProject) : []
   const groupMemberProfiles = selectedProject ? getProjectMembersWithoutSupervisor(data, selectedProject, data.reports) : []
