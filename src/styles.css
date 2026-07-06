@@ -15196,3 +15196,58 @@ html body #root .project-decision-cell .pill {
   box-shadow: none !important;
   white-space: nowrap !important;
 }
+
+/* FINAL PATCH: Make inactive Research Committee Accept/Revision text visible on dark buttons */
+html body #root .committee-decision-actions .committee-accept-btn,
+html body #root .committee-decision-actions button.committee-accept-btn,
+html body #root .committee-decision-actions button.accept-btn.committee-accept-btn,
+html body #root .committee-decision-actions .committee-revision-btn,
+html body #root .committee-decision-actions button.committee-revision-btn,
+html body #root .committee-decision-actions button.revision-btn.committee-revision-btn {
+  background: #4d4c4d !important;
+  background-color: #4d4c4d !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border: 1px solid #4d4c4d !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+html body #root .committee-decision-actions .committee-accept-btn :where(svg, span, b, strong),
+html body #root .committee-decision-actions button.committee-accept-btn :where(svg, span, b, strong),
+html body #root .committee-decision-actions button.accept-btn.committee-accept-btn :where(svg, span, b, strong),
+html body #root .committee-decision-actions .committee-revision-btn :where(svg, span, b, strong),
+html body #root .committee-decision-actions button.committee-revision-btn :where(svg, span, b, strong),
+html body #root .committee-decision-actions button.revision-btn.committee-revision-btn :where(svg, span, b, strong) {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  stroke: #ffffff !important;
+  fill: none !important;
+  text-shadow: none !important;
+}
+
+html body #root .committee-decision-actions .committee-accept-btn:hover:not(:disabled),
+html body #root .committee-decision-actions button.committee-accept-btn:hover:not(:disabled),
+html body #root .committee-decision-actions button.accept-btn.committee-accept-btn:hover:not(:disabled),
+html body #root .committee-decision-actions .committee-revision-btn:hover:not(:disabled),
+html body #root .committee-decision-actions button.committee-revision-btn:hover:not(:disabled),
+html body #root .committee-decision-actions button.revision-btn.committee-revision-btn:hover:not(:disabled) {
+  background: #3f3e3f !important;
+  background-color: #3f3e3f !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border-color: #3f3e3f !important;
+}
+
+html body #root .committee-decision-actions .committee-accept-btn:hover:not(:disabled) :where(svg, span, b, strong),
+html body #root .committee-decision-actions button.committee-accept-btn:hover:not(:disabled) :where(svg, span, b, strong),
+html body #root .committee-decision-actions button.accept-btn.committee-accept-btn:hover:not(:disabled) :where(svg, span, b, strong),
+html body #root .committee-decision-actions .committee-revision-btn:hover:not(:disabled) :where(svg, span, b, strong),
+html body #root .committee-decision-actions button.committee-revision-btn:hover:not(:disabled) :where(svg, span, b, strong),
+html body #root .committee-decision-actions button.revision-btn.committee-revision-btn:hover:not(:disabled) :where(svg, span, b, strong) {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  stroke: #ffffff !important;
+}
