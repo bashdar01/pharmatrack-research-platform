@@ -929,12 +929,19 @@ function getProjectStudents(project) {
   ])
 }
 
+
+function isActiveProjectMembershipStatus(status) {
+  const value = normalizeText(status || 'active')
+  if (!value) return true
+  return ['active', 'accepted', 'approved', 'member', 'project_leader', 'research_project_leader'].includes(value)
+}
+
 function getResearchGroupMemberRecords(groupMembers = [], project = {}) {
   if (!project) return []
   const projectIds = [project.id, project.group_id, project.project_id, project.research_project_id].map((value) => String(value || '')).filter(Boolean)
   const projectNames = [project.group_name, project.title].map(normalizeText).filter(Boolean)
   return (groupMembers || []).filter((member) => {
-    if (member.status && normalizeText(member.status) !== 'active') return false
+    if (!isActiveProjectMembershipStatus(member.status || member.membership_status)) return false
     const memberIds = [member.group_id, member.project_id, member.research_project_id, member.requested_group_id].map((value) => String(value || '')).filter(Boolean)
     const memberNames = [member.group_name, member.project_name, member.research_group_name].map(normalizeText).filter(Boolean)
     return memberIds.some((id) => projectIds.includes(id)) || memberNames.some((name) => projectNames.includes(name))
@@ -997,7 +1004,7 @@ function memberRecordMatchesStudent(member = {}, student = {}) {
 
 function getStudentMembershipRecords(data = {}, student = {}) {
   return (data.groupMembers || []).filter((member) => {
-    if (member.status && normalizeText(member.status) !== 'active') return false
+    if (!isActiveProjectMembershipStatus(member.status || member.membership_status)) return false
     return memberRecordMatchesStudent(member, student)
   })
 }
@@ -1732,7 +1739,7 @@ function getProjectLeaderProfile(data = {}, project = {}) {
   if (fromFields?.role === 'student') return { ...fromFields, memberRole: 'project_leader', roleStatus: 'Project Leader' }
 
   const leaderRecord = getResearchGroupMemberRecords(data.groupMembers || [], project).find((member) => {
-    if (member.status && normalizeText(member.status) !== 'active') return false
+    if (!isActiveProjectMembershipStatus(member.status || member.membership_status)) return false
     const role = normalizeText(member.member_role || member.project_role || member.role)
     return role === 'project_leader' || role === 'research_project_leader'
   })
@@ -7896,6 +7903,77 @@ function StudentDashboard({ data, projects, currentUser, createWeeklyReport, dat
 
   if (dataLoading) return <LoadingBlock text="Loading student dashboard..." />
 
+  const currentStudentIsProjectMember = Boolean(selectedProject) && (
+    groupMemberProfiles.some((member) => projectMemberMatchesUser(member, studentProfile)) ||
+    isOwnStudentProject(selectedProject, studentProfile)
+  )
+  const shouldPrioritizeFeedbackForMember = Boolean(
+    selectedProject &&
+    currentStudentIsProjectMember &&
+    projectLeader &&
+    !isProjectLeader
+  )
+
+  const weeklyReportCard = (
+    <div className={`card student-weekly-report-card ${shouldPrioritizeFeedbackForMember ? 'student-weekly-report-card-compact locked-weekly-report-secondary' : ''}`}>
+      <SectionHeader icon={MessageSquareText} title="Submit Weekly Report" subtitle={shouldPrioritizeFeedbackForMember ? 'Submission locked for project members' : 'Submit progress and upload evidence file'} />
+      {selectedProject && canSubmitWeeklyReport ? (
+        <>
+          <div className="form-grid weekly-report-form-grid">
+            <TextArea label="Work completed this week" value={reportForm.completed_work} onChange={(v) => setReportForm({ ...reportForm, completed_work: v })} />
+            <TextArea label="Problems or challenges" value={reportForm.challenges} onChange={(v) => setReportForm({ ...reportForm, challenges: v })} />
+            <TextArea label="Next week plan" value={reportForm.next_week_plan} onChange={(v) => setReportForm({ ...reportForm, next_week_plan: v })} />
+            <label className="field weekly-upload-field">
+              <span>Upload file</span>
+              <input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+            </label>
+            <label className="field weekly-attendance-field">
+              <span>Attendance</span>
+              <select value={reportForm.attendance} onChange={(e) => setReportForm({ ...reportForm, attendance: e.target.value })}>
+                <option>Attended</option><option>Online</option><option>Absent</option><option>Not scheduled</option>
+              </select>
+            </label>
+          </div>
+          <div className="weekly-report-actions">
+            <button className="primary min-button-width weekly-submit-button" type="button" disabled={submittingReport} onClick={handleSubmitWeeklyReport}><ButtonContent loading={submittingReport} loadingText="Submitting..." icon={Upload}>Submit Weekly Report</ButtonContent></button>
+          </div>
+        </>
+      ) : selectedProject ? (
+        <EmptyState title="Weekly reports locked" text={weeklyReportPermission.reason || 'Only the project leader can submit weekly reports for this project.'} icon={Lock} />
+      ) : <EmptyState title="Weekly reports locked" text="You must join or be assigned to a research project before submitting weekly reports." icon={Lock} />}
+    </div>
+  )
+
+  const feedbackCard = (
+    <div className={`card supervisor-feedback-card-fixed student-feedback-aligned-card ${shouldPrioritizeFeedbackForMember ? 'student-feedback-priority-card member-feedback-primary-card' : ''}`}>
+      <SectionHeader icon={MessageSquareText} title="Supervisor Feedback" subtitle={shouldPrioritizeFeedbackForMember ? 'Project weekly reports and supervisor review' : 'Latest comments'} />
+      {reports.length ? (
+        <div className="feedback-form-scroll-container student-supervisor-feedback-container">
+          {reports.map((r) => {
+            const attachment = getReportAttachment(r, data.uploadedFiles)
+            return (
+              <div className="mini-card project-member-report-feedback-card" key={r.id}>
+                <div className="split">
+                  <b>Week {r.week_number}</b>
+                  <div className="inline-actions">
+                    <Pill tone={r.status === 'Accepted' ? 'green' : r.status === 'Revision Required' ? 'red' : 'amber'}>{r.status}</Pill>
+                    <EmailReportButton loading={Boolean(emailSendingReports[r.id])} onSend={() => sendWeeklyReportToMyEmail(r.id)} />
+                  </div>
+                </div>
+                <div className="report-member-summary">
+                  <p><b>Submitted by:</b> {getReportStudentLabel(r, data)}</p>
+                  {r.submitted_at && <p><b>Submitted:</b> {new Date(r.submitted_at).toLocaleString()}</p>}
+                </div>
+                <div className="supervisor-feedback-scroll-box student-feedback-box"><p>{r.supervisor_feedback || 'Waiting for supervisor review.'}</p></div>
+                <ReportAttachmentBox attachment={attachment} />
+              </div>
+            )
+          })}
+        </div>
+      ) : <EmptyState title="No feedback yet" text="Feedback will appear after your supervisor reviews a weekly report." icon={MessageSquareText} />}
+    </div>
+  )
+
   return (
     <div className="stack student-dashboard-layout">
       <div className="grid two-one student-dashboard-row student-dashboard-top-row">
@@ -7926,58 +8004,18 @@ function StudentDashboard({ data, projects, currentUser, createWeeklyReport, dat
         </div>
       </div>
 
-      <div className="grid two-one student-dashboard-row student-report-feedback-row">
-        <div className="card student-weekly-report-card">
-          <SectionHeader icon={MessageSquareText} title="Submit Weekly Report" subtitle="Submit progress and upload evidence file" />
-          {selectedProject && canSubmitWeeklyReport ? (
-            <>
-              <div className="form-grid weekly-report-form-grid">
-                <TextArea label="Work completed this week" value={reportForm.completed_work} onChange={(v) => setReportForm({ ...reportForm, completed_work: v })} />
-                <TextArea label="Problems or challenges" value={reportForm.challenges} onChange={(v) => setReportForm({ ...reportForm, challenges: v })} />
-                <TextArea label="Next week plan" value={reportForm.next_week_plan} onChange={(v) => setReportForm({ ...reportForm, next_week_plan: v })} />
-                <label className="field weekly-upload-field">
-                  <span>Upload file</span>
-                  <input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-                </label>
-                <label className="field weekly-attendance-field">
-                  <span>Attendance</span>
-                  <select value={reportForm.attendance} onChange={(e) => setReportForm({ ...reportForm, attendance: e.target.value })}>
-                    <option>Attended</option><option>Online</option><option>Absent</option><option>Not scheduled</option>
-                  </select>
-                </label>
-              </div>
-              <div className="weekly-report-actions">
-                <button className="primary min-button-width weekly-submit-button" type="button" disabled={submittingReport} onClick={handleSubmitWeeklyReport}><ButtonContent loading={submittingReport} loadingText="Submitting..." icon={Upload}>Submit Weekly Report</ButtonContent></button>
-              </div>
-            </>
-          ) : selectedProject ? (
-            <EmptyState title="Weekly reports locked" text={weeklyReportPermission.reason || 'Only the project leader can submit weekly reports for this project.'} icon={Lock} />
-          ) : <EmptyState title="Weekly reports locked" text="You must join or be assigned to a research project before submitting weekly reports." icon={Lock} />}
-        </div>
-
-        <div className="card supervisor-feedback-card-fixed student-feedback-aligned-card">
-          <SectionHeader icon={MessageSquareText} title="Supervisor Feedback" subtitle="Latest comments" />
-          {reports.length ? (
-            <div className="feedback-form-scroll-container student-supervisor-feedback-container">
-              {reports.map((r) => {
-                const attachment = getReportAttachment(r, data.uploadedFiles)
-                return (
-                  <div className="mini-card" key={r.id}>
-                    <div className="split">
-                      <b>Week {r.week_number}</b>
-                      <div className="inline-actions">
-                        <Pill tone={r.status === 'Accepted' ? 'green' : r.status === 'Revision Required' ? 'red' : 'amber'}>{r.status}</Pill>
-                        <EmailReportButton loading={Boolean(emailSendingReports[r.id])} onSend={() => sendWeeklyReportToMyEmail(r.id)} />
-                      </div>
-                    </div>
-                    <div className="supervisor-feedback-scroll-box student-feedback-box"><p>{r.supervisor_feedback || 'Waiting for supervisor review.'}</p></div>
-                    <ReportAttachmentBox attachment={attachment} />
-                  </div>
-                )
-              })}
-            </div>
-          ) : <EmptyState title="No feedback yet" text="Feedback will appear after your supervisor reviews a weekly report." icon={MessageSquareText} />}
-        </div>
+      <div className={`grid two-one student-dashboard-row student-report-feedback-row ${shouldPrioritizeFeedbackForMember ? 'student-report-feedback-row-swapped member-feedback-layout' : ''}`}>
+        {shouldPrioritizeFeedbackForMember ? (
+          <>
+            {feedbackCard}
+            {weeklyReportCard}
+          </>
+        ) : (
+          <>
+            {weeklyReportCard}
+            {feedbackCard}
+          </>
+        )}
       </div>
 
     </div>
