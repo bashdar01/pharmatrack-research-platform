@@ -120,10 +120,9 @@ function clampProgress(value) {
   return Math.max(0, Math.min(100, Number(numeric.toFixed(2))))
 }
 
-function calculateProjectProgressFromReports(reports, projectId) {
-  const acceptedCount = (reports || []).filter(
-    (report) => String(report.project_id) === String(projectId) && report.status === 'Accepted'
-  ).length
+function calculateProjectProgressFromReports(reports, projectOrId) {
+  const project = typeof projectOrId === 'object' ? projectOrId : { id: projectOrId }
+  const acceptedCount = getReportsForProject(reports || [], project).filter((report) => report.status === 'Accepted').length
   return clampProgress(acceptedCount * REPORT_PROGRESS_INCREMENT)
 }
 
@@ -132,9 +131,48 @@ function formatProgress(value) {
   return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(2)
 }
 
+
+function getProjectIdentityValues(project = {}) {
+  return [
+    project.id,
+    project.project_id,
+    project.research_project_id,
+    project.group_id,
+    project.research_group_id,
+    project.requested_group_id,
+  ].map((value) => String(value || '')).filter(Boolean)
+}
+
+function reportLinkedToProject(report = {}, project = {}) {
+  if (!report || !project) return false
+  const projectIds = getProjectIdentityValues(project)
+  const reportIds = [
+    report.project_id,
+    report.research_project_id,
+    report.group_id,
+    report.research_group_id,
+    report.requested_group_id,
+  ].map((value) => String(value || '')).filter(Boolean)
+  if (projectIds.length && reportIds.some((id) => projectIds.includes(id))) return true
+
+  const projectNames = [project.group_name, project.title, project.project_name, project.research_group_name]
+    .map(normalizeText)
+    .filter(Boolean)
+  const reportNames = [report.group_name, report.project_name, report.research_group_name, report.project_title, report.title]
+    .map(normalizeText)
+    .filter(Boolean)
+  return projectNames.length > 0 && reportNames.some((name) => projectNames.includes(name))
+}
+
+function getReportsForProject(dataOrReports = {}, project = {}) {
+  const reports = Array.isArray(dataOrReports) ? dataOrReports : (dataOrReports.reports || [])
+  if (!project) return []
+  return (reports || []).filter((report) => reportLinkedToProject(report, project))
+}
+
 function getProjectProgress(project, reports = []) {
   if (!project) return 0
-  return calculateProjectProgressFromReports(reports, project.id)
+  return calculateProjectProgressFromReports(reports, project)
 }
 
 function readFileAsDataUrl(file) {
@@ -929,19 +967,12 @@ function getProjectStudents(project) {
   ])
 }
 
-
-function isActiveProjectMembershipStatus(status) {
-  const value = normalizeText(status || 'active')
-  if (!value) return true
-  return ['active', 'accepted', 'approved', 'member', 'project_leader', 'research_project_leader'].includes(value)
-}
-
 function getResearchGroupMemberRecords(groupMembers = [], project = {}) {
   if (!project) return []
   const projectIds = [project.id, project.group_id, project.project_id, project.research_project_id].map((value) => String(value || '')).filter(Boolean)
   const projectNames = [project.group_name, project.title].map(normalizeText).filter(Boolean)
   return (groupMembers || []).filter((member) => {
-    if (!isActiveProjectMembershipStatus(member.status || member.membership_status)) return false
+    if (member.status && normalizeText(member.status) !== 'active') return false
     const memberIds = [member.group_id, member.project_id, member.research_project_id, member.requested_group_id].map((value) => String(value || '')).filter(Boolean)
     const memberNames = [member.group_name, member.project_name, member.research_group_name].map(normalizeText).filter(Boolean)
     return memberIds.some((id) => projectIds.includes(id)) || memberNames.some((name) => projectNames.includes(name))
@@ -1004,7 +1035,7 @@ function memberRecordMatchesStudent(member = {}, student = {}) {
 
 function getStudentMembershipRecords(data = {}, student = {}) {
   return (data.groupMembers || []).filter((member) => {
-    if (!isActiveProjectMembershipStatus(member.status || member.membership_status)) return false
+    if (member.status && normalizeText(member.status) !== 'active') return false
     return memberRecordMatchesStudent(member, student)
   })
 }
@@ -1024,7 +1055,7 @@ function getProjectByMembershipRecord(data = {}, member = {}) {
 
 function getProjectContext(data = {}, project = null) {
   const group = project ? ((data.projects || []).find((item) => String(item.id) === String(project.id)) || project) : null
-  const reports = group ? (data.reports || []).filter((report) => String(report.project_id) === String(group.id)) : []
+  const reports = group ? getReportsForProject(data, group) : []
   const members = group ? getProjectMemberProfiles(data, group, reports) : []
   const supervisor = group ? findSupervisorProfileForProject(data, group) : null
   const deadlines = group ? getDeadlinesForProject(data.deadlines || [], group, members) : []
@@ -1096,7 +1127,7 @@ function getProjectMemberProfiles(data = {}, project = {}, reports = []) {
     })
   })
 
-  ;(reports || []).filter((report) => String(report.project_id) === String(project.id)).forEach((report) => {
+  getReportsForProject(reports || [], project).forEach((report) => {
     const student = findStudentProfileForReport(data, report)
     addMember(student || {}, {
       id: report.student_id || report.submitted_by_id || report.user_id || report.created_by || null,
@@ -1211,15 +1242,9 @@ function getVisibleProjects(projects, role, user, data = null) {
 }
 
 function getVisibleReports(reports, visibleProjects, role, user) {
-  const projectIds = new Set(visibleProjects.map((project) => String(project.id)))
   if (role === 'admin' || role === 'committee') return reports
-  if (role === 'student') {
-    // Student project members can view weekly reports for their joined/assigned project,
-    // even though only the project leader can submit new reports.
-    return reports.filter((report) => projectIds.has(String(report.project_id)))
-  }
-  if (role === 'supervisor') {
-    return reports.filter((report) => projectIds.has(String(report.project_id)))
+  if (role === 'student' || role === 'supervisor') {
+    return (reports || []).filter((report) => (visibleProjects || []).some((project) => reportLinkedToProject(report, project)))
   }
   return []
 }
@@ -1689,9 +1714,8 @@ function supervisorCanAccessReport(data, report, supervisorUser) {
 }
 
 function getSupervisorAllowedReports(data, assignedProjects = [], supervisorUser) {
-  const assignedProjectMap = new Map((assignedProjects || []).map((project) => [String(project.id), project]))
   return (data.reports || []).filter((report) => {
-    const project = assignedProjectMap.get(String(report.project_id))
+    const project = (assignedProjects || []).find((item) => reportLinkedToProject(report, item))
     if (!project || !isAssignedSupervisorProject(project, supervisorUser)) return false
     const assignedStudents = getAssignedStudentsForProject(data, project)
     return reportMatchesAssignedStudent(report, assignedStudents)
@@ -1739,7 +1763,7 @@ function getProjectLeaderProfile(data = {}, project = {}) {
   if (fromFields?.role === 'student') return { ...fromFields, memberRole: 'project_leader', roleStatus: 'Project Leader' }
 
   const leaderRecord = getResearchGroupMemberRecords(data.groupMembers || [], project).find((member) => {
-    if (!isActiveProjectMembershipStatus(member.status || member.membership_status)) return false
+    if (member.status && normalizeText(member.status) !== 'active') return false
     const role = normalizeText(member.member_role || member.project_role || member.role)
     return role === 'project_leader' || role === 'research_project_leader'
   })
@@ -7869,13 +7893,13 @@ function StudentDashboard({ data, projects, currentUser, createWeeklyReport, dat
   const ownProjects = projects.filter((p) => isOwnStudentProject(p, studentProfile) && isApprovedResearchProject(p))
   const selectedProject = joinedProject || ownProjects[0] || data.projects.find((p) => isOwnStudentProject(p, studentProfile) && isApprovedResearchProject(p))
   const selectedProjectContext = selectedProject ? getProjectContext(data, selectedProject) : studentProjectContext
-  const reports = data.reports.filter((r) => String(r.project_id) === String(selectedProject?.id))
+  const reports = selectedProject ? getReportsForProject(data, selectedProject) : []
   const groupMemberProfiles = selectedProject ? getProjectMembersWithoutSupervisor(data, selectedProject, data.reports) : []
   const projectLeader = selectedProject ? getProjectLeaderProfile(data, selectedProject) : null
   const isProjectLeader = selectedProject ? isStudentProjectLeader(data, selectedProject, currentUser) : false
   const weeklyReportPermission = selectedProject ? getWeeklyReportSubmissionPermission(data, selectedProject, currentUser) : { canSubmit: false, reason: 'You must join or be assigned to a research project before submitting weekly reports.' }
   const canSubmitWeeklyReport = Boolean(weeklyReportPermission.canSubmit)
-  const projectProgress = selectedProjectContext.progress || 0
+  const projectProgress = selectedProject ? getProjectProgress(selectedProject, data.reports || []) : (selectedProjectContext.progress || 0)
   const projectDeadlines = selectedProject ? getDeadlinesForProject(data.deadlines || [], selectedProject, groupMemberProfiles) : []
   const [reportForm, setReportForm] = useState({ completed_work: '', challenges: '', next_week_plan: '', attendance: 'Attended' })
   const [file, setFile] = useState(null)

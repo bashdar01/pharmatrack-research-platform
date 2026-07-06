@@ -15252,72 +15252,68 @@ html body #root .committee-decision-actions button.revision-btn.committee-revisi
   stroke: #ffffff !important;
 }
 
-/* Project member weekly report / feedback layout fix */
-.student-report-feedback-row.member-feedback-layout {
-  align-items: stretch;
+/* Project member report/feedback visibility layout fix */
+.member-feedback-layout {
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.8fr) !important;
+  align-items: start !important;
 }
 
-.student-feedback-priority-card,
 .member-feedback-primary-card {
-  min-height: 620px !important;
-  height: 620px !important;
-  max-height: 620px !important;
+  min-height: 420px !important;
+  background: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  box-shadow: none !important;
 }
 
-.student-feedback-priority-card .student-supervisor-feedback-container,
-.member-feedback-primary-card .student-supervisor-feedback-container {
-  min-height: 0 !important;
-  height: auto !important;
-  max-height: none !important;
-  flex: 1 1 auto !important;
-  overflow-y: auto !important;
-}
-
-.student-weekly-report-card-compact,
 .locked-weekly-report-secondary {
-  min-height: 260px !important;
-  height: auto !important;
-  max-height: 360px !important;
-  overflow: visible !important;
+  min-height: auto !important;
+  padding-bottom: 1rem !important;
 }
 
-.student-weekly-report-card-compact .empty-state,
-.locked-weekly-report-secondary .empty-state {
-  min-height: 150px !important;
+.locked-weekly-report-secondary .empty-state,
+.locked-weekly-report-secondary .empty-box {
+  min-height: 120px !important;
   padding: 1rem !important;
-  border: 1px dashed #d1d5db !important;
   background: #f9fafb !important;
+  border: 1px solid #d1d5db !important;
   color: #4d4c4d !important;
 }
 
 .project-member-report-feedback-card {
   background: #ffffff !important;
   border: 1px solid #d1d5db !important;
+  border-radius: 16px !important;
   color: #4d4c4d !important;
   box-shadow: none !important;
 }
 
 .report-member-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 1rem;
-  margin: 0.55rem 0 0.4rem;
-  color: #4d4c4d;
+  margin: .55rem 0 .75rem !important;
+  display: grid !important;
+  gap: .2rem !important;
+  color: #4d4c4d !important;
 }
 
 .report-member-summary p {
-  margin: 0;
-  font-size: 0.86rem;
-  color: #4d4c4d;
+  margin: 0 !important;
+  color: #4d4c4d !important;
+  font-size: .92rem !important;
 }
 
-@media (max-width: 900px) {
-  .student-feedback-priority-card,
-  .member-feedback-primary-card,
-  .student-weekly-report-card-compact,
-  .locked-weekly-report-secondary {
-    height: auto !important;
-    max-height: none !important;
-    min-height: 0 !important;
+.member-feedback-primary-card .student-supervisor-feedback-container {
+  max-height: 620px !important;
+}
+
+.member-feedback-primary-card .student-feedback-box {
+  min-height: 130px !important;
+  background: #f9fafb !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 14px !important;
+  padding: .9rem !important;
+}
+
+@media (max-width: 980px) {
+  .member-feedback-layout {
+    grid-template-columns: 1fr !important;
   }
 }
