@@ -10284,10 +10284,10 @@ function ProjectDecisionTable({ projects, updateProject, data = emptyData, repor
               </div>
             ) : (
               <div className="project-decision-status">
-                <div className="inline-actions decision-actions">
-                  <button className="accept-btn approve-btn decision-btn min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'Approved')}><ButtonContent loading={decisionLoading === approvedKey} loadingText="Accepting..." icon={CheckCircle2}>Accept</ButtonContent></button>
-                  <button className="revision-btn decision-btn min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'Revision Required')}><ButtonContent loading={decisionLoading === reviseKey} loadingText="Requesting..." icon={RefreshCw}>Revision</ButtonContent></button>
-                  <button className="reject-btn danger-btn min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'Rejected')}><ButtonContent loading={decisionLoading === rejectKey} loadingText="Rejecting..." icon={XCircle}>Reject</ButtonContent></button>
+                <div className="inline-actions decision-actions committee-decision-actions">
+                  <button className="committee-decision-btn committee-accept-btn accept-btn approve-btn decision-btn min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'Approved')}><ButtonContent loading={decisionLoading === approvedKey} loadingText="Accepting..." icon={CheckCircle2}>Accept</ButtonContent></button>
+                  <button className="committee-decision-btn committee-revision-btn revision-btn decision-btn min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'Revision Required')}><ButtonContent loading={decisionLoading === reviseKey} loadingText="Requesting..." icon={RefreshCw}>Revision</ButtonContent></button>
+                  <button className="committee-decision-btn committee-reject-btn reject-btn danger-btn min-button-width" disabled={Boolean(decisionLoading)} onClick={() => runDecision(p.id, 'Rejected')}><ButtonContent loading={decisionLoading === rejectKey} loadingText="Rejecting..." icon={XCircle}>Reject</ButtonContent></button>
                 </div>
                 <Pill tone={getProjectDecisionTone(p)}>{getProjectDecisionLabel(p)}</Pill>
                 {comment && <p className="muted small">Comment: {comment}</p>}

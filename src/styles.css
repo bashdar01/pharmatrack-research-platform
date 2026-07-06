@@ -15055,3 +15055,144 @@ html body #root .selected-student-chip :where(svg, span, b, strong) {
 .admin-guidelines-link * {
   text-decoration: none !important;
 }
+
+
+/* FINAL FIX: Research Committee/project title decision buttons */
+html body #root .project-decision-cell {
+  min-width: 200px !important;
+  vertical-align: top !important;
+}
+
+html body #root .project-decision-cell .project-decision-status {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  gap: 0.55rem !important;
+  width: 100% !important;
+}
+
+html body #root .committee-decision-actions,
+html body #root .project-decision-cell .decision-actions,
+html body #root td.project-decision-cell .inline-actions.decision-actions {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  gap: 0.5rem !important;
+  width: 100% !important;
+  margin: 0 0 0.65rem 0 !important;
+  padding: 0 !important;
+}
+
+html body #root .committee-decision-actions .committee-decision-btn,
+html body #root .committee-decision-actions button,
+html body #root .project-decision-cell .decision-actions button.accept-btn,
+html body #root .project-decision-cell .decision-actions button.revision-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.42rem !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 38px !important;
+  height: 38px !important;
+  padding: 0.52rem 0.85rem !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: #4d4c4d !important;
+  -webkit-text-fill-color: #4d4c4d !important;
+  border: 1px solid #d1d5db !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  font-size: 0.92rem !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+html body #root .committee-decision-actions .committee-accept-btn,
+html body #root .committee-decision-actions button.accept-btn,
+html body #root .committee-decision-actions .committee-revision-btn,
+html body #root .committee-decision-actions button.revision-btn {
+  background: #f3f4f6 !important;
+  background-color: #f3f4f6 !important;
+  color: #4d4c4d !important;
+  -webkit-text-fill-color: #4d4c4d !important;
+  border-color: #d1d5db !important;
+}
+
+html body #root .committee-decision-actions .committee-accept-btn:hover:not(:disabled),
+html body #root .committee-decision-actions button.accept-btn:hover:not(:disabled),
+html body #root .committee-decision-actions .committee-revision-btn:hover:not(:disabled),
+html body #root .committee-decision-actions button.revision-btn:hover:not(:disabled) {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #4d4c4d !important;
+  -webkit-text-fill-color: #4d4c4d !important;
+  border-color: #9ca3af !important;
+  box-shadow: none !important;
+}
+
+html body #root .committee-decision-actions .committee-reject-btn,
+html body #root .committee-decision-actions button.reject-btn,
+html body #root .project-decision-cell .decision-actions button.reject-btn {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: #b91c1c !important;
+  -webkit-text-fill-color: #b91c1c !important;
+  border: 1px solid #fecaca !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+html body #root .committee-decision-actions .committee-reject-btn:hover:not(:disabled),
+html body #root .committee-decision-actions button.reject-btn:hover:not(:disabled),
+html body #root .project-decision-cell .decision-actions button.reject-btn:hover:not(:disabled) {
+  background: #fef2f2 !important;
+  background-color: #fef2f2 !important;
+  color: #b91c1c !important;
+  -webkit-text-fill-color: #b91c1c !important;
+  border-color: #fca5a5 !important;
+  box-shadow: none !important;
+}
+
+html body #root .committee-decision-actions .committee-decision-btn :where(svg, span, b, strong),
+html body #root .committee-decision-actions button.accept-btn :where(svg, span, b, strong),
+html body #root .committee-decision-actions button.revision-btn :where(svg, span, b, strong) {
+  color: #4d4c4d !important;
+  -webkit-text-fill-color: #4d4c4d !important;
+  stroke: #4d4c4d !important;
+  fill: none !important;
+  text-shadow: none !important;
+}
+
+html body #root .committee-decision-actions .committee-reject-btn :where(svg, span, b, strong),
+html body #root .committee-decision-actions button.reject-btn :where(svg, span, b, strong) {
+  color: #b91c1c !important;
+  -webkit-text-fill-color: #b91c1c !important;
+  stroke: #b91c1c !important;
+  fill: none !important;
+  text-shadow: none !important;
+}
+
+html body #root .committee-decision-actions svg,
+html body #root .committee-decision-btn svg,
+html body #root .project-decision-cell .decision-actions svg {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  min-height: 18px !important;
+  flex-shrink: 0 !important;
+}
+
+html body #root .project-decision-cell .pill {
+  align-self: center !important;
+  max-width: 100% !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+  white-space: nowrap !important;
+}
