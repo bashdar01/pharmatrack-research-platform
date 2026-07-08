@@ -15934,3 +15934,87 @@ html body #root .committee-decision-actions button.revision-btn.committee-revisi
   box-shadow: none !important;
   border-radius: 12px !important;
 }
+
+/* FINAL FIX: make opened AI assistant question items lighter than the header */
+.ai-assistant-widget .ai-assistant-category-header.active + .ai-assistant-question-list,
+.ai-assistant-widget button.ai-assistant-category-header.active + .ai-assistant-question-list {
+  background: #fafafa !important;
+  background-color: #fafafa !important;
+  border: 1px solid #eeeeef !important;
+  border-radius: 12px !important;
+  padding: 0.35rem !important;
+  margin-top: 0.35rem !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+.ai-assistant-widget .ai-assistant-category-header.active + .ai-assistant-question-list .ai-assistant-question,
+.ai-assistant-widget .ai-assistant-category-header.active + .ai-assistant-question-list button.ai-assistant-question,
+.ai-assistant-widget button.ai-assistant-category-header.active + .ai-assistant-question-list .ai-assistant-question,
+.ai-assistant-widget button.ai-assistant-category-header.active + .ai-assistant-question-list button.ai-assistant-question {
+  background: #f9fafb !important;
+  background-color: #f9fafb !important;
+  color: #4d4c4d !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+.ai-assistant-widget .ai-assistant-category-header.active + .ai-assistant-question-list .ai-assistant-question:hover,
+.ai-assistant-widget .ai-assistant-category-header.active + .ai-assistant-question-list button.ai-assistant-question:hover,
+.ai-assistant-widget button.ai-assistant-category-header.active + .ai-assistant-question-list .ai-assistant-question:hover,
+.ai-assistant-widget button.ai-assistant-category-header.active + .ai-assistant-question-list button.ai-assistant-question:hover {
+  background: #f3f4f6 !important;
+  background-color: #f3f4f6 !important;
+  border-color: #d1d5db !important;
+  color: #4d4c4d !important;
+}
+
+.ai-assistant-widget .ai-assistant-question.selected,
+.ai-assistant-widget button.ai-assistant-question.selected {
+  background: #eeeeef !important;
+  background-color: #eeeeef !important;
+  border-color: #d1d5db !important;
+  color: #4d4c4d !important;
+}
+
+/* FINAL FIX: make opened AI Assistant question lists more visible for all roles */
+.ai-assistant-widget .ai-assistant-category-header.active + .ai-assistant-question-list,
+.ai-assistant-widget button.ai-assistant-category-header.active + .ai-assistant-question-list {
+  background: #e5e7eb !important;
+  background-color: #e5e7eb !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 12px !important;
+  padding: 0.42rem !important;
+  margin-top: 0.38rem !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+.ai-assistant-widget .ai-assistant-category-header.active + .ai-assistant-question-list .ai-assistant-question,
+.ai-assistant-widget .ai-assistant-category-header.active + .ai-assistant-question-list button.ai-assistant-question,
+.ai-assistant-widget button.ai-assistant-category-header.active + .ai-assistant-question-list .ai-assistant-question,
+.ai-assistant-widget button.ai-assistant-category-header.active + .ai-assistant-question-list button.ai-assistant-question {
+  background: #f1f2f4 !important;
+  background-color: #f1f2f4 !important;
+  color: #4d4c4d !important;
+  border: 1px solid #cfd3d8 !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+.ai-assistant-widget .ai-assistant-category-header.active + .ai-assistant-question-list .ai-assistant-question:hover,
+.ai-assistant-widget .ai-assistant-category-header.active + .ai-assistant-question-list button.ai-assistant-question:hover,
+.ai-assistant-widget button.ai-assistant-category-header.active + .ai-assistant-question-list .ai-assistant-question:hover,
+.ai-assistant-widget button.ai-assistant-category-header.active + .ai-assistant-question-list button.ai-assistant-question:hover,
+.ai-assistant-widget .ai-assistant-category-header.active + .ai-assistant-question-list .ai-assistant-question.selected,
+.ai-assistant-widget .ai-assistant-category-header.active + .ai-assistant-question-list button.ai-assistant-question.selected,
+.ai-assistant-widget button.ai-assistant-category-header.active + .ai-assistant-question-list .ai-assistant-question.selected,
+.ai-assistant-widget button.ai-assistant-category-header.active + .ai-assistant-question-list button.ai-assistant-question.selected {
+  background: #dedfe3 !important;
+  background-color: #dedfe3 !important;
+  border-color: #bfc4ca !important;
+  color: #4d4c4d !important;
+}
