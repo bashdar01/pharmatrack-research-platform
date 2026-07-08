@@ -6653,11 +6653,258 @@ export default function App() {
         {tab === 'audit' && allowedRole === 'admin' && <AuditTab logs={visibleData.auditLogs} dataLoading={dataLoading} />}
         </main>
       </div>
+      {(allowedRole === 'student' || allowedRole === 'supervisor') && <AIAssistantWidget role={allowedRole} />}
     </div>
   )
 }
 
 
+
+
+const AI_ASSISTANT_LIBRARY = {
+  student: [
+    {
+      title: 'Dashboard basics',
+      icon: LayoutDashboard,
+      questions: [
+        {
+          question: 'How do I use my student dashboard?',
+          answer: 'Use the student dashboard as your research home page. First check your project card and group information. Then review Project Progress, Weekly Reports, Supervisor Feedback, Deadlines, and Questions. Use the top-header buttons for About Us, HMU Google Scholar, and Research Guidelines.'
+        },
+        {
+          question: 'Where do I see my project progress?',
+          answer: 'Go to your Student Dashboard and open the Project Progress section. The progress area shows your project status, weekly report progress, and supervisor review results. If you are a project member, you can view the progress for your group project even if you are not the project leader.'
+        },
+        {
+          question: 'Where can I download the research guidelines?',
+          answer: 'Click the Research Guidelines button in the top header. It will directly download the official PDF file. It does not open a separate page, so you stay on your dashboard.'
+        },
+      ],
+    },
+    {
+      title: 'Weekly reports',
+      icon: FileText,
+      questions: [
+        {
+          question: 'How do I submit a weekly report?',
+          answer: 'Go to Student Dashboard → Submit Weekly Report. Fill in: Work completed this week, Problems or challenges, Next week plan, Attendance, and upload an evidence file if needed. Then click Submit Weekly Report. If your project has a project leader and you are not the leader, the submit area will stay locked.'
+        },
+        {
+          question: 'Why is my weekly report submit area locked?',
+          answer: 'The submit area is locked when your project already has a project leader and you are a normal project member. In that case, only the project leader submits weekly reports for the group. You can still view project progress, weekly reports, supervisor feedback, status, and attachments.'
+        },
+        {
+          question: 'How do I check if my weekly report was accepted or needs revision?',
+          answer: 'Open the Weekly Reports or Supervisor Feedback area on your dashboard. Each submitted report shows its review status, such as Accepted, Rejected, Revision Requested, or Pending Review. Read the supervisor feedback carefully and follow the requested changes if revision is required.'
+        },
+      ],
+    },
+    {
+      title: 'Questions to supervisor',
+      icon: MessageSquareText,
+      questions: [
+        {
+          question: 'How do I ask my supervisor a question from the dashboard?',
+          answer: 'Open the Questions section from the student dashboard/sidebar. Write a clear question, choose or attach a file if needed, then submit it. Your supervisor will be able to view and answer it inside the platform.'
+        },
+        {
+          question: 'What should I write when asking my supervisor?',
+          answer: 'Use a clear academic style: explain what you are working on, what problem you faced, what you already tried, and what exact guidance you need. Example: “Dear Supervisor, I need guidance about [topic]. I tried [step], but I am unsure about [specific issue]. Could you please advise me?”'
+        },
+        {
+          question: 'Where do I see my supervisor answer?',
+          answer: 'Go to the Questions section and find your submitted question. The supervisor answer will appear under the question. If the supervisor added an attachment, use the Download Attachment button to open it.'
+        },
+      ],
+    },
+    {
+      title: 'Deadlines and feedback',
+      icon: CalendarDays,
+      questions: [
+        {
+          question: 'Where do I see my deadlines?',
+          answer: 'Open the Deadlines section on your student dashboard. You will see the task title, description, due date, priority, and status. Check this section regularly so you do not miss supervisor-assigned tasks.'
+        },
+        {
+          question: 'How do I read supervisor feedback?',
+          answer: 'Open Supervisor Feedback on your dashboard. Feedback is linked to your project weekly reports. Read the status first, then the feedback message, then check any attachment. If revision is requested, update your work based on the comments.'
+        },
+        {
+          question: 'What should I do after receiving revision feedback?',
+          answer: 'Read all comments, identify the exact requested changes, update your work/report, and submit again if the system allows resubmission. If something is unclear, ask your supervisor through the Questions section.'
+        },
+      ],
+    },
+  ],
+  supervisor: [
+    {
+      title: 'Review weekly reports',
+      icon: ClipboardCheck,
+      questions: [
+        {
+          question: 'How do I review a student weekly report?',
+          answer: 'Go to Supervisor Dashboard → Weekly Report Review. Open the submitted report, read the completed work, challenges, next week plan, attendance, and attachment if available. Then choose Approve, Request Revision, or Reject and add feedback if the form asks for it.'
+        },
+        {
+          question: 'What happens after I approve or reject a weekly report?',
+          answer: 'After you choose a final decision, the report status is saved and the decision buttons should hide or become unavailable. The student can view the final status and your feedback from their dashboard.'
+        },
+        {
+          question: 'How do I request revision for a weekly report?',
+          answer: 'In Weekly Report Review, click Request Revision. Write clear feedback explaining what the student must correct, such as missing details, unclear results, weak next-week plan, or missing attachment. Keep the feedback specific and actionable.'
+        },
+      ],
+    },
+    {
+      title: 'Answer student questions',
+      icon: MessageSquareText,
+      questions: [
+        {
+          question: 'How do I answer a student question?',
+          answer: 'Open the Supervisor Questions section. Select the student question, read the question and any attachment, write your answer in the supervisor answer field, attach a file if needed, and submit the answer. The student will then see it in their Questions section.'
+        },
+        {
+          question: 'How should I write a clear supervisor answer?',
+          answer: 'Use a direct structure: acknowledge the question, give the academic guidance, mention the required next step, and ask the student to update or resubmit if needed. Keep the answer professional and specific.'
+        },
+        {
+          question: 'How do I attach notes or files to an answer?',
+          answer: 'When answering the student question, use the attachment upload field if available. After submitting, the student should see the answer and a Download Attachment button for the uploaded file.'
+        },
+      ],
+    },
+    {
+      title: 'Groups and members',
+      icon: Users,
+      questions: [
+        {
+          question: 'How do I accept a student join request?',
+          answer: 'Go to Supervisor Dashboard → Group Join Requests or Research Group Management. Find the student request, confirm the requested group, then click Accept. The student will be added to the group/project members list if they are eligible.'
+        },
+        {
+          question: 'How do I reject a student join request?',
+          answer: 'Open the Group Join Requests section, find the request, and click Reject. The request status changes to rejected and the student should no longer appear as pending for that group.'
+        },
+        {
+          question: 'How do I assign or check a project leader?',
+          answer: 'Open Project Management or the group/project members area. Find the project members list and choose the student who should be project leader using the existing project leader control. Normal members can view progress and feedback, but the leader submits group weekly reports.'
+        },
+      ],
+    },
+    {
+      title: 'Deadlines and feedback',
+      icon: CalendarDays,
+      questions: [
+        {
+          question: 'How do I send a deadline to students?',
+          answer: 'Go to the Deadline section. Choose the recipient group or assigned students, enter the deadline title, due date, priority, and instructions, then click the submit/send button. Students will see the deadline in their dashboard.'
+        },
+        {
+          question: 'How do I give useful feedback?',
+          answer: 'When reviewing reports, write feedback that tells students exactly what is good, what must be corrected, and what to do next. Example: “Good progress on the literature review. Please add recent references, clarify the objective, and update the next-week plan.”'
+        },
+        {
+          question: 'Where do I monitor project progress?',
+          answer: 'Use the supervisor dashboard project/progress sections to view submitted weekly reports, project status, group members, deadlines, and report decisions. Progress is based on the project/group reports and review status.'
+        },
+      ],
+    },
+  ],
+}
+
+function AIAssistantWidget({ role }) {
+  const normalizedRole = role === 'supervisor' ? 'supervisor' : role === 'student' ? 'student' : null
+  const sections = normalizedRole ? AI_ASSISTANT_LIBRARY[normalizedRole] : []
+  const [isOpen, setIsOpen] = useState(false)
+  const [openSection, setOpenSection] = useState(sections[0]?.title || '')
+  const [selectedPrompt, setSelectedPrompt] = useState(null)
+
+  useEffect(() => {
+    setOpenSection(sections[0]?.title || '')
+    setSelectedPrompt(null)
+  }, [normalizedRole])
+
+  if (!normalizedRole) return null
+
+  const roleLabel = normalizedRole === 'student' ? 'Student AI Assistant' : 'Supervisor AI Assistant'
+  const helperText = normalizedRole === 'student'
+    ? 'Choose a task to get academic writing and communication help.'
+    : 'Choose a task to draft feedback, deadlines, or guidance.'
+
+  return (
+    <div className={`ai-assistant-widget ${isOpen ? 'open' : ''} no-print`}>
+      {isOpen && (
+        <section className="ai-assistant-panel" aria-label={roleLabel}>
+          <div className="ai-assistant-panel-header">
+            <div>
+              <p className="ai-assistant-eyebrow"><MessageSquareText size={14} /> Academic Support</p>
+              <h3>{roleLabel}</h3>
+              <span>{helperText}</span>
+            </div>
+            <button type="button" className="ai-assistant-close" onClick={() => setIsOpen(false)} aria-label="Close AI assistant">
+              <XCircle size={18} />
+            </button>
+          </div>
+
+          <div className="ai-assistant-body">
+            <div className="ai-assistant-accordion">
+              {sections.map((section) => {
+                const Icon = section.icon || BookOpen
+                const expanded = openSection === section.title
+                return (
+                  <div className="ai-assistant-category" key={section.title}>
+                    <button
+                      type="button"
+                      className={`ai-assistant-category-header ${expanded ? 'active' : ''}`}
+                      onClick={() => setOpenSection(expanded ? '' : section.title)}
+                    >
+                      <span><Icon size={16} /> {section.title}</span>
+                      <strong>{expanded ? '−' : '+'}</strong>
+                    </button>
+                    {expanded && (
+                      <div className="ai-assistant-question-list">
+                        {section.questions.map((item) => (
+                          <button
+                            type="button"
+                            key={item.question}
+                            className={`ai-assistant-question ${selectedPrompt?.question === item.question ? 'selected' : ''}`}
+                            onClick={() => setSelectedPrompt(item)}
+                          >
+                            {item.question}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="ai-assistant-answer-card">
+              {selectedPrompt ? (
+                <>
+                  <p className="ai-assistant-answer-label">Suggested answer</p>
+                  <h4>{selectedPrompt.question}</h4>
+                  <p>{selectedPrompt.answer}</p>
+                </>
+              ) : (
+                <div className="ai-assistant-empty">
+                  <MessageSquareText size={22} />
+                  <p>Select a question header, then choose one premade question.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <button type="button" className="ai-assistant-launcher" onClick={() => setIsOpen((value) => !value)} aria-expanded={isOpen}>
+        <MessageSquareText size={18} />
+        <span>AI Assistant</span>
+      </button>
+    </div>
+  )
+}
 
 function AboutUsPage({ page }) {
   const normalized = normalizeAboutUsPage(page)
