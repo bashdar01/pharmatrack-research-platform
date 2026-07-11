@@ -18256,3 +18256,32 @@ html body #root .admin-sidebar .admin-side-nav button svg {
     flex-basis: 34px !important;
   }
 }
+
+/* =========================================================
+   FINAL TWEAK: slightly smaller sidebar nav text
+   Visual-only. Keeps sidebar button size, X/hamburger, logic, auth, roles unchanged.
+   ========================================================= */
+html body #root .main-side-nav button,
+html body #root .admin-side-nav button,
+html body #root .admin-sidebar .admin-side-nav button {
+  font-size: 0.88rem !important;
+}
+
+html body #root .main-side-nav button > span:not(.side-nav-icon):not(.tab-badge),
+html body #root .admin-side-nav button > span:not(.side-nav-icon):not(.tab-badge),
+html body #root .admin-sidebar .admin-side-nav button > span:not(.side-nav-icon):not(.tab-badge) {
+  font-size: 0.88rem !important;
+  line-height: 1.15 !important;
+}
+
+@media (max-width: 768px) {
+  html body #root .main-side-nav button,
+  html body #root .admin-side-nav button,
+  html body #root .admin-sidebar .admin-side-nav button,
+  html body #root .main-side-nav button > span:not(.side-nav-icon):not(.tab-badge),
+  html body #root .admin-side-nav button > span:not(.side-nav-icon):not(.tab-badge),
+  html body #root .admin-sidebar .admin-side-nav button > span:not(.side-nav-icon):not(.tab-badge) {
+    font-size: 0.85rem !important;
+    line-height: 1.14 !important;
+  }
+}
