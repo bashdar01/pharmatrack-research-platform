@@ -18549,3 +18549,12 @@ html body #root .admin-sidebar .admin-logout:hover svg {
   color: #b91c1c !important;
   stroke: #b91c1c !important;
 }
+
+/* Admin subdomain: remove the old eyebrow/badge row above every admin panel title. */
+html body #root .admin-panel-topbar > div:first-child > .eyebrow {
+  display: none !important;
+}
+
+html body #root .admin-panel-topbar h1 {
+  margin-top: 0 !important;
+}

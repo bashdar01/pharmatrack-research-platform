@@ -8162,7 +8162,6 @@ function AdminControlPanel({
       <main className="admin-panel-main">
         <header className="admin-panel-topbar no-print">
           <div>
-            <p className="eyebrow"><UserCog size={16} /> Admin subdomain</p>
             <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'about-us' ? 'About Us Customization' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'supervisors' ? 'Supervisor Management' : adminPanelTab === 'dual-roles' ? 'Dual Role Management' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Inbox' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'pdf-report' ? 'PDF Report Customization' : adminPanelTab === 'group-requests' ? 'Group Join Requests' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : adminPanelTab === 'profile-settings' ? 'Profile Settings' : 'Control Center'}</h1>
             <p>{settings.adminWelcome}</p>
           </div>
