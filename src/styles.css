@@ -18285,3 +18285,149 @@ html body #root .admin-sidebar .admin-side-nav button > span:not(.side-nav-icon)
     line-height: 1.14 !important;
   }
 }
+
+/* =========================================================
+   ADMIN SUBDOMAIN REVERT: restore original static admin panel sidebar
+   This only affects the admin subdomain/control panel. Main role sidebars
+   keep the current hamburger slide behavior.
+   ========================================================= */
+html body #root .admin-panel-shell {
+  min-height: 100vh !important;
+  display: grid !important;
+  grid-template-columns: 290px minmax(0, 1fr) !important;
+  background: #eef2f7 !important;
+  color: var(--text) !important;
+  overflow: visible !important;
+  transform: none !important;
+}
+
+html body #root .admin-panel-shell .admin-sidebar,
+html body #root .admin-panel-shell .admin-sidebar.open {
+  position: sticky !important;
+  top: 0 !important;
+  left: auto !important;
+  right: auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  padding: 22px !important;
+  background: #0f172a !important;
+  color: #ffffff !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 18px !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  transform: none !important;
+  transition: none !important;
+  z-index: auto !important;
+  box-sizing: border-box !important;
+}
+
+html body #root .admin-panel-shell .admin-panel-main {
+  width: min(1320px, calc(100% - 48px)) !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin: 0 auto !important;
+  padding: 28px 0 54px !important;
+  transform: none !important;
+  transition: none !important;
+  box-sizing: border-box !important;
+}
+
+html body #root .admin-panel-shell .admin-sidebar-menu-toggle,
+html body #root .admin-panel-shell .sidebar-menu-toggle,
+html body #root .admin-panel-shell .sidebar-fixed-head,
+html body #root .admin-panel-shell .admin-sidebar-fixed-head,
+html body #root .admin-panel-shell .sidebar-close-button,
+html body #root .admin-panel-shell .admin-sidebar-backdrop,
+html body #root .admin-panel-shell .sidebar-backdrop {
+  display: none !important;
+}
+
+html body #root .admin-panel-shell .admin-brand-block {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding-bottom: 18px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10) !important;
+}
+
+html body #root .admin-panel-shell .admin-profile-mini {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 12px !important;
+  border-radius: 18px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+}
+
+html body #root .admin-panel-shell .admin-side-nav {
+  display: grid !important;
+  gap: 8px !important;
+  padding: 0 !important;
+}
+
+html body #root .admin-panel-shell .admin-side-nav button,
+html body #root .admin-panel-shell .admin-logout {
+  width: 100% !important;
+  min-height: auto !important;
+  justify-content: flex-start !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 12px 14px !important;
+  border-radius: 14px !important;
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.74) !important;
+  font-size: 0.95rem !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+  box-shadow: none !important;
+  text-align: left !important;
+}
+
+html body #root .admin-panel-shell .admin-side-nav button > svg,
+html body #root .admin-panel-shell .admin-side-nav button svg {
+  width: 17px !important;
+  height: 17px !important;
+  min-width: 17px !important;
+  min-height: 17px !important;
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+html body #root .admin-panel-shell .admin-side-nav button.active,
+html body #root .admin-panel-shell .admin-side-nav button:hover {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+html body #root .admin-panel-shell .admin-logout {
+  margin-top: auto !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+@media (max-width: 900px) {
+  html body #root .admin-panel-shell {
+    grid-template-columns: 1fr !important;
+  }
+
+  html body #root .admin-panel-shell .admin-sidebar {
+    position: relative !important;
+    height: auto !important;
+    max-height: none !important;
+    border-radius: 0 0 28px 28px !important;
+  }
+
+  html body #root .admin-panel-shell .admin-panel-main {
+    width: 94vw !important;
+    padding-top: 22px !important;
+  }
+}
