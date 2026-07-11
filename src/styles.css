@@ -17383,3 +17383,515 @@ html body #root .admin-sidebar-menu-toggle span {
     max-width: 100% !important;
   }
 }
+
+/* =========================================================
+   FINAL SMOOTHING: sidebar resize animation polish
+   Keeps no-overlay behavior and only improves transition feel.
+   ========================================================= */
+html body #root .app.app-main-shell.main-dashboard-with-sidebar,
+html body #root .admin-panel-shell {
+  --sidebar-motion: 0.46s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: grid-template-columns var(--sidebar-motion) !important;
+  will-change: grid-template-columns !important;
+  contain: layout paint !important;
+}
+
+html body #root .app.app-main-shell.main-dashboard-with-sidebar .main-sidebar,
+html body #root .admin-panel-shell .admin-sidebar {
+  transform: translate3d(-100%, 0, 0) !important;
+  transition:
+    transform var(--sidebar-motion),
+    opacity 0.28s ease !important;
+  will-change: transform, opacity !important;
+  backface-visibility: hidden !important;
+  -webkit-font-smoothing: antialiased !important;
+  opacity: 0.98 !important;
+}
+
+html body #root .app.app-main-shell.main-dashboard-with-sidebar.sidebar-open .main-sidebar,
+html body #root .admin-panel-shell.admin-sidebar-open .admin-sidebar {
+  transform: translate3d(0, 0, 0) !important;
+  opacity: 1 !important;
+}
+
+html body #root .app.app-main-shell.main-dashboard-with-sidebar .main-workspace,
+html body #root .admin-panel-shell .admin-panel-main {
+  transition:
+    min-width var(--sidebar-motion),
+    max-width var(--sidebar-motion),
+    width var(--sidebar-motion) !important;
+  will-change: width !important;
+  overflow-x: clip !important;
+}
+
+html body #root .main-dashboard-with-sidebar .main-compact-header,
+html body #root .admin-panel-topbar,
+html body #root .main-dashboard-with-sidebar main.app-content-panel,
+html body #root .admin-panel-main {
+  transition:
+    padding var(--sidebar-motion),
+    width var(--sidebar-motion),
+    max-width var(--sidebar-motion) !important;
+}
+
+html body #root .sidebar-menu-toggle,
+html body #root .admin-sidebar-menu-toggle {
+  transition:
+    background 0.22s ease,
+    border-color 0.22s ease,
+    transform 0.22s ease,
+    box-shadow 0.22s ease !important;
+}
+
+html body #root .sidebar-menu-toggle:hover,
+html body #root .admin-sidebar-menu-toggle:hover {
+  transform: translateY(-1px) !important;
+}
+
+html body #root .sidebar-menu-toggle span,
+html body #root .admin-sidebar-menu-toggle span {
+  transition:
+    transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.2s ease,
+    background 0.2s ease !important;
+}
+
+html body #root .app.app-main-shell.main-dashboard-with-sidebar .main-sidebar,
+html body #root .admin-panel-shell .admin-sidebar,
+html body #root .app.app-main-shell.main-dashboard-with-sidebar .main-workspace,
+html body #root .admin-panel-shell .admin-panel-main {
+  transform-style: preserve-3d !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html body #root .app.app-main-shell.main-dashboard-with-sidebar,
+  html body #root .admin-panel-shell,
+  html body #root .app.app-main-shell.main-dashboard-with-sidebar .main-sidebar,
+  html body #root .admin-panel-shell .admin-sidebar,
+  html body #root .sidebar-menu-toggle span,
+  html body #root .admin-sidebar-menu-toggle span {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* =========================================================
+   FINAL FIX: sticky resizing sidebar
+   Keep the current hamburger open/close state, but make the
+   sidebar stay fixed/sticky while only the main page scrolls.
+   No overlay/backdrop, no authentication/role/data logic changes.
+   ========================================================= */
+html body #root .app-main-shell.main-dashboard-with-sidebar {
+  display: grid !important;
+  grid-template-columns: 0 minmax(0, 1fr) !important;
+  align-items: start !important;
+  width: 100% !important;
+  min-height: 100vh !important;
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+  transition: grid-template-columns 0.38s cubic-bezier(.22, .9, .28, 1) !important;
+}
+
+html body #root .app-main-shell.main-dashboard-with-sidebar.sidebar-open {
+  grid-template-columns: 270px minmax(0, 1fr) !important;
+}
+
+html body #root .app-main-shell .main-sidebar,
+html body #root .app-main-shell.main-dashboard-with-sidebar .main-sidebar {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  position: sticky !important;
+  top: 0 !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  align-self: start !important;
+  width: 270px !important;
+  min-width: 270px !important;
+  max-width: 270px !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  z-index: 40 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  transform: translateX(-100%) !important;
+  transition: transform 0.38s cubic-bezier(.22, .9, .28, 1), box-shadow 0.38s ease !important;
+  will-change: transform !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain !important;
+  flex-shrink: 0 !important;
+  box-shadow: none !important;
+}
+
+html body #root .app-main-shell.main-dashboard-with-sidebar.sidebar-open .main-sidebar {
+  transform: translateX(0) !important;
+  box-shadow: 8px 0 22px rgba(17, 24, 39, .10) !important;
+}
+
+html body #root .main-dashboard-with-sidebar .main-workspace {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  min-height: 100vh !important;
+  position: relative !important;
+  z-index: 1 !important;
+  transform: none !important;
+  overflow: visible !important;
+  transition: width 0.38s cubic-bezier(.22, .9, .28, 1) !important;
+}
+
+html body #root .main-dashboard-with-sidebar .main-compact-header {
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 50 !important;
+}
+
+html body #root .main-dashboard-with-sidebar .main-compact-left,
+html body #root .main-dashboard-with-sidebar .main-header-actions {
+  min-width: 0 !important;
+  flex-wrap: wrap !important;
+}
+
+html body #root .main-dashboard-with-sidebar main.app-content-panel,
+html body #root .main-dashboard-with-sidebar .dashboard-content,
+html body #root .main-dashboard-with-sidebar .dashboard-grid,
+html body #root .main-dashboard-with-sidebar .dashboard-card,
+html body #root .main-dashboard-with-sidebar .card,
+html body #root .main-dashboard-with-sidebar .table-wrap,
+html body #root .main-dashboard-with-sidebar .form-container,
+html body #root .main-dashboard-with-sidebar .meeting-requests-page {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+html body #root .main-dashboard-with-sidebar main.app-content-panel {
+  width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+html body #root .main-dashboard-with-sidebar .table-wrap,
+html body #root .main-dashboard-with-sidebar .invitation-table-wrap,
+html body #root .main-dashboard-with-sidebar .rubric-table-wrap {
+  overflow-x: auto !important;
+}
+
+/* No overlay/backdrop in resizing-sidebar mode. */
+html body #root .sidebar-backdrop,
+html body #root .sidebar-backdrop.open,
+html body #root .admin-sidebar-backdrop,
+html body #root .admin-sidebar-backdrop.open {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Keep hamburger compact, visible, and white when closed/inactive. */
+html body #root .sidebar-menu-toggle,
+html body #root .admin-sidebar-menu-toggle {
+  z-index: 70 !important;
+  flex: 0 0 auto !important;
+}
+
+html body #root .sidebar-menu-toggle span,
+html body #root .admin-sidebar-menu-toggle span {
+  width: 21px !important;
+  height: 2px !important;
+  margin: 1.5px 0 !important;
+  border-radius: 999px !important;
+  background: #ffffff !important;
+}
+
+/* Admin panel: same sticky, no-overlay resizing behavior. */
+html body #root .admin-panel-shell {
+  display: grid !important;
+  grid-template-columns: 0 minmax(0, 1fr) !important;
+  align-items: start !important;
+  width: 100% !important;
+  min-height: 100vh !important;
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+  transition: grid-template-columns 0.38s cubic-bezier(.22, .9, .28, 1) !important;
+}
+
+html body #root .admin-panel-shell.admin-sidebar-open {
+  grid-template-columns: 280px minmax(0, 1fr) !important;
+}
+
+html body #root .admin-panel-shell .admin-sidebar {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  position: sticky !important;
+  top: 0 !important;
+  left: auto !important;
+  bottom: auto !important;
+  width: 280px !important;
+  min-width: 280px !important;
+  max-width: 280px !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  z-index: 40 !important;
+  transform: translateX(-100%) !important;
+  transition: transform 0.38s cubic-bezier(.22, .9, .28, 1), box-shadow 0.38s ease !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain !important;
+  box-shadow: none !important;
+}
+
+html body #root .admin-panel-shell.admin-sidebar-open .admin-sidebar {
+  transform: translateX(0) !important;
+  box-shadow: 8px 0 22px rgba(17, 24, 39, .10) !important;
+}
+
+html body #root .admin-panel-main {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 100vh !important;
+  margin-left: 0 !important;
+  position: relative !important;
+  z-index: 1 !important;
+  overflow: visible !important;
+}
+
+html body #root .admin-panel-topbar {
+  width: 100% !important;
+  min-width: 0 !important;
+  z-index: 50 !important;
+}
+
+html body #root .app-main-shell .main-sidebar,
+html body #root .admin-panel-shell .admin-sidebar {
+  scrollbar-width: thin !important;
+  scrollbar-color: #9ca3af transparent !important;
+}
+
+html body #root .app-main-shell .main-sidebar::-webkit-scrollbar,
+html body #root .admin-panel-shell .admin-sidebar::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+html body #root .app-main-shell .main-sidebar::-webkit-scrollbar-track,
+html body #root .admin-panel-shell .admin-sidebar::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+html body #root .app-main-shell .main-sidebar::-webkit-scrollbar-thumb,
+html body #root .admin-panel-shell .admin-sidebar::-webkit-scrollbar-thumb {
+  background: #9ca3af !important;
+  border-radius: 999px !important;
+}
+
+@media (max-width: 768px) {
+  html body #root .app-main-shell.main-dashboard-with-sidebar.sidebar-open {
+    grid-template-columns: min(240px, 72vw) minmax(0, 1fr) !important;
+  }
+
+  html body #root .app-main-shell .main-sidebar,
+  html body #root .app-main-shell.main-dashboard-with-sidebar .main-sidebar {
+    width: min(240px, 72vw) !important;
+    min-width: min(240px, 72vw) !important;
+    max-width: min(240px, 72vw) !important;
+  }
+
+  html body #root .admin-panel-shell.admin-sidebar-open {
+    grid-template-columns: min(250px, 74vw) minmax(0, 1fr) !important;
+  }
+
+  html body #root .admin-panel-shell .admin-sidebar {
+    width: min(250px, 74vw) !important;
+    min-width: min(250px, 74vw) !important;
+    max-width: min(250px, 74vw) !important;
+  }
+
+  html body #root .main-dashboard-with-sidebar .main-compact-header,
+  html body #root .admin-panel-topbar {
+    gap: 8px !important;
+  }
+}
+
+/* =========================================================
+   HOTFIX: truly fixed sidebar with visible close X
+   Keeps the existing resizing layout and no-overlay behavior.
+   ========================================================= */
+html body #root .app.app-main-shell.main-dashboard-with-sidebar,
+html body #root .app-main-shell.main-dashboard-with-sidebar,
+html body #root .admin-panel-shell {
+  contain: none !important;
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+}
+
+html body #root .app-main-shell .main-sidebar,
+html body #root .app-main-shell.main-dashboard-with-sidebar .main-sidebar,
+html body #root .app.app-main-shell.main-dashboard-with-sidebar .main-sidebar {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  bottom: auto !important;
+  right: auto !important;
+  width: var(--sidebar-width, 270px) !important;
+  min-width: var(--sidebar-width, 270px) !important;
+  max-width: var(--sidebar-width, 270px) !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  z-index: 1200 !important;
+  transform: translate3d(-100%, 0, 0) !important;
+  transition: transform var(--sidebar-motion, 0.38s cubic-bezier(.22, .9, .28, 1)) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  flex-direction: column !important;
+  will-change: transform !important;
+  opacity: 1 !important;
+}
+
+html body #root .app-main-shell.main-dashboard-with-sidebar.sidebar-open .main-sidebar,
+html body #root .app.app-main-shell.main-dashboard-with-sidebar.sidebar-open .main-sidebar,
+html body #root .app-main-shell .main-sidebar.open {
+  transform: translate3d(0, 0, 0) !important;
+}
+
+html body #root .admin-panel-shell .admin-sidebar {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  bottom: auto !important;
+  right: auto !important;
+  width: var(--admin-sidebar-width, 280px) !important;
+  min-width: var(--admin-sidebar-width, 280px) !important;
+  max-width: var(--admin-sidebar-width, 280px) !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  z-index: 1200 !important;
+  transform: translate3d(-100%, 0, 0) !important;
+  transition: transform var(--sidebar-motion, 0.38s cubic-bezier(.22, .9, .28, 1)) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  flex-direction: column !important;
+  will-change: transform !important;
+  opacity: 1 !important;
+}
+
+html body #root .admin-panel-shell.admin-sidebar-open .admin-sidebar,
+html body #root .admin-panel-shell .admin-sidebar.open {
+  transform: translate3d(0, 0, 0) !important;
+}
+
+html body #root .main-dashboard-with-sidebar .main-workspace,
+html body #root .admin-panel-main {
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 100vh !important;
+  overflow: visible !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+html body #root .sidebar-fixed-head {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 1250 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  min-height: 54px !important;
+  padding: 10px 12px 6px 12px !important;
+  margin: 0 !important;
+  background: inherit !important;
+  box-sizing: border-box !important;
+  flex: 0 0 auto !important;
+}
+
+html body #root .sidebar-close-button {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+  background: rgba(255, 255, 255, 0.14) !important;
+  color: #ffffff !important;
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  transform: none !important;
+  flex: 0 0 auto !important;
+  overflow: visible !important;
+}
+
+html body #root .sidebar-close-button:hover,
+html body #root .sidebar-close-button:focus,
+html body #root .sidebar-close-button:active {
+  background: rgba(255, 255, 255, 0.22) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.38) !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transform: none !important;
+}
+
+html body #root .main-side-nav,
+html body #root .admin-side-nav {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+}
+
+html body #root .sidebar-backdrop,
+html body #root .sidebar-backdrop.open,
+html body #root .admin-sidebar-backdrop,
+html body #root .admin-sidebar-backdrop.open {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+  background: transparent !important;
+}
+
+html body #root .main-compact-header,
+html body #root .admin-panel-topbar {
+  z-index: 100 !important;
+}
+
+@media (max-width: 768px) {
+  html body #root .app-main-shell .main-sidebar,
+  html body #root .app-main-shell.main-dashboard-with-sidebar .main-sidebar,
+  html body #root .app.app-main-shell.main-dashboard-with-sidebar .main-sidebar {
+    width: var(--sidebar-width, min(240px, 72vw)) !important;
+    min-width: var(--sidebar-width, min(240px, 72vw)) !important;
+    max-width: var(--sidebar-width, min(240px, 72vw)) !important;
+  }
+
+  html body #root .admin-panel-shell .admin-sidebar {
+    width: var(--admin-sidebar-width, min(240px, 72vw)) !important;
+    min-width: var(--admin-sidebar-width, min(240px, 72vw)) !important;
+    max-width: var(--admin-sidebar-width, min(240px, 72vw)) !important;
+  }
+}

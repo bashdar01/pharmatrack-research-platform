@@ -6939,7 +6939,10 @@ export default function App() {
 
   return (
     <div className={`app app-main-shell main-dashboard-with-sidebar role-${allowedRole} ${sidebarOpen ? 'sidebar-open' : ''}`}>
-      <aside className="main-sidebar no-print" aria-label="Role navigation">
+      <aside className={`main-sidebar no-print ${sidebarOpen ? 'open' : ''}`} aria-label="Role navigation">
+        <div className="sidebar-fixed-head">
+          <button type="button" className="sidebar-close-button" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar">×</button>
+        </div>
         <nav className="main-side-nav" aria-label="Main navigation">
           {mainNavItems.map((item) => {
             const Icon = item.icon
@@ -8137,7 +8140,10 @@ function AdminControlPanel({
 
   return (
     <div className={`admin-panel-shell ${adminSidebarOpen ? 'admin-sidebar-open' : ''}`}>
-      <aside className="admin-sidebar no-print">
+      <aside className={`admin-sidebar no-print ${adminSidebarOpen ? 'open' : ''}`}>
+        <div className="sidebar-fixed-head admin-sidebar-fixed-head">
+          <button type="button" className="sidebar-close-button" onClick={() => setAdminSidebarOpen(false)} aria-label="Close sidebar">×</button>
+        </div>
         <div className="admin-brand-block">
           <div className="admin-logo-mark"><Settings size={22} /></div>
           <div>
