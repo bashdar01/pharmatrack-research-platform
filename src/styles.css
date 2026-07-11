@@ -17146,3 +17146,240 @@ html body #root .meeting-section-card .empty-state p {
     width: 100% !important;
   }
 }
+
+/* FINAL: compact hamburger line spacing only */
+html body #root .sidebar-menu-toggle,
+html body #root .admin-sidebar-menu-toggle {
+  display: inline-flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 3px !important;
+  line-height: 1 !important;
+}
+
+html body #root .sidebar-menu-toggle span,
+html body #root .admin-sidebar-menu-toggle span {
+  display: block !important;
+  width: 21px !important;
+  height: 2px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  background: #ffffff !important;
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  line-height: 0 !important;
+  flex: 0 0 auto !important;
+}
+
+html body #root .app-main-shell.main-dashboard-with-sidebar.sidebar-open .sidebar-menu-toggle span:nth-child(1),
+html body #root .admin-panel-shell.admin-sidebar-open .sidebar-menu-toggle span:nth-child(1) {
+  transform: translateY(5px) rotate(45deg) !important;
+}
+
+html body #root .app-main-shell.main-dashboard-with-sidebar.sidebar-open .sidebar-menu-toggle span:nth-child(2),
+html body #root .admin-panel-shell.admin-sidebar-open .sidebar-menu-toggle span:nth-child(2) {
+  opacity: 0 !important;
+}
+
+html body #root .app-main-shell.main-dashboard-with-sidebar.sidebar-open .sidebar-menu-toggle span:nth-child(3),
+html body #root .admin-panel-shell.admin-sidebar-open .sidebar-menu-toggle span:nth-child(3) {
+  transform: translateY(-5px) rotate(-45deg) !important;
+}
+
+/* =========================================================
+   FINAL: resizing sidebar layout (no overlay / no darkening)
+   Sidebar uses a real layout column and the page resizes beside it.
+   ========================================================= */
+html body #root .app.app-main-shell.main-dashboard-with-sidebar {
+  --sidebar-width: 270px;
+  display: grid !important;
+  grid-template-columns: 0 minmax(0, 1fr) !important;
+  width: 100% !important;
+  min-height: 100vh !important;
+  overflow-x: hidden !important;
+  transition: grid-template-columns 0.32s cubic-bezier(.22, .9, .28, 1) !important;
+}
+
+html body #root .app.app-main-shell.main-dashboard-with-sidebar.sidebar-open {
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr) !important;
+}
+
+html body #root .app.app-main-shell.main-dashboard-with-sidebar .main-sidebar {
+  grid-column: 1 !important;
+  position: sticky !important;
+  top: 0 !important;
+  left: auto !important;
+  bottom: auto !important;
+  width: var(--sidebar-width) !important;
+  min-width: var(--sidebar-width) !important;
+  max-width: var(--sidebar-width) !important;
+  height: 100vh !important;
+  z-index: 30 !important;
+  transform: translateX(-100%) !important;
+  transition: transform 0.32s cubic-bezier(.22, .9, .28, 1) !important;
+  will-change: transform !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  box-shadow: none !important;
+  border-right: 1px solid rgba(255, 255, 255, .12) !important;
+}
+
+html body #root .app.app-main-shell.main-dashboard-with-sidebar.sidebar-open .main-sidebar {
+  transform: translateX(0) !important;
+}
+
+html body #root .app.app-main-shell.main-dashboard-with-sidebar .main-workspace {
+  grid-column: 2 !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 100vh !important;
+  position: relative !important;
+  z-index: 1 !important;
+  transform: none !important;
+  transition: width 0.32s cubic-bezier(.22, .9, .28, 1) !important;
+}
+
+html body #root .sidebar-backdrop,
+html body #root .sidebar-backdrop.open,
+html body #root .admin-sidebar-backdrop,
+html body #root .admin-sidebar-backdrop.open {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html body #root .main-dashboard-with-sidebar .main-compact-header {
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  z-index: 40 !important;
+}
+
+html body #root .main-dashboard-with-sidebar .main-compact-left,
+html body #root .main-dashboard-with-sidebar .main-header-actions,
+html body #root .admin-panel-topbar,
+html body #root .admin-topbar-actions {
+  min-width: 0 !important;
+  flex-wrap: wrap !important;
+}
+
+html body #root .main-dashboard-with-sidebar main.app-content-panel,
+html body #root .main-dashboard-with-sidebar .dashboard-content,
+html body #root .main-dashboard-with-sidebar .dashboard-grid,
+html body #root .main-dashboard-with-sidebar .stats,
+html body #root .main-dashboard-with-sidebar .card,
+html body #root .main-dashboard-with-sidebar .table-container,
+html body #root .main-dashboard-with-sidebar .form-container {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+html body #root .main-dashboard-with-sidebar .table-container,
+html body #root .main-dashboard-with-sidebar table {
+  max-width: 100% !important;
+}
+
+html body #root .main-dashboard-with-sidebar .table-container {
+  overflow-x: auto !important;
+}
+
+/* Admin panel uses the same resizing sidebar behavior. */
+html body #root .admin-panel-shell {
+  --admin-sidebar-width: 280px;
+  display: grid !important;
+  grid-template-columns: 0 minmax(0, 1fr) !important;
+  width: 100% !important;
+  min-height: 100vh !important;
+  overflow-x: hidden !important;
+  transition: grid-template-columns 0.32s cubic-bezier(.22, .9, .28, 1) !important;
+}
+
+html body #root .admin-panel-shell.admin-sidebar-open {
+  grid-template-columns: var(--admin-sidebar-width) minmax(0, 1fr) !important;
+}
+
+html body #root .admin-panel-shell .admin-sidebar {
+  grid-column: 1 !important;
+  position: sticky !important;
+  top: 0 !important;
+  left: auto !important;
+  bottom: auto !important;
+  width: var(--admin-sidebar-width) !important;
+  min-width: var(--admin-sidebar-width) !important;
+  max-width: var(--admin-sidebar-width) !important;
+  height: 100vh !important;
+  z-index: 30 !important;
+  transform: translateX(-100%) !important;
+  transition: transform 0.32s cubic-bezier(.22, .9, .28, 1) !important;
+  will-change: transform !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  box-shadow: none !important;
+}
+
+html body #root .admin-panel-shell.admin-sidebar-open .admin-sidebar {
+  transform: translateX(0) !important;
+}
+
+html body #root .admin-panel-shell .admin-panel-main {
+  grid-column: 2 !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  position: relative !important;
+  z-index: 1 !important;
+  transform: none !important;
+}
+
+html body #root .admin-panel-main,
+html body #root .admin-panel-stack,
+html body #root .admin-management-grid,
+html body #root .admin-table-card,
+html body #root .admin-table-wrapper,
+html body #root .admin-panel-main .table-container {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+html body #root .admin-table-wrapper,
+html body #root .admin-panel-main .table-container {
+  overflow-x: auto !important;
+}
+
+/* Keep the hamburger visible and white in closed/inactive state. */
+html body #root .sidebar-menu-toggle,
+html body #root .admin-sidebar-menu-toggle {
+  z-index: 50 !important;
+  color: #ffffff !important;
+}
+
+html body #root .sidebar-menu-toggle span,
+html body #root .admin-sidebar-menu-toggle span {
+  background: #ffffff !important;
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+@media (max-width: 768px) {
+  html body #root .app.app-main-shell.main-dashboard-with-sidebar {
+    --sidebar-width: min(240px, 72vw);
+  }
+
+  html body #root .admin-panel-shell {
+    --admin-sidebar-width: min(240px, 72vw);
+  }
+
+  html body #root .top-about-link,
+  html body #root .admin-preview-link {
+    max-width: 100% !important;
+  }
+}

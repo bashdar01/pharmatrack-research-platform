@@ -6955,21 +6955,6 @@ export default function App() {
 
       </aside>
 
-      <div
-        className={`sidebar-backdrop no-print ${sidebarOpen ? 'open' : ''}`}
-        aria-label="Close navigation"
-        aria-hidden={!sidebarOpen}
-        role="button"
-        tabIndex={sidebarOpen ? 0 : -1}
-        onClick={() => setSidebarOpen(false)}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault()
-            setSidebarOpen(false)
-          }
-        }}
-      />
-
       <div className="main-workspace">
         <header className="main-compact-header no-print">
           <div className="main-compact-left">
@@ -8180,21 +8165,6 @@ function AdminControlPanel({
         </nav>
         <button className="admin-logout" onClick={onLogout}><LogOut size={16} /> Logout</button>
       </aside>
-
-      <div
-        className={`admin-sidebar-backdrop no-print ${adminSidebarOpen ? 'open' : ''}`}
-        aria-label="Close admin navigation"
-        aria-hidden={!adminSidebarOpen}
-        role="button"
-        tabIndex={adminSidebarOpen ? 0 : -1}
-        onClick={() => setAdminSidebarOpen(false)}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault()
-            setAdminSidebarOpen(false)
-          }
-        }}
-      />
 
       <main className="admin-panel-main">
         <header className="admin-panel-topbar no-print">
