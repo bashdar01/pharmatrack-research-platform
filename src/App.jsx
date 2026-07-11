@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  Bell,
+  Inbox,
   BookOpen,
   CalendarDays,
   CheckCircle2,
@@ -833,6 +833,7 @@ const emptyData = {
   studentQuestions: [],
   groupJoinRequests: [],
   groupMembers: [],
+  meetingRequests: [],
 }
 
 const sampleNames = ['Aveen Mohammed', 'Hemn Karim', 'Dr. Lara Ahmed', 'Dr. Rebaz Hassan', 'College Admin']
@@ -857,6 +858,7 @@ function cleanData(data) {
   cleaned.invitations = cleaned.invitations || []
   cleaned.studentQuestions = cleaned.studentQuestions || []
   cleaned.groupJoinRequests = cleaned.groupJoinRequests || []
+  cleaned.meetingRequests = cleaned.meetingRequests || []
   return cleaned
 }
 
@@ -2114,6 +2116,129 @@ function notificationForUser(notification, user, role) {
   return false
 }
 
+const MEETING_STATUS_LABELS = {
+  pending: 'Pending',
+  accepted: 'Accepted',
+  rejected: 'Rejected',
+  reschedule_proposed: 'Different Time Proposed',
+  cancelled: 'Cancelled',
+  completed: 'Completed',
+}
+
+function normalizeMeetingStatus(status = '') {
+  const value = String(status || 'pending').trim().toLowerCase().replace(/\s+/g, '_')
+  return MEETING_STATUS_LABELS[value] ? value : 'pending'
+}
+
+function getMeetingStatusLabel(status = '') {
+  return MEETING_STATUS_LABELS[normalizeMeetingStatus(status)] || 'Pending'
+}
+
+function profileMatchesUser(profile = {}, user = {}) {
+  if (!profile || !user) return false
+  return (
+    (!!profile.id && !!user.id && String(profile.id) === String(user.id)) ||
+    (!!profile.email && !!user.email && normalizeText(profile.email) === normalizeText(user.email)) ||
+    (!!profile.full_name && !!user.full_name && normalizeText(profile.full_name) === normalizeText(user.full_name))
+  )
+}
+
+function meetingParticipantMatches(row = {}, user = {}, keys = []) {
+  if (!row || !user) return false
+  const ids = keys.map((key) => row[`${key}_id`]).filter(Boolean).map(String)
+  const emails = keys.map((key) => row[`${key}_email`]).filter(Boolean).map(normalizeText)
+  return (
+    (!!user.id && ids.includes(String(user.id))) ||
+    (!!user.email && emails.includes(normalizeText(user.email)))
+  )
+}
+
+function getAssignedMeetingSupervisorForStudent(data = {}, studentUser = {}) {
+  const studentProfile = findProfileForUser(data, studentUser) || studentUser
+  if (!studentProfile) return null
+  const profileSupervisor = (data.profiles || []).find((profile) =>
+    profile.role === 'supervisor' && isStudentAssignedToSupervisorProfile(studentProfile, profile)
+  )
+  if (profileSupervisor) return profileSupervisor
+
+  const currentGroup = getStudentCurrentResearchGroup(data, studentProfile)
+  const groupSupervisor = currentGroup ? findSupervisorProfileForProject(data, currentGroup) : null
+  if (groupSupervisor) return groupSupervisor
+
+  const memberProject = (data.projects || []).find((project) =>
+    getResearchGroupMemberProfiles(data, project).some((member) => profileMatchesUser(member, studentProfile)) ||
+    isOwnStudentProject(project, studentProfile)
+  )
+  return memberProject ? findSupervisorProfileForProject(data, memberProject) : null
+}
+
+function getMeetingStudentsForSupervisor(data = {}, supervisorUser = {}) {
+  const supervisorProfile = findProfileForUser(data, supervisorUser) || supervisorUser
+  const assignedProjects = getVisibleProjects(data.projects || [], 'supervisor', supervisorProfile, data)
+  return mergeStudentOptions(
+    getDirectAssignedStudentsForSupervisor(data, supervisorProfile),
+    getAssignedSupervisorStudents(data, assignedProjects, data.reports || [])
+  )
+}
+
+function getMeetingStudentProfile(data = {}, studentOption = {}) {
+  return findProfileByIdentity(data, {
+    id: studentOption.id,
+    email: studentOption.email,
+    submitted_by: studentOption.name,
+    name: studentOption.name,
+  }) || {
+    id: studentOption.id || null,
+    email: studentOption.email || '',
+    full_name: studentOption.name || studentOption.email || 'Student',
+    role: 'student',
+  }
+}
+
+function canUsersRequestMeeting(data = {}, requester = {}, recipient = {}) {
+  if (!requester || !recipient) return false
+  if (requester.id && recipient.id && String(requester.id) === String(recipient.id)) return false
+  const requesterRole = normalizeText(requester.role)
+  const recipientRole = normalizeText(recipient.role)
+  if (requesterRole === 'student' && recipientRole === 'supervisor') {
+    const supervisor = getAssignedMeetingSupervisorForStudent(data, requester)
+    return Boolean(supervisor && profileMatchesUser(supervisor, recipient))
+  }
+  if (requesterRole === 'supervisor' && recipientRole === 'student') {
+    const allowedStudents = getMeetingStudentsForSupervisor(data, requester)
+    return allowedStudents.some((student) => profileMatchesUser(getMeetingStudentProfile(data, student), recipient))
+  }
+  return false
+}
+
+function meetingVisibleToUser(meeting = {}, user = {}) {
+  if (!meeting || !user) return false
+  return meetingParticipantMatches(meeting, user, ['requester', 'recipient', 'student', 'supervisor'])
+}
+
+function getMeetingsForUser(data = {}, user = {}) {
+  return (data.meetingRequests || [])
+    .filter((meeting) => meetingVisibleToUser(meeting, user))
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+}
+
+function formatMeetingDateTime(date, time) {
+  const dateText = date ? new Date(`${date}T00:00:00`).toLocaleDateString() : 'Date not set'
+  return `${dateText}${time ? ` at ${time}` : ''}`
+}
+
+function getMeetingOtherParticipant(meeting = {}, currentUser = {}, data = {}) {
+  const currentIsRequester = meetingParticipantMatches(meeting, currentUser, ['requester'])
+  const id = currentIsRequester ? meeting.recipient_id : meeting.requester_id
+  const email = currentIsRequester ? meeting.recipient_email : meeting.requester_email
+  return findProfileByIdentity(data, { id, email }) || {
+    id,
+    email,
+    full_name: currentIsRequester ? (meeting.recipient_name || 'Recipient') : (meeting.requester_name || 'Requester'),
+    role: currentIsRequester ? meeting.recipient_role : meeting.requester_role,
+  }
+}
+
 function Pill({ children, tone = 'slate', className = '' }) {
   return <span className={`pill ${tone} ${className}`.trim()}>{children}</span>
 }
@@ -2693,6 +2818,14 @@ export default function App() {
         groupMembersData = []
       }
 
+      let meetingRequestsData = []
+      try {
+        const meetingRequests = await supabase.from('meeting_requests').select('*').order('created_at', { ascending: false })
+        if (!meetingRequests.error) meetingRequestsData = meetingRequests.data || []
+      } catch {
+        meetingRequestsData = []
+      }
+
       const freshProfile = (profiles.data || []).find((profile) =>
         (!!userOverride?.id && String(profile.id) === String(userOverride.id)) ||
         (!!userOverride?.email && normalizeText(profile.email) === normalizeText(userOverride.email))
@@ -2728,6 +2861,7 @@ export default function App() {
         studentQuestions: studentQuestionsData,
         groupJoinRequests: groupJoinRequestsData,
         groupMembers: groupMembersData,
+        meetingRequests: meetingRequestsData,
       }))
     } catch (error) {
       setDataLoadError(error.message || 'Unknown database error')
@@ -5880,8 +6014,8 @@ export default function App() {
 
   async function createNotification(form) {
     if (!form.title.trim() || !form.message.trim()) {
-      setMessage('Please write notification title and message.')
-      return { ok: false, error: 'Please write notification title and message.' }
+      setMessage('Please write inbox message title and message.')
+      return { ok: false, error: 'Please write inbox message title and message.' }
     }
     const note = { id: crypto.randomUUID(), title: form.title, message: form.message, type: form.type, target_role: form.target_role, is_read: false, created_at: new Date().toISOString() }
     if (isSupabaseConfigured) {
@@ -5891,14 +6025,291 @@ export default function App() {
         setMessage(error.message)
         return { ok: false, error: error.message }
       }
-      await addAudit(currentUser.full_name, 'created', 'notification/reminder')
+      await addAudit(currentUser.full_name, 'created', 'inbox/reminder')
       await loadFromSupabase()
     } else {
-      const log = makeAudit(currentUser.full_name, 'created', 'notification/reminder')
+      const log = makeAudit(currentUser.full_name, 'created', 'inbox/reminder')
       setLocal((current) => ({ ...current, notifications: [note, ...current.notifications], auditLogs: [log, ...current.auditLogs] }))
     }
-    setMessage('Notification created.')
+    setMessage('Inbox message created.')
     return { ok: true, notification: note }
+  }
+
+  async function sendMeetingRequestEmail(kind, meetingId, status = '') {
+    if (!isSupabaseConfigured || !supabase?.functions?.invoke) return { ok: false, error: 'Email sending requires Supabase Edge Functions.' }
+    const { data: result, error } = await supabase.functions.invoke('send-platform-email', {
+      body: {
+        kind,
+        meetingId,
+        status,
+        appUrl: typeof window !== 'undefined' ? window.location.origin : '',
+      },
+    })
+    if (error) throw new Error(error.message || 'Meeting email could not be sent.')
+    if (result?.error) throw new Error(result.error)
+    return { ok: true, result }
+  }
+
+  async function createMeetingInboxNotification({ recipient, sender, meeting, title, message }) {
+    if (!recipient || !meeting) return { ok: false }
+    const note = {
+      id: crypto.randomUUID(),
+      profile_id: recipient.id || null,
+      recipient_user_id: recipient.id || null,
+      recipient_email: recipient.email || '',
+      sender_user_id: sender?.id || null,
+      project_id: meeting.project_id || null,
+      notification_type: `meeting_request_${meeting.id}_${String(title || 'update').toLowerCase().replace(/[^a-z0-9]+/g, '_')}`,
+      title,
+      message,
+      type: 'Meeting Request',
+      target_role: recipient.role || 'all',
+      is_read: false,
+      created_at: new Date().toISOString(),
+    }
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.from('notifications').insert(note)
+      if (error) return { ok: false, error: error.message }
+      return { ok: true, notification: note }
+    }
+    return { ok: true, notification: note }
+  }
+
+  async function createMeetingRequest(form) {
+    const actionUser = activeRoleUser || currentUser
+    const requester = findProfileForUser(data, actionUser) || actionUser
+    if (!['student', 'supervisor'].includes(requester?.role)) {
+      setMessage('Only students and supervisors can request meetings.')
+      return { ok: false }
+    }
+    const title = String(form.title || '').trim()
+    const purpose = String(form.purpose || '').trim()
+    const requestedDate = form.requested_date || ''
+    const requestedStartTime = form.requested_start_time || ''
+    if (!title || !purpose || !requestedDate || !requestedStartTime) {
+      setMessage('Please add a title, purpose, date, and start time.')
+      return { ok: false }
+    }
+
+    let recipient = null
+    let student = null
+    let supervisor = null
+    if (requester.role === 'student') {
+      student = requester
+      supervisor = getAssignedMeetingSupervisorForStudent(data, requester)
+      recipient = supervisor
+      if (!supervisor) {
+        setMessage('You must have an assigned supervisor before requesting a meeting.')
+        return { ok: false }
+      }
+    } else {
+      supervisor = requester
+      const allowedStudents = getMeetingStudentsForSupervisor(data, requester)
+      const selectedStudent = allowedStudents.find((item) => String(item.id || '') === String(form.student_id || '') || normalizeText(item.email) === normalizeText(form.student_email))
+      if (!selectedStudent) {
+        setMessage('You currently have no assigned students available for meeting requests.')
+        return { ok: false }
+      }
+      student = getMeetingStudentProfile(data, selectedStudent)
+      recipient = student
+    }
+
+    if (!canUsersRequestMeeting(data, requester, recipient)) {
+      setMessage('You can only request meetings with users assigned to you.')
+      return { ok: false }
+    }
+
+    const duplicate = (data.meetingRequests || []).find((meeting) =>
+      normalizeMeetingStatus(meeting.status) === 'pending' &&
+      String(meeting.requester_id || '') === String(requester.id || '') &&
+      String(meeting.recipient_id || '') === String(recipient.id || '') &&
+      String(meeting.requested_date || '') === String(requestedDate) &&
+      String(meeting.requested_start_time || '') === String(requestedStartTime)
+    )
+    if (duplicate) {
+      setMessage('A pending meeting request with the same person, date, and time already exists.')
+      return { ok: false }
+    }
+
+    const relatedProject = requester.role === 'student'
+      ? getStudentCurrentResearchGroup(data, requester)
+      : getVisibleProjects(data.projects || [], 'supervisor', requester, data).find((project) => getResearchGroupMemberProfiles(data, project).some((member) => profileMatchesUser(member, student)) || isOwnStudentProject(project, student))
+
+    const now = new Date().toISOString()
+    const meeting = {
+      id: crypto.randomUUID(),
+      requester_id: requester.id || null,
+      requester_email: requester.email || '',
+      requester_name: requester.full_name || requester.email || 'Requester',
+      requester_role: requester.role || '',
+      recipient_id: recipient.id || null,
+      recipient_email: recipient.email || '',
+      recipient_name: recipient.full_name || recipient.email || 'Recipient',
+      recipient_role: recipient.role || '',
+      student_id: student?.id || null,
+      student_email: student?.email || '',
+      supervisor_id: supervisor?.id || null,
+      supervisor_email: supervisor?.email || '',
+      project_id: relatedProject?.id || null,
+      group_id: relatedProject?.group_id || relatedProject?.id || null,
+      title,
+      purpose,
+      requested_date: requestedDate,
+      requested_start_time: requestedStartTime,
+      duration_minutes: Number(form.duration_minutes || 30),
+      meeting_type: form.meeting_type || 'In Person',
+      location: String(form.location || '').trim(),
+      meeting_link: String(form.meeting_link || '').trim(),
+      notes: String(form.notes || '').trim(),
+      status: 'pending',
+      response_note: '',
+      proposed_date: null,
+      proposed_start_time: null,
+      created_at: now,
+      updated_at: now,
+      responded_at: null,
+      cancelled_at: null,
+    }
+
+    let savedMeeting = meeting
+    let emailFailed = false
+    if (isSupabaseConfigured) {
+      const { id, ...meetingForDb } = meeting
+      const { data: inserted, error } = await supabase.from('meeting_requests').insert(meetingForDb).select().single()
+      if (error) {
+        setMessage(error.message || 'Could not save meeting request. Run the meeting requests SQL migration first.')
+        return { ok: false, error: error.message }
+      }
+      savedMeeting = inserted || meeting
+      await createMeetingInboxNotification({
+        recipient,
+        sender: requester,
+        meeting: savedMeeting,
+        title: 'New Meeting Request',
+        message: 'You have received a new meeting request.',
+      })
+      try {
+        await sendMeetingRequestEmail('meeting_request_sent', savedMeeting.id, 'pending')
+      } catch (error) {
+        console.warn('Meeting request email failed:', error)
+        emailFailed = true
+      }
+      await loadFromSupabase(currentUser)
+    } else {
+      const notice = { id: crypto.randomUUID(), profile_id: recipient.id || null, recipient_user_id: recipient.id || null, recipient_email: recipient.email || '', sender_user_id: requester.id || null, project_id: meeting.project_id || null, notification_type: `meeting_request_${meeting.id}_sent`, title: 'New Meeting Request', message: 'You have received a new meeting request.', type: 'Meeting Request', target_role: recipient.role || 'all', is_read: false, created_at: now }
+      setLocal((current) => ({ ...current, meetingRequests: [meeting, ...(current.meetingRequests || [])], notifications: [notice, ...(current.notifications || [])] }))
+    }
+    setMessage(emailFailed ? 'Meeting request saved, but the email notification could not be sent.' : 'Meeting request sent.')
+    return { ok: true, meeting: savedMeeting }
+  }
+
+  async function respondMeetingRequest(meetingId, action, form = {}) {
+    const actionUser = activeRoleUser || currentUser
+    const actor = findProfileForUser(data, actionUser) || actionUser
+    const meeting = (data.meetingRequests || []).find((item) => String(item.id) === String(meetingId))
+    if (!meeting) {
+      setMessage('Meeting request not found.')
+      return { ok: false }
+    }
+    const status = normalizeMeetingStatus(meeting.status)
+    const isRequester = meetingParticipantMatches(meeting, actor, ['requester'])
+    const isRecipient = meetingParticipantMatches(meeting, actor, ['recipient'])
+    if (!isRequester && !isRecipient) {
+      setMessage('You can only respond to your own meeting requests.')
+      return { ok: false }
+    }
+
+    const now = new Date().toISOString()
+    const updates = { updated_at: now }
+    let noticeTitle = 'Meeting Request Updated'
+    let noticeMessage = 'Your meeting request has been updated.'
+    let emailKind = 'meeting_request_updated'
+
+    if (action === 'accept') {
+      if (!((status === 'pending' && isRecipient) || (status === 'reschedule_proposed' && isRequester))) {
+        setMessage('This meeting request cannot be accepted by this user.')
+        return { ok: false }
+      }
+      updates.status = 'accepted'
+      updates.responded_at = now
+      updates.response_note = String(form.response_note || '').trim()
+      if (status === 'reschedule_proposed' && meeting.proposed_date && meeting.proposed_start_time) {
+        updates.requested_date = meeting.proposed_date
+        updates.requested_start_time = meeting.proposed_start_time
+      }
+      noticeTitle = 'Meeting Request Accepted'
+      noticeMessage = 'Your meeting request has been accepted.'
+      emailKind = 'meeting_request_accepted'
+    } else if (action === 'reject') {
+      if (!((status === 'pending' && isRecipient) || (status === 'reschedule_proposed' && isRequester))) {
+        setMessage('This meeting request cannot be rejected by this user.')
+        return { ok: false }
+      }
+      updates.status = 'rejected'
+      updates.responded_at = now
+      updates.response_note = String(form.response_note || '').trim()
+      noticeTitle = 'Meeting Request Rejected'
+      noticeMessage = 'Your meeting request has been rejected.'
+      emailKind = 'meeting_request_rejected'
+    } else if (action === 'reschedule') {
+      if (!(status === 'pending' && isRecipient)) {
+        setMessage('Only the recipient can propose a different time for a pending meeting request.')
+        return { ok: false }
+      }
+      if (!form.proposed_date || !form.proposed_start_time) {
+        setMessage('Please choose the proposed date and time.')
+        return { ok: false }
+      }
+      updates.status = 'reschedule_proposed'
+      updates.proposed_date = form.proposed_date
+      updates.proposed_start_time = form.proposed_start_time
+      updates.response_note = String(form.response_note || '').trim()
+      updates.responded_at = now
+      noticeTitle = 'Different Meeting Time Proposed'
+      noticeMessage = 'A different meeting time has been proposed.'
+      emailKind = 'meeting_request_reschedule_proposed'
+    } else if (action === 'cancel') {
+      if (!['pending', 'accepted', 'reschedule_proposed'].includes(status)) {
+        setMessage('This meeting request is already closed.')
+        return { ok: false }
+      }
+      updates.status = 'cancelled'
+      updates.cancelled_at = now
+      updates.response_note = String(form.response_note || '').trim()
+      noticeTitle = 'Meeting Cancelled'
+      noticeMessage = 'The meeting has been cancelled.'
+      emailKind = 'meeting_request_cancelled'
+    } else {
+      setMessage('Unknown meeting action.')
+      return { ok: false }
+    }
+
+    let emailFailed = false
+    const otherParticipant = getMeetingOtherParticipant(meeting, actor, data)
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.from('meeting_requests').update(updates).eq('id', meeting.id)
+      if (error) {
+        setMessage(error.message || 'Could not update meeting request.')
+        return { ok: false, error: error.message }
+      }
+      await createMeetingInboxNotification({ recipient: otherParticipant, sender: actor, meeting, title: noticeTitle, message: noticeMessage })
+      try {
+        await sendMeetingRequestEmail(emailKind, meeting.id, updates.status)
+      } catch (error) {
+        console.warn('Meeting response email failed:', error)
+        emailFailed = true
+      }
+      await loadFromSupabase(currentUser)
+    } else {
+      const notice = { id: crypto.randomUUID(), profile_id: otherParticipant.id || null, recipient_user_id: otherParticipant.id || null, recipient_email: otherParticipant.email || '', sender_user_id: actor.id || null, project_id: meeting.project_id || null, notification_type: `meeting_request_${meeting.id}_${action}_${now}`, title: noticeTitle, message: noticeMessage, type: 'Meeting Request', target_role: otherParticipant.role || 'all', is_read: false, created_at: now }
+      setLocal((current) => ({
+        ...current,
+        meetingRequests: (current.meetingRequests || []).map((item) => String(item.id) === String(meeting.id) ? { ...item, ...updates } : item),
+        notifications: [notice, ...(current.notifications || [])],
+      }))
+    }
+    setMessage(emailFailed ? 'Meeting request updated, but the email notification could not be sent.' : 'Meeting request updated.')
+    return { ok: true }
   }
 
   async function createDeadline(form) {
@@ -6079,11 +6490,11 @@ export default function App() {
   async function removeNotification(id) {
     const target = data.notifications.find((notification) => String(notification.id) === String(id))
     if (!target) {
-      setMessage('Notification not found.')
-      return { ok: false, error: 'Notification not found.' }
+      setMessage('Inbox message not found.')
+      return { ok: false, error: 'Inbox message not found.' }
     }
     if (!notificationForUser(target, currentUser, allowedRole) && allowedRole !== 'admin') {
-      const error = 'You do not have permission to remove this notification.'
+      const error = 'You do not have permission to delete this inbox message.'
       setMessage(error)
       return { ok: false, error }
     }
@@ -6091,7 +6502,7 @@ export default function App() {
     if (isSupabaseConfigured) {
       const { error } = await supabase.from('notifications').delete().eq('id', id)
       if (error) {
-        const errorMessage = error.message || 'Notification could not be removed.'
+        const errorMessage = error.message || 'Inbox message could not be deleted.'
         setMessage(errorMessage)
         return { ok: false, error: errorMessage }
       }
@@ -6102,7 +6513,7 @@ export default function App() {
         notifications: (current.notifications || []).filter((notification) => String(notification.id) !== String(id)),
       }))
     }
-    setMessage('Notification removed successfully.')
+    setMessage('Inbox message deleted successfully.')
     return { ok: true }
   }
 
@@ -6497,6 +6908,7 @@ export default function App() {
     { id: 'dashboard', label: allowedRole === 'admin' ? 'Admin Dashboard' : 'Dashboard', icon: LayoutDashboard, show: true },
     { id: 'project-management', label: 'Project Management', icon: ClipboardCheck, show: allowedRole === 'supervisor' },
     { id: 'questions', label: allowedRole === 'supervisor' ? 'Student Questions' : 'Questions', icon: MessageSquareText, show: allowedRole === 'student' || allowedRole === 'supervisor' },
+    { id: 'meetings', label: 'Meeting Requests', icon: CalendarDays, show: allowedRole === 'student' || allowedRole === 'supervisor' },
     { id: 'join-group', label: 'Join Research Group', icon: Users, show: allowedRole === 'student' && !studentCurrentResearchGroup },
     { id: 'groups', label: 'Research Groups', icon: Users, show: allowedRole === 'supervisor' },
     { id: 'group-requests', label: 'Group Requests', icon: Users, show: allowedRole === 'admin' || allowedRole === 'committee' },
@@ -6641,13 +7053,14 @@ export default function App() {
         {tab === 'profile-settings' && <ProfileSettingsPage currentUser={currentUser} onBack={() => setTab('dashboard')} updateOwnProfile={updateOwnProfile} uploadOwnProfilePhoto={uploadOwnProfilePhoto} updateOwnPassword={updateOwnPassword} />}
         {tab === 'questions' && allowedRole === 'student' && roleContextReady && <StudentQuestionsTab data={data} currentUser={activeRoleUser} dataLoading={dataLoading} submitStudentQuestion={submitStudentQuestion} openQuestionAttachment={openQuestionAttachment} />}
         {tab === 'questions' && allowedRole === 'supervisor' && roleContextReady && <SupervisorQuestionsTab data={data} currentUser={activeRoleUser} dataLoading={dataLoading} answerStudentQuestion={answerStudentQuestion} openQuestionAttachment={openQuestionAttachment} />}
+        {tab === 'meetings' && (allowedRole === 'student' || allowedRole === 'supervisor') && roleContextReady && <MeetingRequestsPage data={data} role={allowedRole} currentUser={activeRoleUser} dataLoading={dataLoading} createMeetingRequest={createMeetingRequest} respondMeetingRequest={respondMeetingRequest} />}
         {tab === 'project-management' && allowedRole === 'supervisor' && roleContextReady && <SupervisorProjectManagementTab data={visibleData} projects={filteredProjects} currentUser={activeRoleUser} dataLoading={dataLoading} createProject={createProject} assignProjectLeader={assignProjectLeader} />}
         {tab === 'join-group' && allowedRole === 'student' && roleContextReady && !studentCurrentResearchGroup && <StudentJoinResearchGroupTab data={data} currentUser={activeRoleUser} dataLoading={dataLoading} submitGroupJoinRequest={submitGroupJoinRequest} />}
         {tab === 'groups' && allowedRole === 'supervisor' && roleContextReady && <SupervisorResearchGroupManagementTab data={data} currentUser={activeRoleUser} dataLoading={dataLoading} supervisorAddStudentsToGroup={supervisorAddStudentsToGroup} decideGroupJoinRequest={decideGroupJoinRequest} />}
         {tab === 'group-requests' && (allowedRole === 'admin' || allowedRole === 'committee') && <AdminGroupJoinRequestsTab data={data} currentUser={currentUser} dataLoading={dataLoading} decideGroupJoinRequest={decideGroupJoinRequest} directAddStudentsToGroup={directAddStudentsToGroup} />}
         {tab === 'reports' && <ReportsTab data={data} projects={filteredProjects} currentUser={activeRoleUser} role={allowedRole} printPdfReport={printPdfReport} exportCsv={exportCsv} pdfReportSettings={getPdfReportSettingsForRole(allowedRole, pdfReportSettingsByRole, pdfReportSettings)} dataLoading={dataLoading} />}
         {tab === 'database' && allowedRole === 'admin' && <DatabaseTab databaseMode={databaseMode} />}
-        {tab === 'database' && allowedRole !== 'admin' && <div className="card"><SectionHeader icon={Lock} title="Database Access Locked" subtitle="Only Admin accounts can view database status" /><p className="muted">Please use your role dashboard, notifications, or reports page.</p></div>}
+        {tab === 'database' && allowedRole !== 'admin' && <div className="card"><SectionHeader icon={Lock} title="Database Access Locked" subtitle="Only Admin accounts can view database status" /><p className="muted">Please use your role dashboard, inbox, or reports page.</p></div>}
         {tab === 'audit' && allowedRole === 'admin' && <AuditTab logs={visibleData.auditLogs} dataLoading={dataLoading} />}
         </main>
       </div>
@@ -7115,6 +7528,25 @@ function RoleSwitchDropdown({ activeRole, mode = 'committee', onChange }) {
   )
 }
 
+function InboxTrayIcon({ size = 20, className = '' }) {
+  return (
+    <svg
+      className={className}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M4.5 4.5h15l2 9.5v3.5a2 2 0 0 1-2 2h-15a2 2 0 0 1-2-2V14l2-9.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 14h5.2a1.6 1.6 0 0 1 1.35.75l.9 1.5a1.6 1.6 0 0 0 1.35.75h.4a1.6 1.6 0 0 0 1.35-.75l.9-1.5A1.6 1.6 0 0 1 15.8 14H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8 9h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 function NotificationBellMenu({ data, role, currentUser, dataLoading = false, unreadCount = 0, markNotificationRead, removeNotification }) {
   const [open, setOpen] = useState(false)
   const [removingNotificationId, setRemovingNotificationId] = useState('')
@@ -7154,7 +7586,7 @@ function NotificationBellMenu({ data, role, currentUser, dataLoading = false, un
 
   async function handleRemove(notificationId) {
     if (!removeNotification || removingNotificationId) return
-    if (!window.confirm('Are you sure you want to remove this notification?')) return
+    if (!window.confirm('Are you sure you want to delete this inbox message?')) return
     setRemovingNotificationId(notificationId)
     try {
       await removeNotification(notificationId)
@@ -7166,20 +7598,20 @@ function NotificationBellMenu({ data, role, currentUser, dataLoading = false, un
   return (
     <div className={`notification-bell-menu ${open ? 'open' : ''}`} ref={wrapperRef}>
       <button
-        className={`main-notification-button ${open ? 'active' : ''}`}
+        className={`main-notification-button header-inbox-button inbox-button ${open ? 'active' : ''}`}
         type="button"
         onClick={() => setOpen((current) => !current)}
-        aria-label="Open alerts"
+        aria-label="Open inbox"
         aria-expanded={open}
       >
-        <Bell size={20} />
-        {unreadCount > 0 && <span>{unreadCount}</span>}
+        <strong className="inbox-button-label">Inbox</strong>
+        {unreadCount > 0 && <span className="inbox-unread-count notification-badge">{unreadCount}</span>}
       </button>
 
-      <div className="notification-popover" role="dialog" aria-label="Recent updates">
+      <div className="notification-popover" role="dialog" aria-label="Inbox">
         <div className="notification-popover-head">
           <div>
-            <b>Updates</b>
+            <b>Inbox</b>
             <small>{unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}</small>
           </div>
           <span
@@ -7193,13 +7625,13 @@ function NotificationBellMenu({ data, role, currentUser, dataLoading = false, un
                 setOpen(false)
               }
             }}
-            aria-label="Close updates"
+            aria-label="Close inbox"
           >×</span>
         </div>
 
         <div className="notification-popover-list">
           {dataLoading ? (
-            <div className="notification-popover-state">Loading notifications...</div>
+            <div className="notification-popover-state">Loading inbox messages...</div>
           ) : visibleNotifications.length ? visibleNotifications.map((notification) => {
             const removing = String(removingNotificationId) === String(notification.id)
             const reading = String(readingNotificationId) === String(notification.id)
@@ -7230,17 +7662,17 @@ function NotificationBellMenu({ data, role, currentUser, dataLoading = false, un
                 <div className="notification-popover-actions">
                   {!notification.is_read && (
                     <button type="button" className="notification-read-button" onClick={() => handleMarkRead(notification.id)} disabled={reading || removing}>
-                      <ButtonContent loading={reading} loadingText="Saving...">Read</ButtonContent>
+                      <ButtonContent loading={reading} loadingText="Saving...">Mark read</ButtonContent>
                     </button>
                   )}
-                  <button type="button" className="danger ghost-icon-button notification-delete-button" onClick={() => handleRemove(notification.id)} disabled={removing} aria-label="Remove update">
+                  <button type="button" className="danger ghost-icon-button notification-delete-button" onClick={() => handleRemove(notification.id)} disabled={removing} aria-label="Delete inbox message">
                     <ButtonContent loading={removing} loadingText="..."><Trash2 size={14} /></ButtonContent>
                   </button>
                 </div>
               </article>
             )
           }) : (
-            <div className="notification-popover-state">No notifications.</div>
+            <div className="notification-popover-state">No inbox messages.</div>
           )}
         </div>
       </div>
@@ -7587,7 +8019,7 @@ function AdminControlPanel({
     { id: 'dual-roles', label: 'Dual Role Management', icon: ShieldCheck },
     { id: 'invitations', label: 'Invite Users', icon: Mail },
     { id: 'deadlines', label: 'Deadlines', icon: CalendarDays },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'notifications', label: 'Inbox', icon: Inbox },
     { id: 'group-requests', label: 'Group Join Requests', icon: Users },
     { id: 'database', label: 'Database', icon: Database },
     { id: 'audit', label: 'Audit Log', icon: ShieldCheck },
@@ -7773,7 +8205,7 @@ function AdminControlPanel({
           </button>
           <div>
             <p className="eyebrow"><UserCog size={16} /> Admin subdomain</p>
-            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'about-us' ? 'About Us Customization' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'supervisors' ? 'Supervisor Management' : adminPanelTab === 'dual-roles' ? 'Dual Role Management' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Notifications' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'pdf-report' ? 'PDF Report Customization' : adminPanelTab === 'group-requests' ? 'Group Join Requests' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : adminPanelTab === 'profile-settings' ? 'Profile Settings' : 'Control Center'}</h1>
+            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'about-us' ? 'About Us Customization' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'supervisors' ? 'Supervisor Management' : adminPanelTab === 'dual-roles' ? 'Dual Role Management' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Inbox' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'pdf-report' ? 'PDF Report Customization' : adminPanelTab === 'group-requests' ? 'Group Join Requests' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : adminPanelTab === 'profile-settings' ? 'Profile Settings' : 'Control Center'}</h1>
             <p>{settings.adminWelcome}</p>
           </div>
           <div className="admin-topbar-actions">
@@ -8235,6 +8667,243 @@ function FilterBar({ filters, setFilters, projects }) {
         <button className="secondary" onClick={() => setFilters({ search: '', area: 'All', status: 'All' })}>Reset Filters</button>
       </div>
     </div>
+  )
+}
+
+function MeetingRequestsPage({ data = emptyData, role, currentUser, dataLoading = false, createMeetingRequest, respondMeetingRequest }) {
+  const [form, setForm] = useState({
+    title: '',
+    purpose: '',
+    requested_date: '',
+    requested_start_time: '',
+    duration_minutes: 30,
+    meeting_type: 'In Person',
+    location: '',
+    meeting_link: '',
+    notes: '',
+    student_id: '',
+    student_email: '',
+  })
+  const [responseDrafts, setResponseDrafts] = useState({})
+  const [busyKey, setBusyKey] = useState('')
+
+  const profile = findProfileForUser(data, currentUser) || currentUser
+  const meetings = getMeetingsForUser(data, profile)
+  const assignedSupervisor = role === 'student' ? getAssignedMeetingSupervisorForStudent(data, profile) : null
+  const supervisorStudents = role === 'supervisor' ? getMeetingStudentsForSupervisor(data, profile) : []
+  const incoming = meetings.filter((meeting) => {
+    const status = normalizeMeetingStatus(meeting.status)
+    const isRecipientPending = status === 'pending' && meetingParticipantMatches(meeting, profile, ['recipient'])
+    const isRequesterReschedule = status === 'reschedule_proposed' && meetingParticipantMatches(meeting, profile, ['requester'])
+    return isRecipientPending || isRequesterReschedule
+  })
+  const sent = meetings.filter((meeting) => {
+    const status = normalizeMeetingStatus(meeting.status)
+    return ['pending', 'reschedule_proposed'].includes(status) && meetingParticipantMatches(meeting, profile, ['requester'])
+  })
+  const upcoming = meetings.filter((meeting) => normalizeMeetingStatus(meeting.status) === 'accepted')
+  const closed = meetings.filter((meeting) => ['rejected', 'cancelled', 'completed'].includes(normalizeMeetingStatus(meeting.status)))
+
+  useEffect(() => {
+    if (role !== 'supervisor') return
+    if (form.student_id || form.student_email || !supervisorStudents.length) return
+    const first = supervisorStudents[0]
+    setForm((current) => ({ ...current, student_id: first.id || '', student_email: first.email || '' }))
+  }, [role, supervisorStudents, form.student_id, form.student_email])
+
+  function updateForm(key, value) {
+    setForm((current) => ({ ...current, [key]: value }))
+  }
+
+  function updateResponse(meetingId, key, value) {
+    setResponseDrafts((current) => ({
+      ...current,
+      [meetingId]: { ...(current[meetingId] || {}), [key]: value },
+    }))
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    if (!createMeetingRequest || busyKey) return
+    setBusyKey('send')
+    try {
+      const result = await createMeetingRequest(form)
+      if (result?.ok) {
+        setForm({
+          title: '',
+          purpose: '',
+          requested_date: '',
+          requested_start_time: '',
+          duration_minutes: 30,
+          meeting_type: 'In Person',
+          location: '',
+          meeting_link: '',
+          notes: '',
+          student_id: role === 'supervisor' ? (supervisorStudents[0]?.id || '') : '',
+          student_email: role === 'supervisor' ? (supervisorStudents[0]?.email || '') : '',
+        })
+      }
+    } finally {
+      setBusyKey('')
+    }
+  }
+
+  async function handleAction(meeting, action) {
+    if (!respondMeetingRequest || busyKey) return
+    const draft = responseDrafts[meeting.id] || {}
+    setBusyKey(`${action}-${meeting.id}`)
+    try {
+      await respondMeetingRequest(meeting.id, action, draft)
+    } finally {
+      setBusyKey('')
+    }
+  }
+
+  const cannotRequest = role === 'student' ? !assignedSupervisor : !supervisorStudents.length
+
+  return (
+    <div className="meeting-requests-page dashboard-grid">
+      <section className="card meeting-request-form-card">
+        <SectionHeader icon={CalendarDays} title="Request a Meeting" subtitle="Send a meeting request only to users assigned to you." />
+        {dataLoading ? <LoadingBlock text="Loading meeting permissions..." /> : cannotRequest ? (
+          <div className="meeting-info-box">
+            {role === 'student'
+              ? 'You must have an assigned supervisor before requesting a meeting.'
+              : 'You currently have no assigned students available for meeting requests.'}
+          </div>
+        ) : (
+          <form className="meeting-request-form" onSubmit={handleSubmit}>
+            {role === 'student' ? (
+              <div className="meeting-assigned-card">
+                <div className="meeting-assigned-avatar">{String(assignedSupervisor?.full_name || assignedSupervisor?.email || 'S').charAt(0).toUpperCase()}</div>
+                <div>
+                  <b>{assignedSupervisor?.full_name || assignedSupervisor?.email || 'Assigned Supervisor'}</b>
+                  <small>{assignedSupervisor?.department || assignedSupervisor?.program || assignedSupervisor?.email || 'Assigned supervisor'}</small>
+                </div>
+              </div>
+            ) : (
+              <label className="field wide-field">
+                <span>Student</span>
+                <select value={form.student_id || form.student_email} onChange={(event) => {
+                  const selected = supervisorStudents.find((student) => String(student.id || student.email) === String(event.target.value))
+                  updateForm('student_id', selected?.id || '')
+                  updateForm('student_email', selected?.email || '')
+                }}>
+                  {supervisorStudents.map((student) => (
+                    <option key={student.id || student.email || student.name} value={student.id || student.email}>{student.name || student.email} {student.email ? `— ${student.email}` : ''}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            <div className="form-grid two-cols">
+              <label className="field"><span>Meeting title</span><input value={form.title} onChange={(e) => updateForm('title', e.target.value)} placeholder="Example: Weekly progress discussion" /></label>
+              <label className="field"><span>Meeting type</span><select value={form.meeting_type} onChange={(e) => updateForm('meeting_type', e.target.value)}><option>In Person</option><option>Online</option></select></label>
+              <label className="field"><span>Requested date</span><input type="date" value={form.requested_date} onChange={(e) => updateForm('requested_date', e.target.value)} /></label>
+              <label className="field"><span>Start time</span><input type="time" value={form.requested_start_time} onChange={(e) => updateForm('requested_start_time', e.target.value)} /></label>
+              <label className="field"><span>Duration</span><select value={form.duration_minutes} onChange={(e) => updateForm('duration_minutes', e.target.value)}><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="45">45 minutes</option><option value="60">60 minutes</option></select></label>
+              <label className="field"><span>{form.meeting_type === 'Online' ? 'Online meeting link' : 'Location'}</span><input value={form.meeting_type === 'Online' ? form.meeting_link : form.location} onChange={(e) => updateForm(form.meeting_type === 'Online' ? 'meeting_link' : 'location', e.target.value)} placeholder={form.meeting_type === 'Online' ? 'Paste link if available' : 'Office, department, or room'} /></label>
+            </div>
+            <label className="field wide-field"><span>Purpose / reason</span><textarea value={form.purpose} onChange={(e) => updateForm('purpose', e.target.value)} placeholder="Explain why you want to meet." /></label>
+            <label className="field wide-field"><span>Notes optional</span><textarea value={form.notes} onChange={(e) => updateForm('notes', e.target.value)} placeholder="Any extra details." /></label>
+            <div className="action-row">
+              <button type="submit" className="primary meeting-primary-btn" disabled={busyKey === 'send'}>
+                <ButtonContent loading={busyKey === 'send'} loadingText="Sending..." icon={Send}>Send Meeting Request</ButtonContent>
+              </button>
+            </div>
+          </form>
+        )}
+      </section>
+
+      <section className="card meeting-section-card meeting-incoming-card">
+        <SectionHeader icon={Inbox} title="Incoming Requests" subtitle="Accept, reject, or suggest a different time." />
+        <MeetingRequestList meetings={incoming} currentUser={profile} data={data} emptyText="No incoming meeting requests." responseDrafts={responseDrafts} updateResponse={updateResponse} onAction={handleAction} busyKey={busyKey} mode="incoming" />
+      </section>
+
+      <section className="card meeting-section-card">
+        <SectionHeader icon={Send} title="Sent Requests" subtitle="Requests you sent that are waiting for a decision." />
+        <MeetingRequestList meetings={sent} currentUser={profile} data={data} emptyText="No sent meeting requests." responseDrafts={responseDrafts} updateResponse={updateResponse} onAction={handleAction} busyKey={busyKey} mode="sent" />
+      </section>
+
+      <section className="card meeting-section-card">
+        <SectionHeader icon={CheckCircle2} title="Upcoming Meetings" subtitle="Accepted meetings with confirmed details." />
+        <MeetingRequestList meetings={upcoming} currentUser={profile} data={data} emptyText="No upcoming meetings." responseDrafts={responseDrafts} updateResponse={updateResponse} onAction={handleAction} busyKey={busyKey} mode="upcoming" />
+      </section>
+
+      <section className="card meeting-section-card">
+        <SectionHeader icon={Clock} title="Previous / Closed Requests" subtitle="Rejected, cancelled, or completed requests remain here for history." />
+        <MeetingRequestList meetings={closed} currentUser={profile} data={data} emptyText="No previous meeting requests." responseDrafts={responseDrafts} updateResponse={updateResponse} onAction={handleAction} busyKey={busyKey} mode="closed" />
+      </section>
+    </div>
+  )
+}
+
+function MeetingRequestList({ meetings = [], currentUser, data = emptyData, emptyText = 'No meeting requests.', responseDrafts = {}, updateResponse, onAction, busyKey = '', mode = '' }) {
+  if (!meetings.length) return <EmptyState title={emptyText} text="Meeting records will appear here." icon={CalendarDays} />
+  return (
+    <div className="meeting-request-list">
+      {meetings.map((meeting) => (
+        <MeetingRequestCard key={meeting.id} meeting={meeting} currentUser={currentUser} data={data} draft={responseDrafts[meeting.id] || {}} updateResponse={updateResponse} onAction={onAction} busyKey={busyKey} mode={mode} />
+      ))}
+    </div>
+  )
+}
+
+function MeetingRequestCard({ meeting, currentUser, data, draft = {}, updateResponse, onAction, busyKey = '', mode = '' }) {
+  const status = normalizeMeetingStatus(meeting.status)
+  const other = getMeetingOtherParticipant(meeting, currentUser, data)
+  const isRequester = meetingParticipantMatches(meeting, currentUser, ['requester'])
+  const isRecipient = meetingParticipantMatches(meeting, currentUser, ['recipient'])
+  const canRecipientDecide = status === 'pending' && isRecipient
+  const canRequesterDecideProposal = status === 'reschedule_proposed' && isRequester
+  const canCancel = ['pending', 'accepted', 'reschedule_proposed'].includes(status) && (isRequester || isRecipient)
+  const busy = (action) => busyKey === `${action}-${meeting.id}`
+  return (
+    <article className={`meeting-request-card meeting-status-${status}`}>
+      <div className="meeting-card-head">
+        <div>
+          <h4>{meeting.title || 'Meeting request'}</h4>
+          <p className="muted small">With {other.full_name || other.email || 'Participant'} • {other.role ? getRoleLabel(other.role) : 'Participant'}</p>
+        </div>
+        <span className="meeting-status-badge">{getMeetingStatusLabel(status)}</span>
+      </div>
+      <div className="meeting-card-body">
+        <p><b>Purpose:</b> {meeting.purpose || 'No purpose provided.'}</p>
+        <p><b>Requested:</b> {formatMeetingDateTime(meeting.requested_date, meeting.requested_start_time)} {meeting.duration_minutes ? `• ${meeting.duration_minutes} min` : ''}</p>
+        {status === 'reschedule_proposed' && (meeting.proposed_date || meeting.proposed_start_time) && <p><b>Proposed time:</b> {formatMeetingDateTime(meeting.proposed_date, meeting.proposed_start_time)}</p>}
+        <p><b>Type:</b> {meeting.meeting_type || 'In Person'}{meeting.location ? ` • ${meeting.location}` : ''}{meeting.meeting_link ? ` • ${meeting.meeting_link}` : ''}</p>
+        {meeting.notes && <p><b>Notes:</b> {meeting.notes}</p>}
+        {meeting.response_note && <p><b>Response note:</b> {meeting.response_note}</p>}
+        <p className="muted small">Created: {String(meeting.created_at || '').slice(0, 16).replace('T', ' ') || 'Date unavailable'}</p>
+      </div>
+      {(canRecipientDecide || canRequesterDecideProposal || canCancel) && mode !== 'closed' && (
+        <div className="meeting-card-actions">
+          {(canRecipientDecide || canRequesterDecideProposal) && (
+            <>
+              <button type="button" className="meeting-accept-btn" onClick={() => onAction?.(meeting, 'accept')} disabled={busy('accept')}>
+                <ButtonContent loading={busy('accept')} loadingText="Accepting..." icon={CheckCircle2}>Accept</ButtonContent>
+              </button>
+              <button type="button" className="meeting-reject-btn" onClick={() => onAction?.(meeting, 'reject')} disabled={busy('reject')}>
+                <ButtonContent loading={busy('reject')} loadingText="Rejecting..." icon={XCircle}>Reject</ButtonContent>
+              </button>
+            </>
+          )}
+          {canRecipientDecide && (
+            <div className="meeting-reschedule-box">
+              <div className="form-grid two-cols compact">
+                <label className="field"><span>Different date</span><input type="date" value={draft.proposed_date || ''} onChange={(e) => updateResponse?.(meeting.id, 'proposed_date', e.target.value)} /></label>
+                <label className="field"><span>Different time</span><input type="time" value={draft.proposed_start_time || ''} onChange={(e) => updateResponse?.(meeting.id, 'proposed_start_time', e.target.value)} /></label>
+              </div>
+              <label className="field wide-field"><span>Response note optional</span><input value={draft.response_note || ''} onChange={(e) => updateResponse?.(meeting.id, 'response_note', e.target.value)} placeholder="Add a reason or note." /></label>
+              <button type="button" className="meeting-secondary-btn" onClick={() => onAction?.(meeting, 'reschedule')} disabled={busy('reschedule')}>
+                <ButtonContent loading={busy('reschedule')} loadingText="Sending..." icon={Clock}>Request a Different Time</ButtonContent>
+              </button>
+            </div>
+          )}
+          {canCancel && <button type="button" className="meeting-cancel-btn" onClick={() => onAction?.(meeting, 'cancel')} disabled={busy('cancel')}><ButtonContent loading={busy('cancel')} loadingText="Cancelling..." icon={XCircle}>Cancel</ButtonContent></button>}
+        </div>
+      )}
+    </article>
   )
 }
 
@@ -10725,7 +11394,7 @@ function NotificationsTab({ data, role, currentUser, dataLoading = false, create
 
   async function handleRemoveNotification(notificationId) {
     if (removingNotificationId) return
-    if (!window.confirm('Are you sure you want to remove this notification?')) return
+    if (!window.confirm('Are you sure you want to delete this inbox message?')) return
     setRemovingNotificationId(notificationId)
     try {
       await removeNotification(notificationId)
@@ -10756,12 +11425,12 @@ function NotificationsTab({ data, role, currentUser, dataLoading = false, create
     }
   }
 
-  if (dataLoading) return <LoadingBlock text="Loading notifications..." />
+  if (dataLoading) return <LoadingBlock text="Loading inbox messages..." />
 
   return (
     <div className="grid two-one">
       <div className="card">
-        <SectionHeader icon={Bell} title="Notifications and Reminders" subtitle="Deadline reminders and admin messages" />
+        <SectionHeader icon={Inbox} title="Inbox and Reminders" subtitle="Deadline reminders and admin messages" />
         <div className="notification-list">
           {data.deadlines.map((d) => <div className="mini-card reminder" key={d.id}><div className="split"><div><b>{d.title}</b><p>{d.deadline_type} deadline on {d.due_date}</p></div><Pill tone="blue">Deadline</Pill></div></div>)}
           {visibleNotifications.length ? visibleNotifications.map((n) => {
@@ -10783,22 +11452,22 @@ function NotificationsTab({ data, role, currentUser, dataLoading = false, create
                 </div>
               </div>
             )
-          }) : <EmptyState title="No custom notifications" text="Admin-created notifications will appear here." icon={Bell} />}
+          }) : <EmptyState title="No inbox messages" text="Admin-created inbox messages will appear here." icon={Inbox} />}
         </div>
       </div>
       {['admin', 'committee'].includes(role) ? (
         <div className="card no-print">
-          <SectionHeader icon={Bell} title="Create Notification" subtitle="For admin or committee reminders" />
+          <SectionHeader icon={Inbox} title="Create Inbox Message" subtitle="For admin or committee reminders" />
           <label className="field"><span>Title</span><input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Example: Submit weekly report" /></label>
           <label className="field"><span>Message</span><textarea value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="Write reminder message" /></label>
           <label className="field"><span>Type</span><select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}><option>Reminder</option><option>Feedback</option><option>Warning</option><option>Announcement</option></select></label>
           <label className="field"><span>Target role</span><select value={form.target_role} onChange={(e) => setForm({ ...form, target_role: e.target.value })}><option value="all">All users</option><option value="student">Students</option><option value="supervisor">Supervisors</option><option value="committee">Research Committee</option><option value="admin">Admins</option></select></label>
-          <button className="primary min-button-width" disabled={creatingNotification} onClick={handleCreateNotification}><ButtonContent loading={creatingNotification} loadingText="Creating..." icon={Bell}>Create Notification</ButtonContent></button>
+          <button className="primary min-button-width" disabled={creatingNotification} onClick={handleCreateNotification}><ButtonContent loading={creatingNotification} loadingText="Creating..." icon={Inbox}>Create Inbox Message</ButtonContent></button>
         </div>
       ) : (
         <div className="card no-print">
-          <SectionHeader icon={Lock} title="Notification Creation Locked" subtitle="Only Admin and Research Committee accounts can create reminders" />
-          <p className="muted">Your account can read reminders sent to your role, but it cannot create new system-wide notifications.</p>
+          <SectionHeader icon={Lock} title="Inbox Message Creation Locked" subtitle="Only Admin and Research Committee accounts can create reminders" />
+          <p className="muted">Your account can read reminders sent to your role, but it cannot create new system-wide inbox messages.</p>
         </div>
       )}
     </div>
