@@ -7992,7 +7992,6 @@ function AdminControlPanel({
   const [draft, setDraft] = useState(settings)
   const [brandingError, setBrandingError] = useState('')
   const [panelActionLoading, setPanelActionLoading] = useState('')
-  const [adminSidebarOpen, setAdminSidebarOpen] = useState(false)
   useEffect(() => {
     setDraft(settings)
   }, [settings])
@@ -8018,7 +8017,6 @@ function AdminControlPanel({
   function changeAdminPanelTab(nextTab) {
     if (!isAdminPanelTab(nextTab)) return
     setAdminPanelTab(nextTab)
-    setAdminSidebarOpen(false)
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href)
       url.searchParams.set('panel', nextTab)
@@ -8139,24 +8137,13 @@ function AdminControlPanel({
   const activeDeadlines = data.deadlines.filter((d) => (d.status || 'Active') === 'Active').length
 
   return (
-    <div className={`admin-panel-shell ${adminSidebarOpen ? 'admin-sidebar-open' : ''}`}>
-      <aside className={`admin-sidebar no-print ${adminSidebarOpen ? 'open' : ''}`}>
-        <div className="sidebar-fixed-head admin-sidebar-fixed-head">
-          <button type="button" className="sidebar-close-button" onClick={() => setAdminSidebarOpen(false)} aria-label="Close sidebar">×</button>
-        </div>
+    <div className="admin-panel-shell">
+      <aside className="admin-sidebar no-print">
         <div className="admin-brand-block">
           <div className="admin-logo-mark"><Settings size={22} /></div>
           <div>
             <h2>{settings.adminPanelName || 'Pharmacy Research Platform Control Center'}</h2>
             <p>Website management panel</p>
-          </div>
-        </div>
-        <div className="admin-profile-mini admin-profile-actions">
-          <div className="status-avatar">{getProfilePhotoUrl(currentUser) ? <img src={getProfilePhotoUrl(currentUser)} alt="Profile" /> : String(getProfileDisplayName(currentUser) || 'A').trim().charAt(0).toUpperCase()}</div>
-          <div>
-            <b>{getProfileDisplayName(currentUser)}</b>
-            <p>Administrator</p>
-            <button type="button" className="admin-profile-settings-button" onClick={() => changeAdminPanelTab('profile-settings')}>Profile Settings</button>
           </div>
         </div>
         <nav className="admin-side-nav">
@@ -8174,11 +8161,6 @@ function AdminControlPanel({
 
       <main className="admin-panel-main">
         <header className="admin-panel-topbar no-print">
-          <button type="button" className="sidebar-menu-toggle admin-sidebar-menu-toggle" onClick={() => setAdminSidebarOpen((open) => !open)} aria-label={adminSidebarOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={adminSidebarOpen}>
-            <span></span>
-            <span></span>
-            <span></span>
-          </button>
           <div>
             <p className="eyebrow"><UserCog size={16} /> Admin subdomain</p>
             <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'about-us' ? 'About Us Customization' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'supervisors' ? 'Supervisor Management' : adminPanelTab === 'dual-roles' ? 'Dual Role Management' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Inbox' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'pdf-report' ? 'PDF Report Customization' : adminPanelTab === 'group-requests' ? 'Group Join Requests' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : adminPanelTab === 'profile-settings' ? 'Profile Settings' : 'Control Center'}</h1>

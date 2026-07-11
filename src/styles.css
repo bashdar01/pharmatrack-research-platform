@@ -18461,3 +18461,91 @@ html body #root .admin-panel-shell .admin-logout svg {
   color: currentColor !important;
   stroke: currentColor !important;
 }
+
+/* FINAL ADMIN SUBDOMAIN SIDEBAR CLEANUP
+   Remove the extra profile card and align admin sidebar button colors with the gray sidebar. */
+html body #root .admin-sidebar .admin-profile-mini,
+html body #root .admin-profile-mini.admin-profile-actions {
+  display: none !important;
+}
+
+html body #root .admin-sidebar,
+html body #root .admin-layout .admin-sidebar,
+html body #root .admin-portal-sidebar {
+  background: #4d4c4d !important;
+  color: #ffffff !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 10px 0 28px rgba(41, 40, 41, 0.18) !important;
+}
+
+html body #root .admin-sidebar .admin-brand-block {
+  margin-bottom: 4px !important;
+  padding-bottom: 14px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16) !important;
+}
+
+html body #root .admin-sidebar .admin-logo-mark {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.20) !important;
+  color: #ffffff !important;
+}
+
+html body #root .admin-sidebar .admin-brand-block h2,
+html body #root .admin-sidebar .admin-brand-block p {
+  color: #ffffff !important;
+}
+
+html body #root .admin-sidebar .admin-brand-block p {
+  color: rgba(255, 255, 255, 0.72) !important;
+}
+
+html body #root .admin-side-nav {
+  gap: 8px !important;
+}
+
+html body #root .admin-sidebar .admin-side-nav button,
+html body #root .admin-sidebar .admin-logout {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: none !important;
+}
+
+html body #root .admin-sidebar .admin-side-nav button svg,
+html body #root .admin-sidebar .admin-logout svg,
+html body #root .admin-sidebar .admin-side-nav button span,
+html body #root .admin-sidebar .admin-logout span {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+html body #root .admin-sidebar .admin-side-nav button:hover,
+html body #root .admin-sidebar .admin-side-nav button.active {
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14) !important;
+}
+
+html body #root .admin-sidebar .admin-side-nav button:hover svg,
+html body #root .admin-sidebar .admin-side-nav button.active svg,
+html body #root .admin-sidebar .admin-side-nav button:hover span,
+html body #root .admin-sidebar .admin-side-nav button.active span {
+  color: #4d4c4d !important;
+  stroke: #4d4c4d !important;
+}
+
+html body #root .admin-sidebar .admin-logout {
+  margin-top: auto !important;
+}
+
+html body #root .admin-sidebar .admin-logout:hover {
+  background: #ffffff !important;
+  color: #b91c1c !important;
+  border-color: #ffffff !important;
+}
+
+html body #root .admin-sidebar .admin-logout:hover svg {
+  color: #b91c1c !important;
+  stroke: #b91c1c !important;
+}
