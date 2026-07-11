@@ -18431,3 +18431,33 @@ html body #root .admin-panel-shell .admin-logout {
     padding-top: 22px !important;
   }
 }
+
+/* =========================================================
+   ADMIN SUBDOMAIN SIDEBAR COLOR RESTORE
+   Visual-only: restore admin sidebar background to the original gray
+   instead of the navy/blue color. Does not affect sidebar logic.
+   ========================================================= */
+html body #root .admin-panel-shell .admin-sidebar,
+html body #root .admin-panel-shell .admin-sidebar.open {
+  background: #4d4c4d !important;
+  border-right-color: rgba(255, 255, 255, 0.16) !important;
+  box-shadow: none !important;
+}
+
+html body #root .admin-panel-shell .admin-side-nav button.active,
+html body #root .admin-panel-shell .admin-side-nav button:hover {
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+}
+
+html body #root .admin-panel-shell .admin-side-nav button,
+html body #root .admin-panel-shell .admin-logout {
+  color: rgba(255, 255, 255, 0.86) !important;
+}
+
+html body #root .admin-panel-shell .admin-side-nav button > svg,
+html body #root .admin-panel-shell .admin-side-nav button svg,
+html body #root .admin-panel-shell .admin-logout svg {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
