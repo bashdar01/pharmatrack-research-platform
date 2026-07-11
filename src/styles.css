@@ -16846,3 +16846,303 @@ html body #root button.main-notification-button.header-inbox-button strong {
     width: 100%;
   }
 }
+
+/* Meeting Requests layout cleanup: compact, balanced, responsive */
+html body #root .meeting-requests-page,
+html body #root .meeting-requests-page.dashboard-grid {
+  display: flex !important;
+  flex-direction: column !important;
+  grid-template-columns: none !important;
+  align-items: stretch !important;
+  gap: 16px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+html body #root .meeting-request-form-card,
+html body #root .meeting-incoming-card,
+html body #root .meeting-section-card {
+  grid-row: auto !important;
+  grid-column: auto !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 16px !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 16px !important;
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+  box-shadow: none !important;
+  box-sizing: border-box !important;
+}
+
+html body #root .meeting-section-card .section-header,
+html body #root .meeting-request-form-card .section-header,
+html body #root .meeting-section-card .section-heading,
+html body #root .meeting-request-form-card .section-heading {
+  margin-bottom: 12px !important;
+}
+
+html body #root .meeting-request-form {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 12px !important;
+  margin: 0 !important;
+}
+
+html body #root .meeting-request-form .form-grid.two-cols,
+html body #root .meeting-form-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  margin: 0 !important;
+}
+
+html body #root .meeting-request-form .field,
+html body #root .meeting-request-form .wide-field {
+  margin: 0 !important;
+}
+
+html body #root .meeting-request-form .wide-field {
+  grid-column: 1 / -1 !important;
+}
+
+html body #root .meeting-request-form textarea {
+  min-height: 82px !important;
+  resize: vertical !important;
+}
+
+html body #root .meeting-assigned-card {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 12px !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 14px !important;
+  background: #f9fafb !important;
+  color: #4d4c4d !important;
+  min-height: auto !important;
+}
+
+html body #root .meeting-assigned-avatar {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 10px !important;
+  font-size: 0.85rem !important;
+}
+
+html body #root .meeting-info-box {
+  min-height: 0 !important;
+  padding: 14px !important;
+  border: 1px dashed #d1d5db !important;
+  border-radius: 14px !important;
+  background: #f3f4f6 !important;
+  color: #4d4c4d !important;
+}
+
+html body #root .meeting-request-list,
+html body #root .meeting-cards-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)) !important;
+  gap: 14px !important;
+  align-items: stretch !important;
+  margin: 0 !important;
+}
+
+html body #root .meeting-request-card {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  padding: 16px !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 14px !important;
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+  box-shadow: none !important;
+  box-sizing: border-box !important;
+}
+
+html body #root .meeting-card-head {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  margin: 0 0 12px !important;
+}
+
+html body #root .meeting-card-head h4 {
+  margin: 0 0 4px !important;
+  color: #4d4c4d !important;
+  font-size: 0.98rem !important;
+  line-height: 1.25 !important;
+}
+
+html body #root .meeting-status-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  white-space: nowrap !important;
+  padding: 4px 9px !important;
+  border-radius: 999px !important;
+  background: #f3f4f6 !important;
+  border: 1px solid #d1d5db !important;
+  color: #4d4c4d !important;
+  font-weight: 800 !important;
+  font-size: 0.72rem !important;
+  line-height: 1 !important;
+}
+
+html body #root .meeting-card-body,
+html body #root .meeting-request-card__content {
+  flex: 1 1 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  min-height: 0 !important;
+}
+
+html body #root .meeting-card-body p {
+  margin: 0 !important;
+  color: #4d4c4d !important;
+  line-height: 1.35 !important;
+  font-size: 0.92rem !important;
+}
+
+html body #root .meeting-card-body p:not(.muted) {
+  display: grid !important;
+  grid-template-columns: 110px minmax(0, 1fr) !important;
+  gap: 10px !important;
+  align-items: start !important;
+}
+
+html body #root .meeting-card-body p:not(.muted) b {
+  color: #4d4c4d !important;
+  font-weight: 800 !important;
+  white-space: nowrap !important;
+}
+
+html body #root .meeting-card-body .muted.small {
+  margin-top: 2px !important;
+  font-size: 0.78rem !important;
+  color: #6b7280 !important;
+}
+
+html body #root .meeting-card-actions,
+html body #root .meeting-request-card__actions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-top: 14px !important;
+  padding-top: 12px !important;
+  border-top: 1px solid #e5e7eb !important;
+}
+
+html body #root .meeting-card-actions button,
+html body #root .meeting-primary-btn,
+html body #root .meeting-accept-btn,
+html body #root .meeting-secondary-btn,
+html body #root .meeting-reject-btn,
+html body #root .meeting-cancel-btn {
+  min-height: 38px !important;
+  padding: 8px 13px !important;
+  border-radius: 10px !important;
+  white-space: nowrap !important;
+  box-shadow: none !important;
+}
+
+html body #root .meeting-reschedule-box {
+  flex: 1 1 100% !important;
+  display: grid !important;
+  gap: 10px !important;
+  padding: 12px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 14px !important;
+  background: #f9fafb !important;
+  margin: 0 !important;
+}
+
+html body #root .meeting-reschedule-box .form-grid.two-cols.compact {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  margin: 0 !important;
+}
+
+html body #root .meeting-section-card .empty-state {
+  min-height: 0 !important;
+  padding: 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 12px !important;
+  text-align: left !important;
+  border: 1px dashed #d1d5db !important;
+  border-radius: 14px !important;
+  background: #f9fafb !important;
+  color: #4d4c4d !important;
+}
+
+html body #root .meeting-section-card .empty-state svg {
+  width: 22px !important;
+  height: 22px !important;
+  flex: 0 0 auto !important;
+  color: #4d4c4d !important;
+  stroke: #4d4c4d !important;
+}
+
+html body #root .meeting-section-card .empty-state h3,
+html body #root .meeting-section-card .empty-state p {
+  margin: 0 !important;
+}
+
+html body #root .meeting-section-card .empty-state h3 {
+  font-size: 0.9rem !important;
+  color: #4d4c4d !important;
+}
+
+html body #root .meeting-section-card .empty-state p {
+  font-size: 0.82rem !important;
+  color: #6b7280 !important;
+}
+
+@media (max-width: 768px) {
+  html body #root .meeting-request-form .form-grid.two-cols,
+  html body #root .meeting-form-grid,
+  html body #root .meeting-reschedule-box .form-grid.two-cols.compact {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 640px) {
+  html body #root .meeting-request-form-card,
+  html body #root .meeting-section-card {
+    padding: 14px !important;
+    border-radius: 14px !important;
+  }
+
+  html body #root .meeting-request-list,
+  html body #root .meeting-cards-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  html body #root .meeting-card-head {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
+  html body #root .meeting-card-body p:not(.muted) {
+    grid-template-columns: 1fr !important;
+    gap: 2px !important;
+  }
+
+  html body #root .meeting-card-actions {
+    align-items: stretch !important;
+  }
+
+  html body #root .meeting-card-actions button {
+    width: 100% !important;
+  }
+}
