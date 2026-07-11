@@ -16018,3 +16018,419 @@ html body #root .committee-decision-actions button.revision-btn.committee-revisi
   border-color: #bfc4ca !important;
   color: #4d4c4d !important;
 }
+
+
+/* FINAL FIX: use HMU logo inside the top-header About Us button without changing navigation. */
+html body #root .main-compact-header .about-us-button > .about-us-button-icon,
+html body #root .main-header-actions .about-us-button > .about-us-button-icon {
+  width: 30px !important;
+  height: 30px !important;
+  flex: 0 0 30px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #ffffff !important;
+  background-image: none !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 10px !important;
+  padding: 2px !important;
+  overflow: hidden !important;
+  box-shadow: none !important;
+}
+
+html body #root .about-us-button .about-us-hmu-logo {
+  width: 26px !important;
+  height: 26px !important;
+  max-width: 26px !important;
+  max-height: 26px !important;
+  object-fit: contain !important;
+  display: block !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+html body #root .about-us-button:hover > .about-us-button-icon,
+html body #root .about-us-button:focus-visible > .about-us-button-icon,
+html body #root .about-us-button.active > .about-us-button-icon {
+  background: #ffffff !important;
+  border-color: #d1d5db !important;
+}
+
+/* FINAL FIX: use uploaded SVG HMU logo for the About Us top-header icon. */
+html body #root .about-us-button .about-us-hmu-logo {
+  width: 26px !important;
+  height: 26px !important;
+  object-fit: contain !important;
+  display: block !important;
+  flex-shrink: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* FINAL FIX: force About Us SVG logo image to load/appear from bundled Vite asset. */
+html body #root .about-us-button .about-us-button-icon {
+  background: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  overflow: visible !important;
+}
+
+html body #root .about-us-button .about-us-hmu-logo,
+html body #root .about-us-button img.about-us-hmu-logo {
+  display: block !important;
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  min-height: 26px !important;
+  max-width: 26px !important;
+  max-height: 26px !important;
+  object-fit: contain !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  position: static !important;
+  transform: none !important;
+  filter: none !important;
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  z-index: 2 !important;
+}
+
+/* Final cleanup: remove extra identity cards from sidebar/top header */
+.main-dashboard-with-sidebar .sidebar-brand,
+.main-dashboard-with-sidebar .sidebar-role-card,
+.main-dashboard-with-sidebar .main-profile-summary {
+  display: none !important;
+}
+
+.main-dashboard-with-sidebar .main-sidebar {
+  gap: 10px !important;
+  padding-top: 18px !important;
+}
+
+.main-dashboard-with-sidebar .main-side-nav {
+  margin-top: 0 !important;
+}
+
+.main-dashboard-with-sidebar .main-header-actions {
+  gap: 8px !important;
+  align-items: center !important;
+}
+
+/* =========================================================
+   Final sidebar slide-in navigation
+   Smooth hamburger-controlled off-canvas sidebar for all roles.
+   Visual/layout only: keeps existing sidebar tab actions unchanged.
+   ========================================================= */
+html body #root .app-main-shell.main-dashboard-with-sidebar {
+  display: block !important;
+  grid-template-columns: 1fr !important;
+  min-height: 100vh !important;
+}
+
+html body #root .main-dashboard-with-sidebar .main-workspace {
+  min-width: 0 !important;
+  width: 100% !important;
+  min-height: 100vh !important;
+}
+
+html body #root .app-main-shell .main-sidebar,
+html body #root .app-main-shell.main-dashboard-with-sidebar .main-sidebar {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  bottom: 0 !important;
+  width: min(82vw, 292px) !important;
+  max-width: 292px !important;
+  height: 100vh !important;
+  z-index: 120 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  transform: translateX(-104%) !important;
+  transition: transform 0.32s cubic-bezier(.22, .9, .28, 1) !important;
+  will-change: transform !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  box-shadow: 18px 0 36px rgba(17, 24, 39, .18) !important;
+  border-right: 1px solid rgba(255, 255, 255, .12) !important;
+}
+
+html body #root .app-main-shell.main-dashboard-with-sidebar.sidebar-open .main-sidebar {
+  transform: translateX(0) !important;
+}
+
+html body #root .sidebar-backdrop {
+  display: block !important;
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 110 !important;
+  border: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: rgba(17, 24, 39, .20) !important;
+  backdrop-filter: blur(1px) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity .26s ease !important;
+  cursor: default !important;
+}
+
+html body #root .sidebar-backdrop.open {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+html body #root .sidebar-menu-toggle {
+  display: inline-grid !important;
+  place-items: center !important;
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+  padding: 0 !important;
+  border-radius: 14px !important;
+  border: 1px solid #d1d5db !important;
+  background: #ffffff !important;
+  color: #4d4c4d !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+  position: relative !important;
+  z-index: 130 !important;
+  transition: background .18s ease, border-color .18s ease, transform .18s ease !important;
+}
+
+html body #root .sidebar-menu-toggle:hover,
+html body #root .sidebar-menu-toggle:focus,
+html body #root .sidebar-menu-toggle:active {
+  background: #f3f4f6 !important;
+  border-color: #bfc3ca !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+html body #root .sidebar-menu-toggle span {
+  display: block !important;
+  width: 18px !important;
+  height: 2px !important;
+  margin: 2px 0 !important;
+  border-radius: 999px !important;
+  background: #4d4c4d !important;
+  color: #4d4c4d !important;
+  stroke: #4d4c4d !important;
+  transition: transform .2s ease, opacity .2s ease !important;
+}
+
+html body #root .app-main-shell.main-dashboard-with-sidebar.sidebar-open .sidebar-menu-toggle span:nth-child(1),
+html body #root .admin-panel-shell.admin-sidebar-open .sidebar-menu-toggle span:nth-child(1) {
+  transform: translateY(6px) rotate(45deg) !important;
+}
+
+html body #root .app-main-shell.main-dashboard-with-sidebar.sidebar-open .sidebar-menu-toggle span:nth-child(2),
+html body #root .admin-panel-shell.admin-sidebar-open .sidebar-menu-toggle span:nth-child(2) {
+  opacity: 0 !important;
+}
+
+html body #root .app-main-shell.main-dashboard-with-sidebar.sidebar-open .sidebar-menu-toggle span:nth-child(3),
+html body #root .admin-panel-shell.admin-sidebar-open .sidebar-menu-toggle span:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg) !important;
+}
+
+html body #root .main-dashboard-with-sidebar .main-compact-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 80 !important;
+}
+
+html body #root .main-dashboard-with-sidebar main.app-content-panel {
+  width: min(100%, 1500px) !important;
+  max-width: 1500px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* Admin control panel gets the same slide behavior without changing admin actions. */
+html body #root .admin-panel-shell {
+  display: block !important;
+  min-height: 100vh !important;
+}
+
+html body #root .admin-panel-shell .admin-sidebar {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  bottom: 0 !important;
+  width: min(82vw, 310px) !important;
+  max-width: 310px !important;
+  height: 100vh !important;
+  z-index: 120 !important;
+  transform: translateX(-104%) !important;
+  transition: transform 0.32s cubic-bezier(.22, .9, .28, 1) !important;
+  will-change: transform !important;
+  overflow-y: auto !important;
+  box-shadow: 18px 0 36px rgba(17, 24, 39, .18) !important;
+}
+
+html body #root .admin-panel-shell.admin-sidebar-open .admin-sidebar {
+  transform: translateX(0) !important;
+}
+
+html body #root .admin-sidebar-backdrop {
+  display: block !important;
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 110 !important;
+  border: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: rgba(17, 24, 39, .20) !important;
+  backdrop-filter: blur(1px) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity .26s ease !important;
+}
+
+html body #root .admin-sidebar-backdrop.open {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+html body #root .admin-panel-main {
+  width: 100% !important;
+  margin-left: 0 !important;
+  min-width: 0 !important;
+}
+
+html body #root .admin-panel-topbar {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 80 !important;
+}
+
+html body #root .admin-sidebar-menu-toggle {
+  flex: 0 0 auto !important;
+}
+
+@media (max-width: 720px) {
+  html body #root .app-main-shell .main-sidebar,
+  html body #root .app-main-shell.main-dashboard-with-sidebar .main-sidebar,
+  html body #root .admin-panel-shell .admin-sidebar {
+    width: min(88vw, 310px) !important;
+  }
+
+  html body #root .sidebar-menu-toggle {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    border-radius: 13px !important;
+  }
+}
+
+/* =========================================================
+   Final fix: sidebar overlay must not blank the dashboard.
+   Keep dashboard mounted/visible, keep overlay translucent, and make
+   closed hamburger lines white on the dark header.
+   ========================================================= */
+html body #root .app-main-shell.main-dashboard-with-sidebar,
+html body #root .main-dashboard-with-sidebar .main-workspace,
+html body #root .main-dashboard-with-sidebar main.app-content-panel,
+html body #root .main-dashboard-with-sidebar .dashboard-content,
+html body #root .admin-panel-shell,
+html body #root .admin-panel-main {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+html body #root .main-dashboard-with-sidebar .main-workspace,
+html body #root .main-dashboard-with-sidebar main.app-content-panel,
+html body #root .admin-panel-main {
+  position: relative !important;
+  z-index: 1 !important;
+  transform: none !important;
+}
+
+html body #root .app-main-shell .main-sidebar,
+html body #root .app-main-shell.main-dashboard-with-sidebar .main-sidebar,
+html body #root .admin-panel-shell .admin-sidebar {
+  z-index: 1200 !important;
+}
+
+html body #root .sidebar-backdrop,
+html body #root .admin-sidebar-backdrop {
+  display: block !important;
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 1100 !important;
+  background: rgba(0, 0, 0, 0.12) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.25s ease !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html body #root .sidebar-backdrop.open,
+html body #root .admin-sidebar-backdrop.open {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+html body #root .main-dashboard-with-sidebar .main-compact-header,
+html body #root .admin-panel-topbar {
+  z-index: 1300 !important;
+}
+
+html body #root .sidebar-menu-toggle,
+html body #root .admin-sidebar-menu-toggle {
+  position: relative !important;
+  z-index: 1301 !important;
+  background: rgba(255, 255, 255, 0.14) !important;
+  border: 1px solid rgba(255, 255, 255, 0.32) !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+html body #root .sidebar-menu-toggle span,
+html body #root .admin-sidebar-menu-toggle span {
+  background: #ffffff !important;
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+html body #root .sidebar-menu-toggle:hover,
+html body #root .sidebar-menu-toggle:focus,
+html body #root .sidebar-menu-toggle:active,
+html body #root .admin-sidebar-menu-toggle:hover,
+html body #root .admin-sidebar-menu-toggle:focus,
+html body #root .admin-sidebar-menu-toggle:active {
+  background: rgba(255, 255, 255, 0.20) !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+  color: #ffffff !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+html body #root .sidebar-menu-toggle:hover span,
+html body #root .sidebar-menu-toggle:focus span,
+html body #root .sidebar-menu-toggle:active span,
+html body #root .admin-sidebar-menu-toggle:hover span,
+html body #root .admin-sidebar-menu-toggle:focus span,
+html body #root .admin-sidebar-menu-toggle:active span {
+  background: #ffffff !important;
+}

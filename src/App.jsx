@@ -36,6 +36,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { supabase, isSupabaseConfigured } from './lib/supabaseClient'
+import aboutUsHmuLogo from './assets/about-us-hmu-logo.svg'
 
 const roleButtons = [
   { id: 'student', label: 'Student', icon: GraduationCap },
@@ -6527,20 +6528,6 @@ export default function App() {
   return (
     <div className={`app app-main-shell main-dashboard-with-sidebar role-${allowedRole} ${sidebarOpen ? 'sidebar-open' : ''}`}>
       <aside className="main-sidebar no-print" aria-label="Role navigation">
-        <div className="sidebar-brand">
-          <img src="/favicon.svg" alt="Hawler Medical University" />
-          <div>
-            <b>Hawler Medical University</b>
-            <span>College of Pharmacy Research Platform</span>
-          </div>
-        </div>
-
-        <div className="sidebar-role-card">
-          <span>Current role</span>
-          <strong>{roleLabel}</strong>
-          <small>{currentUser?.full_name || currentUser?.email || 'Active user'}</small>
-        </div>
-
         <nav className="main-side-nav" aria-label="Main navigation">
           {mainNavItems.map((item) => {
             const Icon = item.icon
@@ -6556,23 +6543,38 @@ export default function App() {
 
       </aside>
 
-      {sidebarOpen && <button type="button" className="sidebar-backdrop no-print" aria-label="Close navigation" onClick={() => setSidebarOpen(false)} />}
+      <div
+        className={`sidebar-backdrop no-print ${sidebarOpen ? 'open' : ''}`}
+        aria-label="Close navigation"
+        aria-hidden={!sidebarOpen}
+        role="button"
+        tabIndex={sidebarOpen ? 0 : -1}
+        onClick={() => setSidebarOpen(false)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            setSidebarOpen(false)
+          }
+        }}
+      />
 
       <div className="main-workspace">
         <header className="main-compact-header no-print">
           <div className="main-compact-left">
-            <button type="button" className="sidebar-menu-toggle" onClick={() => setSidebarOpen((open) => !open)} aria-label="Open navigation" aria-expanded={sidebarOpen}>
+            <button type="button" className="sidebar-menu-toggle" onClick={() => setSidebarOpen((open) => !open)} aria-label={sidebarOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={sidebarOpen}>
               <span></span>
               <span></span>
               <span></span>
             </button>
             <button
               type="button"
-              className={`top-about-link ${tab === 'about-us' ? 'active' : ''}`}
+              className={`top-about-link about-us-button ${tab === 'about-us' ? 'active' : ''}`}
               onClick={() => handleMainNavClick('about-us')}
               aria-current={tab === 'about-us' ? 'page' : undefined}
             >
-              <span className="top-about-icon"><Info size={17} /></span>
+              <span className="top-about-icon about-us-button-icon">
+                <img src={aboutUsHmuLogo} alt="HMU logo" className="about-us-hmu-logo" />
+              </span>
               <span>About Us</span>
             </button>
             <a
@@ -6613,10 +6615,6 @@ export default function App() {
                 onChange={handleRoleSwitch}
               />
             )}
-            <div className="main-profile-summary">
-              <b>{currentUser?.full_name || currentUser?.email || 'Active user'}</b>
-              <small>{roleLabel}</small>
-            </div>
             <UserProfileMenu currentUser={currentUser} onLogout={logout} onOpenProfile={() => handleMainNavClick('profile-settings')} />
           </div>
         </header>
@@ -7574,6 +7572,7 @@ function AdminControlPanel({
   const [draft, setDraft] = useState(settings)
   const [brandingError, setBrandingError] = useState('')
   const [panelActionLoading, setPanelActionLoading] = useState('')
+  const [adminSidebarOpen, setAdminSidebarOpen] = useState(false)
   useEffect(() => {
     setDraft(settings)
   }, [settings])
@@ -7599,6 +7598,7 @@ function AdminControlPanel({
   function changeAdminPanelTab(nextTab) {
     if (!isAdminPanelTab(nextTab)) return
     setAdminPanelTab(nextTab)
+    setAdminSidebarOpen(false)
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href)
       url.searchParams.set('panel', nextTab)
@@ -7719,7 +7719,7 @@ function AdminControlPanel({
   const activeDeadlines = data.deadlines.filter((d) => (d.status || 'Active') === 'Active').length
 
   return (
-    <div className="admin-panel-shell">
+    <div className={`admin-panel-shell ${adminSidebarOpen ? 'admin-sidebar-open' : ''}`}>
       <aside className="admin-sidebar no-print">
         <div className="admin-brand-block">
           <div className="admin-logo-mark"><Settings size={22} /></div>
@@ -7749,8 +7749,28 @@ function AdminControlPanel({
         <button className="admin-logout" onClick={onLogout}><LogOut size={16} /> Logout</button>
       </aside>
 
+      <div
+        className={`admin-sidebar-backdrop no-print ${adminSidebarOpen ? 'open' : ''}`}
+        aria-label="Close admin navigation"
+        aria-hidden={!adminSidebarOpen}
+        role="button"
+        tabIndex={adminSidebarOpen ? 0 : -1}
+        onClick={() => setAdminSidebarOpen(false)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            setAdminSidebarOpen(false)
+          }
+        }}
+      />
+
       <main className="admin-panel-main">
         <header className="admin-panel-topbar no-print">
+          <button type="button" className="sidebar-menu-toggle admin-sidebar-menu-toggle" onClick={() => setAdminSidebarOpen((open) => !open)} aria-label={adminSidebarOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={adminSidebarOpen}>
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
           <div>
             <p className="eyebrow"><UserCog size={16} /> Admin subdomain</p>
             <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'about-us' ? 'About Us Customization' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'supervisors' ? 'Supervisor Management' : adminPanelTab === 'dual-roles' ? 'Dual Role Management' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Notifications' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'pdf-report' ? 'PDF Report Customization' : adminPanelTab === 'group-requests' ? 'Group Join Requests' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : adminPanelTab === 'profile-settings' ? 'Profile Settings' : 'Control Center'}</h1>
