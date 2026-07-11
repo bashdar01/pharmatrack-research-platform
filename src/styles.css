@@ -18558,3 +18558,55 @@ html body #root .admin-panel-topbar > div:first-child > .eyebrow {
 html body #root .admin-panel-topbar h1 {
   margin-top: 0 !important;
 }
+
+/* =========================================================
+   NORMAL DOMAIN SIDEBAR TEXT VISIBILITY FIX
+   Main role sidebar only. Keeps admin subdomain/sidebar untouched.
+   Allows longer navigation names to show fully instead of being cut off.
+   ========================================================= */
+html body #root .app-main-shell.main-dashboard-with-sidebar .main-side-nav button {
+  height: auto !important;
+  min-height: 50px !important;
+  max-height: none !important;
+  overflow: visible !important;
+  align-items: center !important;
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+}
+
+html body #root .app-main-shell.main-dashboard-with-sidebar .main-side-nav button > span:not(.side-nav-icon):not(.tab-badge) {
+  display: block !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+  hyphens: auto !important;
+  font-size: 0.84rem !important;
+  line-height: 1.18 !important;
+  text-align: left !important;
+}
+
+html body #root .app-main-shell.main-dashboard-with-sidebar .main-side-nav button .side-nav-icon {
+  flex: 0 0 34px !important;
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+}
+
+@media (max-width: 768px) {
+  html body #root .app-main-shell.main-dashboard-with-sidebar .main-side-nav button {
+    min-height: 48px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  html body #root .app-main-shell.main-dashboard-with-sidebar .main-side-nav button > span:not(.side-nav-icon):not(.tab-badge) {
+    font-size: 0.82rem !important;
+    line-height: 1.16 !important;
+  }
+}
