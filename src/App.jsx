@@ -2136,10 +2136,10 @@ function getMeetingStatusLabel(status = '') {
 
 function normalizeMeetingRole(role = '') {
   const value = normalizeText(role).replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
-  if (['student', 'bsc_student', 'bachelor_student'].includes(value)) return 'student'
-  if (['supervisor', 'research_supervisor', 'project_supervisor'].includes(value)) return 'supervisor'
-  if (['committee', 'research_committee', 'research_committee_member'].includes(value)) return 'committee'
-  if (value === 'admin' || value === 'administrator') return 'admin'
+  if (['student', 'students', 'bsc_student', 'bachelor_student', 'undergraduate_student'].includes(value) || value.includes('student')) return 'student'
+  if (['supervisor', 'supervisors', 'research_supervisor', 'project_supervisor', 'academic_supervisor'].includes(value) || value.includes('supervisor')) return 'supervisor'
+  if (['committee', 'research_committee', 'research_committee_member'].includes(value) || value.includes('committee')) return 'committee'
+  if (value === 'admin' || value === 'administrator' || value.includes('admin')) return 'admin'
   return value
 }
 
@@ -2215,15 +2215,31 @@ function canUsersRequestMeeting(data = {}, requester = {}, recipient = {}) {
   if (requester.id && recipient.id && String(requester.id) === String(recipient.id)) return false
   const requesterRole = normalizeMeetingRole(requester.role)
   const recipientRole = normalizeMeetingRole(recipient.role)
-  if (requesterRole === 'student' && recipientRole === 'supervisor') {
-    const supervisor = getAssignedMeetingSupervisorForStudent(data, requester)
-    return Boolean(supervisor && profileMatchesUser(supervisor, recipient))
-  }
-  if (requesterRole === 'supervisor' && recipientRole === 'student') {
-    const allowedStudents = getMeetingStudentsForSupervisor(data, requester)
-    return allowedStudents.some((student) => profileMatchesUser(getMeetingStudentProfile(data, student), recipient))
-  }
-  return false
+  const student = requesterRole === 'student' ? requester : recipientRole === 'student' ? recipient : null
+  const supervisor = requesterRole === 'supervisor' ? requester : recipientRole === 'supervisor' ? recipient : null
+  if (!student || !supervisor) return false
+
+  // Direct student profile assignment.
+  if (isStudentAssignedToSupervisorProfile(student, supervisor)) return true
+
+  // Student can request the supervisor returned by the assignment resolver.
+  const assignedSupervisor = getAssignedMeetingSupervisorForStudent(data, student)
+  if (assignedSupervisor && profileMatchesUser(assignedSupervisor, supervisor)) return true
+
+  // Supervisor can request any student returned by the supervisor assignment resolver.
+  const allowedStudents = getMeetingStudentsForSupervisor(data, supervisor)
+  if (allowedStudents.some((option) => profileMatchesUser(getMeetingStudentProfile(data, option), student))) return true
+
+  // Project/group fallback for records where assignment is stored on the project/member row.
+  const sharedProject = (data.projects || []).find((project) => {
+    if (!isAssignedSupervisorProject(project, supervisor)) return false
+    return (
+      isOwnStudentProject(project, student) ||
+      getResearchGroupMemberProfiles(data, project).some((member) => profileMatchesUser(member, student)) ||
+      projectMatchesStudentOption(project, student, data.reports || [])
+    )
+  })
+  return Boolean(sharedProject)
 }
 
 function meetingVisibleToUser(meeting = {}, user = {}) {
@@ -6093,13 +6109,13 @@ export default function App() {
   async function createMeetingRequest(form) {
     const actionUser = activeRoleUser || currentUser
     const requesterProfile = findProfileForUser(data, actionUser) || actionUser
-    const requestedRole = normalizeMeetingRole(form?.requester_role || allowedRole)
-    const requesterRole = ['student', 'supervisor'].includes(requestedRole)
-      ? requestedRole
-      : normalizeMeetingRole(requesterProfile?.role)
+    const roleCandidates = [form?.requester_role, allowedRole, requesterProfile?.role, actionUser?.role]
+      .map((value) => normalizeMeetingRole(value))
+      .filter(Boolean)
+    const requesterRole = roleCandidates.find((value) => ['student', 'supervisor'].includes(value)) || roleCandidates[0] || ''
     const requester = { ...(requesterProfile || {}), role: requesterRole }
     if (!['student', 'supervisor'].includes(requesterRole)) {
-      setMessage('Only students and supervisors can request meetings.')
+      setMessage('Only students and supervisors can request meetings. Please refresh the page and open Meeting Requests again from a Student or Supervisor role.')
       return { ok: false }
     }
     const title = String(form.title || '').trim()
@@ -6135,7 +6151,7 @@ export default function App() {
     }
 
     if (!canUsersRequestMeeting(data, requester, recipient)) {
-      setMessage('You can only request meetings with users assigned to you.')
+      setMessage('This meeting participant is not linked to your assigned student/supervisor. Refresh the page after assignment changes, then try again.')
       return { ok: false }
     }
 
@@ -6195,10 +6211,40 @@ export default function App() {
     let emailFailed = false
     if (isSupabaseConfigured) {
       const { id, ...meetingForDb } = meeting
-      const { data: inserted, error } = await supabase.from('meeting_requests').insert(meetingForDb).select().single()
+      let inserted = null
+      let error = null
+
+      // Prefer the safe RPC when the latest meeting SQL has been installed. It maps the
+      // logged-in auth email to the correct profile row and avoids false role/assignment errors.
+      const rpcResult = await supabase.rpc('create_meeting_request_safe', {
+        p_recipient_profile_id: recipient.id || null,
+        p_recipient_email: recipient.email || '',
+        p_title: title,
+        p_purpose: purpose,
+        p_requested_date: requestedDate,
+        p_requested_start_time: requestedStartTime,
+        p_duration_minutes: Number(form.duration_minutes || 30),
+        p_meeting_type: form.meeting_type || 'In Person',
+        p_location: String(form.location || '').trim(),
+        p_meeting_link: String(form.meeting_link || '').trim(),
+        p_notes: String(form.notes || '').trim(),
+      })
+
+      if (!rpcResult.error) {
+        inserted = Array.isArray(rpcResult.data) ? rpcResult.data[0] : rpcResult.data
+      } else if (String(rpcResult.error.message || '').toLowerCase().includes('create_meeting_request_safe')) {
+        const directResult = await supabase.from('meeting_requests').insert(meetingForDb).select().single()
+        inserted = directResult.data
+        error = directResult.error
+      } else {
+        error = rpcResult.error
+      }
+
       if (error) {
-        setMessage(error.message || 'Could not save meeting request. Run the meeting requests SQL migration first.')
-        return { ok: false, error: error.message }
+        const details = error.message || 'Could not save meeting request.'
+        const needsSql = /assigned|role|requester|row-level security|policy|permission/i.test(details)
+        setMessage(needsSql ? `${details} Run supabase/meeting_requests_role_assignment_fix.sql once in Supabase SQL Editor, then try again.` : details)
+        return { ok: false, error: details }
       }
       savedMeeting = inserted || meeting
       await createMeetingInboxNotification({
