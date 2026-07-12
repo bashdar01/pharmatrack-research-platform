@@ -1531,10 +1531,29 @@ function getAssignedSupervisorStudents(data, assignedProjects = [], reports = []
 
 function isStudentAssignedToSupervisorProfile(student = {}, supervisor = {}) {
   if (!student || !supervisor) return false
+  const studentSupervisorIds = [student.assigned_supervisor_id, student.supervisor_id, student.supervisor_user_id, student.assigned_to_id]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)
+  const supervisorIds = [supervisor.id, supervisor.user_id, supervisor.profile_id, supervisor.supervisor_id]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)
+  const studentSupervisorEmails = [student.assigned_supervisor_email, student.supervisor_email, student.assigned_to_email]
+    .map(normalizeText)
+    .filter(Boolean)
+  const supervisorEmails = [supervisor.email, supervisor.user_email, supervisor.supervisor_email]
+    .map(normalizeText)
+    .filter(Boolean)
+  const studentSupervisorNames = [student.assigned_supervisor_name, student.supervisor_name, student.supervisor, student.assigned_supervisor, student.assigned_to_name]
+    .map(normalizeText)
+    .filter(Boolean)
+  const supervisorNames = [supervisor.full_name, supervisor.name, supervisor.display_name, supervisor.supervisor_name, supervisor.assigned_supervisor_name]
+    .map(normalizeText)
+    .filter(Boolean)
+
   return (
-    (!!student.assigned_supervisor_id && !!supervisor.id && String(student.assigned_supervisor_id) === String(supervisor.id)) ||
-    (!!student.assigned_supervisor_email && !!supervisor.email && normalizeText(student.assigned_supervisor_email) === normalizeText(supervisor.email)) ||
-    (!!student.assigned_supervisor_name && !!supervisor.full_name && normalizeText(student.assigned_supervisor_name) === normalizeText(supervisor.full_name))
+    studentSupervisorIds.some((id) => supervisorIds.includes(id)) ||
+    studentSupervisorEmails.some((email) => supervisorEmails.includes(email)) ||
+    studentSupervisorNames.some((name) => supervisorNames.includes(name))
   )
 }
 
@@ -2145,16 +2164,29 @@ function normalizeMeetingRole(role = '') {
 
 function profileMatchesUser(profile = {}, user = {}) {
   if (!profile || !user) return false
-  const profileId = profile.id || profile.user_id || profile.profile_id
-  const userId = user.id || user.user_id || user.profile_id
-  const profileEmail = normalizeText(profile.email || profile.user_email || profile.recipient_email)
-  const userEmail = normalizeText(user.email || user.user_email || user.recipient_email)
-  const profileName = normalizeText(profile.full_name || profile.name || profile.display_name || profile.student_name || profile.supervisor_name)
-  const userName = normalizeText(user.full_name || user.name || user.display_name || user.student_name || user.supervisor_name)
+  const profileIds = [profile.id, profile.user_id, profile.profile_id, profile.student_id, profile.supervisor_id]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)
+  const userIds = [user.id, user.user_id, user.profile_id, user.student_id, user.supervisor_id]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)
+  const profileEmails = [profile.email, profile.user_email, profile.recipient_email, profile.student_email, profile.supervisor_email]
+    .map(normalizeText)
+    .filter(Boolean)
+  const userEmails = [user.email, user.user_email, user.recipient_email, user.student_email, user.supervisor_email]
+    .map(normalizeText)
+    .filter(Boolean)
+  const profileNames = [profile.full_name, profile.name, profile.display_name, profile.student_name, profile.supervisor_name, profile.assigned_supervisor_name]
+    .map(normalizeText)
+    .filter(Boolean)
+  const userNames = [user.full_name, user.name, user.display_name, user.student_name, user.supervisor_name, user.assigned_supervisor_name]
+    .map(normalizeText)
+    .filter(Boolean)
+
   return (
-    (!!profileId && !!userId && String(profileId) === String(userId)) ||
-    (!!profileEmail && !!userEmail && profileEmail === userEmail) ||
-    (!!profileName && !!userName && profileName === userName)
+    profileIds.some((id) => userIds.includes(id)) ||
+    profileEmails.some((email) => userEmails.includes(email)) ||
+    profileNames.some((name) => userNames.includes(name))
   )
 }
 
@@ -2171,20 +2203,39 @@ function meetingParticipantMatches(row = {}, user = {}, keys = []) {
 function getAssignedMeetingSupervisorForStudent(data = {}, studentUser = {}) {
   const studentProfile = findProfileForUser(data, studentUser) || studentUser
   if (!studentProfile) return null
+
+  const directSupervisorIdentity = {
+    id: studentProfile.assigned_supervisor_id || studentProfile.supervisor_id || studentProfile.supervisor_user_id || studentProfile.assigned_to_id,
+    email: studentProfile.assigned_supervisor_email || studentProfile.supervisor_email || studentProfile.assigned_to_email,
+    name: studentProfile.assigned_supervisor_name || studentProfile.supervisor_name || studentProfile.supervisor || studentProfile.assigned_supervisor || studentProfile.assigned_to_name,
+  }
+  const directSupervisor = findProfileByIdentity(data, directSupervisorIdentity)
+  if (directSupervisor) return { ...directSupervisor, role: 'supervisor' }
+
   const profileSupervisor = (data.profiles || []).find((profile) =>
     normalizeMeetingRole(profile.role) === 'supervisor' && isStudentAssignedToSupervisorProfile(studentProfile, profile)
   )
   if (profileSupervisor) return profileSupervisor
 
+  if (directSupervisorIdentity.id || directSupervisorIdentity.email || directSupervisorIdentity.name) {
+    return {
+      id: directSupervisorIdentity.id || null,
+      email: directSupervisorIdentity.email || '',
+      full_name: directSupervisorIdentity.name || directSupervisorIdentity.email || 'Assigned Supervisor',
+      role: 'supervisor',
+    }
+  }
+
   const currentGroup = getStudentCurrentResearchGroup(data, studentProfile)
   const groupSupervisor = currentGroup ? findSupervisorProfileForProject(data, currentGroup) : null
-  if (groupSupervisor) return groupSupervisor
+  if (groupSupervisor) return { ...groupSupervisor, role: 'supervisor' }
 
   const memberProject = (data.projects || []).find((project) =>
     getResearchGroupMemberProfiles(data, project).some((member) => profileMatchesUser(member, studentProfile)) ||
     isOwnStudentProject(project, studentProfile)
   )
-  return memberProject ? findSupervisorProfileForProject(data, memberProject) : null
+  const memberSupervisor = memberProject ? findSupervisorProfileForProject(data, memberProject) : null
+  return memberSupervisor ? { ...memberSupervisor, role: 'supervisor' } : null
 }
 
 function getMeetingStudentsForSupervisor(data = {}, supervisorUser = {}) {
@@ -6114,6 +6165,7 @@ export default function App() {
       .filter(Boolean)
     const requesterRole = roleCandidates.find((value) => ['student', 'supervisor'].includes(value)) || roleCandidates[0] || ''
     const requester = { ...(requesterProfile || {}), role: requesterRole }
+    let selectedStudent = null
     if (!['student', 'supervisor'].includes(requesterRole)) {
       setMessage('Only students and supervisors can request meetings. Please refresh the page and open Meeting Requests again from a Student or Supervisor role.')
       return { ok: false }
@@ -6141,7 +6193,12 @@ export default function App() {
     } else {
       supervisor = requester
       const allowedStudents = getMeetingStudentsForSupervisor(data, requester)
-      const selectedStudent = allowedStudents.find((item) => String(item.id || '') === String(form.student_id || '') || normalizeText(item.email) === normalizeText(form.student_email))
+      selectedStudent = allowedStudents.find((item) =>
+        String(item.id || '') === String(form.student_id || '') ||
+        normalizeText(item.email) === normalizeText(form.student_email) ||
+        String(item.key || '') === String(form.student_key || '') ||
+        normalizeText(item.name) === normalizeText(form.student_name)
+      )
       if (!selectedStudent) {
         setMessage('You currently have no assigned students available for meeting requests.')
         return { ok: false }
@@ -6150,7 +6207,10 @@ export default function App() {
       recipient = student
     }
 
-    if (!canUsersRequestMeeting(data, requester, recipient)) {
+    const selectedFromAllowedMeetingList = requesterRole === 'student'
+      ? Boolean(supervisor)
+      : Boolean(selectedStudent && student)
+    if (!selectedFromAllowedMeetingList && !canUsersRequestMeeting(data, requester, recipient)) {
       setMessage('This meeting participant is not linked to your assigned student/supervisor. Refresh the page after assignment changes, then try again.')
       return { ok: false }
     }
@@ -8706,6 +8766,8 @@ function MeetingRequestsPage({ data = emptyData, role, currentUser, dataLoading 
     notes: '',
     student_id: '',
     student_email: '',
+    student_key: '',
+    student_name: '',
   })
   const [responseDrafts, setResponseDrafts] = useState({})
   const [busyKey, setBusyKey] = useState('')
@@ -8729,9 +8791,9 @@ function MeetingRequestsPage({ data = emptyData, role, currentUser, dataLoading 
 
   useEffect(() => {
     if (role !== 'supervisor') return
-    if (form.student_id || form.student_email || !supervisorStudents.length) return
+    if (form.student_id || form.student_email || form.student_key || !supervisorStudents.length) return
     const first = supervisorStudents[0]
-    setForm((current) => ({ ...current, student_id: first.id || '', student_email: first.email || '' }))
+    setForm((current) => ({ ...current, student_id: first.id || '', student_email: first.email || '', student_key: first.key || '', student_name: first.name || '' }))
   }, [role, supervisorStudents, form.student_id, form.student_email])
 
   function updateForm(key, value) {
@@ -8764,6 +8826,8 @@ function MeetingRequestsPage({ data = emptyData, role, currentUser, dataLoading 
           notes: '',
           student_id: role === 'supervisor' ? (supervisorStudents[0]?.id || '') : '',
           student_email: role === 'supervisor' ? (supervisorStudents[0]?.email || '') : '',
+          student_key: role === 'supervisor' ? (supervisorStudents[0]?.key || '') : '',
+          student_name: role === 'supervisor' ? (supervisorStudents[0]?.name || '') : '',
         })
       }
     } finally {
@@ -8807,13 +8871,17 @@ function MeetingRequestsPage({ data = emptyData, role, currentUser, dataLoading 
             ) : (
               <label className="field wide-field">
                 <span>Student</span>
-                <select value={form.student_id || form.student_email} onChange={(event) => {
-                  const selected = supervisorStudents.find((student) => String(student.id || student.email) === String(event.target.value))
+                <select value={form.student_id || form.student_email || form.student_key || form.student_name} onChange={(event) => {
+                  const selected = supervisorStudents.find((student) =>
+                    String(student.id || student.email || student.key || student.name) === String(event.target.value)
+                  )
                   updateForm('student_id', selected?.id || '')
                   updateForm('student_email', selected?.email || '')
+                  updateForm('student_key', selected?.key || '')
+                  updateForm('student_name', selected?.name || '')
                 }}>
                   {supervisorStudents.map((student) => (
-                    <option key={student.id || student.email || student.name} value={student.id || student.email}>{student.name || student.email} {student.email ? `— ${student.email}` : ''}</option>
+                    <option key={student.id || student.email || student.key || student.name} value={student.id || student.email || student.key || student.name}>{student.name || student.email} {student.email ? `— ${student.email}` : ''}</option>
                   ))}
                 </select>
               </label>

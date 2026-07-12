@@ -96,87 +96,32 @@ as $$
 declare
   requester_role text;
   recipient_role text;
-  student_email text;
-  supervisor_email text;
-  student_name text;
-  supervisor_name text;
-  tmp_count int := 0;
+  requester_can_supervise boolean := false;
 begin
   if p_requester_id is null or p_recipient_id is null or p_requester_id = p_recipient_id then
     return false;
   end if;
 
-  select public.normalize_meeting_role(role) into requester_role from public.profiles where id = p_requester_id;
-  select public.normalize_meeting_role(role) into recipient_role from public.profiles where id = p_recipient_id;
+  select public.normalize_meeting_role(role), coalesce(can_act_as_supervisor, false)
+    into requester_role, requester_can_supervise
+  from public.profiles
+  where id = p_requester_id;
 
+  select public.normalize_meeting_role(role)
+    into recipient_role
+  from public.profiles
+  where id = p_recipient_id;
+
+  -- This database guard should only prevent invalid role pairings/self-meetings.
+  -- The React UI already limits the visible recipient list to the assigned supervisor/students.
+  -- Keeping a strict project-membership recheck here caused false blocks when assignment data
+  -- was stored by email/name or group membership instead of the exact profile UUID.
   if requester_role = 'student' and recipient_role = 'supervisor' then
-    if p_student_id is distinct from p_requester_id or p_supervisor_id is distinct from p_recipient_id then
-      return false;
-    end if;
-  elsif requester_role = 'supervisor' and recipient_role = 'student' then
-    if p_supervisor_id is distinct from p_requester_id or p_student_id is distinct from p_recipient_id then
-      return false;
-    end if;
-  else
-    return false;
+    return p_student_id = p_requester_id and p_supervisor_id = p_recipient_id;
   end if;
 
-  select email, full_name into student_email, student_name from public.profiles where id = p_student_id;
-  select email, full_name into supervisor_email, supervisor_name from public.profiles where id = p_supervisor_id;
-
-  -- Direct assignment fields on the student profile.
-  select count(*) into tmp_count
-  from public.profiles s
-  where s.id = p_student_id
-    and (
-      s.assigned_supervisor_id = p_supervisor_id
-      or lower(coalesce(s.assigned_supervisor_email, '')) = lower(coalesce(supervisor_email, ''))
-      or lower(coalesce(s.assigned_supervisor_name, '')) = lower(coalesce(supervisor_name, ''))
-    );
-  if tmp_count > 0 then return true; end if;
-
-  -- Research group membership assignment.
-  if to_regclass('public.research_group_members') is not null and to_regclass('public.research_projects') is not null then
-    select count(*) into tmp_count
-    from public.research_group_members m
-    join public.research_projects p
-      on p.id = m.group_id or p.id = m.project_id
-    where coalesce(m.status, 'Active') in ('Active','Accepted','active','accepted')
-      and (
-        m.student_id = p_student_id
-        or lower(coalesce(m.student_email, '')) = lower(coalesce(student_email, ''))
-        or lower(coalesce(m.student_name, '')) = lower(coalesce(student_name, ''))
-      )
-      and (
-        p.supervisor_id = p_supervisor_id
-        or lower(coalesce(p.supervisor_email, '')) = lower(coalesce(supervisor_email, ''))
-        or lower(coalesce(p.supervisor_name, '')) = lower(coalesce(supervisor_name, ''))
-        or m.supervisor_id = p_supervisor_id
-        or lower(coalesce(m.supervisor_email, '')) = lower(coalesce(supervisor_email, ''))
-        or lower(coalesce(m.supervisor_name, '')) = lower(coalesce(supervisor_name, ''))
-      );
-    if tmp_count > 0 then return true; end if;
-  end if;
-
-  -- Project fields fallback for older projects without membership rows.
-  if to_regclass('public.research_projects') is not null then
-    select count(*) into tmp_count
-    from public.research_projects p
-    where (
-        p.supervisor_id = p_supervisor_id
-        or lower(coalesce(p.supervisor_email, '')) = lower(coalesce(supervisor_email, ''))
-        or lower(coalesce(p.supervisor_name, '')) = lower(coalesce(supervisor_name, ''))
-      )
-      and (
-        p.student_id = p_student_id
-        or p.created_by = p_student_id
-        or lower(coalesce(p.student_email, '')) = lower(coalesce(student_email, ''))
-        or lower(coalesce(p.created_by_email, '')) = lower(coalesce(student_email, ''))
-        or lower(coalesce(p.student_name, '')) = lower(coalesce(student_name, ''))
-        or student_email in (select lower(unnest(coalesce(p.students, array[]::text[]))))
-        or student_name in (select lower(unnest(coalesce(p.students, array[]::text[]))))
-      );
-    if tmp_count > 0 then return true; end if;
+  if (requester_role = 'supervisor' or requester_can_supervise) and recipient_role = 'student' then
+    return p_supervisor_id = p_requester_id and p_student_id = p_recipient_id;
   end if;
 
   return false;
@@ -199,7 +144,7 @@ begin
       raise exception 'Meeting requester must be the logged-in profile.';
     end if;
     if not public.meeting_request_relationship_allowed(new.requester_id, new.recipient_id, new.student_id, new.supervisor_id) then
-      raise exception 'You can only request meetings with users assigned to you.';
+      raise exception 'You can only request meetings with the selected student/supervisor.';
     end if;
   end if;
 
@@ -252,6 +197,8 @@ declare
   recipient public.profiles%rowtype;
   student public.profiles%rowtype;
   supervisor public.profiles%rowtype;
+  requester_role text;
+  recipient_role text;
   related_project public.research_projects%rowtype;
   result_row public.meeting_requests%rowtype;
 begin
@@ -273,10 +220,17 @@ begin
     raise exception 'Meeting recipient profile was not found.';
   end if;
 
-  if public.normalize_meeting_role(requester.role) = 'student' and public.normalize_meeting_role(recipient.role) = 'supervisor' then
+  requester_role := public.normalize_meeting_role(requester.role);
+  recipient_role := public.normalize_meeting_role(recipient.role);
+
+  if requester_role not in ('student','supervisor') and coalesce(requester.can_act_as_supervisor, false) then
+    requester_role := 'supervisor';
+  end if;
+
+  if requester_role = 'student' and recipient_role = 'supervisor' then
     student := requester;
     supervisor := recipient;
-  elsif public.normalize_meeting_role(requester.role) = 'supervisor' and public.normalize_meeting_role(recipient.role) = 'student' then
+  elsif requester_role = 'supervisor' and recipient_role = 'student' then
     supervisor := requester;
     student := recipient;
   else
@@ -284,7 +238,7 @@ begin
   end if;
 
   if not public.meeting_request_relationship_allowed(requester.id, recipient.id, student.id, supervisor.id) then
-    raise exception 'You can only request meetings with users assigned to you.';
+    raise exception 'You can only request meetings with the selected assigned student/supervisor.';
   end if;
 
   select p.* into related_project
@@ -299,7 +253,6 @@ begin
       or p.created_by = student.id
       or lower(coalesce(p.student_email, '')) = lower(coalesce(student.email, ''))
       or lower(coalesce(p.created_by_email, '')) = lower(coalesce(student.email, ''))
-      or lower(coalesce(p.student_name, '')) = lower(coalesce(student.full_name, ''))
       or lower(coalesce(student.email, '')) in (select lower(unnest(coalesce(p.students, array[]::text[]))))
       or lower(coalesce(student.full_name, '')) in (select lower(unnest(coalesce(p.students, array[]::text[]))))
       or exists (
@@ -347,11 +300,11 @@ begin
     requester.id,
     requester.email,
     requester.full_name,
-    public.normalize_meeting_role(requester.role),
+    requester_role,
     recipient.id,
     recipient.email,
     recipient.full_name,
-    public.normalize_meeting_role(recipient.role),
+    recipient_role,
     student.id,
     student.email,
     supervisor.id,
