@@ -172,6 +172,118 @@ async function getGroupJoinRequestById(supabaseUrl: string, serviceRoleKey: stri
   return requests?.[0] || null
 }
 
+
+async function getMeetingRequestById(supabaseUrl: string, serviceRoleKey: string, id: string) {
+  const meetings = await restFetch(
+    supabaseUrl,
+    serviceRoleKey,
+    `meeting_requests?id=eq.${encodeURIComponent(id)}&select=*`
+  )
+  return meetings?.[0] || null
+}
+
+function normalizeMeetingRole(value: unknown) {
+  const role = normalize(value).replaceAll('_', ' ')
+  if (role === 'student') return 'student'
+  if (role === 'supervisor') return 'supervisor'
+  if (role === 'research committee' || role === 'committee') return 'committee'
+  if (role === 'admin' || role === 'administrator' || role === 'admin/editor') return 'admin'
+  return role
+}
+
+function personMatchesMeetingSide(person: AnyRecord, meeting: AnyRecord, prefix: string) {
+  if (!person || !meeting) return false
+  return (
+    (person.id && String(meeting[`${prefix}_id`] || '') === String(person.id || '')) ||
+    (person.email && normalize(meeting[`${prefix}_email`]) === normalize(person.email)) ||
+    (person.full_name && normalize(meeting[`${prefix}_name`]) === normalize(person.full_name))
+  )
+}
+
+function userCanAccessMeeting(actor: AnyRecord, meeting: AnyRecord) {
+  if (!actor || !meeting || !isApprovedActiveStatus(actor.status)) return false
+  if (isAdminRole(actor.role)) return true
+  return (
+    personMatchesMeetingSide(actor, meeting, 'requester') ||
+    personMatchesMeetingSide(actor, meeting, 'recipient') ||
+    personMatchesMeetingSide(actor, meeting, 'student') ||
+    personMatchesMeetingSide(actor, meeting, 'supervisor')
+  )
+}
+
+function meetingPerson(meeting: AnyRecord, prefix: string) {
+  return {
+    id: meeting[`${prefix}_id`] || null,
+    email: meeting[`${prefix}_email`] || '',
+    full_name: meeting[`${prefix}_name`] || meeting[`${prefix}_email`] || '',
+    role: normalizeMeetingRole(meeting[`${prefix}_role`] || prefix),
+  }
+}
+
+function getMeetingEmailTarget(meeting: AnyRecord, actor: AnyRecord, kind: string) {
+  const requester = meetingPerson(meeting, 'requester')
+  const recipient = meetingPerson(meeting, 'recipient')
+
+  if (kind === 'meeting_request_sent') return recipient
+
+  const actorIsRequester = personMatchesMeetingSide(actor, meeting, 'requester')
+  const actorIsRecipient = personMatchesMeetingSide(actor, meeting, 'recipient')
+  if (actorIsRequester) return recipient
+  if (actorIsRecipient) return requester
+
+  // Admin/system fallback: notify the requester first because most meeting response events
+  // are changes to a request the requester created.
+  return requester.email ? requester : recipient
+}
+
+function meetingActionConfig(kind: string) {
+  const configs: Record<string, { subject: string; title: string; intro: string; actionLabel: string }> = {
+    meeting_request_sent: {
+      subject: 'New Meeting Request',
+      title: 'New Meeting Request',
+      intro: 'A new meeting request has been sent to you.',
+      actionLabel: 'Open meeting request',
+    },
+    meeting_request_accepted: {
+      subject: 'Meeting Request Accepted',
+      title: 'Meeting Request Accepted',
+      intro: 'Your meeting request has been accepted.',
+      actionLabel: 'View meeting request',
+    },
+    meeting_request_rejected: {
+      subject: 'Meeting Request Rejected',
+      title: 'Meeting Request Rejected',
+      intro: 'Your meeting request has been rejected.',
+      actionLabel: 'View meeting request',
+    },
+    meeting_request_reschedule_proposed: {
+      subject: 'Different Meeting Time Proposed',
+      title: 'Different Meeting Time Proposed',
+      intro: 'A different meeting time has been proposed for your meeting request.',
+      actionLabel: 'Review proposed time',
+    },
+    meeting_request_cancelled: {
+      subject: 'Meeting Cancelled',
+      title: 'Meeting Cancelled',
+      intro: 'A meeting request has been cancelled.',
+      actionLabel: 'View meeting request',
+    },
+    meeting_request_updated: {
+      subject: 'Meeting Request Updated',
+      title: 'Meeting Request Updated',
+      intro: 'A meeting request has been updated.',
+      actionLabel: 'View meeting request',
+    },
+  }
+  return configs[kind] || configs.meeting_request_updated
+}
+
+function meetingDateTimeLabel(meeting: AnyRecord) {
+  const date = meeting.requested_date || 'Not available'
+  const time = meeting.requested_start_time || 'Not available'
+  return `${date} ${time}`.trim()
+}
+
 function userCanAccessQuestion(actor: AnyRecord, question: AnyRecord) {
   if (!actor || !question || !isApprovedActiveStatus(actor.status)) return false
   if (isAdminRole(actor.role)) return true
@@ -831,6 +943,60 @@ Deno.serve(async (req) => {
         method: 'PATCH',
         body: JSON.stringify({ acceptance_email_sent_at: new Date().toISOString(), acceptance_email_sent_by: actor.id || null }),
       })
+      return jsonResponse({ success: true, emailId: email?.id || null })
+    }
+
+
+    if (kind.startsWith('meeting_request_')) {
+      const meeting = await getMeetingRequestById(supabaseUrl, serviceRoleKey, String(payload.meetingId || ''))
+      if (!meeting) throw new Error('Meeting request not found.')
+      if (!userCanAccessMeeting(actor, meeting)) return jsonResponse({ error: 'You do not have permission to send email for this meeting request.' }, 403)
+
+      const target = getMeetingEmailTarget(meeting, actor, kind)
+      if (!target?.email) return jsonResponse({ success: true, skipped: true, reason: 'Meeting participant email address is missing.' })
+
+      const config = meetingActionConfig(kind)
+      const targetRole = normalizeMeetingRole(target.role || meeting.recipient_role || meeting.requester_role)
+      const dashboardRole = ['student', 'supervisor', 'admin', 'committee'].includes(targetRole) ? targetRole as 'student' | 'supervisor' | 'admin' | 'committee' : 'student'
+      const link = dashboardLink(appUrl, dashboardRole, { meeting: meeting.id || '' })
+      const proposerLine = meeting.proposed_date || meeting.proposed_start_time
+        ? `<p><strong>Proposed time:</strong> ${escapeHtml(`${meeting.proposed_date || ''} ${meeting.proposed_start_time || ''}`.trim())}</p>`
+        : ''
+      const html = buildEmailWrapper(
+        config.title,
+        config.intro,
+        `
+          <p><strong>Title:</strong> ${escapeHtml(meeting.title || 'Meeting request')}</p>
+          <p><strong>Purpose:</strong> ${escapeHtml(meeting.purpose || 'Not provided')}</p>
+          <p><strong>Requested time:</strong> ${escapeHtml(meetingDateTimeLabel(meeting))}</p>
+          ${proposerLine}
+          <p><strong>Duration:</strong> ${escapeHtml(meeting.duration_minutes || 30)} minutes</p>
+          <p><strong>Type:</strong> ${escapeHtml(meeting.meeting_type || 'In Person')}</p>
+          <p><strong>Location/link:</strong> ${escapeHtml(meeting.location || meeting.meeting_link || 'Not provided')}</p>
+          <p><strong>Student:</strong> ${escapeHtml(meeting.student_email || meeting.student_id || 'Not available')}</p>
+          <p><strong>Supervisor:</strong> ${escapeHtml(meeting.supervisor_email || meeting.supervisor_id || 'Not available')}</p>
+          <p><strong>Status:</strong> ${escapeHtml(payload.status || meeting.status || 'pending')}</p>
+        `,
+        link,
+        config.actionLabel
+      )
+      const text = [
+        config.title,
+        config.intro,
+        `Title: ${meeting.title || 'Meeting request'}`,
+        `Purpose: ${meeting.purpose || 'Not provided'}`,
+        `Requested time: ${meetingDateTimeLabel(meeting)}`,
+        meeting.proposed_date || meeting.proposed_start_time ? `Proposed time: ${`${meeting.proposed_date || ''} ${meeting.proposed_start_time || ''}`.trim()}` : '',
+        `Duration: ${meeting.duration_minutes || 30} minutes`,
+        `Type: ${meeting.meeting_type || 'In Person'}`,
+        `Location/link: ${meeting.location || meeting.meeting_link || 'Not provided'}`,
+        `Student: ${meeting.student_email || meeting.student_id || 'Not available'}`,
+        `Supervisor: ${meeting.supervisor_email || meeting.supervisor_id || 'Not available'}`,
+        `Status: ${payload.status || meeting.status || 'pending'}`,
+        link ? `Dashboard link: ${link}` : '',
+      ].filter(Boolean).join('\n')
+
+      const email = await sendResendEmail({ resendApiKey, fromEmail, to: target.email, subject: config.subject, html, text })
       return jsonResponse({ success: true, emailId: email?.id || null })
     }
 
