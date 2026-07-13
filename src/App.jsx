@@ -2790,7 +2790,10 @@ function RoleFeatureSearch({ role = 'student', items = [], availableTabs = [], o
       return
     }
     const nextTab = item.tab || resolveHeroRouteToTab(item.path || item.id)
-    if (nextTab) onNavigate?.(nextTab)
+    if (nextTab) {
+      onNavigate?.(nextTab, item.sectionId || '')
+      return
+    }
     if (item.sectionId) {
       window.setTimeout(() => scrollToRoleSearchSection(item.sectionId, item.label), 280)
       window.setTimeout(() => scrollToRoleSearchSection(item.sectionId, item.label), 720)
@@ -3506,7 +3509,6 @@ export default function App() {
   useEffect(() => {
     if (currentUser) {
       setRole(currentUser.role)
-      setTab('dashboard')
       setEmailSendingReports({})
       loadFromSupabase(currentUser)
     }
@@ -3515,7 +3517,6 @@ export default function App() {
   useEffect(() => {
     if (currentUser && role !== currentUser.role) {
       setRole(currentUser.role)
-      setTab('dashboard')
       setMessage('')
     }
   }, [role, currentUser])
@@ -7598,6 +7599,20 @@ export default function App() {
     if (tab === 'notifications') setTab('dashboard')
   }, [tab])
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || dataLoading) return undefined
+    const sectionId = decodeURIComponent(String(window.location.hash || '').replace(/^#/, ''))
+    if (!sectionId) return undefined
+
+    const firstTimer = window.setTimeout(() => scrollToRoleSearchSection(sectionId), 180)
+    const secondTimer = window.setTimeout(() => scrollToRoleSearchSection(sectionId), 650)
+
+    return () => {
+      window.clearTimeout(firstTimer)
+      window.clearTimeout(secondTimer)
+    }
+  }, [tab, dataLoading])
+
   if (passwordRecoveryMode) {
     return <><ResetPasswordPage onUpdatePassword={handleUpdatePassword} onBackToLogin={() => { setPasswordRecoveryMode(false); window.history.replaceState({}, document.title, window.location.pathname); setMessage('') }} message={message} loading={passwordResetLoading} settings={websiteSettings} /><AppDialog dialog={appDialog} onClose={closeAppDialog} /></>
   }
@@ -7696,9 +7711,26 @@ export default function App() {
     : tab === 'profile-settings'
       ? 'Profile Settings'
       : mainNavItems.find((item) => item.id === tab)?.label || utilityNavItems.find((item) => item.id === tab)?.label || roleLabel
-  function handleMainNavClick(tabId) {
-    setTab(tabId)
+  function handleMainNavClick(tabId, sectionId = '') {
     setSidebarOpen(false)
+
+    const shouldHardNavigate = ['student', 'supervisor', 'committee'].includes(baseRole) && !activeRoleOverride
+    if (typeof window !== 'undefined' && !isAdminPortal && shouldHardNavigate) {
+      const nextPath = getAuthenticatedTabPath(tabId, allowedRole)
+      if (nextPath) {
+        const nextUrl = sectionId ? `${nextPath}#${encodeURIComponent(sectionId)}` : nextPath
+        const currentUrl = `${window.location.pathname}${window.location.hash || ''}`
+
+        if (currentUrl === nextUrl) {
+          window.location.reload()
+        } else {
+          window.location.assign(nextUrl)
+        }
+        return
+      }
+    }
+
+    setTab(tabId)
     if (typeof window !== 'undefined' && !isAdminPortal) {
       const nextPath = getAuthenticatedTabPath(tabId, allowedRole)
       if (nextPath && window.location.pathname !== nextPath) {
@@ -7813,7 +7845,7 @@ export default function App() {
         )}
 
         {tab === 'about-us' && <AboutUsPage page={aboutUsPage} />}
-        {tab === 'profile-settings' && <ProfileSettingsPage currentUser={currentUser} onBack={() => setTab('dashboard')} updateOwnProfile={updateOwnProfile} uploadOwnProfilePhoto={uploadOwnProfilePhoto} updateOwnPassword={updateOwnPassword} />}
+        {tab === 'profile-settings' && <ProfileSettingsPage currentUser={currentUser} onBack={() => handleMainNavClick('dashboard')} updateOwnProfile={updateOwnProfile} uploadOwnProfilePhoto={uploadOwnProfilePhoto} updateOwnPassword={updateOwnPassword} />}
         {tab === 'questions' && allowedRole === 'student' && roleContextReady && <StudentQuestionsTab data={data} currentUser={activeRoleUser} dataLoading={dataLoading} submitStudentQuestion={submitStudentQuestion} openQuestionAttachment={openQuestionAttachment} />}
         {tab === 'questions' && allowedRole === 'supervisor' && roleContextReady && <SupervisorQuestionsTab data={data} currentUser={activeRoleUser} dataLoading={dataLoading} answerStudentQuestion={answerStudentQuestion} openQuestionAttachment={openQuestionAttachment} />}
         {tab === 'meetings' && (allowedRole === 'student' || allowedRole === 'supervisor') && roleContextReady && <MeetingRequestsPage data={data} role={allowedRole} currentUser={activeRoleUser} dataLoading={dataLoading} createMeetingRequest={createMeetingRequest} respondMeetingRequest={respondMeetingRequest} />}

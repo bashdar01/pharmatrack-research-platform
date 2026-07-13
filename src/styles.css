@@ -21101,3 +21101,417 @@ html body #root .role-hero-no-feature-search .role-hero-banner__content {
     padding-bottom: 245px !important;
   }
 }
+
+
+/* =========================================================
+   FINAL FIXED AUTHENTICATED TOP HEADER
+   Reverts the hero nav/search board back to normal page flow and
+   keeps only the top header fixed while the page scrolls.
+   ========================================================= */
+html body #root .role-hero-actions-panel,
+html body #root .role-hero-actions-panel.role-hero-actions-panel--with-search,
+html body #root .role-hero-actions-panel.role-hero-actions-panel--nav-only {
+  position: absolute !important;
+  left: 50% !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: 18px !important;
+  width: min(1180px, calc(100% - 32px)) !important;
+  max-width: min(1180px, calc(100% - 32px)) !important;
+  transform: translateX(-50%) !important;
+  z-index: 120 !important;
+  margin: 0 !important;
+}
+
+html body #root .role-hero-actions-panel.role-hero-actions-panel--with-search {
+  bottom: 22px !important;
+}
+
+html body #root .app-main-shell.main-dashboard-with-sidebar,
+html body #root .app.app-main-shell.main-dashboard-with-sidebar {
+  --fixed-auth-header-height: 64px;
+  --fixed-auth-header-left: 0px;
+}
+
+html body #root .app-main-shell.main-dashboard-with-sidebar.sidebar-open,
+html body #root .app.app-main-shell.main-dashboard-with-sidebar.sidebar-open {
+  --fixed-auth-header-left: var(--sidebar-width, 270px);
+}
+
+html body #root .main-dashboard-with-sidebar .main-workspace,
+html body #root .app-main-shell.main-dashboard-with-sidebar .main-workspace,
+html body #root .app.app-main-shell.main-dashboard-with-sidebar .main-workspace {
+  padding-top: var(--fixed-auth-header-height, 64px) !important;
+}
+
+html body #root .main-dashboard-with-sidebar .main-compact-header,
+html body #root .app-main-shell.main-dashboard-with-sidebar .main-compact-header,
+html body #root .app.app-main-shell.main-dashboard-with-sidebar .main-compact-header {
+  position: fixed !important;
+  top: 0 !important;
+  left: var(--fixed-auth-header-left, 0px) !important;
+  right: 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: var(--fixed-auth-header-height, 64px) !important;
+  z-index: 1300 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  transition:
+    left 0.38s cubic-bezier(.22, .9, .28, 1),
+    background-color 0.2s ease,
+    box-shadow 0.2s ease !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.9) !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08) !important;
+}
+
+html body #root .main-dashboard-with-sidebar .main-sidebar,
+html body #root .app-main-shell.main-dashboard-with-sidebar .main-sidebar,
+html body #root .app.app-main-shell.main-dashboard-with-sidebar .main-sidebar {
+  z-index: 1400 !important;
+}
+
+html body #root .main-dashboard-with-sidebar .student-profile-dropdown,
+html body #root .main-dashboard-with-sidebar .profile-dropdown,
+html body #root .main-dashboard-with-sidebar .notification-dropdown,
+html body #root .main-dashboard-with-sidebar .notification-menu,
+html body #root .main-dashboard-with-sidebar .role-switch-menu {
+  z-index: 1500 !important;
+}
+
+html body #root .app-content-panel,
+html body #root .research-workspace-page,
+html body #root [id] {
+  scroll-margin-top: calc(var(--fixed-auth-header-height, 64px) + 18px) !important;
+}
+
+@media (max-width: 768px) {
+  html body #root .app-main-shell.main-dashboard-with-sidebar,
+  html body #root .app.app-main-shell.main-dashboard-with-sidebar {
+    --fixed-auth-header-height: 62px;
+    --fixed-auth-header-left: 0px;
+  }
+
+  html body #root .app-main-shell.main-dashboard-with-sidebar.sidebar-open,
+  html body #root .app.app-main-shell.main-dashboard-with-sidebar.sidebar-open {
+    --fixed-auth-header-left: min(240px, 72vw);
+  }
+
+  html body #root .role-hero-actions-panel,
+  html body #root .role-hero-actions-panel.role-hero-actions-panel--with-search,
+  html body #root .role-hero-actions-panel.role-hero-actions-panel--nav-only {
+    position: absolute !important;
+    left: 50% !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: 18px !important;
+    width: calc(100% - 20px) !important;
+    max-width: calc(100% - 20px) !important;
+    transform: translateX(-50%) !important;
+  }
+}
+
+/* =========================================================
+   FINAL TOP HEADER STAYS WITH SCROLL
+   Keeps the hero nav/search board in the hero and makes only
+   the authenticated top header stay visible while scrolling.
+   ========================================================= */
+html body #root .role-hero-actions-panel,
+html body #root .role-hero-actions-panel.role-hero-actions-panel--with-search,
+html body #root .role-hero-actions-panel.role-hero-actions-panel--nav-only {
+  position: absolute !important;
+  left: 50% !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: 18px !important;
+  width: min(1180px, calc(100% - 32px)) !important;
+  max-width: min(1180px, calc(100% - 32px)) !important;
+  transform: translateX(-50%) !important;
+  z-index: 120 !important;
+  margin: 0 !important;
+}
+
+html body #root .role-hero-actions-panel.role-hero-actions-panel--with-search {
+  bottom: 22px !important;
+}
+
+html body #root .main-dashboard-with-sidebar .main-workspace,
+html body #root .app-main-shell.main-dashboard-with-sidebar .main-workspace,
+html body #root .app.app-main-shell.main-dashboard-with-sidebar .main-workspace,
+html body #root .admin-panel-main {
+  padding-top: 0 !important;
+}
+
+html body #root .main-dashboard-with-sidebar .main-compact-header,
+html body #root .app-main-shell.main-dashboard-with-sidebar .main-compact-header,
+html body #root .app.app-main-shell.main-dashboard-with-sidebar .main-compact-header,
+html body #root .admin-panel-topbar {
+  position: sticky !important;
+  top: 0 !important;
+  left: auto !important;
+  right: auto !important;
+  width: 100% !important;
+  min-height: 64px !important;
+  z-index: 2200 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.9) !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08) !important;
+}
+
+html body #root .main-dashboard-with-sidebar .main-sidebar,
+html body #root .app-main-shell.main-dashboard-with-sidebar .main-sidebar,
+html body #root .app.app-main-shell.main-dashboard-with-sidebar .main-sidebar,
+html body #root .admin-sidebar {
+  z-index: 2300 !important;
+}
+
+html body #root .main-dashboard-with-sidebar .student-profile-dropdown,
+html body #root .main-dashboard-with-sidebar .profile-dropdown,
+html body #root .main-dashboard-with-sidebar .notification-dropdown,
+html body #root .main-dashboard-with-sidebar .notification-menu,
+html body #root .main-dashboard-with-sidebar .role-switch-menu,
+html body #root .admin-panel-topbar .student-profile-dropdown,
+html body #root .admin-panel-topbar .profile-dropdown,
+html body #root .admin-panel-topbar .notification-dropdown,
+html body #root .admin-panel-topbar .notification-menu,
+html body #root .admin-panel-topbar .role-switch-menu {
+  z-index: 2400 !important;
+}
+
+html body #root .app-content-panel,
+html body #root .research-workspace-page,
+html body #root [id] {
+  scroll-margin-top: 88px !important;
+}
+
+@media (max-width: 768px) {
+  html body #root .main-dashboard-with-sidebar .main-compact-header,
+  html body #root .app-main-shell.main-dashboard-with-sidebar .main-compact-header,
+  html body #root .app.app-main-shell.main-dashboard-with-sidebar .main-compact-header,
+  html body #root .admin-panel-topbar {
+    min-height: 62px !important;
+  }
+
+  html body #root .role-hero-actions-panel,
+  html body #root .role-hero-actions-panel.role-hero-actions-panel--with-search,
+  html body #root .role-hero-actions-panel.role-hero-actions-panel--nav-only {
+    position: absolute !important;
+    left: 50% !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: 18px !important;
+    width: calc(100% - 20px) !important;
+    max-width: calc(100% - 20px) !important;
+    transform: translateX(-50%) !important;
+  }
+}
+
+/* =========================================================
+   FINAL HERO NAV + SEARCH POSITION TWEAK
+   Moves the hero navigation/search panel higher inside the hero image.
+   ========================================================= */
+html body #root .role-hero-actions-panel,
+html body #root .role-hero-actions-panel.role-hero-actions-panel--nav-only {
+  bottom: 56px !important;
+}
+
+html body #root .role-hero-actions-panel.role-hero-actions-panel--with-search {
+  bottom: 64px !important;
+}
+
+@media (max-width: 900px) {
+  html body #root .role-hero-actions-panel,
+  html body #root .role-hero-actions-panel.role-hero-actions-panel--nav-only,
+  html body #root .role-hero-actions-panel.role-hero-actions-panel--with-search {
+    bottom: 36px !important;
+  }
+}
+
+/* =========================================================
+   FINAL HERO NAV + SEARCH PANEL REFINEMENT
+   Less blur, higher placement, and lighter button text weight.
+   ========================================================= */
+html body #root .role-hero-actions-panel,
+html body #root .role-hero-actions-panel.role-hero-actions-panel--nav-only,
+html body #root .role-hero-actions-panel.role-hero-actions-panel--with-search {
+  background: rgba(255, 255, 255, 0.12) !important;
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  background-image: linear-gradient(135deg, rgba(255,255,255,0.16), rgba(255,255,255,0.08)) !important;
+  border-color: rgba(255, 255, 255, 0.32) !important;
+  box-shadow: 0 14px 38px rgba(15, 23, 42, 0.16) !important;
+  backdrop-filter: blur(8px) saturate(115%) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(115%) !important;
+}
+
+html body #root .role-hero-actions-panel,
+html body #root .role-hero-actions-panel.role-hero-actions-panel--nav-only {
+  bottom: 92px !important;
+}
+
+html body #root .role-hero-actions-panel.role-hero-actions-panel--with-search {
+  bottom: 104px !important;
+}
+
+html body #root .role-hero-actions-panel .hero-nav-button,
+html body #root .role-hero-actions-panel a.hero-nav-button,
+html body #root .role-hero-actions-panel button.hero-nav-button,
+html body #root .role-hero-actions-panel .hero-nav-button span,
+html body #root .role-hero-actions-panel .hero-nav-button strong {
+  font-weight: 500 !important;
+}
+
+html body #root .role-hero-actions-panel .hero-nav-button.active,
+html body #root .role-hero-actions-panel .hero-nav-button.is-active,
+html body #root .role-hero-actions-panel .hero-nav-button[aria-current="page"],
+html body #root .role-hero-actions-panel .hero-nav-button[aria-selected="true"],
+html body #root .role-hero-actions-panel .hero-nav-button.active span,
+html body #root .role-hero-actions-panel .hero-nav-button.is-active span,
+html body #root .role-hero-actions-panel .hero-nav-button[aria-current="page"] span,
+html body #root .role-hero-actions-panel .hero-nav-button[aria-selected="true"] span {
+  font-weight: 500 !important;
+}
+
+@media (max-width: 900px) {
+  html body #root .role-hero-actions-panel,
+  html body #root .role-hero-actions-panel.role-hero-actions-panel--nav-only,
+  html body #root .role-hero-actions-panel.role-hero-actions-panel--with-search {
+    bottom: 58px !important;
+    backdrop-filter: blur(6px) saturate(110%) !important;
+    -webkit-backdrop-filter: blur(6px) saturate(110%) !important;
+  }
+}
+
+/* =========================================================
+   FINAL HERO PANEL LIGHTER GLASS + SOFTER BUTTON CORNERS
+   ========================================================= */
+html body #root .role-hero-actions-panel,
+html body #root .role-hero-actions-panel.role-hero-actions-panel--nav-only,
+html body #root .role-hero-actions-panel.role-hero-actions-panel--with-search {
+  background: rgba(255, 255, 255, 0.07) !important;
+  background-color: rgba(255, 255, 255, 0.07) !important;
+  background-image: linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04)) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.10) !important;
+  backdrop-filter: blur(3px) saturate(105%) !important;
+  -webkit-backdrop-filter: blur(3px) saturate(105%) !important;
+}
+
+html body #root .role-hero-actions-panel .hero-nav-button,
+html body #root .role-hero-actions-panel a.hero-nav-button,
+html body #root .role-hero-actions-panel button.hero-nav-button,
+html body #root .hero-role-navigation .hero-nav-button,
+html body #root .hero-role-navigation a.hero-nav-button,
+html body #root .hero-role-navigation button.hero-nav-button {
+  border-radius: 8px !important;
+}
+
+html body #root .role-hero-actions-panel .role-feature-search__box,
+html body #root .role-feature-search__box {
+  border-radius: 10px !important;
+}
+
+@media (max-width: 900px) {
+  html body #root .role-hero-actions-panel,
+  html body #root .role-hero-actions-panel.role-hero-actions-panel--nav-only,
+  html body #root .role-hero-actions-panel.role-hero-actions-panel--with-search {
+    backdrop-filter: blur(2px) saturate(104%) !important;
+    -webkit-backdrop-filter: blur(2px) saturate(104%) !important;
+  }
+
+  html body #root .role-hero-actions-panel .hero-nav-button,
+  html body #root .role-hero-actions-panel a.hero-nav-button,
+  html body #root .role-hero-actions-panel button.hero-nav-button,
+  html body #root .hero-role-navigation .hero-nav-button,
+  html body #root .hero-role-navigation a.hero-nav-button,
+  html body #root .hero-role-navigation button.hero-nav-button {
+    border-radius: 8px !important;
+  }
+}
+
+/* =========================================================
+   FINAL HERO GLASS PANEL CORNER REFINEMENT
+   Makes the blurred panel corners less rounded to match the sharper buttons.
+   ========================================================= */
+html body #root .role-hero-actions-panel,
+html body #root .role-hero-actions-panel.role-hero-actions-panel--nav-only,
+html body #root .role-hero-actions-panel.role-hero-actions-panel--with-search,
+html body #root .role-hero .role-hero-actions-panel,
+html body #root .role-hero .role-hero-actions-panel.role-hero-actions-panel--nav-only,
+html body #root .role-hero .role-hero-actions-panel.role-hero-actions-panel--with-search {
+  border-radius: 12px !important;
+}
+
+@media (max-width: 900px) {
+  html body #root .role-hero-actions-panel,
+  html body #root .role-hero-actions-panel.role-hero-actions-panel--nav-only,
+  html body #root .role-hero-actions-panel.role-hero-actions-panel--with-search,
+  html body #root .role-hero .role-hero-actions-panel,
+  html body #root .role-hero .role-hero-actions-panel.role-hero-actions-panel--nav-only,
+  html body #root .role-hero .role-hero-actions-panel.role-hero-actions-panel--with-search {
+    border-radius: 10px !important;
+  }
+}
+
+/* =========================================================
+   FINAL HERO NAV / SEARCH CORNER SHARPENING
+   Makes all hero navigation/search corners less rounded.
+   ========================================================= */
+html body #root .role-hero-actions-panel,
+html body #root .role-hero-actions-panel.role-hero-actions-panel--nav-only,
+html body #root .role-hero-actions-panel.role-hero-actions-panel--with-search,
+html body #root .role-hero .role-hero-actions-panel,
+html body #root .role-hero .role-hero-actions-panel.role-hero-actions-panel--nav-only,
+html body #root .role-hero .role-hero-actions-panel.role-hero-actions-panel--with-search {
+  border-radius: 7px !important;
+}
+
+html body #root .role-hero-actions-panel .hero-nav-button,
+html body #root .role-hero-actions-panel a.hero-nav-button,
+html body #root .role-hero-actions-panel button.hero-nav-button,
+html body #root .hero-role-navigation .hero-nav-button,
+html body #root .hero-role-navigation a.hero-nav-button,
+html body #root .hero-role-navigation button.hero-nav-button {
+  border-radius: 6px !important;
+}
+
+html body #root .role-hero-actions-panel .role-feature-search__box,
+html body #root .role-feature-search__box,
+html body #root .role-feature-search__results,
+html body #root .role-feature-search__result,
+html body #root button.role-feature-search__result,
+html body #root .role-feature-search__result-icon,
+html body #root .role-feature-search__clear {
+  border-radius: 6px !important;
+}
+
+@media (max-width: 900px) {
+  html body #root .role-hero-actions-panel,
+  html body #root .role-hero-actions-panel.role-hero-actions-panel--nav-only,
+  html body #root .role-hero-actions-panel.role-hero-actions-panel--with-search,
+  html body #root .role-hero .role-hero-actions-panel,
+  html body #root .role-hero .role-hero-actions-panel.role-hero-actions-panel--nav-only,
+  html body #root .role-hero .role-hero-actions-panel.role-hero-actions-panel--with-search,
+  html body #root .role-hero-actions-panel .hero-nav-button,
+  html body #root .role-hero-actions-panel a.hero-nav-button,
+  html body #root .role-hero-actions-panel button.hero-nav-button,
+  html body #root .hero-role-navigation .hero-nav-button,
+  html body #root .hero-role-navigation a.hero-nav-button,
+  html body #root .hero-role-navigation button.hero-nav-button,
+  html body #root .role-hero-actions-panel .role-feature-search__box,
+  html body #root .role-feature-search__box,
+  html body #root .role-feature-search__results,
+  html body #root .role-feature-search__result,
+  html body #root button.role-feature-search__result,
+  html body #root .role-feature-search__result-icon,
+  html body #root .role-feature-search__clear {
+    border-radius: 6px !important;
+  }
+}
