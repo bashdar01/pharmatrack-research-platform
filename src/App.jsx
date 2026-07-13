@@ -344,6 +344,174 @@ function buildInvitationEmail(invitation, settings = defaultWebsiteSettings) {
   return `${bodyText}\n\nAssigned role: ${getRoleLabel(invitation.role)}\nSecure invitation link: ${link}\nExpiration date: ${expiry}\n\n${settings.siteName || 'Pharmacy Research Platform'}\nContact: College of Pharmacy, Hawler Medical University`
 }
 
+
+const ROLE_HERO_DEFAULTS = {
+  student: {
+    imageUrl: '',
+    imagePath: '',
+    title: 'Welcome to Your Research Journey',
+    subtitle: 'Track your project, weekly reports, deadlines, meetings, and supervisor feedback in one place.',
+    overlayOpacity: 0.38,
+    textColor: '#ffffff',
+    alignment: 'left',
+    enabled: true,
+    buttonLabel: '',
+    buttonRoute: '',
+  },
+  supervisor: {
+    imageUrl: '',
+    imagePath: '',
+    title: 'Guide Research, Support Progress',
+    subtitle: 'Manage research projects, students, deadlines, weekly reports, feedback, and meetings.',
+    overlayOpacity: 0.38,
+    textColor: '#ffffff',
+    alignment: 'left',
+    enabled: true,
+    buttonLabel: '',
+    buttonRoute: '',
+  },
+  committee: {
+    imageUrl: '',
+    imagePath: '',
+    title: 'Review Research, Maintain Quality',
+    subtitle: 'Evaluate submissions, manage project decisions, and monitor approved research projects.',
+    overlayOpacity: 0.38,
+    textColor: '#ffffff',
+    alignment: 'left',
+    enabled: true,
+    buttonLabel: '',
+    buttonRoute: '',
+  },
+  admin: {
+    imageUrl: '',
+    imagePath: '',
+    title: 'Manage the Research Platform',
+    subtitle: 'Control users, assignments, projects, reports, platform settings, and customization.',
+    overlayOpacity: 0.38,
+    textColor: '#ffffff',
+    alignment: 'left',
+    enabled: true,
+    buttonLabel: '',
+    buttonRoute: '',
+  },
+}
+
+const roleHeroOptions = [
+  { value: 'student', label: 'Student Dashboard' },
+  { value: 'supervisor', label: 'Supervisor Dashboard' },
+  { value: 'committee', label: 'Research Committee Dashboard' },
+  { value: 'admin', label: 'Admin Dashboard' },
+]
+
+function cloneRoleHeroDefaults() {
+  return Object.fromEntries(Object.entries(ROLE_HERO_DEFAULTS).map(([role, settings]) => [role, { ...settings }]))
+}
+
+function normalizeRoleHeroRole(role) {
+  const normalized = String(role || 'student').trim().toLowerCase().replace(/[\s-]+/g, '_')
+  if (['research_committee', 'researchcommittee', 'committee'].includes(normalized)) return 'committee'
+  if (['supervisor', 'advisor'].includes(normalized)) return 'supervisor'
+  if (['admin', 'administrator'].includes(normalized)) return 'admin'
+  return 'student'
+}
+
+function clampNumber(value, min, max, fallback) {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return fallback
+  return Math.max(min, Math.min(max, numeric))
+}
+
+function safeHeroTextColor(value, fallback = '#ffffff') {
+  const raw = String(value || '').trim()
+  return /^#[0-9a-f]{3,8}$/i.test(raw) ? raw : fallback
+}
+
+function sanitizeRoleHeroRoute(value) {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  if (/^(https?:|mailto:)/i.test(raw)) return raw
+  if (/^\/?[a-z0-9/_-]+$/i.test(raw)) return raw
+  return ''
+}
+
+function normalizeRoleHeroConfig(role, config = {}) {
+  const key = normalizeRoleHeroRole(role)
+  const defaults = ROLE_HERO_DEFAULTS[key] || ROLE_HERO_DEFAULTS.student
+  const next = { ...defaults, ...(config || {}) }
+  next.imageUrl = sanitizeSettingImageUrl(next.imageUrl || next.image_url || next.image || '')
+  next.imagePath = String(next.imagePath || next.image_path || '')
+  next.title = String(next.title || defaults.title).trim() || defaults.title
+  next.subtitle = String(next.subtitle || defaults.subtitle).trim() || defaults.subtitle
+  next.overlayOpacity = clampNumber(next.overlayOpacity ?? next.overlay ?? defaults.overlayOpacity, 0, 0.85, defaults.overlayOpacity)
+  next.textColor = safeHeroTextColor(next.textColor, defaults.textColor)
+  next.alignment = ['left', 'center', 'right'].includes(String(next.alignment || '').toLowerCase()) ? String(next.alignment).toLowerCase() : defaults.alignment
+  next.enabled = next.enabled !== false
+  next.buttonLabel = String(next.buttonLabel || next.ctaLabel || '').trim()
+  next.buttonRoute = sanitizeRoleHeroRoute(next.buttonRoute || next.ctaRoute || '')
+  return next
+}
+
+function normalizeRoleHeroSettings(roleHeroes = {}, settings = {}) {
+  const source = roleHeroes && typeof roleHeroes === 'object' ? roleHeroes : {}
+  const flattened = {
+    student: {
+      imageUrl: settings.student_hero_image || settings.studentHeroImage,
+      title: settings.student_hero_title || settings.studentHeroTitle,
+      subtitle: settings.student_hero_subtitle || settings.studentHeroSubtitle,
+      overlayOpacity: settings.student_hero_overlay || settings.studentHeroOverlay,
+      textColor: settings.student_hero_text_color || settings.studentHeroTextColor,
+      alignment: settings.student_hero_alignment || settings.studentHeroAlignment,
+      enabled: settings.student_hero_enabled ?? settings.studentHeroEnabled,
+      buttonLabel: settings.student_hero_button_label || settings.studentHeroButtonLabel,
+      buttonRoute: settings.student_hero_button_route || settings.studentHeroButtonRoute,
+    },
+    supervisor: {
+      imageUrl: settings.supervisor_hero_image || settings.supervisorHeroImage,
+      title: settings.supervisor_hero_title || settings.supervisorHeroTitle,
+      subtitle: settings.supervisor_hero_subtitle || settings.supervisorHeroSubtitle,
+      overlayOpacity: settings.supervisor_hero_overlay || settings.supervisorHeroOverlay,
+      textColor: settings.supervisor_hero_text_color || settings.supervisorHeroTextColor,
+      alignment: settings.supervisor_hero_alignment || settings.supervisorHeroAlignment,
+      enabled: settings.supervisor_hero_enabled ?? settings.supervisorHeroEnabled,
+      buttonLabel: settings.supervisor_hero_button_label || settings.supervisorHeroButtonLabel,
+      buttonRoute: settings.supervisor_hero_button_route || settings.supervisorHeroButtonRoute,
+    },
+    committee: {
+      imageUrl: settings.committee_hero_image || settings.committeeHeroImage || settings.research_committee_hero_image,
+      title: settings.committee_hero_title || settings.committeeHeroTitle || settings.research_committee_hero_title,
+      subtitle: settings.committee_hero_subtitle || settings.committeeHeroSubtitle || settings.research_committee_hero_subtitle,
+      overlayOpacity: settings.committee_hero_overlay || settings.committeeHeroOverlay || settings.research_committee_hero_overlay,
+      textColor: settings.committee_hero_text_color || settings.committeeHeroTextColor || settings.research_committee_hero_text_color,
+      alignment: settings.committee_hero_alignment || settings.committeeHeroAlignment || settings.research_committee_hero_alignment,
+      enabled: settings.committee_hero_enabled ?? settings.committeeHeroEnabled ?? settings.research_committee_hero_enabled,
+      buttonLabel: settings.committee_hero_button_label || settings.committeeHeroButtonLabel || settings.research_committee_hero_button_label,
+      buttonRoute: settings.committee_hero_button_route || settings.committeeHeroButtonRoute || settings.research_committee_hero_button_route,
+    },
+    admin: {
+      imageUrl: settings.admin_hero_image || settings.adminHeroImage,
+      title: settings.admin_hero_title || settings.adminHeroTitle,
+      subtitle: settings.admin_hero_subtitle || settings.adminHeroSubtitle,
+      overlayOpacity: settings.admin_hero_overlay || settings.adminHeroOverlay,
+      textColor: settings.admin_hero_text_color || settings.adminHeroTextColor,
+      alignment: settings.admin_hero_alignment || settings.adminHeroAlignment,
+      enabled: settings.admin_hero_enabled ?? settings.adminHeroEnabled,
+      buttonLabel: settings.admin_hero_button_label || settings.adminHeroButtonLabel,
+      buttonRoute: settings.admin_hero_button_route || settings.adminHeroButtonRoute,
+    },
+  }
+  return Object.fromEntries(roleHeroOptions.map(({ value }) => [value, normalizeRoleHeroConfig(value, { ...(flattened[value] || {}), ...(source[value] || {}) })]))
+}
+
+function getRoleHeroSettings(settings = defaultWebsiteSettings, role = 'student') {
+  const normalized = normalizeRoleHeroSettings(settings?.roleHeroes, settings || {})
+  return normalized[normalizeRoleHeroRole(role)] || normalized.student
+}
+
+function getRoleHeroLabel(role) {
+  const normalized = normalizeRoleHeroRole(role)
+  return roleHeroOptions.find((item) => item.value === normalized)?.label || 'Student Dashboard'
+}
+
 const defaultWebsiteSettings = {
   siteName: 'Pharmacy Research Platform',
   adminPanelName: 'Pharmacy Research Platform Control Center',
@@ -381,6 +549,7 @@ const defaultWebsiteSettings = {
   adminWelcome: 'Manage website content, user access, deadlines, projects, database status, and audit activity from one admin control panel.',
   maintenanceNotice: '',
   assetUpdatedAt: '',
+  roleHeroes: cloneRoleHeroDefaults(),
 }
 
 
@@ -623,7 +792,9 @@ function getPdfReportSettingsForRole(role, roleSettings = {}, globalSettings = d
 }
 
 function normalizeSettings(settings) {
-  return { ...defaultWebsiteSettings, ...(settings || {}) }
+  const next = { ...defaultWebsiteSettings, ...(settings || {}) }
+  next.roleHeroes = normalizeRoleHeroSettings(next.roleHeroes, next)
+  return next
 }
 
 function loadWebsiteSettings() {
@@ -796,6 +967,77 @@ function getInitialAdminPanelTab() {
   const parts = window.location.pathname.split('/').map((part) => part.trim().toLowerCase()).filter(Boolean)
   const lastPart = parts[parts.length - 1] || ''
   return adminPanelPathAliases[lastPart] || 'overview'
+}
+
+
+function getInitialMainTab() {
+  if (typeof window === 'undefined') return 'dashboard'
+  const params = new URLSearchParams(window.location.search)
+  const queryTab = params.get('tab')
+  const aliases = {
+    dashboard: 'dashboard',
+    'research-workspace': 'research-workspace',
+    workspace: 'research-workspace',
+    'my-research': 'research-workspace',
+    'project-progress': 'research-workspace',
+    'weekly-reports': 'research-workspace',
+    'supervisor-feedback': 'research-workspace',
+    deadlines: 'research-workspace',
+    'project-management': 'project-management',
+    projects: 'project-management',
+    questions: 'questions',
+    'meeting-requests': 'meetings',
+    meetings: 'meetings',
+    'join-research-group': 'join-group',
+    'join-group': 'join-group',
+    'research-groups': 'groups',
+    groups: 'groups',
+    'group-join-requests': 'group-requests',
+    'group-requests': 'group-requests',
+    reports: 'reports',
+    'pdf-reports': 'reports',
+    'print-pdf-reports': 'reports',
+    database: 'database',
+    audit: 'audit',
+    'audit-log': 'audit',
+    about: 'about-us',
+    'about-us': 'about-us',
+    profile: 'profile-settings',
+    'profile-settings': 'profile-settings',
+  }
+  if (aliases[queryTab]) return aliases[queryTab]
+  const hashTab = String(window.location.hash || '').replace('#', '').trim().toLowerCase()
+  if (aliases[hashTab]) return aliases[hashTab]
+  const parts = window.location.pathname.split('/').map((part) => part.trim().toLowerCase()).filter(Boolean)
+  const lastPart = parts[parts.length - 1] || ''
+  return aliases[lastPart] || 'dashboard'
+}
+
+function getRoleRouteSegment(role = 'student') {
+  if (role === 'committee') return 'committee'
+  if (role === 'supervisor') return 'supervisor'
+  if (role === 'admin') return 'admin'
+  return 'student'
+}
+
+function getAuthenticatedTabPath(tabId = 'dashboard', role = 'student') {
+  const base = getRoleRouteSegment(role)
+  const paths = {
+    dashboard: `/${base}/dashboard`,
+    'research-workspace': `/${base}/research-workspace`,
+    'project-management': '/supervisor/project-management',
+    questions: `/${base}/questions`,
+    meetings: `/${base}/meeting-requests`,
+    'join-group': '/student/join-research-group',
+    groups: '/supervisor/research-groups',
+    'group-requests': `/${base}/group-join-requests`,
+    database: '/admin/database',
+    audit: '/admin/audit-log',
+    reports: `/${base}/pdf-reports`,
+    'about-us': '/about',
+    'profile-settings': `/${base}/profile`,
+  }
+  return paths[tabId] || `/${base}/dashboard`
 }
 
 function isAdminPortalRequest() {
@@ -2333,20 +2575,6 @@ function ProgressBar({ value }) {
   )
 }
 
-function StatCard({ icon: Icon, title, value, detail }) {
-  const slug = String(title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
-  return (
-    <div className={`card stat-card compact-dashboard-stat-card stat-${slug}`}>
-      <div className="icon-box stat-card-icon"><Icon size={22} /></div>
-      <div className="stat-card-content">
-        <p className="muted small stat-card-label">{title}</p>
-        <h2>{value}</h2>
-        <p className="muted small stat-card-detail">{detail}</p>
-      </div>
-    </div>
-  )
-}
-
 function SectionHeader({ icon: Icon, title, subtitle }) {
   return (
     <div className="section-header">
@@ -2390,6 +2618,320 @@ function ButtonContent({ loading = false, loadingText = 'Loading...', icon: Icon
   return <>{loading ? <LoadingSpinner size={iconSize} /> : Icon ? <Icon size={iconSize} /> : null}{loading ? loadingText : children}</>
 }
 
+
+function resolveHeroRouteToTab(target = '') {
+  const raw = String(target || '').trim()
+  if (!raw) return ''
+  const clean = raw.replace(/^https?:\/\/[^/]+/i, '').split('?')[0].split('#')[0].replace(/^\/+|\/+$/g, '')
+  const last = clean.split('/').filter(Boolean).pop() || clean
+  const map = {
+    dashboard: 'dashboard',
+    'research-workspace': 'research-workspace',
+    workspace: 'research-workspace',
+    'my-research': 'dashboard',
+    research: 'dashboard',
+    projects: 'project-management',
+    'project-management': 'project-management',
+    progress: 'dashboard',
+    'project-progress': 'dashboard',
+    reports: 'reports',
+    'pdf-reports': 'reports',
+    pdf: 'reports',
+    meetings: 'meetings',
+    'meeting-requests': 'meetings',
+    questions: 'questions',
+    deadlines: 'dashboard',
+    inbox: 'dashboard',
+    notifications: 'dashboard',
+    groups: 'groups',
+    'join-group': 'join-group',
+    'group-requests': 'group-requests',
+    users: 'dashboard',
+    audit: 'audit',
+    database: 'database',
+    profile: 'profile-settings',
+    'profile-settings': 'profile-settings',
+  }
+  return map[last] || map[clean] || raw
+}
+
+
+const SEARCH_ENABLED_ROLES = ['student', 'supervisor', 'committee']
+
+const roleFeatureSearchItems = {
+  student: [
+    { id: 'student-dashboard', label: 'Dashboard', description: 'Open your student dashboard hero page.', keywords: ['home', 'overview'], tab: 'dashboard', icon: LayoutDashboard },
+    { id: 'student-workspace', label: 'Research Workspace', description: 'Manage your active research workflow.', keywords: ['workspace', 'research tools', 'work area'], tab: 'research-workspace', icon: BookOpen },
+    { id: 'submit-weekly-report', label: 'Submit Weekly Report', description: 'Submit your project weekly progress report.', keywords: ['weekly', 'report', 'progress report', 'submit report'], tab: 'research-workspace', sectionId: 'submit-weekly-report', icon: FileText },
+    { id: 'weekly-report-history', label: 'Weekly Report History', description: 'Review submitted weekly reports and status.', keywords: ['weekly history', 'submitted reports', 'report status'], tab: 'research-workspace', sectionId: 'weekly-report-history', icon: ClipboardCheck },
+    { id: 'supervisor-feedback', label: 'Supervisor Feedback', description: 'View supervisor comments and report feedback.', keywords: ['feedback', 'comments', 'supervisor review'], tab: 'research-workspace', sectionId: 'supervisor-feedback', icon: MessageSquareText },
+    { id: 'project-progress', label: 'Project Progress', description: 'View project progress and milestones.', keywords: ['progress', 'milestone', 'status'], tab: 'research-workspace', sectionId: 'project-progress', icon: CheckCircle2 },
+    { id: 'my-research', label: 'My Research', description: 'Open your research project information.', keywords: ['project', 'my project', 'research project', 'research group'], tab: 'research-workspace', sectionId: 'my-research', icon: BookOpen },
+    { id: 'project-members', label: 'Project Members', description: 'View students in your project group.', keywords: ['members', 'team', 'group students'], tab: 'research-workspace', sectionId: 'project-members', icon: Users },
+    { id: 'project-leader', label: 'Project Leader', description: 'View project leader information.', keywords: ['leader', 'project leader'], tab: 'research-workspace', sectionId: 'project-leader', icon: UserCog },
+    { id: 'deadlines', label: 'Deadlines', description: 'View project deadlines and milestones.', keywords: ['deadline', 'due date', 'milestones'], tab: 'research-workspace', sectionId: 'deadlines', icon: CalendarDays },
+    { id: 'meeting-requests', label: 'Meeting Requests', description: 'Request and respond to meetings.', keywords: ['meeting', 'appointment', 'schedule'], tab: 'meetings', icon: CalendarDays },
+    { id: 'questions', label: 'Questions', description: 'Ask your supervisor research questions.', keywords: ['ask', 'question', 'supervisor question'], tab: 'questions', icon: MessageSquareText },
+    { id: 'join-research-group', label: 'Join Research Group', description: 'Browse approved groups and request to join.', keywords: ['join', 'research group', 'group request'], tab: 'join-group', icon: Users, requiresTabVisible: true },
+    { id: 'inbox', label: 'Inbox', description: 'Open your Inbox messages and reminders.', keywords: ['notification', 'notifications', 'message', 'reminder'], action: 'open-inbox', icon: Inbox },
+    { id: 'pdf-reports', label: 'Print/PDF Reports', description: 'Open the existing PDF reports page.', keywords: ['pdf', 'print', 'reports', 'download'], tab: 'reports', icon: Printer },
+    { id: 'about-us', label: 'About Us', description: 'Open the platform About Us page.', keywords: ['about', 'hmu', 'college'], tab: 'about-us', icon: Info },
+    { id: 'research-guidelines', label: 'Research Guidelines', description: 'Download the research guidelines PDF.', keywords: ['guidelines', 'research guidelines', 'pdf guideline'], action: 'download-guidelines', icon: Download },
+    { id: 'profile-settings', label: 'Profile Settings', description: 'Update your profile and account settings.', keywords: ['profile', 'settings', 'account', 'password'], tab: 'profile-settings', icon: Settings },
+  ],
+  supervisor: [
+    { id: 'supervisor-dashboard', label: 'Dashboard', description: 'Open your supervisor dashboard hero page.', keywords: ['home', 'overview'], tab: 'dashboard', icon: LayoutDashboard },
+    { id: 'supervisor-workspace', label: 'Research Workspace', description: 'Manage supervised research activities.', keywords: ['workspace', 'research tools', 'work area'], tab: 'research-workspace', icon: BookOpen },
+    { id: 'submit-research-project', label: 'Submit Research Project', description: 'Submit a supervisor project for committee review.', keywords: ['submit project', 'new project', 'proposal'], tab: 'project-management', sectionId: 'submit-research-project', icon: FileText },
+    { id: 'my-submitted-projects', label: 'My Submitted Projects', description: 'View committee status for submitted projects.', keywords: ['submitted projects', 'my projects', 'committee status'], tab: 'project-management', sectionId: 'my-submitted-projects', icon: ClipboardCheck },
+    { id: 'project-management', label: 'Project Management', description: 'Open supervisor project management tools.', keywords: ['projects', 'manage projects'], tab: 'project-management', icon: ClipboardCheck },
+    { id: 'project-progress', label: 'Project Progress', description: 'Monitor supervised project progress.', keywords: ['progress', 'milestones', 'status'], tab: 'research-workspace', sectionId: 'project-progress', icon: CheckCircle2 },
+    { id: 'review-weekly-reports', label: 'Review Weekly Reports', description: 'Review student weekly progress reports.', keywords: ['weekly', 'review reports', 'student reports'], tab: 'research-workspace', sectionId: 'review-weekly-reports', icon: ClipboardCheck },
+    { id: 'provide-supervisor-feedback', label: 'Provide Supervisor Feedback', description: 'Write feedback for weekly reports.', keywords: ['feedback', 'comments', 'review'], tab: 'research-workspace', sectionId: 'review-weekly-reports', icon: MessageSquareText },
+    { id: 'manage-deadlines', label: 'Set and Manage Deadlines', description: 'Create and remove student deadlines.', keywords: ['deadline', 'due date', 'set deadline'], tab: 'research-workspace', sectionId: 'manage-deadlines', icon: CalendarDays },
+    { id: 'assign-project-leader', label: 'Assign Project Leader', description: 'Choose a student leader for a project.', keywords: ['leader', 'project leader', 'assign leader'], tab: 'project-management', sectionId: 'assign-project-leader', icon: UserCog },
+    { id: 'project-members', label: 'Project Members', description: 'View students in supervised project groups.', keywords: ['members', 'students', 'group members'], tab: 'research-workspace', sectionId: 'project-members', icon: Users },
+    { id: 'group-join-requests', label: 'Group Join Requests', description: 'Review student requests to join your groups.', keywords: ['join requests', 'group requests', 'student requests'], tab: 'groups', sectionId: 'group-join-requests', icon: UserPlus },
+    { id: 'meeting-requests', label: 'Meeting Requests', description: 'Request and respond to meetings.', keywords: ['meeting', 'appointment', 'schedule'], tab: 'meetings', icon: CalendarDays },
+    { id: 'student-questions', label: 'Student Questions', description: 'Answer questions from assigned students.', keywords: ['questions', 'answers', 'student questions'], tab: 'questions', icon: MessageSquareText },
+    { id: 'inbox', label: 'Inbox', description: 'Open your Inbox messages and reminders.', keywords: ['notification', 'notifications', 'message', 'reminder'], action: 'open-inbox', icon: Inbox },
+    { id: 'pdf-reports', label: 'Print/PDF Reports', description: 'Open the existing PDF reports page.', keywords: ['pdf', 'print', 'reports', 'download'], tab: 'reports', icon: Printer },
+    { id: 'about-us', label: 'About Us', description: 'Open the platform About Us page.', keywords: ['about', 'hmu', 'college'], tab: 'about-us', icon: Info },
+    { id: 'research-guidelines', label: 'Research Guidelines', description: 'Download the research guidelines PDF.', keywords: ['guidelines', 'research guidelines', 'pdf guideline'], action: 'download-guidelines', icon: Download },
+    { id: 'profile-settings', label: 'Profile Settings', description: 'Update your profile and account settings.', keywords: ['profile', 'settings', 'account', 'password'], tab: 'profile-settings', icon: Settings },
+  ],
+  committee: [
+    { id: 'committee-dashboard', label: 'Dashboard', description: 'Open the Research Committee dashboard hero page.', keywords: ['home', 'overview'], tab: 'dashboard', icon: LayoutDashboard },
+    { id: 'committee-workspace', label: 'Research Workspace', description: 'Review research submissions and monitoring tools.', keywords: ['workspace', 'review tools'], tab: 'research-workspace', icon: BookOpen },
+    { id: 'review-project-submissions', label: 'Review Project Submissions', description: 'Review submitted project titles and proposals.', keywords: ['review submissions', 'project review', 'title review'], tab: 'research-workspace', sectionId: 'review-project-submissions', icon: Search },
+    { id: 'accept-project', label: 'Accept Project', description: 'Approve a submitted research project.', keywords: ['accept', 'approve', 'decision'], tab: 'research-workspace', sectionId: 'review-project-submissions', icon: CheckCircle2 },
+    { id: 'reject-project', label: 'Reject Project', description: 'Reject a submitted research project.', keywords: ['reject', 'decision'], tab: 'research-workspace', sectionId: 'review-project-submissions', icon: XCircle },
+    { id: 'request-revision', label: 'Request Revision', description: 'Request project title/proposal revision.', keywords: ['revision', 'revise', 'decision'], tab: 'research-workspace', sectionId: 'review-project-submissions', icon: RefreshCw },
+    { id: 'approved-projects', label: 'Approved Projects', description: 'View accepted/approved research projects.', keywords: ['approved', 'accepted projects'], tab: 'research-workspace', sectionId: 'approved-projects', icon: ClipboardCheck },
+    { id: 'group-join-requests', label: 'Group Join Requests', description: 'Review group join request decisions.', keywords: ['join requests', 'group requests', 'student requests'], tab: 'group-requests', icon: Users },
+    { id: 'add-students-to-group', label: 'Add Students to Group', description: 'Open group join/request management.', keywords: ['add students', 'group members'], tab: 'group-requests', icon: UserPlus },
+    { id: 'project-progress', label: 'Project Progress', description: 'Monitor project progress.', keywords: ['progress', 'milestones', 'status'], tab: 'research-workspace', sectionId: 'project-progress', icon: CheckCircle2 },
+    { id: 'weekly-report-review', label: 'Weekly Report Review', description: 'Review weekly reports and project updates.', keywords: ['weekly', 'reports', 'report review'], tab: 'research-workspace', sectionId: 'weekly-report-review', icon: FileText },
+    { id: 'inbox', label: 'Inbox', description: 'Open your Inbox messages and reminders.', keywords: ['notification', 'notifications', 'message', 'reminder'], action: 'open-inbox', icon: Inbox },
+    { id: 'pdf-reports', label: 'Print/PDF Reports', description: 'Open the existing PDF reports page.', keywords: ['pdf', 'print', 'reports', 'download'], tab: 'reports', icon: Printer },
+    { id: 'about-us', label: 'About Us', description: 'Open the platform About Us page.', keywords: ['about', 'hmu', 'college'], tab: 'about-us', icon: Info },
+    { id: 'research-guidelines', label: 'Research Guidelines', description: 'Download the research guidelines PDF.', keywords: ['guidelines', 'research guidelines', 'pdf guideline'], action: 'download-guidelines', icon: Download },
+    { id: 'profile-settings', label: 'Profile Settings', description: 'Update your profile and account settings.', keywords: ['profile', 'settings', 'account', 'password'], tab: 'profile-settings', icon: Settings },
+  ],
+}
+
+function scoreRoleSearchItem(item, query) {
+  const q = String(query || '').trim().toLowerCase()
+  if (!q) return 0
+  const label = String(item.label || '').toLowerCase()
+  const description = String(item.description || '').toLowerCase()
+  const keywords = (item.keywords || []).map((keyword) => String(keyword || '').toLowerCase())
+  if (label === q) return 100
+  if (label.startsWith(q)) return 90
+  if (keywords.some((keyword) => keyword === q || keyword.startsWith(q))) return 82
+  if (label.includes(q)) return 74
+  if (keywords.some((keyword) => keyword.includes(q))) return 66
+  if (description.includes(q)) return 48
+  return 0
+}
+
+function scrollToRoleSearchSection(sectionId, fallbackLabel = '') {
+  if (!sectionId || typeof document === 'undefined') return
+  const target = document.getElementById(sectionId) || document.querySelector(`[data-search-section="${CSS.escape(sectionId)}"]`)
+  if (target) {
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    target.classList?.add?.('role-search-target-highlight')
+    window.setTimeout(() => target.classList?.remove?.('role-search-target-highlight'), 1300)
+    return
+  }
+  const wanted = String(fallbackLabel || '').trim().toLowerCase()
+  if (!wanted) return
+  const candidates = Array.from(document.querySelectorAll('.card, .mini-card, section, form, [class*="card"]'))
+  const fallback = candidates.find((node) => String(node.textContent || '').toLowerCase().includes(wanted))
+  if (fallback) fallback.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function triggerGuidelinesDownload() {
+  if (typeof document === 'undefined') return
+  const link = document.createElement('a')
+  link.href = RESEARCH_GUIDELINES_PDF_URL
+  link.download = RESEARCH_GUIDELINES_DOWNLOAD_NAME
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+}
+
+function RoleFeatureSearch({ role = 'student', items = [], availableTabs = [], onNavigate }) {
+  const [query, setQuery] = useState('')
+  const [focused, setFocused] = useState(false)
+  const normalizedRole = normalizeRoleHeroRole(role)
+  if (!SEARCH_ENABLED_ROLES.includes(normalizedRole)) return null
+  const availableTabSet = new Set([...(availableTabs || []), 'reports', 'about-us', 'profile-settings', 'research-workspace', 'dashboard'])
+  const filteredItems = items.filter((item) => !item.requiresTabVisible || availableTabSet.has(item.tab))
+  const trimmedQuery = query.trim()
+  const results = trimmedQuery
+    ? filteredItems
+      .map((item) => ({ ...item, score: scoreRoleSearchItem(item, trimmedQuery) }))
+      .filter((item) => item.score > 0)
+      .sort((a, b) => b.score - a.score || a.label.localeCompare(b.label))
+      .slice(0, 7)
+    : []
+
+  function handleSelect(item) {
+    setQuery('')
+    setFocused(false)
+    if (item.action === 'download-guidelines') {
+      triggerGuidelinesDownload()
+      return
+    }
+    if (item.action === 'open-inbox') {
+      const inboxButton = document.querySelector('.header-inbox-button, .main-notification-button, button[aria-label="Open inbox"]')
+      inboxButton?.click?.()
+      return
+    }
+    const nextTab = item.tab || resolveHeroRouteToTab(item.path || item.id)
+    if (nextTab) onNavigate?.(nextTab)
+    if (item.sectionId) {
+      window.setTimeout(() => scrollToRoleSearchSection(item.sectionId, item.label), 280)
+      window.setTimeout(() => scrollToRoleSearchSection(item.sectionId, item.label), 720)
+    }
+  }
+
+  return (
+    <div className={`role-feature-search role-feature-search-${normalizedRole}`}>
+      <div className={`role-feature-search__box ${focused ? 'is-focused' : ''}`}>
+        <Search size={18} aria-hidden="true" />
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => window.setTimeout(() => setFocused(false), 140)}
+          placeholder="Search pages, tools, and actions..."
+          aria-label="Search pages, tools, and actions"
+          autoComplete="off"
+        />
+        {query && (
+          <button type="button" className="role-feature-search__clear" onMouseDown={(event) => event.preventDefault()} onClick={() => setQuery('')} aria-label="Clear search"><XCircle size={17} /></button>
+        )}
+      </div>
+      {focused && trimmedQuery && (
+        <div className="role-feature-search__results" role="listbox" aria-label="Search results">
+          {results.length ? results.map((item) => {
+            const Icon = item.icon
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className="role-feature-search__result search-result-force-white"
+                data-state="inactive"
+                data-active="false"
+                style={{ background: '#ffffff', backgroundColor: '#ffffff', backgroundImage: 'none', color: '#111827' }}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => handleSelect(item)}
+                role="option"
+              >
+                <span className="role-feature-search__result-icon">{Icon ? <Icon size={17} /> : <Search size={17} />}</span>
+                <span className="role-feature-search__result-text"><b>{item.label}</b><small>{item.description}</small></span>
+              </button>
+            )
+          }) : <div className="role-feature-search__empty">No matching tools found for your role.</div>}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function RoleHeroBanner({ role = 'student', settings = defaultWebsiteSettings, onNavigate, navigationItems = [], activeTab = '', className = '' }) {
+  const hero = getRoleHeroSettings(settings, role)
+  const image = versionedAssetUrl(hero?.imageUrl, settings?.assetUpdatedAt)
+  const [imageFailed, setImageFailed] = useState(false)
+
+  useEffect(() => {
+    setImageFailed(false)
+  }, [image])
+
+  if (!hero?.enabled) return null
+  const roleClass = normalizeRoleHeroRole(role)
+  const hasFeatureSearch = SEARCH_ENABLED_ROLES.includes(roleClass)
+  const alignClass = ['center', 'right'].includes(hero.alignment) ? hero.alignment : 'left'
+  const shouldShowImage = Boolean(image && !imageFailed)
+  const heroStyle = {
+    '--role-hero-overlay': hero.overlayOpacity,
+    '--role-hero-text': hero.textColor,
+  }
+
+  function handleHeroCta() {
+    const target = sanitizeRoleHeroRoute(hero.buttonRoute)
+    if (!target) return
+    if (/^(https?:|mailto:)/i.test(target)) {
+      window.open(target, '_blank', 'noopener,noreferrer')
+      return
+    }
+    if (onNavigate) onNavigate(resolveHeroRouteToTab(target))
+  }
+
+  return (
+    <section className={`role-hero-banner role-hero-picture-card role-hero-navigation-shell role-hero-${roleClass} role-hero-align-${alignClass} ${shouldShowImage ? 'role-hero-has-image' : 'role-hero-no-image'} ${hasFeatureSearch ? 'role-hero-has-feature-search' : 'role-hero-no-feature-search'} ${className}`.trim()} style={heroStyle}>
+      <div className="role-hero-picture-card__media" aria-hidden="true">
+        {shouldShowImage && (
+          <img
+            className="role-hero-picture-card__image"
+            src={image}
+            alt=""
+            loading="lazy"
+            onError={() => setImageFailed(true)}
+          />
+        )}
+      </div>
+      <div className="role-hero-banner__overlay" />
+      <div className="role-hero-banner__content">
+        <h1 className="role-hero-banner__title">{hero.title}</h1>
+        {hero.subtitle && <p className="role-hero-banner__subtitle">{hero.subtitle}</p>}
+        {hero.buttonLabel && hero.buttonRoute && (
+          <button type="button" className="role-hero-banner__button" onClick={handleHeroCta}>{hero.buttonLabel}</button>
+        )}
+      </div>
+      {(navigationItems.length > 0 || hasFeatureSearch) && (
+        <div className={`role-hero-actions-panel ${hasFeatureSearch ? 'role-hero-actions-panel--with-search' : 'role-hero-actions-panel--nav-only'}`}>
+          {navigationItems.length > 0 && (
+            <nav className="hero-role-navigation" aria-label="Role page navigation">
+              {navigationItems.map((item) => {
+                const Icon = item.icon
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`hero-nav-button${activeTab === item.id ? ' active is-active' : ''}`}
+                    onClick={() => onNavigate?.(item.id)}
+                    aria-current={activeTab === item.id ? 'page' : undefined}
+                    aria-selected={activeTab === item.id ? 'true' : 'false'}
+                    data-active={activeTab === item.id ? 'true' : 'false'}
+                  >
+                    {Icon && <Icon size={16} />}
+                    <span>{item.label}</span>
+                    {item.badge > 0 && <span className="tab-badge">{item.badge}</span>}
+                  </button>
+                )
+              })}
+            </nav>
+          )}
+          {hasFeatureSearch && (
+            <RoleFeatureSearch
+              role={roleClass}
+              items={roleFeatureSearchItems[roleClass] || []}
+              availableTabs={navigationItems.map((item) => item.id)}
+              onNavigate={onNavigate}
+            />
+          )}
+        </div>
+      )}
+    </section>
+  )
+}
+
+
+
 function getActionLoadingText(key = '') {
   const value = String(key).toLowerCase()
   if (value.includes('delete') || value.includes('remove') || value.includes('cancel')) return 'Deleting...'
@@ -2399,6 +2941,95 @@ function getActionLoadingText(key = '') {
   if (value.includes('send') || value.includes('invite') || value.includes('email') || value.includes('resend')) return 'Sending...'
   if (value.includes('save')) return 'Saving...'
   return 'Updating...'
+}
+
+
+const fallbackDialogApi = {
+  alert: (message) => { console.warn(message); return Promise.resolve(true) },
+  confirm: (message) => { console.warn(message); return Promise.resolve(false) },
+  prompt: (message) => { console.warn(message); return Promise.resolve(null) },
+}
+let appDialogApi = fallbackDialogApi
+
+function showAppAlert(message, options = {}) {
+  return appDialogApi.alert(message, options)
+}
+
+function showAppConfirm(message, options = {}) {
+  return appDialogApi.confirm(message, options)
+}
+
+function showAppPrompt(message, defaultValue = '', options = {}) {
+  return appDialogApi.prompt(message, defaultValue, options)
+}
+
+function AppDialog({ dialog, onClose }) {
+  const [inputValue, setInputValue] = useState(dialog?.defaultValue || '')
+  const dialogRef = useRef(null)
+  const inputRef = useRef(null)
+
+  useEffect(() => {
+    setInputValue(dialog?.defaultValue || '')
+    if (!dialog?.open) return
+    const timer = window.setTimeout(() => {
+      if (dialog.kind === 'prompt') inputRef.current?.focus()
+      else dialogRef.current?.querySelector('button')?.focus()
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [dialog])
+
+  useEffect(() => {
+    if (!dialog?.open) return
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        onClose(dialog.kind === 'confirm' ? false : dialog.kind === 'prompt' ? null : true)
+      }
+      if (event.key === 'Enter' && dialog.kind !== 'prompt') {
+        event.preventDefault()
+        onClose(true)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [dialog, onClose])
+
+  if (!dialog?.open) return null
+  const type = dialog.type || (dialog.kind === 'confirm' ? 'warning' : 'info')
+  const Icon = type === 'success' ? CheckCircle2 : type === 'danger' || type === 'error' ? XCircle : type === 'warning' ? Info : Info
+  const title = dialog.title || (dialog.kind === 'confirm' ? 'Confirm Action' : dialog.kind === 'prompt' ? 'Input Required' : type === 'error' ? 'Error' : 'Notice')
+
+  return (
+    <div className="app-dialog-backdrop" role="presentation">
+      <div className={`app-dialog app-dialog-${type}`} role="dialog" aria-modal="true" aria-labelledby="app-dialog-title" ref={dialogRef}>
+        <div className="app-dialog-icon"><Icon size={24} /></div>
+        <div className="app-dialog-body">
+          <h2 id="app-dialog-title">{title}</h2>
+          <p>{dialog.message}</p>
+          {dialog.kind === 'prompt' && (
+            <input
+              ref={inputRef}
+              className="app-dialog-input"
+              value={inputValue}
+              onChange={(event) => setInputValue(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  onClose(inputValue)
+                }
+              }}
+            />
+          )}
+        </div>
+        <div className="app-dialog-actions">
+          {(dialog.kind === 'confirm' || dialog.kind === 'prompt') && (
+            <button type="button" className="secondary" onClick={() => onClose(dialog.kind === 'prompt' ? null : false)}>{dialog.cancelLabel || 'Cancel'}</button>
+          )}
+          <button type="button" className={dialog.kind === 'confirm' && type === 'danger' ? 'danger' : 'primary'} onClick={() => onClose(dialog.kind === 'prompt' ? inputValue : true)}>{dialog.confirmLabel || (dialog.kind === 'confirm' ? 'Confirm' : 'OK')}</button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = false, settings = defaultWebsiteSettings, invitation = null }) {
@@ -2749,9 +3380,12 @@ async function loadStudentMemberDashboardViaRpc(user = {}) {
 
 
 export default function App() {
+  const [appDialog, setAppDialog] = useState(null)
   const [role, setRole] = useState('student')
-  const [tab, setTab] = useState('dashboard')
+  const [tab, setTab] = useState(getInitialMainTab)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const sidebarRef = useRef(null)
+  const sidebarToggleRef = useRef(null)
   const [data, setData] = useState(loadLocalData)
   const [dataLoadError, setDataLoadError] = useState('')
   const [dataLoading, setDataLoading] = useState(false)
@@ -2763,6 +3397,54 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(loadCurrentUser)
   const [activeRoleOverride, setActiveRoleOverride] = useState('')
   const [message, setMessage] = useState('')
+
+  const closeAppDialog = React.useCallback((result) => {
+    setAppDialog((current) => {
+      if (current?.resolve) current.resolve(result)
+      return null
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!sidebarOpen) return undefined
+
+    const handleOutsideSidebarClose = (event) => {
+      const target = event.target
+      const sidebarElement = sidebarRef.current
+      const toggleElement = sidebarToggleRef.current
+
+      if (!target || sidebarElement?.contains(target) || toggleElement?.contains(target)) {
+        return
+      }
+
+      setSidebarOpen(false)
+    }
+
+    const handleSidebarEscape = (event) => {
+      if (event.key === 'Escape') {
+        setSidebarOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleOutsideSidebarClose)
+    document.addEventListener('touchstart', handleOutsideSidebarClose, { passive: true })
+    document.addEventListener('keydown', handleSidebarEscape)
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideSidebarClose)
+      document.removeEventListener('touchstart', handleOutsideSidebarClose)
+      document.removeEventListener('keydown', handleSidebarEscape)
+    }
+  }, [sidebarOpen])
+
+  useEffect(() => {
+    appDialogApi = {
+      alert: (message, options = {}) => new Promise((resolve) => setAppDialog({ open: true, kind: 'alert', type: options.type || 'info', title: options.title || 'Notice', message, confirmLabel: options.confirmLabel || 'OK', resolve })),
+      confirm: (message, options = {}) => new Promise((resolve) => setAppDialog({ open: true, kind: 'confirm', type: options.type || 'warning', title: options.title || 'Confirm Action', message, confirmLabel: options.confirmLabel || 'Confirm', cancelLabel: options.cancelLabel || 'Cancel', resolve })),
+      prompt: (message, defaultValue = '', options = {}) => new Promise((resolve) => setAppDialog({ open: true, kind: 'prompt', type: options.type || 'info', title: options.title || 'Input Required', message, defaultValue, confirmLabel: options.confirmLabel || 'OK', cancelLabel: options.cancelLabel || 'Cancel', resolve })),
+    }
+    return () => { appDialogApi = fallbackDialogApi }
+  }, [])
   const [loginLoading, setLoginLoading] = useState(false)
   const [passwordRecoveryMode, setPasswordRecoveryMode] = useState(false)
   const [passwordResetLoading, setPasswordResetLoading] = useState(false)
@@ -2834,7 +3516,7 @@ export default function App() {
     if (currentUser && role !== currentUser.role) {
       setRole(currentUser.role)
       setTab('dashboard')
-      setMessage(`Welcome, ${currentUser.full_name}.`)
+      setMessage('')
     }
   }, [role, currentUser])
 
@@ -3677,7 +4359,7 @@ export default function App() {
       setCurrentUser(loginUser)
       setRole(loginUser.role)
       await loadFromSupabase(loginUser)
-      setMessage(`Welcome, ${loginUser.full_name}.`)
+      setMessage('')
     } catch (error) {
       setMessage(error.message || 'Authentication failed. Please check your Supabase URL, key, database policies, email, and password.')
     } finally {
@@ -5149,7 +5831,7 @@ export default function App() {
     if (!canDeleteUploadedFile(targetFile, currentUser, data.reports)) {
       return setMessage('You do not have permission to delete this item.')
     }
-    if (!window.confirm('Are you sure you want to delete this item?')) return
+    if (!(await showAppConfirm('Are you sure you want to delete this item?', { title: 'Delete Item', type: 'danger', confirmLabel: 'Delete' }))) return
 
     try {
       if (isSupabaseConfigured) {
@@ -5179,7 +5861,7 @@ export default function App() {
     if (!canDeleteReport(targetReport, currentUser)) {
       return setMessage('You do not have permission to delete weekly reports.')
     }
-    if (!window.confirm('Are you sure you want to delete this item?')) return
+    if (!(await showAppConfirm('Are you sure you want to delete this item?', { title: 'Delete Item', type: 'danger', confirmLabel: 'Delete' }))) return
 
     const linkedFiles = data.uploadedFiles.filter((file) => String(file.report_id) === String(reportId))
     const updatedReports = data.reports.filter((report) => String(report.id) !== String(reportId))
@@ -5220,7 +5902,7 @@ export default function App() {
     if (!canDeleteUserAccount(targetUser, currentUser)) {
       return setMessage('You do not have permission to perform this action.')
     }
-    if (!window.confirm('Are you sure you want to delete this account? This action cannot be undone.')) return
+    if (!(await showAppConfirm('Are you sure you want to delete this account? This action cannot be undone.', { title: 'Delete Account', type: 'danger', confirmLabel: 'Delete Account' }))) return
 
     try {
       if (isSupabaseConfigured) {
@@ -5263,7 +5945,7 @@ export default function App() {
     if (!canDeleteResearchProject(targetProject, currentUser)) {
       return setMessage('You do not have permission to perform this action.')
     }
-    if (!window.confirm('Are you sure you want to delete this research title?')) return
+    if (!(await showAppConfirm('Are you sure you want to delete this research title?', { title: 'Delete Research Title', type: 'danger', confirmLabel: 'Delete' }))) return
 
     const linkedReports = data.reports.filter((report) => String(report.project_id) === String(projectId))
     const linkedReportIds = linkedReports.map((report) => String(report.id))
@@ -5304,7 +5986,7 @@ export default function App() {
     if (!canDeleteResearchGroup(normalizedGroup, currentUser)) {
       return setMessage('You do not have permission to perform this action.')
     }
-    if (!window.confirm('Are you sure you want to delete this research group?')) return
+    if (!(await showAppConfirm('Are you sure you want to delete this research group?', { title: 'Delete Research Group', type: 'danger', confirmLabel: 'Delete' }))) return
 
     const groupProjects = data.projects.filter((project) => String(project.group_name || '') === normalizedGroup)
     const groupProjectIds = groupProjects.map((project) => String(project.id))
@@ -6570,7 +7252,7 @@ export default function App() {
     if (!['admin', 'supervisor'].includes(allowedRole)) return setMessage('Only supervisors and admins can remove deadlines.')
     const target = data.deadlines.find((d) => String(d.id) === String(deadlineId))
     if (!target) return setMessage('Deadline not found.')
-    if (!window.confirm('Are you sure you want to remove this deadline?')) return
+    if (!(await showAppConfirm('Are you sure you want to remove this deadline?', { title: 'Remove Deadline', type: 'danger', confirmLabel: 'Remove' }))) return
 
     if (isSupabaseConfigured) {
       const directDelete = await supabase.from('deadlines').delete().eq('id', deadlineId)
@@ -6908,71 +7590,29 @@ export default function App() {
     }
   }, [allowedRole, tab, studentCurrentResearchGroup, dataLoading])
 
-  const stats = useMemo(() => {
-    const approved = visibleProjects.filter(isApprovedResearchProject).length
-    const pendingReports = visibleReports.filter((r) => !isFinalWeeklyReportDecision(r)).length
-    const averageProgress = visibleProjects.length ? Math.round(visibleProjects.reduce((sum, p) => sum + Number(p.progress || 0), 0) / visibleProjects.length) : 0
-    const unread = data.notifications.filter((n) => !n.is_read && notificationForUser(n, currentUser, allowedRole)).length
-    const activeUsers = allowedRole === 'admin' ? data.profiles.filter((u) => u.status === 'Active').length : 0
-    const pendingUsers = allowedRole === 'admin' ? data.profiles.filter((u) => u.status === 'Pending').length : 0
-    const rejectedUsers = allowedRole === 'admin' ? data.profiles.filter((u) => u.status === 'Rejected').length : 0
-    return { approved, pendingReports, averageProgress, unread, activeUsers, pendingUsers, rejectedUsers }
-  }, [data.notifications, data.profiles, allowedRole, visibleProjects, visibleReports])
-
-  const statCards = useMemo(() => {
-    if (allowedRole === 'admin') {
-      return [
-        { icon: Users, title: 'Registered users', value: data.profiles.length, detail: `${stats.activeUsers} active, ${stats.pendingUsers} pending` },
-        { icon: BookOpen, title: 'Research projects', value: data.projects.length, detail: `${data.projects.filter(isApprovedResearchProject).length} accepted topics` },
-        { icon: MessageSquareText, title: 'Reports needing review', value: data.reports.filter((r) => !isFinalWeeklyReportDecision(r)).length, detail: 'Reports without final decision' },
-        { icon: CheckCircle2, title: 'Average progress', value: `${data.projects.length ? Math.round(data.projects.reduce((sum, p) => sum + Number(p.progress || 0), 0) / data.projects.length) : 0}%`, detail: 'Across active projects' },
-      ]
-    }
-
-    if (allowedRole === 'supervisor') {
-      return [
-        { icon: BookOpen, title: 'My assigned projects', value: visibleProjects.length, detail: 'Only projects assigned to you' },
-        { icon: MessageSquareText, title: 'My reports to review', value: stats.pendingReports, detail: 'Submitted or revision-required' },
-        { icon: Users, title: 'My student groups', value: visibleProjects.length, detail: 'Visible through assigned projects' },
-        { icon: CheckCircle2, title: 'Average progress', value: `${stats.averageProgress}%`, detail: 'Across your assigned projects' },
-      ]
-    }
-
-    if (allowedRole === 'committee') {
-      return [
-        { icon: BookOpen, title: 'Projects for review', value: visibleProjects.length, detail: `${visibleProjects.filter((p) => !isProjectCommitteeDecided(p)).length} awaiting decision` },
-        { icon: CheckCircle2, title: 'Approved topics', value: stats.approved, detail: 'Committee-approved research topics' },
-        { icon: MessageSquareText, title: 'Weekly reports', value: visibleReports.length, detail: 'Visible project reports' },
-        { icon: CalendarDays, title: 'Active deadlines', value: data.deadlines.length, detail: 'Academic milestones' },
-      ]
-    }
-
-    return [
-      { icon: BookOpen, title: 'My research projects', value: visibleProjects.length, detail: 'Your joined or assigned project records' },
-      { icon: MessageSquareText, title: 'My weekly reports', value: visibleReports.length, detail: 'Only reports from your project' },
-      { icon: CheckCircle2, title: 'My progress', value: `${stats.averageProgress}%`, detail: 'Based on your project progress' },
-      { icon: CalendarDays, title: 'Deadlines', value: data.deadlines.length, detail: 'Upcoming course milestones' },
-    ]
-  }, [allowedRole, data, stats, visibleProjects, visibleReports])
+  const stats = useMemo(() => ({
+    unread: data.notifications.filter((n) => !n.is_read && notificationForUser(n, currentUser, allowedRole)).length,
+  }), [data.notifications, currentUser, allowedRole])
 
   useEffect(() => {
     if (tab === 'notifications') setTab('dashboard')
   }, [tab])
 
   if (passwordRecoveryMode) {
-    return <ResetPasswordPage onUpdatePassword={handleUpdatePassword} onBackToLogin={() => { setPasswordRecoveryMode(false); window.history.replaceState({}, document.title, window.location.pathname); setMessage('') }} message={message} loading={passwordResetLoading} settings={websiteSettings} />
+    return <><ResetPasswordPage onUpdatePassword={handleUpdatePassword} onBackToLogin={() => { setPasswordRecoveryMode(false); window.history.replaceState({}, document.title, window.location.pathname); setMessage('') }} message={message} loading={passwordResetLoading} settings={websiteSettings} /><AppDialog dialog={appDialog} onClose={closeAppDialog} /></>
   }
 
   if (!currentUser) {
-    return <LoginPage onLogin={handleLogin} onForgotPassword={handleForgotPassword} message={message} loading={loginLoading} adminOnly={isAdminPortal} settings={websiteSettings} invitation={acceptedInvitation} />
+    return <><LoginPage onLogin={handleLogin} onForgotPassword={handleForgotPassword} message={message} loading={loginLoading} adminOnly={isAdminPortal} settings={websiteSettings} invitation={acceptedInvitation} /><AppDialog dialog={appDialog} onClose={closeAppDialog} /></>
   }
 
   if (isAdminPortal && allowedRole !== 'admin' && !isAdminBaseRole) {
-    return <AdminAccessDenied currentUser={currentUser} onLogout={logout} />
+    return <><AdminAccessDenied currentUser={currentUser} onLogout={logout} /><AppDialog dialog={appDialog} onClose={closeAppDialog} /></>
   }
 
   if (isAdminPortal && allowedRole === 'admin') {
     return (
+      <>
       <AdminControlPanel
         settings={websiteSettings}
         aboutUsPage={aboutUsPage}
@@ -7026,12 +7666,15 @@ export default function App() {
         updateOwnPassword={updateOwnPassword}
         updateCommitteeSupervisorAccess={updateCommitteeSupervisorAccess}
       />
+      <AppDialog dialog={appDialog} onClose={closeAppDialog} />
+      </>
     )
   }
 
   const roleLabel = getActiveRoleLabel(baseRole, allowedRole)
   const mainNavItems = [
-    { id: 'dashboard', label: allowedRole === 'admin' ? 'Admin Dashboard' : 'Dashboard', icon: LayoutDashboard, show: true },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, show: true },
+    { id: 'research-workspace', label: 'Research Workspace', icon: BookOpen, show: true },
     { id: 'project-management', label: 'Project Management', icon: ClipboardCheck, show: allowedRole === 'supervisor' },
     { id: 'questions', label: allowedRole === 'supervisor' ? 'Student Questions' : 'Questions', icon: MessageSquareText, show: allowedRole === 'student' || allowedRole === 'supervisor' },
     { id: 'meetings', label: 'Meeting Requests', icon: CalendarDays, show: allowedRole === 'student' || allowedRole === 'supervisor' },
@@ -7040,11 +7683,28 @@ export default function App() {
     { id: 'group-requests', label: 'Group Requests', icon: Users, show: allowedRole === 'admin' || allowedRole === 'committee' },
     { id: 'database', label: 'Database', icon: Database, show: allowedRole === 'admin' },
     { id: 'audit', label: 'Audit Log', icon: ShieldCheck, show: allowedRole === 'admin' },
-    { id: 'reports', label: 'Print/PDF Reports', icon: Printer, show: true },
   ].filter((item) => item.show)
+  const utilityNavItems = [
+    { id: 'reports', label: 'Print/PDF Reports', icon: Printer, type: 'button' },
+    { id: 'about-us', label: 'About Us', icon: null, type: 'button' },
+    { id: 'guidelines', label: 'Research Guidelines', icon: FileText, type: 'download' },
+    { id: 'scholar', label: 'HMU Google Scholar', icon: GraduationCap, type: 'external' },
+    { id: 'profile-settings', label: 'Profile Settings', icon: Settings, type: 'button' },
+  ]
+  const currentPageTitle = tab === 'about-us'
+    ? 'About Us'
+    : tab === 'profile-settings'
+      ? 'Profile Settings'
+      : mainNavItems.find((item) => item.id === tab)?.label || utilityNavItems.find((item) => item.id === tab)?.label || roleLabel
   function handleMainNavClick(tabId) {
     setTab(tabId)
     setSidebarOpen(false)
+    if (typeof window !== 'undefined' && !isAdminPortal) {
+      const nextPath = getAuthenticatedTabPath(tabId, allowedRole)
+      if (nextPath && window.location.pathname !== nextPath) {
+        window.history.pushState({}, '', nextPath)
+      }
+    }
   }
 
   function handleRoleSwitch(nextMode) {
@@ -7065,18 +7725,33 @@ export default function App() {
 
   return (
     <div className={`app app-main-shell main-dashboard-with-sidebar role-${allowedRole} ${sidebarOpen ? 'sidebar-open' : ''}`}>
-      <aside className={`main-sidebar no-print ${sidebarOpen ? 'open' : ''}`} aria-label="Role navigation">
+      <aside ref={sidebarRef} className={`main-sidebar no-print ${sidebarOpen ? 'open' : ''}`} aria-label="Role navigation">
         <div className="sidebar-fixed-head">
           <button type="button" className="sidebar-close-button" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar">×</button>
         </div>
-        <nav className="main-side-nav" aria-label="Main navigation">
-          {mainNavItems.map((item) => {
+        <nav className="main-side-nav sidebar-utility-nav" aria-label="Sidebar utilities">
+          {utilityNavItems.map((item) => {
             const Icon = item.icon
+            if (item.type === 'download') {
+              return (
+                <a key={item.id} href={RESEARCH_GUIDELINES_PDF_URL} download={RESEARCH_GUIDELINES_DOWNLOAD_NAME} className="sidebar-utility-link">
+                  <span className="side-nav-icon"><Icon size={18} /></span>
+                  <span>{item.label}</span>
+                </a>
+              )
+            }
+            if (item.type === 'external') {
+              return (
+                <a key={item.id} href="https://scholar.google.com/citations?hl=en&view_op=search_authors&mauthors=hawler+medical+universty&btnG=" target="_blank" rel="noopener noreferrer" className="sidebar-utility-link">
+                  <span className="side-nav-icon"><Icon size={18} /></span>
+                  <span>{item.label}</span>
+                </a>
+              )
+            }
             return (
               <button key={item.id} type="button" onClick={() => handleMainNavClick(item.id)} className={tab === item.id ? 'active' : ''}>
-                <span className="side-nav-icon"><Icon size={18} /></span>
+                <span className="side-nav-icon">{item.id === 'about-us' ? <img src={aboutUsHmuLogo} alt="HMU logo" className="about-us-hmu-logo" /> : Icon ? <Icon size={18} /> : null}</span>
                 <span>{item.label}</span>
-                {item.badge > 0 && <span className="tab-badge">{item.badge}</span>}
               </button>
             )
           })}
@@ -7087,41 +7762,15 @@ export default function App() {
       <div className="main-workspace">
         <header className="main-compact-header no-print">
           <div className="main-compact-left">
-            <button type="button" className="sidebar-menu-toggle" onClick={() => setSidebarOpen((open) => !open)} aria-label={sidebarOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={sidebarOpen}>
+            <button ref={sidebarToggleRef} type="button" className="sidebar-menu-toggle" onClick={() => setSidebarOpen((open) => !open)} aria-label={sidebarOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={sidebarOpen}>
               <span></span>
               <span></span>
               <span></span>
             </button>
-            <button
-              type="button"
-              className={`top-about-link about-us-button ${tab === 'about-us' ? 'active' : ''}`}
-              onClick={() => handleMainNavClick('about-us')}
-              aria-current={tab === 'about-us' ? 'page' : undefined}
-            >
-              <span className="top-about-icon about-us-button-icon">
-                <img src={aboutUsHmuLogo} alt="HMU logo" className="about-us-hmu-logo" />
-              </span>
-              <span>About Us</span>
-            </button>
-            <a
-              className="top-about-link top-guidelines-link"
-              href={RESEARCH_GUIDELINES_PDF_URL}
-              download={RESEARCH_GUIDELINES_DOWNLOAD_NAME}
-              aria-label="Download Research Guidelines PDF"
-            >
-              <span className="top-about-icon"><FileText size={17} /></span>
-              <span>Research Guidelines</span>
-            </a>
-            <a
-              className="top-about-link top-scholar-link"
-              href="https://scholar.google.com/citations?hl=en&view_op=search_authors&mauthors=hawler+medical+universty&btnG="
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Open HMU Google Scholar in a new tab"
-            >
-              <span className="top-about-icon"><GraduationCap size={17} /></span>
-              <span>HMU Google Scholar</span>
-            </a>
+            <div className="main-header-title-block">
+              <span className="main-header-role-label">{roleLabel}</span>
+              <h1>{currentPageTitle}</h1>
+            </div>
 
           </div>
           <div className="main-header-actions">
@@ -7145,22 +7794,22 @@ export default function App() {
           </div>
         </header>
 
-        <main className="app-content-panel">
-        {message && <div className="message no-print">{message}</div>}
+        <RoleHeroBanner role={allowedRole} settings={websiteSettings} onNavigate={handleMainNavClick} navigationItems={mainNavItems} activeTab={tab} className="authenticated-role-hero" />
 
-        {tab === 'dashboard' && (
-          <>
-            <section className="stats no-print">
-              {statCards.map((card) => <StatCard key={card.title} {...card} />)}
-            </section>
+        <main className={`app-content-panel ${tab === 'dashboard' ? 'empty-dashboard-content-panel' : ''}`}>
+        {message && tab !== 'dashboard' && <div className="message no-print">{message}</div>}
 
+        {tab === 'dashboard' && roleContextReady && (
+          <RoleDashboardOverview role={allowedRole} data={visibleData} projects={allowedRole === 'supervisor' ? filteredProjects : visibleProjects} currentUser={activeRoleUser} onNavigate={handleMainNavClick} />
+        )}
 
-
-            {allowedRole === 'student' && roleContextReady && <StudentDashboard data={visibleData} projects={visibleProjects} currentUser={activeRoleUser} createWeeklyReport={createWeeklyReport} dataLoading={dataLoading} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
-            {allowedRole === 'supervisor' && roleContextReady && <SupervisorDashboard data={visibleData} projects={filteredProjects} currentUser={activeRoleUser} dataLoading={dataLoading} reviewReport={reviewReport} createDeadline={createDeadline} removeDeadline={removeDeadline} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} />}
-            {allowedRole === 'committee' && <CommitteeDashboard data={visibleData} projects={visibleProjects} dataLoading={dataLoading} updateProject={updateProject} saveEvaluation={saveEvaluation} />}
-            {allowedRole === 'admin' && <AdminDashboard data={visibleData} projects={visibleProjects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} assignStudentToSupervisor={assignStudentToSupervisor} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} loadError={dataLoadError} dataLoading={dataLoading} />}
-          </>
+        {tab === 'research-workspace' && (
+          <ResearchWorkspaceShell role={allowedRole}>
+            {allowedRole === 'student' && roleContextReady && <StudentResearchWorkspace data={visibleData} projects={visibleProjects} currentUser={activeRoleUser} createWeeklyReport={createWeeklyReport} dataLoading={dataLoading} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} heroSettings={websiteSettings} onNavigate={handleMainNavClick} />}
+            {allowedRole === 'supervisor' && roleContextReady && <SupervisorResearchWorkspace data={visibleData} projects={filteredProjects} currentUser={activeRoleUser} dataLoading={dataLoading} reviewReport={reviewReport} createDeadline={createDeadline} removeDeadline={removeDeadline} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} heroSettings={websiteSettings} onNavigate={handleMainNavClick} />}
+            {allowedRole === 'committee' && <CommitteeResearchWorkspace data={visibleData} projects={visibleProjects} dataLoading={dataLoading} updateProject={updateProject} saveEvaluation={saveEvaluation} heroSettings={websiteSettings} onNavigate={handleMainNavClick} />}
+            {allowedRole === 'admin' && <AdminResearchWorkspace data={visibleData} projects={visibleProjects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} assignStudentToSupervisor={assignStudentToSupervisor} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} loadError={dataLoadError} dataLoading={dataLoading} heroSettings={websiteSettings} onNavigate={handleMainNavClick} />}
+          </ResearchWorkspaceShell>
         )}
 
         {tab === 'about-us' && <AboutUsPage page={aboutUsPage} />}
@@ -7179,6 +7828,7 @@ export default function App() {
         </main>
       </div>
       {(allowedRole === 'student' || allowedRole === 'supervisor') && <AIAssistantWidget role={allowedRole} />}
+      <AppDialog dialog={appDialog} onClose={closeAppDialog} />
     </div>
   )
 }
@@ -7479,8 +8129,8 @@ function AboutUsCustomizationPanel({ page, updatePage, uploadImage }) {
     editorCommand('formatBlock', block)
   }
 
-  function addLink() {
-    const url = window.prompt('Enter link URL')
+  async function addLink() {
+    const url = await showAppPrompt('Enter link URL', '', { title: 'Add Link', confirmLabel: 'Add Link' })
     if (!url) return
     const cleanUrl = /^(https?:|mailto:|#|\/)/i.test(url.trim()) ? url.trim() : `https://${url.trim()}`
     editorCommand('createLink', cleanUrl)
@@ -7700,7 +8350,7 @@ function NotificationBellMenu({ data, role, currentUser, dataLoading = false, un
 
   async function handleRemove(notificationId) {
     if (!removeNotification || removingNotificationId) return
-    if (!window.confirm('Are you sure you want to delete this inbox message?')) return
+    if (!(await showAppConfirm('Are you sure you want to delete this inbox message?', { title: 'Delete Inbox Message', type: 'danger', confirmLabel: 'Delete' }))) return
     setRemovingNotificationId(notificationId)
     try {
       await removeNotification(notificationId)
@@ -8118,6 +8768,7 @@ function AdminControlPanel({
   const [draft, setDraft] = useState(settings)
   const [brandingError, setBrandingError] = useState('')
   const [panelActionLoading, setPanelActionLoading] = useState('')
+  const [selectedRoleHero, setSelectedRoleHero] = useState('student')
   useEffect(() => {
     setDraft(settings)
   }, [settings])
@@ -8152,6 +8803,98 @@ function AdminControlPanel({
 
   function updateDraft(key, value) {
     setDraft((current) => ({ ...current, [key]: value }))
+  }
+
+
+  function updateRoleHeroDraft(role, patch = {}) {
+    const normalizedRole = normalizeRoleHeroRole(role)
+    setDraft((current) => {
+      const currentHeroes = normalizeRoleHeroSettings(current.roleHeroes, current)
+      const nextHero = normalizeRoleHeroConfig(normalizedRole, { ...currentHeroes[normalizedRole], ...(patch || {}) })
+      return {
+        ...current,
+        roleHeroes: {
+          ...currentHeroes,
+          [normalizedRole]: nextHero,
+        },
+      }
+    })
+  }
+
+  async function handleRoleHeroImageUpload(role, file) {
+    const normalizedRole = normalizeRoleHeroRole(role)
+    if (!file || panelActionLoading) return
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      setBrandingError('Please choose a JPG, PNG, or WEBP image for the role dashboard picture.')
+      return
+    }
+    if (file.size > 7 * 1024 * 1024) {
+      setBrandingError('Please choose an image smaller than 7 MB for faster dashboard loading. The picture will be auto-fitted to the dashboard area.')
+      return
+    }
+
+    try {
+      setPanelActionLoading(`upload-role-hero-${normalizedRole}`)
+      setBrandingError('Uploading and auto-fitting role dashboard picture...')
+      const outputType = file.type === 'image/png' || file.type === 'image/webp' ? file.type : 'image/jpeg'
+      const dataUrl = await optimizeImageFile(file, { maxWidth: 1920, maxHeight: 900, quality: 0.88, outputType })
+      let imageUrl = dataUrl
+      let imagePath = ''
+
+      if (isSupabaseConfigured) {
+        const blob = await fetch(dataUrl).then((response) => response.blob())
+        const extension = outputType === 'image/png' ? 'png' : outputType === 'image/webp' ? 'webp' : 'jpg'
+        const safeName = String(file.name || `${normalizedRole}-hero`).replace(/[^a-z0-9._-]/gi, '-').toLowerCase()
+        imagePath = `role-heroes/${normalizedRole}-hero-${Date.now()}-${safeName}.${extension}`
+        const upload = await supabase.storage
+          .from('app-assets')
+          .upload(imagePath, blob, { contentType: outputType, cacheControl: '3600', upsert: true })
+
+        if (upload.error) {
+          updateRoleHeroDraft(normalizedRole, { imageUrl: dataUrl, imagePath: '' })
+          setBrandingError(`Role hero preview loaded locally, but global upload failed: ${upload.error.message}. Check the existing app-assets storage bucket and website settings SQL.`)
+          return
+        }
+
+        const { data: publicData } = supabase.storage.from('app-assets').getPublicUrl(imagePath)
+        imageUrl = publicData?.publicUrl || dataUrl
+      }
+
+      updateRoleHeroDraft(normalizedRole, { imageUrl, imagePath })
+      setBrandingError(isSupabaseConfigured ? 'Role dashboard picture uploaded and auto-fitted. Click Save Role Hero Settings to publish it globally.' : 'Role dashboard picture preview loaded locally and auto-fitted. Connect Supabase Storage to save it globally for all users.')
+    } catch (error) {
+      try {
+        const fallback = await fileToDataUrl(file)
+        updateRoleHeroDraft(normalizedRole, { imageUrl: fallback, imagePath: '' })
+        setBrandingError(`Role dashboard picture preview loaded locally and auto-fitted, but upload failed: ${error.message || 'Unknown error'}`)
+      } catch {
+        setBrandingError(error.message || 'Could not upload the selected role hero image. Try a smaller JPG, PNG, or WEBP file.')
+      }
+    } finally {
+      setPanelActionLoading('')
+    }
+  }
+
+  async function removeRoleHeroImage(role) {
+    const normalizedRole = normalizeRoleHeroRole(role)
+    const currentHeroes = normalizeRoleHeroSettings(draft.roleHeroes, draft)
+    const oldPath = currentHeroes[normalizedRole]?.imagePath
+    updateRoleHeroDraft(normalizedRole, { imageUrl: '', imagePath: '' })
+    if (isSupabaseConfigured && oldPath) {
+      try {
+        await supabase.storage.from('app-assets').remove([oldPath])
+      } catch {
+        // Hiding the image in settings is enough even if old storage cleanup fails.
+      }
+    }
+    setBrandingError('Role dashboard picture removed. Click Save Role Hero Settings to publish the change globally.')
+  }
+
+  function resetRoleHeroDraft(role) {
+    const normalizedRole = normalizeRoleHeroRole(role)
+    updateRoleHeroDraft(normalizedRole, ROLE_HERO_DEFAULTS[normalizedRole] || ROLE_HERO_DEFAULTS.student)
+    setBrandingError('Role hero reset to the default text and fallback background. Click Save Role Hero Settings to publish it globally.')
   }
 
   async function handleImageUpload(key, file) {
@@ -8235,7 +8978,7 @@ function AdminControlPanel({
     }
   }
 
-  function saveLoginPageSettings() {
+  async function saveLoginPageSettings() {
     const required = [
       ['loginWelcomeTitle', 'Welcome title'],
       ['loginWelcomeSubtitle', 'Subtitle/description'],
@@ -8245,22 +8988,18 @@ function AdminControlPanel({
     ]
     const missing = required.filter(([key]) => !String(draft[key] || '').trim()).map(([, label]) => label)
     if (missing.length) {
-      window.alert(`Please complete these required login page settings: ${missing.join(', ')}`)
+      await showAppAlert(`Please complete these required login page settings: ${missing.join(', ')}`, { title: 'Required Settings', type: 'warning' })
       return
     }
     const titleSize = Number(draft.loginWelcomeTitleFontSize || defaultWebsiteSettings.loginWelcomeTitleFontSize)
     const descriptionSize = Number(draft.loginDescriptionFontSize || defaultWebsiteSettings.loginDescriptionFontSize)
     const featureSize = Number(draft.loginFeatureFontSize || defaultWebsiteSettings.loginFeatureFontSize)
     if (titleSize < 24 || titleSize > 120 || descriptionSize < 12 || descriptionSize > 60 || featureSize < 12 || featureSize > 60) {
-      window.alert('Please keep title size between 24–120 px, and description/feature text size between 12–60 px.')
+      await showAppAlert('Please keep title size between 24–120 px, and description/feature text size between 12–60 px.', { title: 'Invalid Text Size', type: 'warning' })
       return
     }
     return updateSettings(draft)
   }
-
-  const pendingUsers = data.profiles.filter((u) => (u.status || 'Pending') === 'Pending').length
-  const activeUsers = data.profiles.filter((u) => (u.status || 'Pending') === 'Active').length
-  const activeDeadlines = data.deadlines.filter((d) => (d.status || 'Active') === 'Active').length
 
   return (
     <div className="admin-panel-shell">
@@ -8289,7 +9028,7 @@ function AdminControlPanel({
         <header className="admin-panel-topbar no-print">
           <div>
             <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'about-us' ? 'About Us Customization' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'supervisors' ? 'Supervisor Management' : adminPanelTab === 'dual-roles' ? 'Dual Role Management' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Inbox' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'pdf-report' ? 'PDF Report Customization' : adminPanelTab === 'group-requests' ? 'Group Join Requests' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : adminPanelTab === 'profile-settings' ? 'Profile Settings' : 'Control Center'}</h1>
-            <p>{settings.adminWelcome}</p>
+            {adminPanelTab !== 'overview' && <p>{settings.adminWelcome}</p>}
           </div>
           <div className="admin-topbar-actions">
             <a className="admin-preview-link admin-guidelines-link" href={RESEARCH_GUIDELINES_PDF_URL} download={RESEARCH_GUIDELINES_DOWNLOAD_NAME}><FileText size={16} /> Research Guidelines</a>
@@ -8297,69 +9036,14 @@ function AdminControlPanel({
           </div>
         </header>
 
-        {message && <div className="message no-print">{message}</div>}
-        {dataLoading && <LoadingBlock text="Loading admin records..." />}
+        {message && adminPanelTab !== 'overview' && <div className="message no-print">{message}</div>}
+        {dataLoading && adminPanelTab !== 'overview' && <LoadingBlock text="Loading admin records..." />}
 
         {adminPanelTab === 'profile-settings' && <ProfileSettingsPage currentUser={currentUser} onBack={() => changeAdminPanelTab('overview')} updateOwnProfile={updateOwnProfile} uploadOwnProfilePhoto={uploadOwnProfilePhoto} updateOwnPassword={updateOwnPassword} />}
         {adminPanelTab === 'about-us' && <AboutUsCustomizationPanel page={aboutUsPage} updatePage={updateAboutUsPage} uploadImage={uploadAboutUsImage} currentUser={currentUser} />}
 
         {adminPanelTab === 'overview' && (
-          <div className="admin-panel-stack">
-            <section className="admin-management-grid">
-              <div className="admin-management-card">
-                <div className="icon-box dark"><Users size={22} /></div>
-                <p>Users</p>
-                <h2>{data.profiles.length}</h2>
-                <span>{activeUsers} active • {pendingUsers} pending</span>
-              </div>
-              <div className="admin-management-card">
-                <div className="icon-box dark"><Mail size={22} /></div>
-                <p>Invitations</p>
-                <h2>{data.invitations.length}</h2>
-                <span>{data.invitations.filter((i) => getInvitationDisplayStatus(i) === 'Pending').length} pending invites</span>
-              </div>
-              <div className="admin-management-card">
-                <div className="icon-box dark"><BookOpen size={22} /></div>
-                <p>Projects</p>
-                <h2>{data.projects.length}</h2>
-                <span>Research records in the system</span>
-              </div>
-              <div className="admin-management-card">
-                <div className="icon-box dark"><CalendarDays size={22} /></div>
-                <p>Deadlines</p>
-                <h2>{activeDeadlines}</h2>
-                <span>Active academic milestones</span>
-              </div>
-              <div className="admin-management-card">
-                <div className="icon-box dark"><ImageIcon size={22} /></div>
-                <p>Hero image</p>
-                <h2>{settings.heroImage ? 'Set' : 'None'}</h2>
-                <span>Homepage visual background</span>
-              </div>
-            </section>
-
-            <section className="admin-split-layout">
-              <div className="card admin-preview-card">
-                <SectionHeader icon={ImageIcon} title="Website Preview" subtitle="Current public homepage visual and text settings" />
-                <div className="admin-hero-preview" style={{ '--hero-bg-image': cssImageUrl(settings.heroImage, settings.assetUpdatedAt), backgroundImage: `linear-gradient(135deg, rgba(15, 23, 42, .18), rgba(15, 23, 42, .04)), ${cssImageUrl(settings.heroImage, settings.assetUpdatedAt)}` }}>
-                  <div>
-                    <h3>{settings.homepageHeadline}</h3>
-                    <p>{settings.homepageSubtitle}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="card admin-quick-actions">
-                <SectionHeader icon={Settings} title="Quick Management" subtitle="Common website management actions" />
-                <button className="secondary wide" onClick={() => changeAdminPanelTab('branding')}><SlidersHorizontal size={16} /> Change homepage hero and texts</button>
-                <button className="secondary wide" onClick={() => changeAdminPanelTab('login-settings')}><Lock size={16} /> Edit login page design</button>
-                <button className="secondary wide" onClick={() => changeAdminPanelTab('pdf-report')}><FileText size={16} /> Customize PDF report template</button>
-                <button className="secondary wide" onClick={() => changeAdminPanelTab('users')}><Users size={16} /> Manage users and approvals</button>
-                <button className="secondary wide" onClick={() => changeAdminPanelTab('invitations')}><Mail size={16} /> Invite users by role</button>
-                <button className="secondary wide" onClick={() => changeAdminPanelTab('deadlines')}><CalendarDays size={16} /> Add or remove deadlines</button>
-                <button className="secondary wide" onClick={exportCsv}><Download size={16} /> Export project CSV</button>
-              </div>
-            </section>
-          </div>
+          <div className="empty-dashboard-page" aria-hidden="true" />
         )}
 
         {adminPanelTab === 'branding' && (
@@ -8395,6 +9079,46 @@ function AdminControlPanel({
                 <b>Important</b>
                 <p>For a permanent public change, use a hosted image URL or save settings to Supabase. Local uploaded images are useful for preview and testing.</p>
               </div>
+            </div>
+
+            <div className="card role-hero-editor-card">
+              <SectionHeader icon={ImageIcon} title="Role Dashboard Pictures" subtitle="Customize large dashboard pictures and text using the existing website settings and app-assets storage" />
+              {(() => {
+                const roleHeroes = normalizeRoleHeroSettings(draft.roleHeroes, draft)
+                const selectedHero = roleHeroes[normalizeRoleHeroRole(selectedRoleHero)] || roleHeroes.student
+                return (
+                  <>
+                    <div className="role-hero-editor-top">
+                      <label className="field"><span>Role / page</span><select value={selectedRoleHero} onChange={(e) => setSelectedRoleHero(e.target.value)}>{roleHeroOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+                      <label className="settings-toggle role-hero-enable-toggle"><input type="checkbox" checked={selectedHero.enabled !== false} onChange={(e) => updateRoleHeroDraft(selectedRoleHero, { enabled: e.target.checked })} /><span><b>Show dashboard picture</b><small>Hide or show this large role dashboard picture section.</small></span></label>
+                    </div>
+
+                    <RoleHeroBanner role={selectedRoleHero} settings={{ ...draft, roleHeroes }} className="role-hero-admin-preview" onNavigate={() => {}} />
+
+                    <div className="form-grid role-hero-settings-grid">
+                      <label className="field wide-field"><span>Dashboard picture URL</span><input value={selectedHero.imageUrl || ''} onChange={(e) => updateRoleHeroDraft(selectedRoleHero, { imageUrl: e.target.value, imagePath: '' })} placeholder="Paste image URL or upload below" /><small>Images are automatically resized visually to fit inside the dashboard picture area without cropping or stretching.</small></label>
+                      <label className="field wide-field"><span>Upload dashboard picture</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => handleRoleHeroImageUpload(selectedRoleHero, e.target.files?.[0])} /><small>Recommended: 1600px or wider. The page will auto-resize the picture so the full image remains visible on desktop and mobile.</small></label>
+                      <label className="field wide-field"><span>Heading</span><input value={selectedHero.title || ''} onChange={(e) => updateRoleHeroDraft(selectedRoleHero, { title: e.target.value })} placeholder={ROLE_HERO_DEFAULTS[normalizeRoleHeroRole(selectedRoleHero)].title} /></label>
+                      <label className="field wide-field"><span>Subtitle</span><textarea value={selectedHero.subtitle || ''} onChange={(e) => updateRoleHeroDraft(selectedRoleHero, { subtitle: e.target.value })} placeholder={ROLE_HERO_DEFAULTS[normalizeRoleHeroRole(selectedRoleHero)].subtitle} /></label>
+                      <label className="field"><span>Text color</span><input type="color" value={selectedHero.textColor || '#ffffff'} onChange={(e) => updateRoleHeroDraft(selectedRoleHero, { textColor: e.target.value })} /></label>
+                      <label className="field"><span>Text alignment</span><select value={selectedHero.alignment || 'left'} onChange={(e) => updateRoleHeroDraft(selectedRoleHero, { alignment: e.target.value })}><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></label>
+                      <label className="field"><span>Optional button label</span><input value={selectedHero.buttonLabel || ''} onChange={(e) => updateRoleHeroDraft(selectedRoleHero, { buttonLabel: e.target.value })} placeholder="Example: View My Research" /></label>
+                      <label className="field wide-field"><span>Optional button destination</span><input value={selectedHero.buttonRoute || ''} onChange={(e) => updateRoleHeroDraft(selectedRoleHero, { buttonRoute: e.target.value })} placeholder="Example: dashboard, reports, meetings, questions, /student/my-research" /></label>
+                    </div>
+
+                    <div className="settings-actions compact-actions">
+                      <button className="primary min-button-width" disabled={Boolean(panelActionLoading)} onClick={() => runPanelAction('save-role-heroes', () => updateSettings({ ...draft, roleHeroes: normalizeRoleHeroSettings(draft.roleHeroes, draft) }))}><ButtonContent loading={panelActionLoading === 'save-role-heroes'} loadingText="Saving..." icon={Save}>Save Role Hero Settings</ButtonContent></button>
+                      <button className="secondary min-button-width" disabled={Boolean(panelActionLoading)} onClick={() => runPanelAction(`remove-role-hero-${selectedRoleHero}`, () => removeRoleHeroImage(selectedRoleHero))}><ButtonContent loading={panelActionLoading === `remove-role-hero-${selectedRoleHero}`} loadingText="Removing..." icon={Trash2}>Remove Image</ButtonContent></button>
+                      <button className="secondary min-button-width" disabled={Boolean(panelActionLoading)} onClick={() => resetRoleHeroDraft(selectedRoleHero)}><RefreshCw size={16} /> Reset Selected Role</button>
+                    </div>
+
+                    <div className="soft-box settings-note">
+                      <b>Connected to existing customization</b>
+                      <p>These role dashboard pictures are saved inside the existing website settings record and use the existing Supabase Storage bucket <code>app-assets</code>. The displayed image automatically fits the page using cover resizing, so uploaded pictures fill the dashboard without stretching. No duplicate settings page, upload table, or storage bucket is created.</p>
+                    </div>
+                  </>
+                )
+              })()}
             </div>
           </div>
         )}
@@ -8632,7 +9356,7 @@ function InvitationManager({ invitations, settings, createInvitation, resendInvi
   }
 
   async function handleCancelInvitation(invitationId) {
-    if (!window.confirm('Are you sure you want to cancel this invitation?')) return
+    if (!(await showAppConfirm('Are you sure you want to cancel this invitation?', { title: 'Cancel Invitation', type: 'danger', confirmLabel: 'Cancel Invitation' }))) return
     await runInvitationAction(`cancel-${invitationId}`, () => cancelInvitation(invitationId))
   }
 
@@ -8998,7 +9722,82 @@ function MeetingRequestCard({ meeting, currentUser, data, draft = {}, updateResp
   )
 }
 
-function StudentDashboard({ data, projects, currentUser, createWeeklyReport, dataLoading = false, sendWeeklyReportToMyEmail, emailSendingReports = {} }) {
+
+function getRoleWorkspaceCopy(role = 'student') {
+  const map = {
+    student: {
+      title: 'Student Dashboard',
+      subtitle: 'A clean overview of your research activity. Open the workspace for forms, submissions, feedback, and active project tools.',
+      workspaceTitle: 'Research Workspace',
+      workspaceSubtitle: 'Manage your project progress, reports, feedback, deadlines, and research activities in one place.',
+      button: 'Open Research Workspace',
+    },
+    supervisor: {
+      title: 'Supervisor Dashboard',
+      subtitle: 'Review your supervised research activity at a glance. Open the workspace for project, report, deadline, and student tools.',
+      workspaceTitle: 'Research Workspace',
+      workspaceSubtitle: 'Manage supervised projects, weekly reports, student progress, deadlines, and feedback in one place.',
+      button: 'Open Research Workspace',
+    },
+    committee: {
+      title: 'Research Committee Dashboard',
+      subtitle: 'Monitor review activity and approved research at a glance. Open the workspace for committee decisions and project monitoring.',
+      workspaceTitle: 'Research Workspace',
+      workspaceSubtitle: 'Review research submissions, monitor projects, and manage committee actions in one place.',
+      button: 'Open Research Workspace',
+    },
+    admin: {
+      title: 'Admin Dashboard',
+      subtitle: 'A compact platform overview. Open the workspace for active management tools and operational workflows.',
+      workspaceTitle: 'Research Workspace',
+      workspaceSubtitle: 'Access the platform’s active management tools and operational workflows in one place.',
+      button: 'Open Research Workspace',
+    },
+  }
+  return map[role] || map.student
+}
+
+function getRoleDashboardHighlights(role, data = emptyData, projects = [], currentUser) {
+  const projectList = Array.isArray(projects) ? projects : []
+  const firstProject = projectList.find(isApprovedResearchProject) || projectList[0]
+  const visibleNotifications = (data.notifications || []).filter((item) => notificationForUser(item, currentUser, role)).slice(0, 4)
+  const deadlinePreview = (data.deadlines || []).slice(0, 4)
+  return { firstProject, visibleNotifications, deadlinePreview }
+}
+
+function DashboardOverviewCard({ icon: Icon, title, children, action }) {
+  return (
+    <section className="card dashboard-overview-card-clean">
+      <SectionHeader icon={Icon} title={title} subtitle="" />
+      <div className="dashboard-overview-card-body">{children}</div>
+      {action && <div className="inline-actions dashboard-overview-card-actions">{action}</div>}
+    </section>
+  )
+}
+
+function RoleDashboardOverview() {
+  return null
+}
+
+function ResearchWorkspaceShell({ role = 'student', children }) {
+  const copy = getRoleWorkspaceCopy(role)
+  return (
+    <div className="stack research-workspace-page">
+      <section className="card research-workspace-header-card">
+        <p className="eyebrow">Workspace</p>
+        <h2>{copy.workspaceTitle}</h2>
+        <p className="muted">{copy.workspaceSubtitle}</p>
+      </section>
+      {children}
+    </div>
+  )
+}
+
+function AdminDashboard() {
+  return null
+}
+
+function StudentResearchWorkspace({ data, projects, currentUser, createWeeklyReport, dataLoading = false, sendWeeklyReportToMyEmail, emailSendingReports = {}, heroSettings = defaultWebsiteSettings, onNavigate }) {
   const studentProfile = findProfileForUser(data, currentUser) || currentUser
   const studentProjectContext = getStudentProjectContext(data, studentProfile)
   const joinedProject = studentProjectContext.project
@@ -9022,7 +9821,7 @@ function StudentDashboard({ data, projects, currentUser, createWeeklyReport, dat
     if (submittingReport) return
     if (!selectedProject) return
     if (!canSubmitWeeklyReport) {
-      alert(weeklyReportPermission.reason || 'Only the project leader can submit weekly reports for this project.')
+      await showAppAlert(weeklyReportPermission.reason || 'Only the project leader can submit weekly reports for this project.', { title: 'Weekly Report Locked', type: 'warning' })
       return
     }
     setSubmittingReport(true)
@@ -9052,8 +9851,8 @@ function StudentDashboard({ data, projects, currentUser, createWeeklyReport, dat
   )
 
   const weeklyReportCard = (
-    <div className={`card student-weekly-report-card ${shouldPrioritizeFeedbackForMember ? 'student-weekly-report-card-compact locked-weekly-report-secondary' : ''}`}>
-      <SectionHeader icon={MessageSquareText} title="Submit Weekly Report" subtitle={shouldPrioritizeFeedbackForMember ? 'Submission locked for project members' : 'Submit progress and upload evidence file'} />
+    <div id="submit-weekly-report" data-search-section="submit-weekly-report" className={`card student-weekly-report-card ${shouldPrioritizeFeedbackForMember ? 'student-weekly-report-card-compact locked-weekly-report-secondary' : ''}`}>
+      <span id="weekly-report-history" className="section-scroll-anchor" aria-hidden="true"></span><SectionHeader icon={MessageSquareText} title="Submit Weekly Report" subtitle={shouldPrioritizeFeedbackForMember ? 'Submission locked for project members' : 'Submit progress and upload evidence file'} />
       {selectedProject && canSubmitWeeklyReport ? (
         <>
           <div className="form-grid weekly-report-form-grid">
@@ -9082,7 +9881,7 @@ function StudentDashboard({ data, projects, currentUser, createWeeklyReport, dat
   )
 
   const feedbackCard = (
-    <div className={`card supervisor-feedback-card-fixed student-feedback-aligned-card ${shouldPrioritizeFeedbackForMember ? 'student-feedback-priority-card member-feedback-primary-card' : ''}`}>
+    <div id="supervisor-feedback" data-search-section="supervisor-feedback" className={`card supervisor-feedback-card-fixed student-feedback-aligned-card ${shouldPrioritizeFeedbackForMember ? 'student-feedback-priority-card member-feedback-primary-card' : ''}`}>
       <SectionHeader icon={MessageSquareText} title="Supervisor Feedback" subtitle={shouldPrioritizeFeedbackForMember ? 'Project weekly reports and supervisor review' : 'Latest comments'} />
       {reports.length ? (
         <div className="feedback-form-scroll-container student-supervisor-feedback-container">
@@ -9114,7 +9913,7 @@ function StudentDashboard({ data, projects, currentUser, createWeeklyReport, dat
   return (
     <div className="stack student-dashboard-layout">
       <div className="grid two-one student-dashboard-row student-dashboard-top-row">
-        <div className="card student-project-card">
+        <div id="my-research" data-search-section="my-research" className="card student-project-card">
           <SectionHeader icon={BookOpen} title="My Research Project" subtitle="Your joined or assigned project and progress" />
           {selectedProject ? (
             <div className="soft-box project-progress-card-surface">
@@ -9129,14 +9928,14 @@ function StudentDashboard({ data, projects, currentUser, createWeeklyReport, dat
                 </div>
                 <Pill tone={getProjectDecisionTone(selectedProject)}>{getProjectDecisionLabel(selectedProject)}</Pill>
               </div>
-              <div className="progress-row"><span>Progress</span><span>{formatProgress(projectProgress)}%</span></div>
+              <span id="project-progress" className="section-scroll-anchor" aria-hidden="true"></span><div className="progress-row"><span>Progress</span><span>{formatProgress(projectProgress)}%</span></div>
               <ProgressBar value={projectProgress} />
-              <ProjectMembersCompact members={groupMemberProfiles} />
+              <span id="project-members" className="section-scroll-anchor" aria-hidden="true"></span><span id="project-leader" className="section-scroll-anchor" aria-hidden="true"></span><ProjectMembersCompact members={groupMemberProfiles} />
             </div>
           ) : <EmptyState title="No research project assigned yet." text="Request to join an approved supervisor project to see progress and weekly report access." />}
         </div>
 
-        <div className="student-dashboard-side-top">
+        <div id="deadlines" data-search-section="deadlines" className="student-dashboard-side-top">
           <DeadlinesCard deadlines={projectDeadlines.length || selectedProject ? projectDeadlines : data.deadlines} />
         </div>
       </div>
@@ -9203,7 +10002,7 @@ function SupervisorWeeklyReportReviewCard({ data, projects, currentUser, reviewR
   }
 
   return (
-    <div className="card supervisor-review-reports-card dashboard-review-reports-card">
+    <div id="review-weekly-reports" data-search-section="review-weekly-reports" className="card supervisor-review-reports-card dashboard-review-reports-card">
       <SectionHeader icon={ClipboardCheck} title="Review Weekly Reports" subtitle="Choose a student, then review their weekly reports" />
       <div className="supervisor-report-filter-panel">
         <label className="field">
@@ -9357,7 +10156,7 @@ function SupervisorProjectManagementTab({ data, projects, currentUser, dataLoadi
 
   return (
     <div className="stack supervisor-project-management-layout">
-      <div className="card supervisor-submit-project-card">
+      <div id="submit-research-project" data-search-section="submit-research-project" className="card supervisor-submit-project-card">
         <SectionHeader icon={FileText} title="Submit Research Project" subtitle="Supervisor projects are reviewed by the Research Committee before students can join" />
         <div className="form-grid supervisor-project-form-grid">
           <label className="field wide-field"><span>Research title/project title</span><input value={projectForm.title} onChange={(e) => setProjectForm({ ...projectForm, title: e.target.value })} placeholder="Write the research project title" /></label>
@@ -9370,7 +10169,7 @@ function SupervisorProjectManagementTab({ data, projects, currentUser, dataLoadi
         <div className="inline-actions"><button className="primary min-button-width" type="button" disabled={submittingProject} onClick={handleSubmitSupervisorProject}><ButtonContent loading={submittingProject} loadingText="Submitting..." icon={Send}>Submit to Research Committee</ButtonContent></button></div>
       </div>
 
-      <div className="card supervisor-submissions-card">
+      <div id="my-submitted-projects" data-search-section="my-submitted-projects" className="card supervisor-submissions-card">
         <SectionHeader icon={ClipboardCheck} title="My Submitted Projects" subtitle="Committee status, comments, and availability for student joining" />
         {assignedProjects.length ? (
           <div className="table-wrap compact-table-wrap"><table><thead><tr><th>Project</th><th>Group</th><th>Department</th><th>Status</th><th>Committee comment</th><th>Reviewed</th></tr></thead><tbody>{assignedProjects.map((project) => <tr key={project.id}><td><b>{project.title || 'Untitled project'}</b></td><td>{project.group_name || 'Research Group'}</td><td>{project.area || '-'}</td><td><Pill tone={getProjectDecisionTone(project)}>{getProjectDecisionLabel(project)}</Pill></td><td>{project.committee_comments || project.decision_message || project.admin_comment || '-'}</td><td>{project.reviewed_at ? new Date(project.reviewed_at).toLocaleDateString() : '-'}</td></tr>)}</tbody></table></div>
@@ -9379,7 +10178,7 @@ function SupervisorProjectManagementTab({ data, projects, currentUser, dataLoadi
 
       {supervisorProgressProjects.length ? <ProjectProgressSection projects={supervisorProgressProjects} reports={allowedReports} students={studentOptions} data={data} /> : <div className="card"><EmptyState title="No approved supervised projects yet" text="Project progress appears after the Research Committee approves your submitted project or an approved project is assigned to you." icon={Users} /></div>}
 
-      <div className="card project-leader-assignment-card">
+      <div id="assign-project-leader" data-search-section="assign-project-leader" className="card project-leader-assignment-card">
         <SectionHeader icon={UserCog} title="Project Leader Assignment" subtitle="Select a project title first, then choose one student member as Research Project Leader" />
         {approvedAssignedProjects.length ? (
           <div className="project-leader-dropdown-layout">
@@ -9443,13 +10242,9 @@ function SupervisorProjectManagementTab({ data, projects, currentUser, dataLoadi
 
 
 
-function SupervisorDashboard({ data, projects, currentUser, dataLoading = false, reviewReport, createDeadline, removeDeadline, sendWeeklyReportToMyEmail, emailSendingReports = {} }) {
+function SupervisorResearchWorkspace({ data, projects, currentUser, dataLoading = false, reviewReport, createDeadline, removeDeadline, sendWeeklyReportToMyEmail, emailSendingReports = {}, heroSettings = defaultWebsiteSettings, onNavigate }) {
   const assignedProjects = useMemo(() => projects.filter((p) => isAssignedSupervisorProject(p, currentUser)), [projects, currentUser])
   const approvedProjects = useMemo(() => assignedProjects.filter(isApprovedResearchProject), [assignedProjects])
-  const pendingProjects = assignedProjects.filter((project) => !isApprovedResearchProject(project) && normalizeText(project.approval || project.status).includes('pending'))
-  const averageProgress = approvedProjects.length
-    ? approvedProjects.reduce((sum, project) => sum + Number(getProjectProgress(project, data.reports) || project.progress || 0), 0) / approvedProjects.length
-    : 0
   const members = approvedProjects.flatMap((project) => getProjectMembersWithoutSupervisor(data, project, data.reports))
   const uniqueMembers = new Map()
   members.forEach((member) => {
@@ -9462,21 +10257,9 @@ function SupervisorDashboard({ data, projects, currentUser, dataLoading = false,
 
   return (
     <div className="stack supervisor-dashboard-layout">
-      <div className="grid two-one supervisor-overview-grid">
-        <div className="card">
-          <SectionHeader icon={LayoutDashboard} title="Supervisor Overview" subtitle="Review reports and manage deadlines from this dashboard" />
-          <div className="mini-metrics-grid">
-            <div className="metric-chip"><b>{assignedProjects.length}</b><span>Total submitted projects</span></div>
-            <div className="metric-chip"><b>{approvedProjects.length}</b><span>Accepted projects</span></div>
-            <div className="metric-chip"><b>{pendingProjects.length}</b><span>Pending review</span></div>
-            <div className="metric-chip"><b>{formatProgress(averageProgress)}%</b><span>Average progress</span></div>
-          </div>
-          <p className="muted small">Use the <b>Project Management</b> tab only for submitted projects, project progress, project members, and project leader assignment.</p>
-        </div>
-        <div className="card">
-          <SectionHeader icon={Users} title="Supervised Project Members" subtitle="Students in accepted groups only" />
-          <ProjectMembersCompact members={Array.from(uniqueMembers.values())} />
-        </div>
+      <div id="project-members" data-search-section="project-members" className="card supervisor-members-overview-card">
+        <SectionHeader icon={Users} title="Supervised Project Members" subtitle="Students in accepted groups only" />
+        <ProjectMembersCompact members={Array.from(uniqueMembers.values())} />
       </div>
 
       <div className="supervisor-dashboard-workflow-grid">
@@ -10262,7 +11045,7 @@ function DeadlineManager({ deadlines, createDeadline, removeDeadline, students =
   }
 
   return (
-    <div className="card supervisor-deadline-card">
+    <div id="manage-deadlines" data-search-section="manage-deadlines" className="card supervisor-deadline-card">
       <SectionHeader icon={CalendarDays} title="Set and Manage Deadlines" subtitle="Choose which assigned student receives each deadline" />
       <form className="deadline-create-form" onSubmit={submitDeadline} noValidate>
         <div className="deadline-target-panel deadline-target-panel-dropdown">
@@ -10340,7 +11123,7 @@ function ProjectProgressSection({ projects = [], reports = [], data = emptyData 
   const filteredProjects = selectedProject ? [selectedProject] : projectOptions
 
   return (
-    <div className="card supervisor-project-progress-section">
+    <div id="project-progress" data-search-section="project-progress" className="card supervisor-project-progress-section">
       <SectionHeader icon={CheckCircle2} title="Project Progress" subtitle="Choose which project title progress to view" />
       <div className="progress-filter-panel">
         <label className="field wide-field">
@@ -10399,7 +11182,7 @@ function ProjectProgressSection({ projects = [], reports = [], data = emptyData 
   )
 }
 
-function CommitteeDashboard({ data = emptyData, projects = [], dataLoading = false, updateProject, saveEvaluation }) {
+function CommitteeResearchWorkspace({ data = emptyData, projects = [], dataLoading = false, updateProject, saveEvaluation, heroSettings = defaultWebsiteSettings, onNavigate }) {
   const reports = Array.isArray(data?.reports) ? data.reports : []
   const evaluations = Array.isArray(data?.evaluations) ? data.evaluations : []
   const sourceProjects = Array.isArray(projects) ? projects : []
@@ -10514,7 +11297,7 @@ function CommitteeDashboard({ data = emptyData, projects = [], dataLoading = fal
 
   return (
     <div className="stack committee-dashboard-layout">
-      <div className="card committee-review-card combined-filter-card">
+      <div id="review-project-submissions" data-search-section="review-project-submissions" className="card committee-review-card combined-filter-card">
         <SectionHeader icon={Search} title="Research Committee Review" subtitle="Search, filter, approve, reject, or request revision for project titles" />
         <div className="section-filter-bar committee-filter-bar">
           <label className="field"><span>Search</span><input value={reviewSearch} onChange={(e) => setReviewSearch(e.target.value)} placeholder="Search title, group, student, supervisor..." /></label>
@@ -11020,7 +11803,7 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
   )
 }
 
-function AdminDashboard({ data = emptyData, projects = [], currentUser, loadError = '', dataLoading = false, updateProject, updateUserRole, updateUserStatus, assignStudentToSupervisor, exportCsv, deleteWeeklyReport, deleteUploadedFile, deleteUserAccount, deleteResearchGroup, deleteResearchProject }) {
+function AdminResearchWorkspace({ data = emptyData, projects = [], currentUser, loadError = '', dataLoading = false, updateProject, updateUserRole, updateUserStatus, assignStudentToSupervisor, exportCsv, deleteWeeklyReport, deleteUploadedFile, deleteUserAccount, deleteResearchGroup, deleteResearchProject, heroSettings = defaultWebsiteSettings, onNavigate }) {
   const usersLoading = !data || !Array.isArray(data.profiles)
   data = cleanData({
     ...emptyData,
@@ -11415,14 +12198,14 @@ function ProjectDecisionTable({ projects, updateProject, data = emptyData, repor
     if (decisionLoading) return
     const project = projects.find((item) => String(item.id) === String(projectId)) || {}
     if (isProjectCommitteeDecided(project)) {
-      window.alert('This title submission has already received a final decision.')
+      await showAppAlert('This title submission has already received a final decision.', { title: 'Final Decision Already Saved', type: 'info' })
       return
     }
     let comment = ''
     if (decision !== 'Approved') {
-      comment = window.prompt(decision === 'Revision Required' ? 'Write revision request/comment for the supervisor:' : 'Write rejection reason/comment for the supervisor:', project.committee_comments || '') || ''
+      comment = (await showAppPrompt(decision === 'Revision Required' ? 'Write revision request/comment for the supervisor:' : 'Write rejection reason/comment for the supervisor:', project.committee_comments || '', { title: decision === 'Revision Required' ? 'Revision Comment' : 'Rejection Reason', confirmLabel: 'Save Comment' })) || ''
     } else {
-      comment = window.prompt('Optional acceptance comment for the supervisor:', project.committee_comments || '') || ''
+      comment = (await showAppPrompt('Optional acceptance comment for the supervisor:', project.committee_comments || '', { title: 'Acceptance Comment', confirmLabel: 'Save Comment' })) || ''
     }
     const fields = {
       approval: decision,
@@ -11485,7 +12268,7 @@ function NotificationsTab({ data, role, currentUser, dataLoading = false, create
 
   async function handleRemoveNotification(notificationId) {
     if (removingNotificationId) return
-    if (!window.confirm('Are you sure you want to delete this inbox message?')) return
+    if (!(await showAppConfirm('Are you sure you want to delete this inbox message?', { title: 'Delete Inbox Message', type: 'danger', confirmLabel: 'Delete' }))) return
     setRemovingNotificationId(notificationId)
     try {
       await removeNotification(notificationId)

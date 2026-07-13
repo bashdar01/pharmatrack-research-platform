@@ -10965,7 +10965,7 @@ html body #root :where(
   .email-report-button,
   .weekly-submit-button,
   .min-button-width
-):not(:disabled) {
+):not(.hero-nav-button):not(.role-feature-search__result):not(.role-feature-search__clear):not(:disabled) {
   background: var(--button-bg) !important;
   background-image: none !important;
   color: var(--button-default-text) !important;
@@ -11301,7 +11301,7 @@ html body #root :where(
   .email-report-button,
   .weekly-submit-button,
   .min-button-width
-):not(:disabled):not(:hover):not(:focus-visible):not(.active):not(.danger):not(.danger-btn):not(.delete-btn):not(.delete-item-button):not(.admin-panel-delete-button):not(.logout):not(.admin-logout) {
+):not(.hero-nav-button):not(.role-feature-search__result):not(.role-feature-search__clear):not(:disabled):not(:hover):not(:focus-visible):not(.active):not(.danger):not(.danger-btn):not(.delete-btn):not(.delete-item-button):not(.admin-panel-delete-button):not(.logout):not(.admin-logout) {
   background: #4d4c4d !important;
   background-image: none !important;
   color: #ffffff !important;
@@ -18608,5 +18608,2496 @@ html body #root .app-main-shell.main-dashboard-with-sidebar .main-side-nav butto
   html body #root .app-main-shell.main-dashboard-with-sidebar .main-side-nav button > span:not(.side-nav-icon):not(.tab-badge) {
     font-size: 0.82rem !important;
     line-height: 1.16 !important;
+  }
+}
+
+/* === Role dashboard hero banners connected to Admin Website Settings === */
+.role-hero-banner {
+  position: relative;
+  width: 100%;
+  min-height: 238px;
+  border-radius: 24px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 16% 22%, rgba(14, 165, 233, 0.36), transparent 30%),
+    radial-gradient(circle at 82% 18%, rgba(20, 184, 166, 0.30), transparent 32%),
+    linear-gradient(135deg, #073b69 0%, #0b65a3 48%, #0794a7 100%);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  margin: 0 0 24px;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  isolation: isolate;
+  box-shadow: 0 22px 56px rgba(7, 59, 105, 0.18);
+  grid-column: 1 / -1;
+}
+
+.role-hero-banner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.10), transparent 36%),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 18px);
+  opacity: 0.48;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.role-hero-banner__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 16, 34, var(--role-hero-overlay, 0.38));
+  z-index: 1;
+  pointer-events: none;
+}
+
+.role-hero-banner__content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 760px;
+  padding: 40px;
+  color: var(--role-hero-text, #ffffff);
+  box-sizing: border-box;
+}
+
+.role-hero-align-center {
+  justify-content: center;
+  text-align: center;
+}
+
+.role-hero-align-center .role-hero-banner__content {
+  margin-inline: auto;
+}
+
+.role-hero-align-right {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.role-hero-align-right .role-hero-banner__content {
+  margin-left: auto;
+}
+
+.role-hero-banner__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.17);
+  color: currentColor;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  backdrop-filter: blur(10px);
+}
+
+.role-hero-banner__title {
+  margin: 0 0 12px;
+  color: currentColor;
+  font-size: clamp(2rem, 4.5vw, 3.25rem);
+  line-height: 1.05;
+  font-weight: 850;
+  letter-spacing: -0.055em;
+  text-wrap: balance;
+}
+
+.role-hero-banner__subtitle {
+  margin: 0;
+  max-width: 680px;
+  color: currentColor;
+  opacity: 0.94;
+  font-size: clamp(0.98rem, 1.4vw, 1.12rem);
+  line-height: 1.68;
+}
+
+.role-hero-align-center .role-hero-banner__subtitle {
+  margin-inline: auto;
+}
+
+.role-hero-align-right .role-hero-banner__subtitle {
+  margin-left: auto;
+}
+
+.role-hero-banner__button {
+  margin-top: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.62) !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+  color: #075985 !important;
+  font-weight: 800;
+  box-shadow: 0 14px 28px rgba(2, 16, 34, 0.20);
+  transition: transform 0.18s ease, background-color 0.18s ease, color 0.18s ease;
+}
+
+.role-hero-banner__button:hover:not(:disabled) {
+  background: #ffffff !important;
+  color: #0f766e !important;
+  transform: translateY(-1px);
+}
+
+.role-hero-student {
+  background:
+    radial-gradient(circle at 16% 22%, rgba(56, 189, 248, 0.40), transparent 32%),
+    radial-gradient(circle at 80% 18%, rgba(20, 184, 166, 0.32), transparent 34%),
+    linear-gradient(135deg, #0b5f92 0%, #0284c7 50%, #0d9488 100%);
+}
+
+.role-hero-supervisor {
+  background:
+    radial-gradient(circle at 14% 25%, rgba(45, 212, 191, 0.36), transparent 32%),
+    radial-gradient(circle at 80% 20%, rgba(125, 211, 252, 0.26), transparent 34%),
+    linear-gradient(135deg, #0e7490 0%, #0f766e 56%, #047857 100%);
+}
+
+.role-hero-committee {
+  background:
+    radial-gradient(circle at 15% 22%, rgba(14, 165, 233, 0.36), transparent 34%),
+    radial-gradient(circle at 83% 18%, rgba(94, 234, 212, 0.26), transparent 34%),
+    linear-gradient(135deg, #075985 0%, #0369a1 50%, #0f766e 100%);
+}
+
+.role-hero-admin {
+  background:
+    radial-gradient(circle at 16% 22%, rgba(34, 211, 238, 0.28), transparent 34%),
+    radial-gradient(circle at 82% 16%, rgba(16, 185, 129, 0.28), transparent 34%),
+    linear-gradient(135deg, #075985 0%, #0f766e 54%, #0b7f73 100%);
+}
+
+.role-hero-editor-card {
+  grid-column: 1 / -1;
+}
+
+.role-hero-editor-top {
+  display: grid;
+  grid-template-columns: minmax(220px, 360px) 1fr;
+  gap: 16px;
+  align-items: end;
+  margin-bottom: 16px;
+}
+
+.role-hero-enable-toggle {
+  align-self: stretch;
+  min-height: 66px;
+}
+
+.role-hero-admin-preview {
+  min-height: 210px;
+  border-radius: 18px;
+  margin-bottom: 18px;
+}
+
+.role-hero-admin-preview .role-hero-banner__content {
+  padding: 28px;
+}
+
+.role-hero-admin-preview .role-hero-banner__title {
+  font-size: clamp(1.55rem, 3vw, 2.4rem);
+}
+
+.role-hero-settings-grid {
+  margin-top: 8px;
+}
+
+.role-hero-settings-grid input[type='range'] {
+  width: 100%;
+  accent-color: #0ea5e9;
+}
+
+.role-hero-settings-grid input[type='color'] {
+  width: 100%;
+  min-height: 42px;
+  padding: 4px;
+}
+
+.admin-panel-stack > .role-hero-banner {
+  margin-bottom: 20px;
+}
+
+@media (max-width: 900px) {
+  .role-hero-banner {
+    min-height: 216px;
+    border-radius: 18px;
+  }
+
+  .role-hero-banner__content {
+    padding: 28px;
+  }
+
+  .role-hero-editor-top {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .role-hero-banner {
+    min-height: 205px;
+    border-radius: 16px;
+  }
+
+  .role-hero-banner__content {
+    padding: 24px;
+  }
+
+  .role-hero-banner__title {
+    font-size: clamp(1.65rem, 10vw, 2.25rem);
+  }
+
+  .role-hero-banner__subtitle {
+    font-size: 0.96rem;
+    line-height: 1.55;
+  }
+
+  .role-hero-align-right,
+  .role-hero-align-center {
+    text-align: left;
+    justify-content: flex-start;
+  }
+
+  .role-hero-align-right .role-hero-banner__content,
+  .role-hero-align-center .role-hero-banner__content,
+  .role-hero-align-right .role-hero-banner__subtitle,
+  .role-hero-align-center .role-hero-banner__subtitle {
+    margin-inline: 0;
+  }
+}
+
+/* === Larger role dashboard picture style: replaces thin banner feeling === */
+html body #root .role-hero-banner.role-hero-picture-card {
+  min-height: clamp(330px, 36vw, 520px) !important;
+  aspect-ratio: 16 / 6.5;
+  border-radius: 30px !important;
+  align-items: stretch !important;
+  overflow: hidden !important;
+  background:
+    radial-gradient(circle at 18% 20%, rgba(14, 165, 233, 0.28), transparent 34%),
+    radial-gradient(circle at 86% 12%, rgba(20, 184, 166, 0.24), transparent 36%),
+    linear-gradient(135deg, #075985 0%, #0369a1 52%, #0f766e 100%) !important;
+  background-size: cover !important;
+  background-position: center !important;
+  box-shadow: 0 26px 70px rgba(7, 59, 105, 0.18) !important;
+}
+
+html body #root .role-hero-picture-card__media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: inherit;
+}
+
+html body #root .role-hero-picture-card__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  object-position: center center;
+  transform: scale(1.001);
+}
+
+html body #root .role-hero-banner.role-hero-picture-card::before {
+  z-index: 1;
+  opacity: 0.25 !important;
+}
+
+html body #root .role-hero-banner.role-hero-picture-card .role-hero-banner__overlay {
+  z-index: 2;
+  background:
+    linear-gradient(90deg, rgba(2, 16, 34, 0.58) 0%, rgba(2, 16, 34, var(--role-hero-overlay, 0.38)) 48%, rgba(2, 16, 34, 0.22) 100%) !important;
+}
+
+html body #root .role-hero-banner.role-hero-picture-card .role-hero-banner__content {
+  z-index: 3;
+  align-self: center;
+  padding: clamp(34px, 5vw, 64px) !important;
+  max-width: 820px !important;
+}
+
+html body #root .role-hero-banner.role-hero-picture-card .role-hero-banner__title {
+  font-size: clamp(2.35rem, 5vw, 4.2rem) !important;
+  line-height: 0.98 !important;
+}
+
+html body #root .role-hero-banner.role-hero-picture-card .role-hero-banner__subtitle {
+  font-size: clamp(1rem, 1.5vw, 1.2rem) !important;
+  max-width: 720px !important;
+}
+
+html body #root .role-hero-admin-preview.role-hero-picture-card {
+  min-height: 290px !important;
+  aspect-ratio: 16 / 7;
+  border-radius: 22px !important;
+}
+
+html body #root .role-hero-admin-preview.role-hero-picture-card .role-hero-banner__content {
+  padding: 32px !important;
+}
+
+html body #root .role-hero-admin-preview.role-hero-picture-card .role-hero-banner__title {
+  font-size: clamp(1.8rem, 3.6vw, 2.9rem) !important;
+}
+
+@media (max-width: 900px) {
+  html body #root .role-hero-banner.role-hero-picture-card {
+    min-height: 330px !important;
+    aspect-ratio: auto;
+    border-radius: 22px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  html body #root .role-hero-banner.role-hero-picture-card {
+    min-height: 360px !important;
+    border-radius: 18px !important;
+  }
+
+  html body #root .role-hero-banner.role-hero-picture-card .role-hero-banner__overlay {
+    background: rgba(2, 16, 34, 0.58) !important;
+  }
+
+  html body #root .role-hero-banner.role-hero-picture-card .role-hero-banner__content {
+    padding: 26px !important;
+  }
+
+  html body #root .role-hero-banner.role-hero-picture-card .role-hero-banner__title {
+    font-size: clamp(2rem, 12vw, 3rem) !important;
+  }
+}
+
+
+/* === Final role dashboard picture fix: no role label, no crop, no dark side overlay === */
+html body #root .role-hero-banner.role-hero-picture-card {
+  display: block !important;
+  min-height: 0 !important;
+  aspect-ratio: auto !important;
+  border-radius: 28px !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(14, 165, 233, 0.16) !important;
+  box-shadow: 0 18px 46px rgba(15, 23, 42, 0.10) !important;
+}
+
+html body #root .role-hero-banner.role-hero-picture-card::before,
+html body #root .role-hero-banner.role-hero-picture-card .role-hero-banner__overlay,
+html body #root .role-hero-banner.role-hero-picture-card .role-hero-banner__eyebrow {
+  display: none !important;
+}
+
+html body #root .role-hero-picture-card__media {
+  position: relative !important;
+  inset: auto !important;
+  z-index: 0 !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  background: #ffffff !important;
+}
+
+html body #root .role-hero-no-image .role-hero-picture-card__media {
+  min-height: 280px !important;
+  background:
+    radial-gradient(circle at 20% 18%, rgba(14, 165, 233, 0.20), transparent 32%),
+    radial-gradient(circle at 82% 16%, rgba(20, 184, 166, 0.18), transparent 34%),
+    linear-gradient(135deg, #f0f9ff 0%, #ecfeff 50%, #f8fafc 100%) !important;
+}
+
+html body #root .role-hero-picture-card__image {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  max-height: min(70vh, 640px) !important;
+  max-width: 100% !important;
+  object-fit: contain !important;
+  object-position: center center !important;
+  transform: none !important;
+  background: #ffffff !important;
+}
+
+html body #root .role-hero-banner.role-hero-picture-card .role-hero-banner__content {
+  position: relative !important;
+  z-index: 1 !important;
+  align-self: auto !important;
+  width: 100% !important;
+  max-width: none !important;
+  padding: 24px 30px 30px !important;
+  box-sizing: border-box !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-top: 1px solid rgba(14, 165, 233, 0.12) !important;
+}
+
+html body #root .role-hero-banner.role-hero-picture-card .role-hero-banner__title {
+  margin: 0 0 8px !important;
+  color: #0f172a !important;
+  font-size: clamp(1.75rem, 3vw, 2.8rem) !important;
+  line-height: 1.08 !important;
+  letter-spacing: -0.04em !important;
+}
+
+html body #root .role-hero-banner.role-hero-picture-card .role-hero-banner__subtitle {
+  color: #475569 !important;
+  opacity: 1 !important;
+  font-size: clamp(0.96rem, 1.15vw, 1.08rem) !important;
+  line-height: 1.6 !important;
+  max-width: 760px !important;
+}
+
+html body #root .role-hero-align-center.role-hero-picture-card .role-hero-banner__subtitle {
+  margin-inline: auto !important;
+}
+
+html body #root .role-hero-align-right.role-hero-picture-card .role-hero-banner__subtitle {
+  margin-left: auto !important;
+}
+
+html body #root .role-hero-banner.role-hero-picture-card .role-hero-banner__button {
+  background: #0ea5e9 !important;
+  border-color: #0ea5e9 !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 22px rgba(14, 165, 233, 0.22) !important;
+}
+
+html body #root .role-hero-banner.role-hero-picture-card .role-hero-banner__button:hover:not(:disabled) {
+  background: #0284c7 !important;
+  border-color: #0284c7 !important;
+  color: #ffffff !important;
+}
+
+html body #root .role-hero-admin-preview.role-hero-picture-card {
+  min-height: 0 !important;
+  aspect-ratio: auto !important;
+  border-radius: 20px !important;
+}
+
+html body #root .role-hero-admin-preview.role-hero-picture-card .role-hero-picture-card__image {
+  max-height: 360px !important;
+}
+
+html body #root .role-hero-admin-preview.role-hero-no-image .role-hero-picture-card__media {
+  min-height: 220px !important;
+}
+
+@media (max-width: 768px) {
+  html body #root .role-hero-banner.role-hero-picture-card {
+    border-radius: 20px !important;
+  }
+
+  html body #root .role-hero-picture-card__image {
+    max-height: 58vh !important;
+  }
+
+  html body #root .role-hero-no-image .role-hero-picture-card__media {
+    min-height: 220px !important;
+  }
+
+  html body #root .role-hero-banner.role-hero-picture-card .role-hero-banner__content {
+    padding: 20px 20px 24px !important;
+    text-align: left !important;
+  }
+
+  html body #root .role-hero-banner.role-hero-picture-card .role-hero-banner__title {
+    font-size: clamp(1.55rem, 8vw, 2.25rem) !important;
+  }
+}
+
+/* === Remove blank white text panel under uploaded role dashboard pictures === */
+html body #root .role-hero-has-image.role-hero-picture-card .role-hero-banner__content {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+html body #root .role-hero-has-image.role-hero-picture-card {
+  background: transparent !important;
+  line-height: 0 !important;
+}
+
+html body #root .role-hero-has-image.role-hero-picture-card .role-hero-picture-card__media {
+  line-height: 0 !important;
+  background: transparent !important;
+}
+
+html body #root .role-hero-has-image.role-hero-picture-card .role-hero-picture-card__image {
+  margin: 0 !important;
+  vertical-align: top !important;
+}
+
+html body #root .role-hero-no-image.role-hero-picture-card .role-hero-banner__content {
+  display: block !important;
+}
+
+/* =========================================================
+   AUTHENTICATED HERO NAVIGATION + IN-APP DIALOGS
+   Moves role navigation into the existing customizable hero image,
+   keeps sidebar as utility navigation, and removes browser-native alerts.
+   ========================================================= */
+html body #root .main-dashboard-with-sidebar .main-compact-header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 85 !important;
+  min-height: 64px !important;
+  padding: 10px 18px !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-bottom: 1px solid rgba(14, 165, 233, 0.12) !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06) !important;
+}
+
+html body #root .main-header-title-block {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 2px !important;
+  min-width: 0 !important;
+}
+
+html body #root .main-header-role-label {
+  display: block !important;
+  color: #0ea5e9 !important;
+  font-size: 0.72rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  line-height: 1 !important;
+}
+
+html body #root .main-header-title-block h1 {
+  margin: 0 !important;
+  color: #0f172a !important;
+  font-size: clamp(1rem, 1.8vw, 1.34rem) !important;
+  font-weight: 850 !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.03em !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+html body #root .sidebar-utility-nav {
+  padding-top: 14px !important;
+}
+
+html body #root .sidebar-utility-nav .sidebar-utility-link,
+html body #root .sidebar-utility-nav button {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 11px !important;
+  min-height: 46px !important;
+  padding: 11px 13px !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #f8fafc !important;
+  text-decoration: none !important;
+  font-weight: 750 !important;
+  font-size: 0.91rem !important;
+  line-height: 1.25 !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+  transition: background-color .2s ease, color .2s ease, border-color .2s ease, transform .2s ease !important;
+}
+
+html body #root .sidebar-utility-nav .sidebar-utility-link:hover,
+html body #root .sidebar-utility-nav button:hover,
+html body #root .sidebar-utility-nav button.active {
+  background: #ffffff !important;
+  color: #0f766e !important;
+  border-color: #ffffff !important;
+  transform: translateX(2px) !important;
+}
+
+html body #root .sidebar-utility-nav .side-nav-icon {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  color: currentColor !important;
+}
+
+html body #root .sidebar-utility-nav .about-us-hmu-logo {
+  width: 22px !important;
+  height: 22px !important;
+  object-fit: contain !important;
+  border-radius: 5px !important;
+  background: #ffffff !important;
+}
+
+html body #root .authenticated-role-hero.role-hero-banner.role-hero-picture-card,
+html body #root .role-hero-banner.role-hero-navigation-shell {
+  position: relative !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: clamp(300px, 30vw, 430px) !important;
+  height: clamp(300px, 30vw, 430px) !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  border: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  background: #e0f2fe !important;
+  box-shadow: none !important;
+  line-height: normal !important;
+}
+
+html body #root .authenticated-role-hero .role-hero-picture-card__media,
+html body #root .role-hero-navigation-shell .role-hero-picture-card__media {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  display: block !important;
+  background:
+    radial-gradient(circle at 20% 18%, rgba(14, 165, 233, 0.26), transparent 32%),
+    radial-gradient(circle at 82% 16%, rgba(20, 184, 166, 0.24), transparent 34%),
+    linear-gradient(135deg, #e0f2fe 0%, #ecfeff 50%, #f8fafc 100%) !important;
+}
+
+html body #root .authenticated-role-hero .role-hero-picture-card__image,
+html body #root .role-hero-navigation-shell .role-hero-picture-card__image {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  max-width: none !important;
+  object-fit: cover !important;
+  object-position: center center !important;
+  display: block !important;
+  margin: 0 !important;
+  background: transparent !important;
+}
+
+html body #root .authenticated-role-hero.role-hero-picture-card::before,
+html body #root .role-hero-navigation-shell::before {
+  display: none !important;
+}
+
+html body #root .authenticated-role-hero .role-hero-banner__overlay,
+html body #root .role-hero-navigation-shell .role-hero-banner__overlay {
+  display: block !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 1 !important;
+  background:
+    linear-gradient(180deg, rgba(2, 16, 34, calc(var(--role-hero-overlay, .35) + .12)) 0%, rgba(2, 16, 34, var(--role-hero-overlay, .35)) 54%, rgba(2, 16, 34, calc(var(--role-hero-overlay, .35) + .20)) 100%) !important;
+  pointer-events: none !important;
+}
+
+html body #root .authenticated-role-hero .role-hero-banner__content,
+html body #root .role-hero-navigation-shell .role-hero-banner__content,
+html body #root .role-hero-has-image.role-hero-navigation-shell .role-hero-banner__content {
+  position: relative !important;
+  z-index: 2 !important;
+  display: block !important;
+  height: auto !important;
+  min-height: 0 !important;
+  width: min(1180px, calc(100% - 48px)) !important;
+  max-width: 1180px !important;
+  margin: 0 auto !important;
+  padding: 38px 24px 112px !important;
+  background: transparent !important;
+  border: 0 !important;
+  color: var(--role-hero-text, #ffffff) !important;
+  box-sizing: border-box !important;
+}
+
+html body #root .authenticated-role-hero .role-hero-banner__title,
+html body #root .role-hero-navigation-shell .role-hero-banner__title {
+  color: var(--role-hero-text, #ffffff) !important;
+  text-shadow: 0 3px 20px rgba(2, 16, 34, 0.38) !important;
+  font-size: clamp(2rem, 4.2vw, 4.25rem) !important;
+  line-height: .98 !important;
+  margin: 0 0 12px !important;
+}
+
+html body #root .authenticated-role-hero .role-hero-banner__subtitle,
+html body #root .role-hero-navigation-shell .role-hero-banner__subtitle {
+  color: var(--role-hero-text, #ffffff) !important;
+  opacity: .94 !important;
+  text-shadow: 0 2px 16px rgba(2, 16, 34, 0.32) !important;
+  max-width: 760px !important;
+  font-size: clamp(.98rem, 1.3vw, 1.18rem) !important;
+  line-height: 1.62 !important;
+}
+
+html body #root .role-hero-align-center.authenticated-role-hero .role-hero-banner__content,
+html body #root .role-hero-align-center.role-hero-navigation-shell .role-hero-banner__content {
+  text-align: center !important;
+}
+
+html body #root .role-hero-align-right.authenticated-role-hero .role-hero-banner__content,
+html body #root .role-hero-align-right.role-hero-navigation-shell .role-hero-banner__content {
+  text-align: right !important;
+}
+
+html body #root .role-hero-align-center.authenticated-role-hero .role-hero-banner__subtitle,
+html body #root .role-hero-align-center.role-hero-navigation-shell .role-hero-banner__subtitle {
+  margin-inline: auto !important;
+}
+
+html body #root .role-hero-align-right.authenticated-role-hero .role-hero-banner__subtitle,
+html body #root .role-hero-align-right.role-hero-navigation-shell .role-hero-banner__subtitle {
+  margin-left: auto !important;
+}
+
+html body #root .hero-role-navigation {
+  position: absolute !important;
+  left: 50% !important;
+  bottom: 28px !important;
+  z-index: 4 !important;
+  transform: translateX(-50%) !important;
+  width: min(1180px, calc(100% - 32px)) !important;
+  max-width: 1180px !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 9px !important;
+  padding: 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.24) !important;
+  border-radius: 22px !important;
+  background: rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 0 22px 55px rgba(2, 16, 34, 0.24) !important;
+  backdrop-filter: blur(16px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+  box-sizing: border-box !important;
+}
+
+html body #root .hero-nav-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  min-height: 42px !important;
+  padding: 9px 15px !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+  background: rgba(255, 255, 255, 0.88) !important;
+  color: #0f766e !important;
+  text-decoration: none !important;
+  font-size: .88rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -.01em !important;
+  line-height: 1.1 !important;
+  box-shadow: 0 10px 22px rgba(2, 16, 34, 0.14) !important;
+  cursor: pointer !important;
+  transition: transform .2s ease, background-color .2s ease, color .2s ease, border-color .2s ease, box-shadow .2s ease !important;
+}
+
+html body #root .hero-nav-button svg,
+html body #root .hero-nav-button svg path {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+html body #root .hero-nav-button:hover,
+html body #root .hero-nav-button:focus-visible {
+  background: #ffffff !important;
+  color: #0284c7 !important;
+  border-color: #ffffff !important;
+  transform: translateY(-2px) !important;
+  outline: none !important;
+}
+
+html body #root .hero-nav-button.active {
+  background: linear-gradient(135deg, #0ea5e9, #14b8a6) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.72) !important;
+  box-shadow: 0 14px 30px rgba(14, 165, 233, 0.32) !important;
+}
+
+html body #root .role-hero-banner__button {
+  position: relative !important;
+  z-index: 5 !important;
+}
+
+html body #root .main-dashboard-with-sidebar main.app-content-panel {
+  width: min(100%, 1500px) !important;
+  max-width: 1500px !important;
+  margin: 0 auto !important;
+  padding: 24px !important;
+  box-sizing: border-box !important;
+}
+
+html body #root .main-dashboard-with-sidebar .student-dashboard-layout,
+html body #root .main-dashboard-with-sidebar .supervisor-dashboard-layout,
+html body #root .main-dashboard-with-sidebar .committee-dashboard-layout,
+html body #root .main-dashboard-with-sidebar .admin-dashboard-layout {
+  margin-top: 0 !important;
+}
+
+html body #root .app-dialog-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 5000 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 22px !important;
+  background: rgba(15, 23, 42, 0.36) !important;
+  backdrop-filter: blur(7px) !important;
+  -webkit-backdrop-filter: blur(7px) !important;
+}
+
+html body #root .app-dialog {
+  width: min(100%, 460px) !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(14, 165, 233, 0.18) !important;
+  background: #ffffff !important;
+  box-shadow: 0 30px 90px rgba(15, 23, 42, 0.24) !important;
+  padding: 24px !important;
+  display: grid !important;
+  grid-template-columns: 48px 1fr !important;
+  gap: 16px !important;
+  color: #0f172a !important;
+}
+
+html body #root .app-dialog-icon {
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 16px !important;
+  display: grid !important;
+  place-items: center !important;
+  background: #e0f2fe !important;
+  color: #0284c7 !important;
+}
+
+html body #root .app-dialog-danger .app-dialog-icon,
+html body #root .app-dialog-error .app-dialog-icon {
+  background: #fee2e2 !important;
+  color: #dc2626 !important;
+}
+
+html body #root .app-dialog-warning .app-dialog-icon {
+  background: #ecfeff !important;
+  color: #0f766e !important;
+}
+
+html body #root .app-dialog-body h2 {
+  margin: 0 0 8px !important;
+  font-size: 1.16rem !important;
+  line-height: 1.2 !important;
+  font-weight: 850 !important;
+  color: #0f172a !important;
+}
+
+html body #root .app-dialog-body p {
+  margin: 0 !important;
+  color: #475569 !important;
+  line-height: 1.55 !important;
+}
+
+html body #root .app-dialog-input {
+  margin-top: 16px !important;
+  width: 100% !important;
+  min-height: 44px !important;
+  border-radius: 12px !important;
+  border: 1px solid #bae6fd !important;
+  padding: 10px 12px !important;
+  font: inherit !important;
+  color: #0f172a !important;
+  background: #f8fafc !important;
+  outline: none !important;
+}
+
+html body #root .app-dialog-input:focus {
+  border-color: #0ea5e9 !important;
+  box-shadow: 0 0 0 4px rgba(14, 165, 233, .14) !important;
+}
+
+html body #root .app-dialog-actions {
+  grid-column: 1 / -1 !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+  margin-top: 8px !important;
+}
+
+@media (max-width: 768px) {
+  html body #root .main-dashboard-with-sidebar .main-compact-header {
+    padding: 9px 12px !important;
+  }
+
+  html body #root .main-header-role-label {
+    font-size: .66rem !important;
+  }
+
+  html body #root .main-header-title-block h1 {
+    font-size: .98rem !important;
+    max-width: 42vw !important;
+  }
+
+  html body #root .authenticated-role-hero.role-hero-banner.role-hero-picture-card,
+  html body #root .role-hero-banner.role-hero-navigation-shell {
+    min-height: 380px !important;
+    height: 380px !important;
+  }
+
+  html body #root .authenticated-role-hero .role-hero-banner__content,
+  html body #root .role-hero-navigation-shell .role-hero-banner__content,
+  html body #root .role-hero-has-image.role-hero-navigation-shell .role-hero-banner__content {
+    width: calc(100% - 28px) !important;
+    padding: 28px 8px 132px !important;
+  }
+
+  html body #root .authenticated-role-hero .role-hero-banner__title,
+  html body #root .role-hero-navigation-shell .role-hero-banner__title {
+    font-size: clamp(1.75rem, 10vw, 2.65rem) !important;
+  }
+
+  html body #root .hero-role-navigation {
+    bottom: 16px !important;
+    width: calc(100% - 20px) !important;
+    justify-content: flex-start !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    padding: 10px !important;
+    border-radius: 18px !important;
+    scrollbar-width: none !important;
+  }
+
+  html body #root .hero-role-navigation::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  html body #root .hero-nav-button {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+    min-height: 40px !important;
+    padding: 8px 13px !important;
+  }
+
+  html body #root .main-dashboard-with-sidebar main.app-content-panel {
+    padding: 16px !important;
+  }
+
+  html body #root .app-dialog {
+    grid-template-columns: 1fr !important;
+    padding: 20px !important;
+  }
+
+  html body #root .app-dialog-icon {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  html body #root .app-dialog-actions {
+    flex-direction: column-reverse !important;
+  }
+
+  html body #root .app-dialog-actions button {
+    width: 100% !important;
+  }
+}
+
+/* Research Workspace navigation/dashboard cleanup */
+.dashboard-clean-overview-layout,
+.research-workspace-page {
+  width: 100%;
+  max-width: 100%;
+}
+
+.dashboard-overview-landing-card,
+.research-workspace-header-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  padding: 24px;
+  border: 1px solid rgba(37, 99, 235, 0.12);
+  background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+  box-shadow: 0 16px 44px rgba(15, 23, 42, 0.06);
+}
+
+.dashboard-overview-landing-copy {
+  max-width: 820px;
+}
+
+.dashboard-overview-landing-card h2,
+.research-workspace-header-card h2 {
+  margin: 0 0 8px;
+  color: #0f2f57;
+  font-size: clamp(1.5rem, 2.4vw, 2.25rem);
+  line-height: 1.1;
+}
+
+.dashboard-overview-landing-card p,
+.research-workspace-header-card p {
+  margin-top: 0;
+}
+
+.dashboard-overview-preview-grid {
+  align-items: stretch;
+}
+
+.dashboard-overview-card-clean {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dashboard-overview-card-clean .section-header .muted:empty {
+  display: none;
+}
+
+.dashboard-overview-card-body {
+  flex: 1;
+}
+
+.dashboard-record-preview {
+  display: grid;
+  gap: 8px;
+}
+
+.dashboard-record-preview h3 {
+  margin: 0;
+  color: #0f2f57;
+}
+
+.dashboard-preview-list {
+  display: grid;
+  gap: 10px;
+}
+
+.dashboard-preview-list-item {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid rgba(37, 99, 235, 0.12);
+  border-radius: 14px;
+  background: #f8fbff;
+}
+
+.dashboard-preview-list-item b {
+  color: #0f2f57;
+}
+
+.dashboard-preview-list-item span {
+  color: #64748b;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.dashboard-inbox-preview-list .dashboard-preview-list-item span {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.research-workspace-header-card {
+  display: block;
+}
+
+.research-workspace-header-card .eyebrow,
+.dashboard-overview-landing-card .eyebrow {
+  margin: 0 0 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #2563eb;
+  font-weight: 800;
+  font-size: 0.78rem;
+}
+
+/* Keep Print/PDF Reports as a sidebar utility instead of hero navigation */
+.sidebar-utility-nav button.active,
+.sidebar-utility-nav .sidebar-utility-link.active {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+.sidebar-utility-nav button .side-nav-icon,
+.sidebar-utility-nav .sidebar-utility-link .side-nav-icon {
+  flex: 0 0 auto;
+}
+
+.hero-role-navigation .hero-nav-button span {
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .dashboard-overview-landing-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .dashboard-overview-landing-card .primary,
+  .dashboard-overview-card-actions .secondary {
+    width: 100%;
+  }
+
+  .dashboard-overview-preview-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Final dashboard cleanup: Dashboard routes intentionally render nothing below the shared hero */
+html body #root .empty-dashboard-content-panel,
+html body #root .empty-dashboard-page {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Final hero navigation override: every hero nav button stays pure white in every state */
+html body #root .hero-role-navigation,
+html body #root .role-hero-navigation,
+html body #root .hero-navigation {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html body #root .hero-nav-button,
+html body #root .hero-nav-button:link,
+html body #root .hero-nav-button:visited,
+html body #root .hero-role-navigation a,
+html body #root .hero-role-navigation a:link,
+html body #root .hero-role-navigation a:visited,
+html body #root .hero-role-navigation button,
+html body #root .role-hero-navigation a,
+html body #root .role-hero-navigation button,
+html body #root .hero-navigation a,
+html body #root .hero-navigation button {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: var(--brand-primary, #0f766e) !important;
+  border: 1px solid rgba(255, 255, 255, 0.95) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.14) !important;
+  text-decoration: none !important;
+}
+
+html body #root .hero-nav-button:hover,
+html body #root .hero-nav-button:focus,
+html body #root .hero-role-navigation a:hover,
+html body #root .hero-role-navigation a:focus,
+html body #root .hero-role-navigation button:hover,
+html body #root .hero-role-navigation button:focus,
+html body #root .role-hero-navigation a:hover,
+html body #root .role-hero-navigation button:hover,
+html body #root .hero-navigation a:hover,
+html body #root .hero-navigation button:hover {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: var(--brand-primary-hover, var(--brand-primary, #0284c7)) !important;
+  border-color: var(--brand-primary, #0f766e) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 9px 22px rgba(15, 23, 42, 0.18) !important;
+}
+
+html body #root .hero-nav-button.active,
+html body #root .hero-nav-button[aria-current="page"],
+html body #root .hero-role-navigation a.active,
+html body #root .hero-role-navigation a[aria-current="page"],
+html body #root .hero-role-navigation button.active,
+html body #root .hero-role-navigation button[aria-current="page"],
+html body #root .role-hero-navigation a.active,
+html body #root .role-hero-navigation button.active,
+html body #root .hero-navigation a.active,
+html body #root .hero-navigation button.active {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: var(--brand-primary, #0f766e) !important;
+  border: 2px solid var(--brand-primary, #0f766e) !important;
+  box-shadow:
+    0 8px 22px rgba(15, 23, 42, 0.18),
+    0 0 0 3px color-mix(in srgb, var(--brand-primary, #0f766e) 18%, transparent) !important;
+}
+
+html body #root .hero-nav-button:focus-visible,
+html body #root .hero-role-navigation a:focus-visible,
+html body #root .hero-role-navigation button:focus-visible,
+html body #root .role-hero-navigation a:focus-visible,
+html body #root .role-hero-navigation button:focus-visible,
+html body #root .hero-navigation a:focus-visible,
+html body #root .hero-navigation button:focus-visible {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  outline: 3px solid color-mix(in srgb, var(--brand-primary, #0f766e) 35%, transparent) !important;
+  outline-offset: 2px !important;
+}
+
+html body #root .hero-nav-button svg,
+html body #root .hero-nav-button svg path,
+html body #root .hero-role-navigation a svg,
+html body #root .hero-role-navigation a svg path,
+html body #root .hero-role-navigation button svg,
+html body #root .hero-role-navigation button svg path,
+html body #root .role-hero-navigation a svg,
+html body #root .role-hero-navigation a svg path,
+html body #root .role-hero-navigation button svg,
+html body #root .role-hero-navigation button svg path,
+html body #root .hero-navigation a svg,
+html body #root .hero-navigation a svg path,
+html body #root .hero-navigation button svg,
+html body #root .hero-navigation button svg path {
+  color: currentColor !important;
+  stroke: currentColor !important;
+  fill: none !important;
+}
+
+/* =========================================================
+   FINAL HERO NAVIGATION INACTIVE BUTTON OVERRIDE
+   Forces every hero-navigation button to pure white in all
+   inactive/default states without changing routes or actions.
+   ========================================================= */
+html body #root .role-hero-banner .hero-role-navigation,
+html body #root .role-hero-navigation,
+html body #root .role-hero .hero-role-navigation,
+html body #root .role-hero-navigation-shell .hero-role-navigation {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Default and inactive hero navigation buttons */
+html body #root .role-hero-banner .hero-role-navigation .hero-nav-button,
+html body #root .role-hero-banner .hero-role-navigation button.hero-nav-button,
+html body #root .role-hero-banner .hero-role-navigation a.hero-nav-button,
+html body #root .role-hero-navigation-shell .hero-nav-button,
+html body #root .role-hero-navigation-shell button.hero-nav-button,
+html body #root .role-hero-navigation-shell a.hero-nav-button,
+html body #root .hero-role-navigation .hero-nav-button,
+html body #root .hero-role-navigation button.hero-nav-button,
+html body #root .hero-role-navigation a.hero-nav-button,
+html body #root .hero-role-navigation [role="link"],
+html body #root .hero-role-navigation [role="button"],
+html body #root .role-hero .hero-nav-button,
+html body #root .role-hero-navigation .hero-nav-button {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: var(--brand-primary, #2563eb) !important;
+  border: 1px solid rgba(255, 255, 255, 0.95) !important;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.14) !important;
+  opacity: 1 !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Explicit inactive states */
+html body #root .role-hero-banner .hero-role-navigation .hero-nav-button:not(.active),
+html body #root .role-hero-banner .hero-role-navigation button.hero-nav-button:not(.active),
+html body #root .role-hero-banner .hero-role-navigation a.hero-nav-button:not(.active),
+html body #root .role-hero-navigation-shell .hero-nav-button:not(.active),
+html body #root .role-hero-navigation-shell button.hero-nav-button:not(.active),
+html body #root .role-hero-navigation-shell a.hero-nav-button:not(.active),
+html body #root .hero-role-navigation .hero-nav-button:not(.active),
+html body #root .hero-role-navigation .hero-nav-button:not(.selected),
+html body #root .hero-role-navigation .hero-nav-button[aria-current="false"],
+html body #root .hero-role-navigation .hero-nav-button[aria-selected="false"],
+html body #root .hero-role-navigation .hero-nav-button[data-state="inactive"],
+html body #root .hero-role-navigation .hero-nav-button[data-active="false"],
+html body #root .hero-role-navigation a:not([aria-current="page"]),
+html body #root .hero-role-navigation button:not(.active) {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: var(--brand-primary, #2563eb) !important;
+  border-color: rgba(255, 255, 255, 0.95) !important;
+  opacity: 1 !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Visited links must not return to gray */
+html body #root .hero-role-navigation a:visited,
+html body #root .role-hero-navigation-shell .hero-role-navigation a:visited {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: var(--brand-primary, #2563eb) !important;
+}
+
+/* Hover should remain white */
+html body #root .hero-role-navigation .hero-nav-button:hover,
+html body #root .hero-role-navigation a:hover,
+html body #root .hero-role-navigation button:hover,
+html body #root .role-hero-navigation-shell .hero-nav-button:hover,
+html body #root .role-hero-navigation-shell .hero-role-navigation button:hover {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: var(--brand-primary-hover, var(--brand-primary, #2563eb)) !important;
+  border-color: var(--brand-primary, #2563eb) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Focus should remain white */
+html body #root .hero-role-navigation .hero-nav-button:focus,
+html body #root .hero-role-navigation .hero-nav-button:focus-visible,
+html body #root .hero-role-navigation a:focus-visible,
+html body #root .hero-role-navigation button:focus-visible,
+html body #root .role-hero-navigation-shell .hero-nav-button:focus,
+html body #root .role-hero-navigation-shell .hero-nav-button:focus-visible {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  outline: 3px solid color-mix(in srgb, var(--brand-primary, #2563eb) 30%, transparent) !important;
+  outline-offset: 2px !important;
+}
+
+/* Active/current page stays white; border/text/shadow indicates current page */
+html body #root .hero-role-navigation .hero-nav-button.active,
+html body #root .hero-role-navigation .hero-nav-button.selected,
+html body #root .hero-role-navigation .hero-nav-button[aria-current="page"],
+html body #root .hero-role-navigation .hero-nav-button[aria-selected="true"],
+html body #root .hero-role-navigation .hero-nav-button[data-state="active"],
+html body #root .hero-role-navigation .hero-nav-button[data-active="true"],
+html body #root .role-hero-navigation-shell .hero-nav-button.active,
+html body #root .role-hero-navigation-shell .hero-nav-button[aria-current="page"] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: var(--brand-primary, #2563eb) !important;
+  border: 2px solid var(--brand-primary, #2563eb) !important;
+  box-shadow:
+    0 8px 22px rgba(15, 23, 42, 0.18),
+    0 0 0 3px color-mix(in srgb, var(--brand-primary, #2563eb) 16%, transparent) !important;
+}
+
+html body #root .hero-role-navigation .hero-nav-button svg,
+html body #root .hero-role-navigation .hero-nav-button svg path,
+html body #root .hero-role-navigation .hero-nav-button svg circle,
+html body #root .hero-role-navigation .hero-nav-button svg line,
+html body #root .hero-role-navigation .hero-nav-button svg polyline,
+html body #root .role-hero-navigation-shell .hero-nav-button svg,
+html body #root .role-hero-navigation-shell .hero-nav-button svg path,
+html body #root .role-hero-navigation-shell .hero-nav-button svg circle,
+html body #root .role-hero-navigation-shell .hero-nav-button svg line,
+html body #root .role-hero-navigation-shell .hero-nav-button svg polyline {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+html body #root .hero-role-navigation .hero-nav-button svg [fill]:not([fill="none"]),
+html body #root .role-hero-navigation-shell .hero-nav-button svg [fill]:not([fill="none"]) {
+  fill: currentColor !important;
+}
+
+@media (max-width: 768px) {
+  html body #root .hero-role-navigation .hero-nav-button,
+  html body #root .hero-role-navigation .hero-nav-button:not(.active),
+  html body #root .hero-role-navigation .hero-nav-button[aria-current="false"],
+  html body #root .hero-role-navigation .hero-nav-button[data-state="inactive"],
+  html body #root .role-hero-navigation-shell .hero-nav-button,
+  html body #root .role-hero-navigation-shell .hero-nav-button:not(.active) {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    background-image: none !important;
+  }
+}
+
+
+/* =========================================================
+   FINAL HERO NAV WHITE BUTTON OVERRIDE - ACTUAL INACTIVE FIX
+   This intentionally excludes the hero nav from legacy global gray button rules
+   and forces every hero nav button state to pure white.
+   ========================================================= */
+html body #root .role-hero-banner.role-hero-navigation-shell .hero-role-navigation,
+html body #root .role-hero-navigation-shell .hero-role-navigation,
+html body #root .hero-role-navigation {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html body #root .role-hero-banner.role-hero-navigation-shell .hero-role-navigation button.hero-nav-button,
+html body #root .role-hero-banner.role-hero-navigation-shell .hero-role-navigation button.hero-nav-button:not(.active):not(.is-active):not(:disabled):not(:hover):not(:focus-visible):not(.danger):not(.danger-btn):not(.delete-btn):not(.delete-item-button):not(.admin-panel-delete-button):not(.logout):not(.admin-logout),
+html body #root .role-hero-banner.role-hero-navigation-shell .hero-role-navigation button.hero-nav-button[aria-selected="false"],
+html body #root .role-hero-banner.role-hero-navigation-shell .hero-role-navigation button.hero-nav-button[data-active="false"],
+html body #root .role-hero-navigation-shell .hero-role-navigation button.hero-nav-button,
+html body #root .role-hero-navigation-shell .hero-role-navigation button.hero-nav-button:not(.active):not(.is-active):not(:disabled):not(:hover):not(:focus-visible):not(.danger):not(.danger-btn):not(.delete-btn):not(.delete-item-button):not(.admin-panel-delete-button):not(.logout):not(.admin-logout),
+html body #root .hero-role-navigation button.hero-nav-button,
+html body #root .hero-role-navigation button.hero-nav-button:not(.active):not(.is-active):not(:disabled):not(:hover):not(:focus-visible):not(.danger):not(.danger-btn):not(.delete-btn):not(.delete-item-button):not(.admin-panel-delete-button):not(.logout):not(.admin-logout),
+html body #root .hero-role-navigation .hero-nav-button,
+html body #root .hero-role-navigation a.hero-nav-button {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: var(--brand-primary, #2563eb) !important;
+  -webkit-text-fill-color: var(--brand-primary, #2563eb) !important;
+  border: 1px solid rgba(255, 255, 255, 0.96) !important;
+  box-shadow: 0 7px 20px rgba(15, 23, 42, 0.18) !important;
+  opacity: 1 !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  text-shadow: none !important;
+}
+
+/* Keep hover/focus/current states white as well; use border/shadow to show state. */
+html body #root .role-hero-banner.role-hero-navigation-shell .hero-role-navigation button.hero-nav-button:hover,
+html body #root .role-hero-banner.role-hero-navigation-shell .hero-role-navigation button.hero-nav-button:focus,
+html body #root .role-hero-banner.role-hero-navigation-shell .hero-role-navigation button.hero-nav-button:focus-visible,
+html body #root .role-hero-banner.role-hero-navigation-shell .hero-role-navigation button.hero-nav-button.active,
+html body #root .role-hero-banner.role-hero-navigation-shell .hero-role-navigation button.hero-nav-button.is-active,
+html body #root .role-hero-banner.role-hero-navigation-shell .hero-role-navigation button.hero-nav-button[aria-current="page"],
+html body #root .role-hero-banner.role-hero-navigation-shell .hero-role-navigation button.hero-nav-button[aria-selected="true"],
+html body #root .role-hero-banner.role-hero-navigation-shell .hero-role-navigation button.hero-nav-button[data-active="true"],
+html body #root .hero-role-navigation button.hero-nav-button:hover,
+html body #root .hero-role-navigation button.hero-nav-button:focus,
+html body #root .hero-role-navigation button.hero-nav-button:focus-visible,
+html body #root .hero-role-navigation button.hero-nav-button.active,
+html body #root .hero-role-navigation button.hero-nav-button.is-active,
+html body #root .hero-role-navigation button.hero-nav-button[aria-current="page"],
+html body #root .hero-role-navigation button.hero-nav-button[aria-selected="true"],
+html body #root .hero-role-navigation button.hero-nav-button[data-active="true"] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: var(--brand-primary-hover, var(--brand-primary, #2563eb)) !important;
+  -webkit-text-fill-color: var(--brand-primary-hover, var(--brand-primary, #2563eb)) !important;
+  border-color: var(--brand-primary, #2563eb) !important;
+  box-shadow:
+    0 8px 22px rgba(15, 23, 42, 0.2),
+    0 0 0 3px color-mix(in srgb, var(--brand-primary, #2563eb) 18%, transparent) !important;
+}
+
+html body #root .role-hero-banner.role-hero-navigation-shell .hero-role-navigation button.hero-nav-button.active,
+html body #root .role-hero-banner.role-hero-navigation-shell .hero-role-navigation button.hero-nav-button.is-active,
+html body #root .role-hero-banner.role-hero-navigation-shell .hero-role-navigation button.hero-nav-button[aria-current="page"],
+html body #root .role-hero-banner.role-hero-navigation-shell .hero-role-navigation button.hero-nav-button[aria-selected="true"],
+html body #root .role-hero-banner.role-hero-navigation-shell .hero-role-navigation button.hero-nav-button[data-active="true"] {
+  border-width: 2px !important;
+}
+
+html body #root .hero-role-navigation button.hero-nav-button::before,
+html body #root .hero-role-navigation button.hero-nav-button::after,
+html body #root .hero-role-navigation .hero-nav-button::before,
+html body #root .hero-role-navigation .hero-nav-button::after {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+html body #root .hero-role-navigation button.hero-nav-button span,
+html body #root .hero-role-navigation .hero-nav-button span {
+  color: currentColor !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+html body #root .hero-role-navigation button.hero-nav-button svg,
+html body #root .hero-role-navigation button.hero-nav-button svg path,
+html body #root .hero-role-navigation button.hero-nav-button svg circle,
+html body #root .hero-role-navigation button.hero-nav-button svg line,
+html body #root .hero-role-navigation button.hero-nav-button svg polyline,
+html body #root .hero-role-navigation button.hero-nav-button svg rect {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+html body #root .hero-role-navigation button.hero-nav-button svg [fill]:not([fill="none"]) {
+  fill: currentColor !important;
+}
+
+@media (max-width: 1200px) {
+  html body #root .role-hero-banner.role-hero-navigation-shell .hero-role-navigation button.hero-nav-button,
+  html body #root .hero-role-navigation button.hero-nav-button,
+  html body #root .hero-role-navigation button.hero-nav-button:not(.active):not(.is-active) {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    background-image: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  html body #root .role-hero-banner.role-hero-navigation-shell .hero-role-navigation button.hero-nav-button,
+  html body #root .hero-role-navigation button.hero-nav-button,
+  html body #root .hero-role-navigation button.hero-nav-button:not(.active):not(.is-active),
+  html body #root .hero-role-navigation button.hero-nav-button[aria-selected="false"],
+  html body #root .hero-role-navigation button.hero-nav-button[data-active="false"] {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    background-image: none !important;
+  }
+}
+
+/* =========================================================
+   FINAL HERO NAV TEXT VISIBILITY FIX
+   Keep hero buttons white, but force all hero button text/icons black.
+   ========================================================= */
+html body #root .role-hero .hero-role-navigation .hero-nav-button,
+html body #root .role-hero .hero-role-navigation button.hero-nav-button,
+html body #root .hero-role-navigation .hero-nav-button,
+html body #root .hero-role-navigation button.hero-nav-button,
+html body #root .role-hero-navigation-shell .hero-role-navigation .hero-nav-button,
+html body #root .role-hero-navigation-shell .hero-role-navigation button.hero-nav-button {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  text-shadow: none !important;
+}
+
+html body #root .role-hero .hero-role-navigation .hero-nav-button:hover,
+html body #root .role-hero .hero-role-navigation .hero-nav-button:focus,
+html body #root .role-hero .hero-role-navigation .hero-nav-button:focus-visible,
+html body #root .role-hero .hero-role-navigation .hero-nav-button.active,
+html body #root .role-hero .hero-role-navigation .hero-nav-button.is-active,
+html body #root .role-hero .hero-role-navigation .hero-nav-button[aria-current="page"],
+html body #root .role-hero .hero-role-navigation .hero-nav-button[aria-selected="true"],
+html body #root .hero-role-navigation .hero-nav-button:hover,
+html body #root .hero-role-navigation .hero-nav-button:focus,
+html body #root .hero-role-navigation .hero-nav-button:focus-visible,
+html body #root .hero-role-navigation .hero-nav-button.active,
+html body #root .hero-role-navigation .hero-nav-button.is-active,
+html body #root .hero-role-navigation .hero-nav-button[aria-current="page"],
+html body #root .hero-role-navigation .hero-nav-button[aria-selected="true"] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+html body #root .hero-role-navigation .hero-nav-button span,
+html body #root .hero-role-navigation button.hero-nav-button span,
+html body #root .role-hero-navigation-shell .hero-role-navigation .hero-nav-button span,
+html body #root .role-hero-navigation-shell .hero-role-navigation button.hero-nav-button span {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+html body #root .hero-role-navigation .hero-nav-button svg,
+html body #root .hero-role-navigation .hero-nav-button svg path,
+html body #root .hero-role-navigation .hero-nav-button svg circle,
+html body #root .hero-role-navigation .hero-nav-button svg line,
+html body #root .hero-role-navigation .hero-nav-button svg polyline,
+html body #root .hero-role-navigation .hero-nav-button svg rect,
+html body #root .role-hero-navigation-shell .hero-role-navigation .hero-nav-button svg,
+html body #root .role-hero-navigation-shell .hero-role-navigation .hero-nav-button svg path,
+html body #root .role-hero-navigation-shell .hero-role-navigation .hero-nav-button svg circle,
+html body #root .role-hero-navigation-shell .hero-role-navigation .hero-nav-button svg line,
+html body #root .role-hero-navigation-shell .hero-role-navigation .hero-nav-button svg polyline,
+html body #root .role-hero-navigation-shell .hero-role-navigation .hero-nav-button svg rect {
+  color: #111827 !important;
+  stroke: #111827 !important;
+  fill: none;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+html body #root .hero-role-navigation .hero-nav-button svg [fill]:not([fill="none"]),
+html body #root .role-hero-navigation-shell .hero-role-navigation .hero-nav-button svg [fill]:not([fill="none"]) {
+  fill: #111827 !important;
+}
+
+@media (max-width: 768px) {
+  html body #root .hero-role-navigation .hero-nav-button,
+  html body #root .hero-role-navigation button.hero-nav-button,
+  html body #root .hero-role-navigation .hero-nav-button span,
+  html body #root .hero-role-navigation button.hero-nav-button span {
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+  }
+}
+
+/* =========================================================
+   ROLE-AWARE HERO FEATURE SEARCH
+   Student, Supervisor, and Research Committee only.
+   Admin/Admin Subdomain do not render this component.
+   ========================================================= */
+html body #root .role-hero-has-feature-search.role-hero-banner.role-hero-navigation-shell {
+  min-height: clamp(410px, 38vw, 560px) !important;
+  height: clamp(410px, 38vw, 560px) !important;
+}
+
+html body #root .role-hero-has-feature-search .role-hero-banner__content {
+  padding-bottom: 205px !important;
+}
+
+html body #root .role-hero-has-feature-search .hero-role-navigation {
+  bottom: 102px !important;
+  z-index: 5 !important;
+}
+
+html body #root .role-feature-search {
+  position: absolute !important;
+  left: 50% !important;
+  bottom: 24px !important;
+  z-index: 7 !important;
+  width: min(820px, calc(100% - 36px)) !important;
+  transform: translateX(-50%) !important;
+  box-sizing: border-box !important;
+}
+
+html body #root .role-feature-search__box {
+  width: 100% !important;
+  min-height: 50px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 0 14px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255, 255, 255, 0.96) !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: #111827 !important;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.24) !important;
+  box-sizing: border-box !important;
+}
+
+html body #root .role-feature-search__box.is-focused {
+  border-color: #ffffff !important;
+  box-shadow: 0 16px 38px rgba(15, 23, 42, 0.28), 0 0 0 3px rgba(37, 99, 235, 0.24) !important;
+}
+
+html body #root .role-feature-search__box > svg {
+  width: 18px !important;
+  height: 18px !important;
+  color: #111827 !important;
+  stroke: #111827 !important;
+  flex: 0 0 auto !important;
+}
+
+html body #root .role-feature-search__box input,
+html body #root .role-feature-search__box input[type="search"] {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 48px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  box-shadow: none !important;
+  font-size: 0.96rem !important;
+  font-weight: 700 !important;
+}
+
+html body #root .role-feature-search__box input::placeholder {
+  color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+  opacity: 1 !important;
+}
+
+html body #root .role-feature-search__box input::-webkit-search-cancel-button,
+html body #root .role-feature-search__box input::-webkit-search-decoration {
+  display: none !important;
+}
+
+html body #root .role-feature-search__clear,
+html body #root .role-feature-search__clear:hover,
+html body #root .role-feature-search__clear:focus,
+html body #root .role-feature-search__clear:focus-visible {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  border: 1px solid #dbeafe !important;
+  background: #eff6ff !important;
+  background-color: #eff6ff !important;
+  background-image: none !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  box-shadow: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+}
+
+html body #root .role-feature-search__clear svg,
+html body #root .role-feature-search__clear svg path,
+html body #root .role-feature-search__clear svg circle,
+html body #root .role-feature-search__clear svg line {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+html body #root .role-feature-search__results {
+  position: absolute !important;
+  top: calc(100% + 10px) !important;
+  left: 0 !important;
+  right: 0 !important;
+  display: grid !important;
+  gap: 6px !important;
+  padding: 10px !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(219, 234, 254, 0.98) !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.22) !important;
+  max-height: min(360px, 54vh) !important;
+  overflow: auto !important;
+  box-sizing: border-box !important;
+}
+
+html body #root .role-feature-search__result,
+html body #root .role-feature-search__result:hover,
+html body #root .role-feature-search__result:focus,
+html body #root .role-feature-search__result:focus-visible {
+  width: 100% !important;
+  min-height: 58px !important;
+  padding: 10px 12px !important;
+  border-radius: 14px !important;
+  border: 1px solid transparent !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  box-shadow: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 11px !important;
+  text-align: left !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+}
+
+html body #root .role-feature-search__result:hover,
+html body #root .role-feature-search__result:focus-visible {
+  background: #eff6ff !important;
+  background-color: #eff6ff !important;
+  border-color: #bfdbfe !important;
+  transform: none !important;
+}
+
+html body #root .role-feature-search__result-icon {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  border-radius: 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #dbeafe !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+html body #root .role-feature-search__result-icon svg,
+html body #root .role-feature-search__result-icon svg path,
+html body #root .role-feature-search__result-icon svg circle,
+html body #root .role-feature-search__result-icon svg line,
+html body #root .role-feature-search__result-icon svg polyline,
+html body #root .role-feature-search__result-icon svg rect {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+html body #root .role-feature-search__result-text {
+  min-width: 0 !important;
+  display: grid !important;
+  gap: 2px !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+html body #root .role-feature-search__result-text b {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  font-size: 0.92rem !important;
+  font-weight: 900 !important;
+  line-height: 1.2 !important;
+}
+
+html body #root .role-feature-search__result-text small {
+  color: #475569 !important;
+  -webkit-text-fill-color: #475569 !important;
+  font-size: 0.78rem !important;
+  line-height: 1.35 !important;
+}
+
+html body #root .role-feature-search__empty {
+  padding: 14px !important;
+  border-radius: 12px !important;
+  background: #f8fafc !important;
+  color: #475569 !important;
+  -webkit-text-fill-color: #475569 !important;
+  font-weight: 700 !important;
+  text-align: center !important;
+}
+
+html body #root .section-scroll-anchor {
+  display: block !important;
+  position: relative !important;
+  top: -92px !important;
+  width: 1px !important;
+  height: 1px !important;
+  pointer-events: none !important;
+}
+
+html body #root .role-search-target-highlight {
+  outline: 3px solid rgba(37, 99, 235, 0.28) !important;
+  outline-offset: 4px !important;
+  transition: outline-color 0.3s ease !important;
+}
+
+html body #root .role-hero-no-feature-search .role-feature-search,
+html body #root .role-hero-admin .role-feature-search,
+html body #root .admin-panel-shell .role-feature-search,
+html body #root .admin-panel .role-feature-search {
+  display: none !important;
+}
+
+@media (max-width: 900px) {
+  html body #root .role-hero-has-feature-search.role-hero-banner.role-hero-navigation-shell {
+    min-height: 455px !important;
+    height: 455px !important;
+  }
+
+  html body #root .role-hero-has-feature-search .role-hero-banner__content {
+    padding: 28px 20px 205px !important;
+  }
+
+  html body #root .role-hero-has-feature-search .hero-role-navigation {
+    bottom: 94px !important;
+    width: calc(100% - 20px) !important;
+    justify-content: flex-start !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    padding: 8px !important;
+    scrollbar-width: none !important;
+  }
+
+  html body #root .role-hero-has-feature-search .hero-role-navigation::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  html body #root .role-hero-has-feature-search .hero-nav-button {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+  }
+
+  html body #root .role-feature-search {
+    width: calc(100% - 20px) !important;
+    bottom: 18px !important;
+  }
+
+  html body #root .role-feature-search__box {
+    min-height: 48px !important;
+  }
+
+  html body #root .role-feature-search__results {
+    max-height: min(300px, 48vh) !important;
+  }
+}
+
+/* =========================================================
+   FINAL ROLE HERO SEARCH DROPDOWN VISIBILITY + POSITION FIX
+   Keep search only in allowed roles; make results render above page content.
+   ========================================================= */
+html body #root .role-hero-has-feature-search.role-hero-banner.role-hero-navigation-shell {
+  overflow: visible !important;
+  z-index: 80 !important;
+  isolation: isolate !important;
+}
+
+html body #root .role-hero-has-feature-search .role-hero-picture-card__media,
+html body #root .role-hero-has-feature-search .role-hero-picture-card__image,
+html body #root .role-hero-has-feature-search .role-hero-banner__overlay {
+  overflow: hidden !important;
+}
+
+html body #root .role-hero-has-feature-search .hero-role-navigation {
+  bottom: 102px !important;
+  z-index: 90 !important;
+}
+
+html body #root .role-feature-search {
+  bottom: 40px !important;
+  z-index: 120 !important;
+}
+
+html body #root .role-feature-search__results {
+  z-index: 140 !important;
+  position: absolute !important;
+  top: calc(100% + 8px) !important;
+  left: 0 !important;
+  right: 0 !important;
+  pointer-events: auto !important;
+  transform: translateZ(0) !important;
+}
+
+html body #root .main-dashboard-with-sidebar main.app-content-panel,
+html body #root .app-content-panel,
+html body #root .main-workspace,
+html body #root .app-page {
+  overflow: visible !important;
+}
+
+html body #root .role-hero-has-feature-search + *,
+html body #root .role-dashboard-page,
+html body #root .student-dashboard-layout,
+html body #root .supervisor-dashboard-layout,
+html body #root .committee-dashboard-layout,
+html body #root .admin-dashboard-layout {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+@media (max-width: 900px) {
+  html body #root .role-hero-has-feature-search .hero-role-navigation {
+    bottom: 96px !important;
+    z-index: 90 !important;
+  }
+
+  html body #root .role-feature-search {
+    bottom: 34px !important;
+    z-index: 120 !important;
+  }
+
+  html body #root .role-feature-search__results {
+    z-index: 140 !important;
+    max-height: min(320px, 50vh) !important;
+  }
+}
+
+/* =========================================================
+   FINAL ROLE FEATURE SEARCH RESULTS PURE WHITE FIX
+   Keep every search result item bright/white; prevent old global
+   dark button styles from affecting the live-search dropdown.
+   ========================================================= */
+html body #root .role-hero .role-feature-search,
+html body #root .role-hero-has-feature-search .role-feature-search {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+html body #root .role-hero .role-feature-search__results,
+html body #root .role-hero-has-feature-search .role-feature-search__results,
+html body #root .role-feature-search .role-feature-search__results {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border: 1px solid #dbeafe !important;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.18) !important;
+}
+
+html body #root .role-hero .role-feature-search__results .role-feature-search__result,
+html body #root .role-hero-has-feature-search .role-feature-search__results .role-feature-search__result,
+html body #root .role-feature-search .role-feature-search__results button.role-feature-search__result,
+html body #root button.role-feature-search__result,
+html body #root button.role-feature-search__result:not(.active),
+html body #root button.role-feature-search__result:not(.is-active),
+html body #root .role-feature-search__result[role="option"] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  border: 1px solid #e5eefc !important;
+  box-shadow: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html body #root .role-hero .role-feature-search__results .role-feature-search__result:hover,
+html body #root .role-hero .role-feature-search__results .role-feature-search__result:focus,
+html body #root .role-hero .role-feature-search__results .role-feature-search__result:focus-visible,
+html body #root .role-feature-search .role-feature-search__results button.role-feature-search__result:hover,
+html body #root .role-feature-search .role-feature-search__results button.role-feature-search__result:focus,
+html body #root .role-feature-search .role-feature-search__results button.role-feature-search__result:focus-visible,
+html body #root button.role-feature-search__result:hover,
+html body #root button.role-feature-search__result:focus-visible {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14) !important;
+  transform: none !important;
+}
+
+html body #root .role-feature-search__result::before,
+html body #root .role-feature-search__result::after,
+html body #root button.role-feature-search__result::before,
+html body #root button.role-feature-search__result::after {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  opacity: 0 !important;
+}
+
+html body #root .role-feature-search__result-text,
+html body #root .role-feature-search__result-text b,
+html body #root .role-feature-search__result-text span,
+html body #root button.role-feature-search__result b,
+html body #root button.role-feature-search__result span {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+html body #root .role-feature-search__result-text small,
+html body #root button.role-feature-search__result small {
+  color: #475569 !important;
+  -webkit-text-fill-color: #475569 !important;
+}
+
+html body #root .role-feature-search__result-icon {
+  background: #eff6ff !important;
+  background-color: #eff6ff !important;
+  background-image: none !important;
+  color: #2563eb !important;
+  -webkit-text-fill-color: #2563eb !important;
+}
+
+html body #root .role-feature-search__result-icon svg,
+html body #root .role-feature-search__result-icon svg path,
+html body #root .role-feature-search__result-icon svg circle,
+html body #root .role-feature-search__result-icon svg line,
+html body #root .role-feature-search__result-icon svg polyline,
+html body #root .role-feature-search__result-icon svg rect {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+html body #root .role-feature-search__result-icon svg [fill]:not([fill="none"]) {
+  fill: currentColor !important;
+}
+
+
+/* =========================================================
+   FINAL ROLE FEATURE SEARCH INACTIVE RESULT WHITE OVERRIDE
+   Must remain at the very end of the stylesheet.
+   Removes the legacy default button gray from live-search results.
+   ========================================================= */
+html body #root .role-feature-search,
+html body #root .role-hero .role-feature-search,
+html body #root .role-hero-has-feature-search .role-feature-search {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+html body #root .role-feature-search .role-feature-search__results,
+html body #root .role-hero .role-feature-search .role-feature-search__results,
+html body #root .role-hero-has-feature-search .role-feature-search .role-feature-search__results {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border: 1px solid #dbeafe !important;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.18) !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Default/inactive search results: pure white */
+html body #root .role-feature-search .role-feature-search__results .role-feature-search__result,
+html body #root .role-feature-search .role-feature-search__results button.role-feature-search__result,
+html body #root .role-feature-search .role-feature-search__results .role-feature-search__result.role-feature-search__result,
+html body #root .role-feature-search .role-feature-search__results button.role-feature-search__result.role-feature-search__result,
+html body #root .role-feature-search__results .role-feature-search__result[role="option"],
+html body #root button.role-feature-search__result.role-feature-search__result,
+html body #root button.role-feature-search__result.role-feature-search__result:not(.active),
+html body #root button.role-feature-search__result.role-feature-search__result:not(.is-active),
+html body #root button.role-feature-search__result.role-feature-search__result[role="option"] {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  background-clip: padding-box !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  border: 1px solid #e5eefc !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  text-shadow: none !important;
+}
+
+/* Explicit inactive/aria states must also stay white */
+html body #root .role-feature-search__result[aria-selected="false"],
+html body #root .role-feature-search__result[data-state="inactive"],
+html body #root .role-feature-search__result[data-active="false"],
+html body #root .role-feature-search__result:not(.active),
+html body #root .role-feature-search__result:not(.is-active) {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* Hover/focus stay white too */
+html body #root .role-feature-search .role-feature-search__results .role-feature-search__result:hover,
+html body #root .role-feature-search .role-feature-search__results .role-feature-search__result:focus,
+html body #root .role-feature-search .role-feature-search__results .role-feature-search__result:focus-visible,
+html body #root .role-feature-search .role-feature-search__results button.role-feature-search__result:hover,
+html body #root .role-feature-search .role-feature-search__results button.role-feature-search__result:focus,
+html body #root .role-feature-search .role-feature-search__results button.role-feature-search__result:focus-visible,
+html body #root button.role-feature-search__result.role-feature-search__result:hover,
+html body #root button.role-feature-search__result.role-feature-search__result:focus-visible {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14) !important;
+  transform: none !important;
+}
+
+/* Remove any gray overlay from pseudo-elements */
+html body #root .role-feature-search__result::before,
+html body #root .role-feature-search__result::after,
+html body #root button.role-feature-search__result::before,
+html body #root button.role-feature-search__result::after,
+html body #root .role-feature-search .role-feature-search__results .role-feature-search__result::before,
+html body #root .role-feature-search .role-feature-search__results .role-feature-search__result::after {
+  content: none !important;
+  display: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  opacity: 0 !important;
+  box-shadow: none !important;
+}
+
+html body #root .role-feature-search__result,
+html body #root .role-feature-search__result *,
+html body #root .role-feature-search__result-text,
+html body #root .role-feature-search__result-text b,
+html body #root .role-feature-search__result-text span,
+html body #root .role-feature-search__result-text small,
+html body #root button.role-feature-search__result b,
+html body #root button.role-feature-search__result span,
+html body #root button.role-feature-search__result small {
+  text-shadow: none !important;
+}
+
+html body #root .role-feature-search__result-text,
+html body #root .role-feature-search__result-text b,
+html body #root .role-feature-search__result-text span,
+html body #root button.role-feature-search__result b,
+html body #root button.role-feature-search__result span {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+html body #root .role-feature-search__result-text small,
+html body #root button.role-feature-search__result small {
+  color: #475569 !important;
+  -webkit-text-fill-color: #475569 !important;
+}
+
+html body #root .role-feature-search__result-icon,
+html body #root .role-feature-search__result .role-feature-search__result-icon {
+  background: #eff6ff !important;
+  background-color: #eff6ff !important;
+  background-image: none !important;
+  color: #2563eb !important;
+  -webkit-text-fill-color: #2563eb !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+html body #root .role-feature-search__result-icon svg,
+html body #root .role-feature-search__result-icon svg path,
+html body #root .role-feature-search__result-icon svg circle,
+html body #root .role-feature-search__result-icon svg line,
+html body #root .role-feature-search__result-icon svg polyline,
+html body #root .role-feature-search__result-icon svg rect {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+html body #root .role-feature-search__result-icon svg [fill]:not([fill="none"]) {
+  fill: currentColor !important;
+}
+
+@media (max-width: 1200px) {
+  html body #root .role-feature-search__results .role-feature-search__result,
+  html body #root .role-feature-search__results button.role-feature-search__result,
+  html body #root button.role-feature-search__result.role-feature-search__result {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    background-image: none !important;
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+  }
+}
+
+@media (max-width: 768px) {
+  html body #root .role-feature-search__results .role-feature-search__result,
+  html body #root .role-feature-search__results button.role-feature-search__result,
+  html body #root button.role-feature-search__result.role-feature-search__result {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    background-image: none !important;
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+  }
+}
+
+/* =========================================================
+   FINAL ROLE FEATURE SEARCH ICON BLACK OVERRIDE
+   Make all icons inside the hero search input and result list black.
+   ========================================================= */
+html body #root .role-feature-search__box > svg,
+html body #root .role-feature-search__box > svg path,
+html body #root .role-feature-search__box > svg circle,
+html body #root .role-feature-search__box > svg line,
+html body #root .role-feature-search__box > svg polyline,
+html body #root .role-feature-search__box > svg rect,
+html body #root .role-feature-search__clear svg,
+html body #root .role-feature-search__clear svg path,
+html body #root .role-feature-search__clear svg circle,
+html body #root .role-feature-search__clear svg line,
+html body #root .role-feature-search__clear svg polyline,
+html body #root .role-feature-search__clear svg rect,
+html body #root .role-feature-search__result-icon,
+html body #root .role-feature-search__result .role-feature-search__result-icon,
+html body #root .role-feature-search__result-icon svg,
+html body #root .role-feature-search__result-icon svg path,
+html body #root .role-feature-search__result-icon svg circle,
+html body #root .role-feature-search__result-icon svg line,
+html body #root .role-feature-search__result-icon svg polyline,
+html body #root .role-feature-search__result-icon svg rect {
+  color: #111827 !important;
+  stroke: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+html body #root .role-feature-search__result-icon svg [fill]:not([fill="none"]),
+html body #root .role-feature-search__box > svg [fill]:not([fill="none"]),
+html body #root .role-feature-search__clear svg [fill]:not([fill="none"]) {
+  fill: #111827 !important;
+}
+
+/* =========================================================
+   FINAL HERO NAV + SEARCH GLASS PANEL
+   One blurred rounded rectangle behind the hero navigation and search.
+   Keep the buttons and search input white; keep dropdown visible.
+   ========================================================= */
+html body #root .role-hero-banner.role-hero-navigation-shell {
+  overflow: visible !important;
+  isolation: isolate !important;
+}
+
+html body #root .role-hero-actions-panel {
+  position: absolute !important;
+  left: 50% !important;
+  bottom: 24px !important;
+  z-index: 115 !important;
+  transform: translateX(-50%) !important;
+  width: min(1180px, calc(100% - 32px)) !important;
+  max-width: 1180px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  padding: 14px !important;
+  border-radius: 30px !important;
+  border: 1px solid rgba(255, 255, 255, 0.45) !important;
+  background: rgba(255, 255, 255, 0.20) !important;
+  background-color: rgba(255, 255, 255, 0.20) !important;
+  background-image: linear-gradient(135deg, rgba(255,255,255,0.28), rgba(255,255,255,0.12)) !important;
+  box-shadow: 0 22px 60px rgba(15, 23, 42, 0.24) !important;
+  backdrop-filter: blur(20px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(150%) !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+}
+
+html body #root .role-hero-actions-panel--nav-only {
+  width: min(1120px, calc(100% - 32px)) !important;
+  padding: 14px !important;
+}
+
+html body #root .role-hero-actions-panel .hero-role-navigation,
+html body #root .role-hero-actions-panel .role-feature-search {
+  position: static !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  z-index: auto !important;
+}
+
+html body #root .role-hero-actions-panel .hero-role-navigation {
+  width: 100% !important;
+  max-width: none !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 9px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+}
+
+html body #root .role-hero-actions-panel .role-feature-search {
+  width: min(820px, 100%) !important;
+  max-width: 820px !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+}
+
+html body #root .role-hero-actions-panel .role-feature-search__box {
+  min-height: 52px !important;
+  border-radius: 999px !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(255, 255, 255, 0.98) !important;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.18) !important;
+}
+
+html body #root .role-hero-actions-panel .hero-nav-button,
+html body #root .role-hero-actions-panel button.hero-nav-button,
+html body #root .role-hero-actions-panel .hero-nav-button:hover,
+html body #root .role-hero-actions-panel .hero-nav-button:focus,
+html body #root .role-hero-actions-panel .hero-nav-button:focus-visible,
+html body #root .role-hero-actions-panel .hero-nav-button.active,
+html body #root .role-hero-actions-panel .hero-nav-button.is-active,
+html body #root .role-hero-actions-panel .hero-nav-button[aria-current="page"],
+html body #root .role-hero-actions-panel .hero-nav-button[aria-selected="true"] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+html body #root .role-hero-actions-panel .role-feature-search__results {
+  z-index: 160 !important;
+  top: calc(100% + 10px) !important;
+}
+
+html body #root .role-hero-has-feature-search .role-hero-banner__content {
+  padding-bottom: 250px !important;
+}
+
+html body #root .role-hero-has-feature-search.role-hero-banner.role-hero-navigation-shell {
+  min-height: clamp(440px, 40vw, 590px) !important;
+  height: clamp(440px, 40vw, 590px) !important;
+}
+
+html body #root .role-hero-no-feature-search .role-hero-banner__content {
+  padding-bottom: 150px !important;
+}
+
+@media (max-width: 900px) {
+  html body #root .role-hero-actions-panel {
+    width: calc(100% - 20px) !important;
+    bottom: 18px !important;
+    padding: 10px !important;
+    border-radius: 24px !important;
+    gap: 9px !important;
+  }
+
+  html body #root .role-hero-actions-panel .hero-role-navigation {
+    justify-content: flex-start !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    padding: 0 !important;
+  }
+
+  html body #root .role-hero-actions-panel .hero-role-navigation::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  html body #root .role-hero-actions-panel .hero-nav-button {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+  }
+
+  html body #root .role-hero-actions-panel .role-feature-search {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  html body #root .role-hero-has-feature-search.role-hero-banner.role-hero-navigation-shell {
+    min-height: 480px !important;
+    height: 480px !important;
+  }
+
+  html body #root .role-hero-has-feature-search .role-hero-banner__content {
+    padding-bottom: 245px !important;
   }
 }
