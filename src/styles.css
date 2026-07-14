@@ -24659,3 +24659,117 @@ html body #root#root :is(
     max-height: 18px !important;
   }
 }
+
+
+/* FINAL REAL SIDEBAR ICON VISIBILITY FIX
+   Keep the rounded icon tile and its glyph on separate canonical variables.
+   This layer intentionally follows every legacy sidebar rule so utility links,
+   normal role sidebars, and the Admin Subdomain cannot recolor the glyph to the
+   same white value as its container background. */
+html body #root#root#root :is(
+  .main-side-nav .side-nav-icon,
+  .main-side-nav .sidebar-icon-container,
+  .admin-side-nav .side-nav-icon,
+  .admin-side-nav .sidebar-icon-container,
+  .admin-sidebar .admin-logout .side-nav-icon
+) {
+  color: var(--sidebar-icon-container-icon, #2f8f86) !important;
+  -webkit-text-fill-color: var(--sidebar-icon-container-icon, #2f8f86) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+html body #root#root#root :is(
+  .main-side-nav .side-nav-icon,
+  .main-side-nav .sidebar-icon-container,
+  .admin-side-nav .side-nav-icon,
+  .admin-side-nav .sidebar-icon-container,
+  .admin-sidebar .admin-logout .side-nav-icon
+) > svg {
+  display: block !important;
+  color: var(--sidebar-icon-container-icon, #2f8f86) !important;
+  stroke: var(--sidebar-icon-container-icon, #2f8f86) !important;
+  fill: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+html body #root#root#root :is(
+  .main-side-nav .side-nav-icon,
+  .main-side-nav .sidebar-icon-container,
+  .admin-side-nav .side-nav-icon,
+  .admin-side-nav .sidebar-icon-container,
+  .admin-sidebar .admin-logout .side-nav-icon
+) > svg :is(path, circle, line, polyline, polygon, rect, ellipse) {
+  stroke: var(--sidebar-icon-container-icon, #2f8f86) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+html body #root#root#root :is(
+  .main-side-nav button:hover,
+  .main-side-nav .sidebar-utility-link:hover,
+  .admin-side-nav button:hover,
+  .admin-sidebar .admin-logout:hover
+) :is(.side-nav-icon, .sidebar-icon-container) {
+  color: var(--sidebar-icon-container-hover-icon, #35b8ae) !important;
+  -webkit-text-fill-color: var(--sidebar-icon-container-hover-icon, #35b8ae) !important;
+}
+
+html body #root#root#root :is(
+  .main-side-nav button:hover,
+  .main-side-nav .sidebar-utility-link:hover,
+  .admin-side-nav button:hover,
+  .admin-sidebar .admin-logout:hover
+) :is(.side-nav-icon, .sidebar-icon-container) > svg,
+html body #root#root#root :is(
+  .main-side-nav button:hover,
+  .main-side-nav .sidebar-utility-link:hover,
+  .admin-side-nav button:hover,
+  .admin-sidebar .admin-logout:hover
+) :is(.side-nav-icon, .sidebar-icon-container) > svg :is(path, circle, line, polyline, polygon, rect, ellipse) {
+  color: var(--sidebar-icon-container-hover-icon, #35b8ae) !important;
+  stroke: var(--sidebar-icon-container-hover-icon, #35b8ae) !important;
+}
+
+html body #root#root#root :is(
+  .main-side-nav button.active,
+  .main-side-nav button[aria-current="page"],
+  .main-side-nav .sidebar-utility-link.active,
+  .main-side-nav .sidebar-utility-link[aria-current="page"],
+  .admin-side-nav button.active,
+  .admin-side-nav button[aria-current="page"]
+) :is(.side-nav-icon, .sidebar-icon-container) {
+  color: var(--sidebar-icon-container-active-icon, #35b8ae) !important;
+  -webkit-text-fill-color: var(--sidebar-icon-container-active-icon, #35b8ae) !important;
+}
+
+html body #root#root#root :is(
+  .main-side-nav button.active,
+  .main-side-nav button[aria-current="page"],
+  .main-side-nav .sidebar-utility-link.active,
+  .main-side-nav .sidebar-utility-link[aria-current="page"],
+  .admin-side-nav button.active,
+  .admin-side-nav button[aria-current="page"]
+) :is(.side-nav-icon, .sidebar-icon-container) > svg,
+html body #root#root#root :is(
+  .main-side-nav button.active,
+  .main-side-nav button[aria-current="page"],
+  .main-side-nav .sidebar-utility-link.active,
+  .main-side-nav .sidebar-utility-link[aria-current="page"],
+  .admin-side-nav button.active,
+  .admin-side-nav button[aria-current="page"]
+) :is(.side-nav-icon, .sidebar-icon-container) > svg :is(path, circle, line, polyline, polygon, rect, ellipse) {
+  color: var(--sidebar-icon-container-active-icon, #35b8ae) !important;
+  stroke: var(--sidebar-icon-container-active-icon, #35b8ae) !important;
+}
+
+html body #root#root#root :is(
+  .main-side-nav .side-nav-icon,
+  .main-side-nav .sidebar-icon-container,
+  .admin-side-nav .side-nav-icon,
+  .admin-side-nav .sidebar-icon-container,
+  .admin-sidebar .admin-logout .side-nav-icon
+) > svg [fill]:not([fill="none"]) {
+  fill: currentColor !important;
+}

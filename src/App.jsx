@@ -1211,27 +1211,20 @@ function applyInterfaceTheme(colors = DEFAULT_INTERFACE_COLORS) {
   }
 
   const sidebar = normalized.sidebar
-  const defaultSidebar = DEFAULT_INTERFACE_COLORS.sidebar
-  const resolvedInactiveIcon = sidebar.inactiveIcon !== defaultSidebar.inactiveIcon
-    ? sidebar.inactiveIcon
-    : sidebar.iconContainerIcon
-  const resolvedHoverIcon = sidebar.hoverIcon !== defaultSidebar.hoverIcon
-    ? sidebar.hoverIcon
-    : sidebar.iconContainerHoverIcon
-  const resolvedActiveIcon = sidebar.activeIcon !== defaultSidebar.activeIcon
-    ? sidebar.activeIcon
-    : sidebar.iconContainerActiveIcon
 
-  root.style.setProperty('--sidebar-icon', resolvedInactiveIcon)
-  root.style.setProperty('--sidebar-inactive-icon', resolvedInactiveIcon)
-  root.style.setProperty('--sidebar-hover-icon', resolvedHoverIcon)
-  root.style.setProperty('--sidebar-active-icon', resolvedActiveIcon)
-  root.style.setProperty('--sidebar-icon-inactive', resolvedInactiveIcon)
-  root.style.setProperty('--sidebar-icon-hover', resolvedHoverIcon)
-  root.style.setProperty('--sidebar-icon-active', resolvedActiveIcon)
-  root.style.setProperty('--sidebar-icon-container-icon', resolvedInactiveIcon)
-  root.style.setProperty('--sidebar-icon-container-hover-icon', resolvedHoverIcon)
-  root.style.setProperty('--sidebar-icon-container-active-icon', resolvedActiveIcon)
+  // Keep sidebar item-icon colors and rounded icon-container colors independent.
+  // The previous compatibility mapping replaced the icon-container color with the
+  // inactive item color. With the common white inactive icon and white container
+  // background, real role-sidebar icons became invisible even though the preview
+  // could still appear correct. The canonical interface_colors.sidebar values now
+  // map directly to their matching CSS variables.
+  root.style.setProperty('--sidebar-icon', sidebar.icon)
+  root.style.setProperty('--sidebar-inactive-icon', sidebar.inactiveIcon)
+  root.style.setProperty('--sidebar-hover-icon', sidebar.hoverIcon)
+  root.style.setProperty('--sidebar-active-icon', sidebar.activeIcon)
+  root.style.setProperty('--sidebar-icon-inactive', sidebar.iconContainerIcon)
+  root.style.setProperty('--sidebar-icon-hover', sidebar.iconContainerHoverIcon)
+  root.style.setProperty('--sidebar-icon-active', sidebar.iconContainerActiveIcon)
 
   const compatibilityVariables = {
     '--sidebar-btn-inactive-bg': sidebar.inactiveBackground,
