@@ -25059,3 +25059,106 @@ html body #root .admin-subdomain-role-hero {
     animation: none !important;
   }
 }
+
+/* =========================================================
+   SLIMMER HERO FEATURE SEARCH
+   Keeps the connected input/button design while reducing the
+   control's overall width and vertical height.
+   ========================================================= */
+html body #root .role-hero-actions-panel .role-feature-search,
+html body #root .role-feature-search {
+  width: min(740px, calc(100% - 32px)) !important;
+  max-width: 740px !important;
+}
+
+html body #root .role-hero-actions-panel .role-feature-search__box,
+html body #root .role-feature-search__box {
+  min-height: 44px !important;
+  grid-template-columns: minmax(0, 1fr) 58px !important;
+  border-radius: 9px !important;
+}
+
+html body #root .role-feature-search__box input.role-feature-search__input,
+html body #root .role-feature-search__box input[type="search"].role-feature-search__input,
+html body #root input.role-feature-search__input {
+  min-height: 44px !important;
+  padding: 8px 44px 8px 15px !important;
+  font-size: 0.94rem !important;
+  line-height: 1.3 !important;
+}
+
+html body #root .role-feature-search__button,
+html body #root .role-feature-search__button:hover,
+html body #root .role-feature-search__button:focus,
+html body #root .role-feature-search__button:focus-visible,
+html body #root .role-feature-search__button:active,
+html body #root .role-hero-actions-panel button.role-feature-search__button,
+html body #root .role-hero-actions-panel button.role-feature-search__button:hover,
+html body #root .role-hero-actions-panel button.role-feature-search__button:focus,
+html body #root .role-hero-actions-panel button.role-feature-search__button:focus-visible,
+html body #root .role-hero-actions-panel button.role-feature-search__button:active {
+  width: 58px !important;
+  min-width: 58px !important;
+  min-height: 44px !important;
+}
+
+html body #root .role-feature-search__button svg,
+html body #root .role-hero-actions-panel button.role-feature-search__button svg {
+  width: 21px !important;
+  height: 21px !important;
+}
+
+html body #root .role-feature-search__clear,
+html body #root .role-feature-search__clear:hover,
+html body #root .role-feature-search__clear:focus,
+html body #root .role-feature-search__clear:focus-visible {
+  right: 7px !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+}
+
+@media (max-width: 768px) {
+  html body #root .role-hero-actions-panel .role-feature-search,
+  html body #root .role-feature-search {
+    width: calc(100% - 20px) !important;
+    max-width: none !important;
+  }
+
+  html body #root .role-hero-actions-panel .role-feature-search__box,
+  html body #root .role-feature-search__box {
+    min-height: 42px !important;
+    grid-template-columns: minmax(0, 1fr) 52px !important;
+    border-radius: 8px !important;
+  }
+
+  html body #root .role-feature-search__box input.role-feature-search__input,
+  html body #root .role-feature-search__box input[type="search"].role-feature-search__input,
+  html body #root input.role-feature-search__input {
+    min-height: 42px !important;
+    padding: 7px 40px 7px 12px !important;
+    font-size: 0.9rem !important;
+  }
+
+  html body #root .role-feature-search__button,
+  html body #root .role-feature-search__button:hover,
+  html body #root .role-feature-search__button:focus,
+  html body #root .role-feature-search__button:focus-visible,
+  html body #root .role-feature-search__button:active,
+  html body #root .role-hero-actions-panel button.role-feature-search__button,
+  html body #root .role-hero-actions-panel button.role-feature-search__button:hover,
+  html body #root .role-hero-actions-panel button.role-feature-search__button:focus,
+  html body #root .role-hero-actions-panel button.role-feature-search__button:focus-visible,
+  html body #root .role-hero-actions-panel button.role-feature-search__button:active {
+    width: 52px !important;
+    min-width: 52px !important;
+    min-height: 42px !important;
+  }
+
+  html body #root .role-feature-search__button svg,
+  html body #root .role-hero-actions-panel button.role-feature-search__button svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+}
