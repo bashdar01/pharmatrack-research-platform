@@ -20170,88 +20170,7 @@ html body #root .hero-role-navigation button.hero-nav-button svg [fill]:not([fil
   }
 }
 
-/* =========================================================
-   FINAL HERO NAV TEXT VISIBILITY FIX
-   Keep hero buttons white, but force all hero button text/icons black.
-   ========================================================= */
-html body #root .role-hero .hero-role-navigation .hero-nav-button,
-html body #root .role-hero .hero-role-navigation button.hero-nav-button,
-html body #root .hero-role-navigation .hero-nav-button,
-html body #root .hero-role-navigation button.hero-nav-button,
-html body #root .role-hero-navigation-shell .hero-role-navigation .hero-nav-button,
-html body #root .role-hero-navigation-shell .hero-role-navigation button.hero-nav-button {
-  background: #ffffff !important;
-  background-color: #ffffff !important;
-  background-image: none !important;
-  color: #111827 !important;
-  -webkit-text-fill-color: #111827 !important;
-  text-shadow: none !important;
-}
-
-html body #root .role-hero .hero-role-navigation .hero-nav-button:hover,
-html body #root .role-hero .hero-role-navigation .hero-nav-button:focus,
-html body #root .role-hero .hero-role-navigation .hero-nav-button:focus-visible,
-html body #root .role-hero .hero-role-navigation .hero-nav-button.active,
-html body #root .role-hero .hero-role-navigation .hero-nav-button.is-active,
-html body #root .role-hero .hero-role-navigation .hero-nav-button[aria-current="page"],
-html body #root .role-hero .hero-role-navigation .hero-nav-button[aria-selected="true"],
-html body #root .hero-role-navigation .hero-nav-button:hover,
-html body #root .hero-role-navigation .hero-nav-button:focus,
-html body #root .hero-role-navigation .hero-nav-button:focus-visible,
-html body #root .hero-role-navigation .hero-nav-button.active,
-html body #root .hero-role-navigation .hero-nav-button.is-active,
-html body #root .hero-role-navigation .hero-nav-button[aria-current="page"],
-html body #root .hero-role-navigation .hero-nav-button[aria-selected="true"] {
-  background: #ffffff !important;
-  background-color: #ffffff !important;
-  background-image: none !important;
-  color: #111827 !important;
-  -webkit-text-fill-color: #111827 !important;
-}
-
-html body #root .hero-role-navigation .hero-nav-button span,
-html body #root .hero-role-navigation button.hero-nav-button span,
-html body #root .role-hero-navigation-shell .hero-role-navigation .hero-nav-button span,
-html body #root .role-hero-navigation-shell .hero-role-navigation button.hero-nav-button span {
-  color: #111827 !important;
-  -webkit-text-fill-color: #111827 !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-
-html body #root .hero-role-navigation .hero-nav-button svg,
-html body #root .hero-role-navigation .hero-nav-button svg path,
-html body #root .hero-role-navigation .hero-nav-button svg circle,
-html body #root .hero-role-navigation .hero-nav-button svg line,
-html body #root .hero-role-navigation .hero-nav-button svg polyline,
-html body #root .hero-role-navigation .hero-nav-button svg rect,
-html body #root .role-hero-navigation-shell .hero-role-navigation .hero-nav-button svg,
-html body #root .role-hero-navigation-shell .hero-role-navigation .hero-nav-button svg path,
-html body #root .role-hero-navigation-shell .hero-role-navigation .hero-nav-button svg circle,
-html body #root .role-hero-navigation-shell .hero-role-navigation .hero-nav-button svg line,
-html body #root .role-hero-navigation-shell .hero-role-navigation .hero-nav-button svg polyline,
-html body #root .role-hero-navigation-shell .hero-role-navigation .hero-nav-button svg rect {
-  color: #111827 !important;
-  stroke: #111827 !important;
-  fill: none;
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-
-html body #root .hero-role-navigation .hero-nav-button svg [fill]:not([fill="none"]),
-html body #root .role-hero-navigation-shell .hero-role-navigation .hero-nav-button svg [fill]:not([fill="none"]) {
-  fill: #111827 !important;
-}
-
-@media (max-width: 768px) {
-  html body #root .hero-role-navigation .hero-nav-button,
-  html body #root .hero-role-navigation button.hero-nav-button,
-  html body #root .hero-role-navigation .hero-nav-button span,
-  html body #root .hero-role-navigation button.hero-nav-button span {
-    color: #111827 !important;
-    -webkit-text-fill-color: #111827 !important;
-  }
-}
+/* Hero navigation colors are controlled by the authoritative CSS-variable theme near the end of this file. */
 
 /* =========================================================
    ROLE-AWARE HERO FEATURE SEARCH
@@ -22315,9 +22234,13 @@ html body #root .role-hero-actions-panel button.role-feature-search__button:hove
 
 
 /* =========================================================
-   DYNAMIC BUTTON COLOR CUSTOMIZATION
+   DYNAMIC BUTTON COLOR CUSTOMIZATION — AUTHORITATIVE LAYER
    Values are loaded from app_settings.website.button_colors and
    applied to document.documentElement by src/App.jsx.
+
+   #root is intentionally repeated to outrank legacy one-off button
+   rules that use !important. This is the single final button theme,
+   not a second settings system.
    ========================================================= */
 :root {
   --btn-primary-bg: #2563eb;
@@ -22393,8 +22316,9 @@ html body #root .role-hero-actions-panel button.role-feature-search__button:hove
 }
 
 /* Primary actions */
-html body #root :where(
-  .primary,
+html body #root#root :is(
+  button.primary,
+  a.primary,
   .btn-primary,
   .primary-button,
   button[data-variant="primary"],
@@ -22408,12 +22332,13 @@ html body #root :where(
   background-color: var(--btn-primary-bg) !important;
   background-image: none !important;
   color: var(--btn-primary-text) !important;
+  -webkit-text-fill-color: var(--btn-primary-text) !important;
   border-color: var(--btn-primary-border) !important;
   box-shadow: 0 10px 20px color-mix(in srgb, var(--btn-primary-bg) 20%, transparent) !important;
 }
-
-html body #root :where(
-  .primary,
+html body #root#root :is(
+  button.primary,
+  a.primary,
   .btn-primary,
   .primary-button,
   button[data-variant="primary"],
@@ -22426,11 +22351,12 @@ html body #root :where(
   background: var(--btn-primary-hover-bg) !important;
   background-color: var(--btn-primary-hover-bg) !important;
   color: var(--btn-primary-hover-text) !important;
+  -webkit-text-fill-color: var(--btn-primary-hover-text) !important;
   border-color: var(--btn-primary-border) !important;
 }
-
-html body #root :where(
-  .primary,
+html body #root#root :is(
+  button.primary,
+  a.primary,
   .btn-primary,
   .primary-button,
   button[data-variant="primary"],
@@ -22443,10 +22369,11 @@ html body #root :where(
   background: var(--btn-primary-active-bg) !important;
   background-color: var(--btn-primary-active-bg) !important;
   color: var(--btn-primary-active-text) !important;
+  -webkit-text-fill-color: var(--btn-primary-active-text) !important;
 }
-
-html body #root :where(
-  .primary,
+html body #root#root :is(
+  button.primary,
+  a.primary,
   .btn-primary,
   .primary-button,
   button[data-variant="primary"],
@@ -22459,9 +22386,9 @@ html body #root :where(
   outline: 3px solid var(--btn-primary-focus-ring) !important;
   outline-offset: 2px !important;
 }
-
-html body #root :where(
-  .primary,
+html body #root#root :is(
+  button.primary,
+  a.primary,
   .btn-primary,
   .primary-button,
   button[data-variant="primary"],
@@ -22470,14 +22397,44 @@ html body #root :where(
   .sign-in-button,
   .role-dashboard-feature-button,
   .role-hero-banner__button
-) :where(svg, path, circle, line, polyline, rect) {
+) :is(span, strong, b, small) {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+html body #root#root :is(
+  button.primary,
+  a.primary,
+  .btn-primary,
+  .primary-button,
+  button[data-variant="primary"],
+  .auth-submit-button,
+  .login-submit-button,
+  .sign-in-button,
+  .role-dashboard-feature-button,
+  .role-hero-banner__button
+) :is(svg, svg path, svg circle, svg line, svg polyline, svg rect) {
   color: var(--btn-primary-icon) !important;
   stroke: var(--btn-primary-icon) !important;
 }
+html body #root#root :is(
+  button.primary,
+  a.primary,
+  .btn-primary,
+  .primary-button,
+  button[data-variant="primary"],
+  .auth-submit-button,
+  .login-submit-button,
+  .sign-in-button,
+  .role-dashboard-feature-button,
+  .role-hero-banner__button
+) svg [fill]:not([fill="none"]) {
+  fill: var(--btn-primary-icon) !important;
+}
 
 /* Secondary actions */
-html body #root :where(
-  .secondary,
+html body #root#root :is(
+  button.secondary,
+  a.secondary,
   .btn-secondary,
   .secondary-button,
   button[data-variant="secondary"],
@@ -22495,12 +22452,13 @@ html body #root :where(
   background-color: var(--btn-secondary-bg) !important;
   background-image: none !important;
   color: var(--btn-secondary-text) !important;
+  -webkit-text-fill-color: var(--btn-secondary-text) !important;
   border-color: var(--btn-secondary-border) !important;
   box-shadow: none !important;
 }
-
-html body #root :where(
-  .secondary,
+html body #root#root :is(
+  button.secondary,
+  a.secondary,
   .btn-secondary,
   .secondary-button,
   button[data-variant="secondary"],
@@ -22517,11 +22475,12 @@ html body #root :where(
   background: var(--btn-secondary-hover-bg) !important;
   background-color: var(--btn-secondary-hover-bg) !important;
   color: var(--btn-secondary-hover-text) !important;
+  -webkit-text-fill-color: var(--btn-secondary-hover-text) !important;
   border-color: var(--btn-secondary-border) !important;
 }
-
-html body #root :where(
-  .secondary,
+html body #root#root :is(
+  button.secondary,
+  a.secondary,
   .btn-secondary,
   .secondary-button,
   button[data-variant="secondary"],
@@ -22538,10 +22497,11 @@ html body #root :where(
   background: var(--btn-secondary-active-bg) !important;
   background-color: var(--btn-secondary-active-bg) !important;
   color: var(--btn-secondary-active-text) !important;
+  -webkit-text-fill-color: var(--btn-secondary-active-text) !important;
 }
-
-html body #root :where(
-  .secondary,
+html body #root#root :is(
+  button.secondary,
+  a.secondary,
   .btn-secondary,
   .secondary-button,
   button[data-variant="secondary"],
@@ -22554,13 +22514,49 @@ html body #root :where(
   .gray-login-text-button,
   .plain-login-action,
   .compact-button:not(.danger):not(.danger-btn):not(.warning):not(.success):not(.accept-btn):not(.approve-btn):not(.revision-btn):not(.reject-btn)
-) :where(svg, path, circle, line, polyline, rect) {
+) :is(span, strong, b, small) {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+html body #root#root :is(
+  button.secondary,
+  a.secondary,
+  .btn-secondary,
+  .secondary-button,
+  button[data-variant="secondary"],
+  .ghost-button,
+  .ghost-dark,
+  .profile-menu-button.subtle,
+  .profile-upload-button,
+  .notification-read-button,
+  .admin-preview-link,
+  .gray-login-text-button,
+  .plain-login-action,
+  .compact-button:not(.danger):not(.danger-btn):not(.warning):not(.success):not(.accept-btn):not(.approve-btn):not(.revision-btn):not(.reject-btn)
+) :is(svg, svg path, svg circle, svg line, svg polyline, svg rect) {
   color: var(--btn-secondary-icon) !important;
   stroke: var(--btn-secondary-icon) !important;
 }
+html body #root#root :is(
+  button.secondary,
+  a.secondary,
+  .btn-secondary,
+  .secondary-button,
+  button[data-variant="secondary"],
+  .ghost-button,
+  .ghost-dark,
+  .profile-menu-button.subtle,
+  .profile-upload-button,
+  .notification-read-button,
+  .admin-preview-link,
+  .gray-login-text-button,
+  .plain-login-action
+) svg [fill]:not([fill="none"]) {
+  fill: var(--btn-secondary-icon) !important;
+}
 
 /* Success / approve actions */
-html body #root :where(
+html body #root#root :is(
   .success,
   .btn-success,
   .accept-btn,
@@ -22573,10 +22569,10 @@ html body #root :where(
   background-color: var(--btn-success-bg) !important;
   background-image: none !important;
   color: var(--btn-success-text) !important;
+  -webkit-text-fill-color: var(--btn-success-text) !important;
   border-color: var(--btn-success-border) !important;
 }
-
-html body #root :where(
+html body #root#root :is(
   .success,
   .btn-success,
   .accept-btn,
@@ -22588,9 +22584,9 @@ html body #root :where(
   background: var(--btn-success-hover-bg) !important;
   background-color: var(--btn-success-hover-bg) !important;
   color: var(--btn-success-hover-text) !important;
+  -webkit-text-fill-color: var(--btn-success-hover-text) !important;
 }
-
-html body #root :where(
+html body #root#root :is(
   .success,
   .btn-success,
   .accept-btn,
@@ -22598,51 +22594,55 @@ html body #root :where(
   .meeting-accept-btn,
   .group-join-accept-btn,
   .committee-accept-btn
-) :where(svg, path, circle, line, polyline, rect) {
+) :is(span, strong, b, small) {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+html body #root#root :is(
+  .success,
+  .btn-success,
+  .accept-btn,
+  .approve-btn,
+  .meeting-accept-btn,
+  .group-join-accept-btn,
+  .committee-accept-btn
+) :is(svg, svg path, svg circle, svg line, svg polyline, svg rect) {
   color: var(--btn-success-icon) !important;
   stroke: var(--btn-success-icon) !important;
 }
+html body #root#root :is(.success, .btn-success, .accept-btn, .approve-btn, .meeting-accept-btn, .group-join-accept-btn, .committee-accept-btn) svg [fill]:not([fill="none"]) {
+  fill: var(--btn-success-icon) !important;
+}
 
 /* Revision / warning actions */
-html body #root :where(
-  .warning,
-  .btn-revision,
-  .revision-btn,
-  .warning-button,
-  .committee-revision-btn
-) {
+html body #root#root :is(.warning, .btn-revision, .revision-btn, .warning-button, .committee-revision-btn) {
   background: var(--btn-revision-bg) !important;
   background-color: var(--btn-revision-bg) !important;
   background-image: none !important;
   color: var(--btn-revision-text) !important;
+  -webkit-text-fill-color: var(--btn-revision-text) !important;
   border-color: var(--btn-revision-border) !important;
 }
-
-html body #root :where(
-  .warning,
-  .btn-revision,
-  .revision-btn,
-  .warning-button,
-  .committee-revision-btn
-):hover:not(:disabled) {
+html body #root#root :is(.warning, .btn-revision, .revision-btn, .warning-button, .committee-revision-btn):hover:not(:disabled) {
   background: var(--btn-revision-hover-bg) !important;
   background-color: var(--btn-revision-hover-bg) !important;
   color: var(--btn-revision-hover-text) !important;
+  -webkit-text-fill-color: var(--btn-revision-hover-text) !important;
 }
-
-html body #root :where(
-  .warning,
-  .btn-revision,
-  .revision-btn,
-  .warning-button,
-  .committee-revision-btn
-) :where(svg, path, circle, line, polyline, rect) {
+html body #root#root :is(.warning, .btn-revision, .revision-btn, .warning-button, .committee-revision-btn) :is(span, strong, b, small) {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+html body #root#root :is(.warning, .btn-revision, .revision-btn, .warning-button, .committee-revision-btn) :is(svg, svg path, svg circle, svg line, svg polyline, svg rect) {
   color: var(--btn-revision-icon) !important;
   stroke: var(--btn-revision-icon) !important;
 }
+html body #root#root :is(.warning, .btn-revision, .revision-btn, .warning-button, .committee-revision-btn) svg [fill]:not([fill="none"]) {
+  fill: var(--btn-revision-icon) !important;
+}
 
 /* Danger / reject / delete actions */
-html body #root :where(
+html body #root#root :is(
   .danger,
   .btn-danger,
   .reject-btn,
@@ -22663,10 +22663,10 @@ html body #root :where(
   background-color: var(--btn-danger-bg) !important;
   background-image: none !important;
   color: var(--btn-danger-text) !important;
+  -webkit-text-fill-color: var(--btn-danger-text) !important;
   border-color: var(--btn-danger-border) !important;
 }
-
-html body #root :where(
+html body #root#root :is(
   .danger,
   .btn-danger,
   .reject-btn,
@@ -22686,9 +22686,9 @@ html body #root :where(
   background: var(--btn-danger-hover-bg) !important;
   background-color: var(--btn-danger-hover-bg) !important;
   color: var(--btn-danger-hover-text) !important;
+  -webkit-text-fill-color: var(--btn-danger-hover-text) !important;
 }
-
-html body #root :where(
+html body #root#root :is(
   .danger,
   .btn-danger,
   .reject-btn,
@@ -22704,148 +22704,230 @@ html body #root :where(
   .committee-reject-btn,
   .admin-logout,
   .profile-menu-button.logout
-) :where(svg, path, circle, line, polyline, rect) {
+) :is(span, strong, b, small) {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+html body #root#root :is(
+  .danger,
+  .btn-danger,
+  .reject-btn,
+  .delete-btn,
+  .remove-btn,
+  .danger-btn,
+  .delete-item-button,
+  .admin-panel-delete-button,
+  .notification-delete-button,
+  .meeting-reject-btn,
+  .meeting-cancel-btn,
+  .group-join-reject-btn,
+  .committee-reject-btn,
+  .admin-logout,
+  .profile-menu-button.logout
+) :is(svg, svg path, svg circle, svg line, svg polyline, svg rect) {
   color: var(--btn-danger-icon) !important;
   stroke: var(--btn-danger-icon) !important;
 }
+html body #root#root :is(.danger, .btn-danger, .reject-btn, .delete-btn, .remove-btn, .danger-btn, .delete-item-button, .admin-panel-delete-button, .notification-delete-button, .meeting-reject-btn, .meeting-cancel-btn, .group-join-reject-btn, .committee-reject-btn, .admin-logout, .profile-menu-button.logout) svg [fill]:not([fill="none"]) {
+  fill: var(--btn-danger-icon) !important;
+}
 
-/* Disabled state always wins after semantic variants. */
-html body #root :where(button, .btn, [role="button"]):disabled,
-html body #root :where(button, .btn, [role="button"])[aria-disabled="true"] {
+/* Disabled state */
+html body #root#root :is(button, .btn, [role="button"]):disabled,
+html body #root#root :is(button, .btn, [role="button"])[aria-disabled="true"] {
   background: var(--btn-disabled-bg) !important;
   background-color: var(--btn-disabled-bg) !important;
   background-image: none !important;
   color: var(--btn-disabled-text) !important;
+  -webkit-text-fill-color: var(--btn-disabled-text) !important;
   border-color: var(--btn-disabled-border) !important;
   box-shadow: none !important;
   cursor: not-allowed !important;
   opacity: 1 !important;
 }
-
-html body #root :where(button, .btn, [role="button"]):disabled :where(svg, path, circle, line, polyline, rect),
-html body #root :where(button, .btn, [role="button"])[aria-disabled="true"] :where(svg, path, circle, line, polyline, rect) {
+html body #root#root :is(button, .btn, [role="button"]):disabled :is(span, strong, b, small),
+html body #root#root :is(button, .btn, [role="button"])[aria-disabled="true"] :is(span, strong, b, small) {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+html body #root#root :is(button, .btn, [role="button"]):disabled :is(svg, svg path, svg circle, svg line, svg polyline, svg rect),
+html body #root#root :is(button, .btn, [role="button"])[aria-disabled="true"] :is(svg, svg path, svg circle, svg line, svg polyline, svg rect) {
   color: var(--btn-disabled-icon) !important;
   stroke: var(--btn-disabled-icon) !important;
 }
+html body #root#root :is(button, .btn, [role="button"]):disabled svg [fill]:not([fill="none"]),
+html body #root#root :is(button, .btn, [role="button"])[aria-disabled="true"] svg [fill]:not([fill="none"]) {
+  fill: var(--btn-disabled-icon) !important;
+}
 
-/* Hero navigation is intentionally isolated from the search button. */
-html body #root .hero-role-navigation .hero-nav-button,
-html body #root .hero-role-navigation a.hero-nav-button,
-html body #root .hero-role-navigation button.hero-nav-button {
+/* Hero navigation — isolated from the search submit button. */
+html body #root#root .hero-role-navigation :is(a.hero-nav-button, button.hero-nav-button, .hero-nav-button) {
   background: var(--hero-nav-inactive-bg) !important;
   background-color: var(--hero-nav-inactive-bg) !important;
   background-image: none !important;
   color: var(--hero-nav-inactive-text) !important;
+  -webkit-text-fill-color: var(--hero-nav-inactive-text) !important;
   border-color: var(--hero-nav-inactive-border) !important;
   box-shadow: 0 8px 20px var(--hero-nav-shadow) !important;
 }
-
-html body #root .hero-role-navigation .hero-nav-button :where(svg, path, circle, line, polyline, rect) {
+html body #root#root .hero-role-navigation :is(a.hero-nav-button, button.hero-nav-button, .hero-nav-button) :is(span, strong, b, small) {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+html body #root#root .hero-role-navigation :is(a.hero-nav-button, button.hero-nav-button, .hero-nav-button) :is(svg, svg path, svg circle, svg line, svg polyline, svg rect) {
   color: var(--hero-nav-inactive-icon) !important;
   stroke: var(--hero-nav-inactive-icon) !important;
 }
-
-html body #root .hero-role-navigation .hero-nav-button:hover:not(:disabled) {
+html body #root#root .hero-role-navigation :is(a.hero-nav-button, button.hero-nav-button, .hero-nav-button) svg [fill]:not([fill="none"]) {
+  fill: var(--hero-nav-inactive-icon) !important;
+}
+html body #root#root .hero-role-navigation :is(a.hero-nav-button, button.hero-nav-button, .hero-nav-button):hover:not(:disabled) {
   background: var(--hero-nav-hover-bg) !important;
   background-color: var(--hero-nav-hover-bg) !important;
   color: var(--hero-nav-hover-text) !important;
+  -webkit-text-fill-color: var(--hero-nav-hover-text) !important;
 }
-
-html body #root .hero-role-navigation .hero-nav-button:hover:not(:disabled) :where(svg, path, circle, line, polyline, rect) {
+html body #root#root .hero-role-navigation :is(a.hero-nav-button, button.hero-nav-button, .hero-nav-button):hover:not(:disabled) :is(svg, svg path, svg circle, svg line, svg polyline, svg rect) {
   color: var(--hero-nav-hover-text) !important;
   stroke: var(--hero-nav-hover-text) !important;
 }
-
-html body #root .hero-role-navigation .hero-nav-button.active,
-html body #root .hero-role-navigation .hero-nav-button.is-active,
-html body #root .hero-role-navigation .hero-nav-button[aria-current="page"],
-html body #root .hero-role-navigation .hero-nav-button[data-active="true"] {
+html body #root#root .hero-role-navigation :is(
+  .hero-nav-button.active,
+  .hero-nav-button.is-active,
+  .hero-nav-button[aria-current="page"],
+  .hero-nav-button[aria-selected="true"],
+  .hero-nav-button[data-active="true"]
+) {
   background: var(--hero-nav-active-bg) !important;
   background-color: var(--hero-nav-active-bg) !important;
+  background-image: none !important;
   color: var(--hero-nav-active-text) !important;
+  -webkit-text-fill-color: var(--hero-nav-active-text) !important;
   border-color: var(--hero-nav-active-border) !important;
 }
-
-html body #root .hero-role-navigation .hero-nav-button.active :where(svg, path, circle, line, polyline, rect),
-html body #root .hero-role-navigation .hero-nav-button.is-active :where(svg, path, circle, line, polyline, rect),
-html body #root .hero-role-navigation .hero-nav-button[aria-current="page"] :where(svg, path, circle, line, polyline, rect),
-html body #root .hero-role-navigation .hero-nav-button[data-active="true"] :where(svg, path, circle, line, polyline, rect) {
+html body #root#root .hero-role-navigation :is(
+  .hero-nav-button.active,
+  .hero-nav-button.is-active,
+  .hero-nav-button[aria-current="page"],
+  .hero-nav-button[aria-selected="true"],
+  .hero-nav-button[data-active="true"]
+) :is(svg, svg path, svg circle, svg line, svg polyline, svg rect) {
   color: var(--hero-nav-active-text) !important;
   stroke: var(--hero-nav-active-text) !important;
 }
+html body #root#root .hero-role-navigation :is(
+  .hero-nav-button.active,
+  .hero-nav-button.is-active,
+  .hero-nav-button[aria-current="page"],
+  .hero-nav-button[aria-selected="true"],
+  .hero-nav-button[data-active="true"]
+) svg [fill]:not([fill="none"]) {
+  fill: var(--hero-nav-active-text) !important;
+}
 
-/* Search uses dedicated variables and cannot inherit hero-navigation white. */
-html body #root .role-feature-search__button,
-html body #root .role-hero-actions-panel button.role-feature-search__button {
+/* Search button */
+html body #root#root :is(button.role-feature-search__button, .role-feature-search__button) {
   background: var(--search-btn-bg) !important;
   background-color: var(--search-btn-bg) !important;
   background-image: none !important;
   color: var(--search-btn-icon) !important;
+  -webkit-text-fill-color: var(--search-btn-icon) !important;
   border-color: var(--search-btn-border) !important;
   border-left-color: var(--search-btn-border) !important;
 }
-
-html body #root .role-feature-search__button:hover:not(:disabled),
-html body #root .role-hero-actions-panel button.role-feature-search__button:hover:not(:disabled) {
+html body #root#root :is(button.role-feature-search__button, .role-feature-search__button):hover:not(:disabled) {
   background: var(--search-btn-hover-bg) !important;
   background-color: var(--search-btn-hover-bg) !important;
   background-image: none !important;
+  color: var(--search-btn-icon) !important;
 }
-
-html body #root .role-feature-search__button :where(svg, path, circle, line, polyline, rect),
-html body #root .role-hero-actions-panel button.role-feature-search__button :where(svg, path, circle, line, polyline, rect) {
+html body #root#root :is(button.role-feature-search__button, .role-feature-search__button) :is(svg, svg path, svg circle, svg line, svg polyline, svg rect) {
   color: var(--search-btn-icon) !important;
   stroke: var(--search-btn-icon) !important;
 }
+html body #root#root :is(button.role-feature-search__button, .role-feature-search__button) svg [fill]:not([fill="none"]) {
+  fill: var(--search-btn-icon) !important;
+}
 
-/* Role and Admin sidebar utility buttons. */
-html body #root :where(.main-side-nav button, .sidebar-utility-link, .admin-side-nav button) {
+/* Role and Admin sidebar navigation */
+html body #root#root :is(
+  .main-side-nav button,
+  .sidebar-utility-nav button,
+  .sidebar-utility-link,
+  .admin-side-nav button
+) {
   background: var(--sidebar-btn-inactive-bg) !important;
   background-color: var(--sidebar-btn-inactive-bg) !important;
   background-image: none !important;
   color: var(--sidebar-btn-inactive-text) !important;
+  -webkit-text-fill-color: var(--sidebar-btn-inactive-text) !important;
   border-color: var(--sidebar-btn-border) !important;
 }
-
-html body #root :where(.main-side-nav button, .sidebar-utility-link, .admin-side-nav button) :where(svg, path, circle, line, polyline, rect) {
+html body #root#root :is(
+  .main-side-nav button,
+  .sidebar-utility-nav button,
+  .sidebar-utility-link,
+  .admin-side-nav button
+) :is(span, strong, b, small) {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+html body #root#root :is(
+  .main-side-nav button,
+  .sidebar-utility-nav button,
+  .sidebar-utility-link,
+  .admin-side-nav button
+) :is(svg, svg path, svg circle, svg line, svg polyline, svg rect, .side-nav-icon) {
   color: var(--sidebar-btn-inactive-icon) !important;
   stroke: var(--sidebar-btn-inactive-icon) !important;
 }
-
-html body #root :where(.main-side-nav button, .sidebar-utility-link, .admin-side-nav button):hover:not(:disabled) {
+html body #root#root :is(
+  .main-side-nav button,
+  .sidebar-utility-nav button,
+  .sidebar-utility-link,
+  .admin-side-nav button
+):hover:not(:disabled) {
   background: var(--sidebar-btn-hover-bg) !important;
   background-color: var(--sidebar-btn-hover-bg) !important;
   color: var(--sidebar-btn-hover-text) !important;
-  border-color: var(--sidebar-btn-active-bg) !important;
+  -webkit-text-fill-color: var(--sidebar-btn-hover-text) !important;
+  border-color: var(--sidebar-btn-hover-bg) !important;
 }
-
-html body #root :where(.main-side-nav button, .sidebar-utility-link, .admin-side-nav button):hover:not(:disabled) :where(svg, path, circle, line, polyline, rect) {
+html body #root#root :is(
+  .main-side-nav button,
+  .sidebar-utility-nav button,
+  .sidebar-utility-link,
+  .admin-side-nav button
+):hover:not(:disabled) :is(svg, svg path, svg circle, svg line, svg polyline, svg rect, .side-nav-icon) {
   color: var(--sidebar-btn-hover-text) !important;
   stroke: var(--sidebar-btn-hover-text) !important;
 }
-
-html body #root :where(.main-side-nav button.active, .sidebar-utility-link.active, .admin-side-nav button.active) {
+html body #root#root :is(
+  .main-side-nav button.active,
+  .sidebar-utility-nav button.active,
+  .sidebar-utility-link.active,
+  .admin-side-nav button.active,
+  .main-side-nav button[aria-current="page"],
+  .sidebar-utility-link[aria-current="page"],
+  .admin-side-nav button[aria-current="page"]
+) {
   background: var(--sidebar-btn-active-bg) !important;
   background-color: var(--sidebar-btn-active-bg) !important;
   color: var(--sidebar-btn-active-text) !important;
+  -webkit-text-fill-color: var(--sidebar-btn-active-text) !important;
   border-color: var(--sidebar-btn-active-bg) !important;
 }
-
-html body #root :where(.main-side-nav button.active, .sidebar-utility-link.active, .admin-side-nav button.active) :where(svg, path, circle, line, polyline, rect) {
+html body #root#root :is(
+  .main-side-nav button.active,
+  .sidebar-utility-nav button.active,
+  .sidebar-utility-link.active,
+  .admin-side-nav button.active,
+  .main-side-nav button[aria-current="page"],
+  .sidebar-utility-link[aria-current="page"],
+  .admin-side-nav button[aria-current="page"]
+) :is(svg, svg path, svg circle, svg line, svg polyline, svg rect, .side-nav-icon) {
   color: var(--sidebar-btn-active-icon) !important;
   stroke: var(--sidebar-btn-active-icon) !important;
-}
-
-html body #root .main-side-nav :where(button, .sidebar-utility-link) .side-nav-icon,
-html body #root .admin-side-nav button .side-nav-icon {
-  color: var(--sidebar-btn-inactive-icon) !important;
-}
-
-html body #root .main-side-nav :where(button, .sidebar-utility-link):hover .side-nav-icon,
-html body #root .main-side-nav :where(button, .sidebar-utility-link).active .side-nav-icon,
-html body #root .admin-side-nav button:hover .side-nav-icon,
-html body #root .admin-side-nav button.active .side-nav-icon {
-  color: var(--sidebar-btn-active-icon) !important;
 }
 
 /* Button color customization editor */

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   Inbox,
   BookOpen,
@@ -820,28 +820,105 @@ function normalizeThemeHexColor(value, fallback) {
   return isValidThemeHexColor(raw) ? raw.toLowerCase() : fallback
 }
 
+const BUTTON_COLOR_SECTION_ALIASES = {
+  primary: ['primary', 'main', 'primaryButtons'],
+  secondary: ['secondary', 'secondaryButtons'],
+  success: ['success', 'accept', 'approve', 'successButtons'],
+  revision: ['revision', 'warning', 'revisionButtons', 'warningButtons'],
+  danger: ['danger', 'reject', 'destructive', 'dangerButtons'],
+  disabled: ['disabled', 'disabledButtons'],
+  heroNavigation: ['heroNavigation', 'hero_navigation', 'heroNav', 'hero_nav'],
+  search: ['search', 'searchButton', 'search_button'],
+  sidebar: ['sidebar', 'sidebarButtons', 'sidebar_buttons'],
+}
+
+const BUTTON_COLOR_FIELD_ALIASES = {
+  background: ['background', 'backgroundColor', 'bg'],
+  text: ['text', 'textColor', 'color', 'foreground'],
+  icon: ['icon', 'iconColor'],
+  hoverBackground: ['hoverBackground', 'hoverBackgroundColor', 'hoverColor', 'hoverBg'],
+  hoverText: ['hoverText', 'hoverTextColor', 'hoverForeground'],
+  activeBackground: ['activeBackground', 'activeBackgroundColor', 'activeColor', 'activeBg'],
+  activeText: ['activeText', 'activeTextColor', 'activeForeground'],
+  border: ['border', 'borderColor'],
+  focusRing: ['focusRing', 'focusRingColor', 'focus'],
+  inactiveBackground: ['inactiveBackground', 'inactiveBackgroundColor', 'inactiveBg'],
+  inactiveText: ['inactiveText', 'inactiveTextColor'],
+  inactiveIcon: ['inactiveIcon', 'inactiveIconColor'],
+  inactiveBorder: ['inactiveBorder', 'inactiveBorderColor'],
+  activeBorder: ['activeBorder', 'activeBorderColor'],
+  shadow: ['shadow', 'shadowColor'],
+  activeIcon: ['activeIcon', 'activeIconColor'],
+}
+
+function parseJsonObject(value) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) return value
+  if (typeof value !== 'string') return {}
+  try {
+    const parsed = JSON.parse(value)
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+function firstDefinedThemeValue(source, aliases = []) {
+  for (const key of aliases) {
+    const value = source?.[key]
+    if (value !== undefined && value !== null && String(value).trim() !== '') return value
+  }
+  return undefined
+}
+
 function normalizeButtonColors(colors = {}) {
-  const source = colors && typeof colors === 'object' ? colors : {}
+  const parsed = parseJsonObject(colors)
+  const source = parseJsonObject(parsed.button_colors ?? parsed.buttonColors ?? parsed.button_theme ?? parsed.buttonTheme ?? parsed)
   const normalized = {}
+
   for (const [sectionKey, defaultSection] of Object.entries(DEFAULT_BUTTON_COLORS)) {
-    const incomingSection = source[sectionKey] && typeof source[sectionKey] === 'object' ? source[sectionKey] : {}
+    const sectionAliases = BUTTON_COLOR_SECTION_ALIASES[sectionKey] || [sectionKey]
+    let incomingSection = {}
+    for (const alias of sectionAliases) {
+      const candidate = parseJsonObject(source?.[alias])
+      if (Object.keys(candidate).length) {
+        incomingSection = candidate
+        break
+      }
+    }
+
     normalized[sectionKey] = {}
     for (const [fieldKey, defaultValue] of Object.entries(defaultSection)) {
-      normalized[sectionKey][fieldKey] = normalizeThemeHexColor(incomingSection[fieldKey], defaultValue)
+      const aliases = [fieldKey, ...(BUTTON_COLOR_FIELD_ALIASES[fieldKey] || [])]
+      const incomingValue = firstDefinedThemeValue(incomingSection, [...new Set(aliases)])
+      normalized[sectionKey][fieldKey] = normalizeThemeHexColor(incomingValue, defaultValue)
     }
   }
+
+  return normalized
+}
+
+function buttonColorSettingsMatch(left, right) {
+  return JSON.stringify(normalizeButtonColors(left)) === JSON.stringify(normalizeButtonColors(right))
+}
+
+function applyButtonTheme(colors = DEFAULT_BUTTON_COLORS) {
+  if (typeof document === 'undefined') return normalizeButtonColors(colors)
+  const normalized = normalizeButtonColors(colors)
+  const root = document.documentElement
+
+  for (const [sectionKey, fields] of Object.entries(BUTTON_COLOR_CSS_VARIABLES)) {
+    for (const [fieldKey, cssVariable] of Object.entries(fields)) {
+      const value = normalized?.[sectionKey]?.[fieldKey] ?? DEFAULT_BUTTON_COLORS?.[sectionKey]?.[fieldKey]
+      if (value) root.style.setProperty(cssVariable, value)
+    }
+  }
+
+  root.dataset.buttonThemeReady = 'true'
   return normalized
 }
 
 function applyButtonColorCssVariables(colors = DEFAULT_BUTTON_COLORS) {
-  if (typeof document === 'undefined') return
-  const normalized = normalizeButtonColors(colors)
-  const root = document.documentElement
-  for (const [sectionKey, fields] of Object.entries(BUTTON_COLOR_CSS_VARIABLES)) {
-    for (const [fieldKey, cssVariable] of Object.entries(fields)) {
-      root.style.setProperty(cssVariable, normalized[sectionKey][fieldKey])
-    }
-  }
+  return applyButtonTheme(colors)
 }
 
 function colorPickerValue(value) {
@@ -1234,8 +1311,17 @@ function getPdfReportSettingsForRole(role, roleSettings = {}, globalSettings = d
 }
 
 function normalizeSettings(settings) {
-  const next = { ...defaultWebsiteSettings, ...(settings || {}) }
-  next.button_colors = normalizeButtonColors(next.button_colors || next.buttonColors)
+  const rawSettings = parseJsonObject(settings)
+  const next = { ...defaultWebsiteSettings, ...rawSettings }
+  const savedButtonColors = rawSettings.button_colors
+    ?? rawSettings.buttonColors
+    ?? rawSettings.button_theme
+    ?? rawSettings.buttonTheme
+    ?? defaultWebsiteSettings.button_colors
+  next.button_colors = normalizeButtonColors(savedButtonColors)
+  delete next.buttonColors
+  delete next.button_theme
+  delete next.buttonTheme
   next.roleHeroes = normalizeRoleHeroSettings(next.roleHeroes, next)
   return next
 }
@@ -1243,9 +1329,13 @@ function normalizeSettings(settings) {
 function loadWebsiteSettings() {
   try {
     const saved = localStorage.getItem('pharmatrack-website-settings')
-    return saved ? normalizeSettings(JSON.parse(saved)) : defaultWebsiteSettings
+    const settings = saved ? normalizeSettings(saved) : normalizeSettings(defaultWebsiteSettings)
+    applyButtonTheme(settings.button_colors)
+    return settings
   } catch {
-    return defaultWebsiteSettings
+    const settings = normalizeSettings(defaultWebsiteSettings)
+    applyButtonTheme(settings.button_colors)
+    return settings
   }
 }
 
@@ -4031,9 +4121,9 @@ export default function App() {
     localStorage.removeItem('pharmatrack-theme')
   }, [])
 
-  useEffect(() => {
-    applyButtonColorCssVariables(websiteSettings.button_colors)
-  }, [websiteSettings.button_colors])
+  useLayoutEffect(() => {
+    applyButtonTheme(websiteSettings?.button_colors)
+  }, [websiteSettings?.button_colors])
 
   useEffect(() => {
     loadWebsiteSettingsFromSupabase()
@@ -4244,14 +4334,19 @@ export default function App() {
         .select('value')
         .eq('key', 'website')
         .maybeSingle()
-      if (error) return
+      if (error) {
+        console.warn('Website settings could not be loaded from app_settings:', error)
+        return
+      }
       if (row?.value) {
         const settings = normalizeSettings(row.value)
+        applyButtonTheme(settings.button_colors)
         setWebsiteSettings(settings)
         saveWebsiteSettingsLocal(settings)
       }
-    } catch {
-      // The website can still run without the optional app_settings table.
+    } catch (error) {
+      console.warn('Website settings loading failed:', error)
+      // The website can still run with the last locally cached settings.
     }
   }
 
@@ -4433,16 +4528,30 @@ export default function App() {
 
   async function updateWebsiteSettings(nextValues, options = {}) {
     if (currentUser?.role !== 'admin') {
-      setMessage('Only Admin accounts can edit website settings.')
-      return { ok: false }
+      const error = new Error('Only Admin accounts can edit website settings.')
+      setMessage(error.message)
+      return { ok: false, error }
     }
 
-    const nextSettings = normalizeSettings({ ...websiteSettings, ...nextValues, assetUpdatedAt: new Date().toISOString() })
+    const nextSettings = normalizeSettings({
+      ...websiteSettings,
+      ...parseJsonObject(nextValues),
+      assetUpdatedAt: new Date().toISOString(),
+    })
     if (!sanitizeSettingImageUrl(nextSettings.heroImage)) nextSettings.heroImage = defaultWebsiteSettings.heroImage
     if (!sanitizeSettingImageUrl(nextSettings.loginBackgroundImage)) nextSettings.loginBackgroundImage = defaultWebsiteSettings.loginBackgroundImage
     if (!sanitizeSettingImageUrl(nextSettings.loginHeroImage)) nextSettings.loginHeroImage = nextSettings.loginBackgroundImage || defaultWebsiteSettings.loginHeroImage
-    setWebsiteSettings(nextSettings)
-    saveWebsiteSettingsLocal(nextSettings)
+
+    const commitSettings = (value) => {
+      const committed = normalizeSettings(value)
+      applyButtonTheme(committed.button_colors)
+      setWebsiteSettings(committed)
+      saveWebsiteSettingsLocal(committed)
+      return committed
+    }
+
+    const deferCommitUntilSuccess = options.deferCommitUntilSuccess === true
+    if (!deferCommitUntilSuccess) commitSettings(nextSettings)
 
     if (isSupabaseConfigured) {
       try {
@@ -4455,14 +4564,8 @@ export default function App() {
         if (rpcResult.error) {
           const messageText = String(rpcResult.error.message || '')
           const missingRpc = messageText.toLowerCase().includes('function') || messageText.toLowerCase().includes('schema cache')
+          if (!missingRpc) throw new Error(messageText)
 
-          if (!missingRpc) {
-            throw new Error(messageText)
-          }
-
-          // Some Supabase projects keep the old PostgREST function schema cache for a few minutes
-          // after running SQL. If that happens, use the same protected app_settings table directly.
-          // This still relies on the admin-only RLS policies installed by supabase/website_settings.sql.
           const fallbackSave = await supabase
             .from('app_settings')
             .upsert(
@@ -4480,28 +4583,42 @@ export default function App() {
           if (fallbackSave.error) {
             throw new Error(`${messageText}. Direct app_settings save also failed: ${fallbackSave.error.message}`)
           }
-          savedValue = fallbackSave.data?.value || nextSettings
+          savedValue = fallbackSave.data?.value
         }
 
-        const savedSettings = normalizeSettings(savedValue || nextSettings)
-        setWebsiteSettings(savedSettings)
-        saveWebsiteSettingsLocal(savedSettings)
+        const verification = await supabase
+          .from('app_settings')
+          .select('value')
+          .eq('key', 'website')
+          .maybeSingle()
 
+        if (verification.error) throw verification.error
+        if (!verification.data?.value && !savedValue) {
+          throw new Error('The website settings row was not returned after saving.')
+        }
+
+        const savedSettings = normalizeSettings(verification.data?.value || savedValue || nextSettings)
+        if (options.verifyButtonColors && !buttonColorSettingsMatch(savedSettings.button_colors, nextSettings.button_colors)) {
+          throw new Error('Supabase returned success, but the saved button_colors value did not match the selected colors.')
+        }
+
+        const committedSettings = commitSettings(savedSettings)
         if (!options.silent) {
           await addAudit(currentUser.full_name, 'updated', 'website settings')
-          setMessage('Website settings saved globally. The public website will use the new settings after refresh.')
+          setMessage('Website settings saved globally and applied successfully.')
         }
-        return { ok: true, settings: savedSettings }
+        return { ok: true, settings: committedSettings }
       } catch (error) {
-        if (!options.silent) {
-          setMessage(`Settings were kept locally for preview, but global database save failed: ${error.message}. Run the latest supabase/website_settings.sql in Supabase SQL Editor, refresh, then log out and log in again with the approved Admin email before saving.`)
-        }
+        if (!options.silent) setMessage(`Global website settings save failed: ${error.message}`)
         return { ok: false, error }
       }
-    } else if (!options.silent) {
+    }
+
+    const localSettings = deferCommitUntilSuccess ? commitSettings(nextSettings) : nextSettings
+    if (!options.silent) {
       setMessage('Website settings saved locally for preview. Connect Supabase and run supabase/website_settings.sql to make settings global.')
     }
-    return { ok: true, settings: nextSettings }
+    return { ok: true, settings: localSettings }
   }
 
   async function loadAboutUsPageFromSupabase() {
@@ -9587,7 +9704,7 @@ function AdminControlPanel({
       const errorText = `Please correct these invalid HEX values before saving: ${invalid.join(', ')}`
       setButtonColorError(errorText)
       await showAppAlert(errorText, { title: 'Invalid Button Colors', type: 'warning' })
-      return
+      return { ok: false }
     }
 
     const normalizedColors = normalizeButtonColors(draft.button_colors)
@@ -9597,19 +9714,32 @@ function AdminControlPanel({
         `Some color combinations may be difficult to read:\n\n${warnings.slice(0, 8).join('\n')}\n\nSave these colors anyway?`,
         { title: 'Contrast Warning', type: 'warning', confirmLabel: 'Save Anyway' },
       )
-      if (!confirmed) return
+      if (!confirmed) return { ok: false }
     }
 
-    const nextDraft = { ...draft, button_colors: normalizedColors }
-    setDraft(nextDraft)
+    const nextDraft = normalizeSettings({ ...draft, button_colors: normalizedColors })
     setButtonColorError('')
-    const result = await updateSettings(nextDraft)
-    if (result?.ok) {
-      setButtonColorStatus('Button colors saved successfully and applied through the existing website-settings system.')
-      applyButtonColorCssVariables(result.settings?.button_colors || normalizedColors)
-    } else {
-      setButtonColorError('Button colors could not be saved globally. The current values remain available as a local preview.')
+    setButtonColorStatus('Saving and verifying button colors...')
+
+    const result = await updateSettings(nextDraft, {
+      deferCommitUntilSuccess: true,
+      verifyButtonColors: true,
+    })
+
+    if (!result?.ok) {
+      const errorText = result?.error?.message || 'Button colors could not be saved to the existing website settings record.'
+      setButtonColorStatus('')
+      setButtonColorError(errorText)
+      await showAppAlert(errorText, { title: 'Button Colors Not Saved', type: 'error' })
+      return result
     }
+
+    const savedSettings = normalizeSettings(result.settings || nextDraft)
+    setDraft(savedSettings)
+    applyButtonTheme(savedSettings.button_colors)
+    setButtonColorStatus('Button colors were saved, verified, and applied to the live website.')
+    await showAppAlert('Button colors were saved successfully and are now applied across the website.', { title: 'Button Colors Saved', type: 'success' })
+    return { ok: true, settings: savedSettings }
   }
 
   function resetButtonColorPreview() {
@@ -9625,18 +9755,30 @@ function AdminControlPanel({
       'Restore the approved default palette for all button categories? This will save the defaults globally after confirmation.',
       { title: 'Restore Default Button Colors', type: 'warning', confirmLabel: 'Restore Defaults' },
     )
-    if (!confirmed) return
+    if (!confirmed) return { ok: false }
+
     const defaults = cloneDefaultButtonColors()
-    const nextDraft = { ...draft, button_colors: defaults }
-    setDraft(nextDraft)
-    applyButtonColorCssVariables(defaults)
-    const result = await updateSettings(nextDraft)
-    if (result?.ok) {
-      setButtonColorError('')
-      setButtonColorStatus('Default button colors restored and saved successfully.')
-    } else {
-      setButtonColorError('Default colors were restored in the preview, but the global save failed.')
+    const nextDraft = normalizeSettings({ ...draft, button_colors: defaults })
+    const result = await updateSettings(nextDraft, {
+      deferCommitUntilSuccess: true,
+      verifyButtonColors: true,
+    })
+
+    if (!result?.ok) {
+      const errorText = result?.error?.message || 'Default button colors could not be saved.'
+      setButtonColorError(errorText)
+      setButtonColorStatus('')
+      await showAppAlert(errorText, { title: 'Defaults Not Restored', type: 'error' })
+      return result
     }
+
+    const savedSettings = normalizeSettings(result.settings || nextDraft)
+    setDraft(savedSettings)
+    applyButtonTheme(savedSettings.button_colors)
+    setButtonColorError('')
+    setButtonColorStatus('Default button colors were restored, verified, and applied successfully.')
+    await showAppAlert('Default button colors were restored successfully.', { title: 'Defaults Restored', type: 'success' })
+    return { ok: true, settings: savedSettings }
   }
 
 
