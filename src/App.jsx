@@ -857,7 +857,7 @@ const INTERFACE_COLOR_SECTIONS = [
   {
     key: 'topHeader',
     title: 'Top Header Colors',
-    description: 'Authenticated header, mobile hamburger, Inbox trigger, role switcher, profile avatar, and header utility controls.',
+    description: 'Authenticated header, mobile hamburger, role switcher, profile avatar, and header utility controls.',
     fields: [
       ['background', 'Header background'],
       ['text', 'Header text color'],
@@ -871,8 +871,6 @@ const INTERFACE_COLOR_SECTIONS = [
       ['shadow', 'Header shadow color'],
       ['hamburgerBackground', 'Hamburger button background'],
       ['hamburgerIcon', 'Hamburger icon color'],
-      ['inboxTriggerBackground', 'Inbox trigger background'],
-      ['inboxTriggerIcon', 'Inbox trigger icon color'],
       ['roleDropdownBackground', 'Role dropdown background'],
       ['roleDropdownText', 'Role dropdown text color'],
       ['avatarBackground', 'Profile / avatar background'],
@@ -1440,7 +1438,6 @@ function getInterfaceColorContrastWarnings(colors = {}) {
     ['Header button text', normalized.topHeader.buttonBackground, normalized.topHeader.buttonText],
     ['Header button icon', normalized.topHeader.buttonBackground, normalized.topHeader.buttonIcon],
     ['Hamburger icon', normalized.topHeader.hamburgerBackground, normalized.topHeader.hamburgerIcon],
-    ['Inbox trigger icon', normalized.topHeader.inboxTriggerBackground, normalized.topHeader.inboxTriggerIcon],
     ['Role dropdown text', normalized.topHeader.roleDropdownBackground, normalized.topHeader.roleDropdownText],
     ['Avatar text', normalized.topHeader.avatarBackground, normalized.topHeader.avatarText],
     ['Sidebar text', normalized.sidebar.background, normalized.sidebar.text],
@@ -3898,8 +3895,7 @@ function RoleFeatureSearch({ role = 'student', items = [], availableTabs = [], o
       return
     }
     if (item.action === 'open-inbox') {
-      const inboxButton = document.querySelector('.header-inbox-button, .main-notification-button, button[aria-label="Open inbox"]')
-      inboxButton?.click?.()
+      window.dispatchEvent(new CustomEvent('open-platform-inbox'))
       return
     }
     const nextTab = item.tab || resolveHeroRouteToTab(item.path || item.id)
@@ -8924,6 +8920,7 @@ export default function App() {
     { id: 'audit', label: 'Audit Log', icon: ShieldCheck, show: allowedRole === 'admin' },
   ].filter((item) => item.show)
   const utilityNavItems = [
+    { id: 'inbox', label: 'Inbox', icon: Inbox, type: 'action' },
     { id: 'reports', label: 'Print/PDF Reports', icon: Printer, type: 'button' },
     { id: 'about-us', label: 'About Us', icon: null, type: 'button' },
     { id: 'guidelines', label: 'Research Guidelines', icon: FileText, type: 'download' },
@@ -8932,6 +8929,11 @@ export default function App() {
   ]
   function handleMainNavClick(tabId, sectionId = '') {
     setSidebarOpen(false)
+
+    if (tabId === 'inbox') {
+      window.dispatchEvent(new CustomEvent('open-platform-inbox'))
+      return
+    }
 
     const shouldHardNavigate = ['student', 'supervisor', 'committee'].includes(baseRole) && !activeRoleOverride
     if (typeof window !== 'undefined' && !isAdminPortal && shouldHardNavigate) {
@@ -9020,15 +9022,6 @@ export default function App() {
             </button>
           </div>
           <div className="main-header-actions">
-            <NotificationBellMenu
-              data={data}
-              role={allowedRole}
-              currentUser={currentUser}
-              dataLoading={dataLoading}
-              unreadCount={stats.unread}
-              markNotificationRead={markNotificationRead}
-              removeNotification={removeNotification}
-            />
             {(isAdminBaseRole || committeeSupervisorAccess) && (
               <RoleSwitchDropdown
                 activeRole={allowedRole}
@@ -9039,6 +9032,17 @@ export default function App() {
             <UserProfileMenu currentUser={currentUser} onLogout={logout} onOpenProfile={() => handleMainNavClick('profile-settings')} />
           </div>
         </header>
+
+        <NotificationBellMenu
+          data={data}
+          role={allowedRole}
+          currentUser={currentUser}
+          dataLoading={dataLoading}
+          unreadCount={stats.unread}
+          markNotificationRead={markNotificationRead}
+          removeNotification={removeNotification}
+          showTrigger={false}
+        />
 
         <RoleHeroBanner role={allowedRole} settings={websiteSettings} onNavigate={handleMainNavClick} navigationItems={mainNavItems} activeTab={tab} className="authenticated-role-hero" />
 
@@ -9557,7 +9561,7 @@ function InboxTrayIcon({ size = 20, className = '' }) {
   )
 }
 
-function NotificationBellMenu({ data, role, currentUser, dataLoading = false, unreadCount = 0, markNotificationRead, removeNotification }) {
+function NotificationBellMenu({ data, role, currentUser, dataLoading = false, unreadCount = 0, markNotificationRead, removeNotification, showTrigger = true }) {
   const [open, setOpen] = useState(false)
   const [removingNotificationId, setRemovingNotificationId] = useState('')
   const [readingNotificationId, setReadingNotificationId] = useState('')
@@ -9565,6 +9569,15 @@ function NotificationBellMenu({ data, role, currentUser, dataLoading = false, un
   const visibleNotifications = useMemo(() => (
     Array.isArray(data?.notifications) ? data.notifications.filter((notification) => notificationForUser(notification, currentUser, role)) : []
   ), [data?.notifications, currentUser, role])
+
+  useEffect(() => {
+    function handleOpenInbox() {
+      setOpen(true)
+    }
+
+    window.addEventListener('open-platform-inbox', handleOpenInbox)
+    return () => window.removeEventListener('open-platform-inbox', handleOpenInbox)
+  }, [])
 
   useEffect(() => {
     if (!open) return undefined
@@ -9606,18 +9619,20 @@ function NotificationBellMenu({ data, role, currentUser, dataLoading = false, un
   }
 
   return (
-    <div className={`notification-bell-menu ${open ? 'open' : ''}`} ref={wrapperRef}>
-      <button
-        className={`main-notification-button header-inbox-button inbox-button ${open ? 'active' : ''}`}
-        type="button"
-        onClick={() => setOpen((current) => !current)}
-        aria-label="Open inbox"
-        aria-expanded={open}
-      >
-        <span className="notification-icon" aria-hidden="true"><InboxTrayIcon size={18} /></span>
-        <strong className="inbox-button-label">Inbox</strong>
-        {unreadCount > 0 && <span className="inbox-unread-count notification-badge">{unreadCount}</span>}
-      </button>
+    <div className={`notification-bell-menu ${showTrigger ? '' : 'notification-bell-menu--triggerless'} ${open ? 'open' : ''}`} ref={wrapperRef}>
+      {showTrigger && (
+        <button
+          className={`main-notification-button header-inbox-button inbox-button ${open ? 'active' : ''}`}
+          type="button"
+          onClick={() => setOpen((current) => !current)}
+          aria-label="Open inbox"
+          aria-expanded={open}
+        >
+          <span className="notification-icon" aria-hidden="true"><InboxTrayIcon size={18} /></span>
+          <strong className="inbox-button-label">Inbox</strong>
+          {unreadCount > 0 && <span className="inbox-unread-count notification-badge">{unreadCount}</span>}
+        </button>
+      )}
 
       <div className="notification-popover" role="dialog" aria-label="Inbox">
         <div className="notification-popover-head">
@@ -10203,7 +10218,6 @@ function InterfaceColorCustomizationPanel({
               <button type="button" className="interface-preview-hamburger" aria-label="Hamburger preview"><span /><span /><span /></button>
               <div className="interface-preview-header-copy"><b>Research Dashboard</b><small>Student role</small></div>
               <div className="interface-preview-header-actions">
-                <button type="button" className="interface-preview-inbox"><InboxTrayIcon size={17} /><span>3</span></button>
                 <select defaultValue="student" aria-label="Role preview"><option value="student">Student</option></select>
                 <button type="button" className="interface-preview-avatar" aria-label="Profile preview">M</button>
               </div>

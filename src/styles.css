@@ -24773,3 +24773,32 @@ html body #root#root#root :is(
 ) > svg [fill]:not([fill="none"]) {
   fill: currentColor !important;
 }
+
+/* Inbox is opened from the authenticated sidebar; no Inbox trigger is shown in the top header. */
+html body #root .notification-bell-menu--triggerless {
+  position: static;
+  display: block;
+  width: 0;
+  height: 0;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+html body #root .notification-bell-menu--triggerless > .notification-popover {
+  position: fixed;
+  top: 76px;
+  right: 16px;
+  left: auto;
+  z-index: 1200;
+}
+
+@media (max-width: 640px) {
+  html body #root .notification-bell-menu--triggerless > .notification-popover {
+    top: 66px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+  }
+}
