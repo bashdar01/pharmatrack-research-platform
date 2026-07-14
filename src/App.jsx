@@ -24,6 +24,7 @@ import {
   Upload,
   UserPlus,
   SlidersHorizontal,
+  Palette,
   Mail,
   Send,
   Eye,
@@ -512,6 +513,446 @@ function getRoleHeroLabel(role) {
   return roleHeroOptions.find((item) => item.value === normalized)?.label || 'Student Dashboard'
 }
 
+const DEFAULT_BUTTON_COLORS = {
+  primary: {
+    background: '#2563eb',
+    text: '#ffffff',
+    icon: '#ffffff',
+    hoverBackground: '#1d4ed8',
+    hoverText: '#ffffff',
+    activeBackground: '#1e40af',
+    activeText: '#ffffff',
+    border: '#2563eb',
+    focusRing: '#93c5fd',
+  },
+  secondary: {
+    background: '#eff6ff',
+    text: '#1d4ed8',
+    icon: '#1d4ed8',
+    hoverBackground: '#dbeafe',
+    hoverText: '#1e40af',
+    activeBackground: '#bfdbfe',
+    activeText: '#1e3a8a',
+    border: '#bfdbfe',
+  },
+  success: {
+    background: '#ecfdf5',
+    text: '#047857',
+    icon: '#047857',
+    hoverBackground: '#10b981',
+    hoverText: '#ffffff',
+    border: '#a7f3d0',
+  },
+  revision: {
+    background: '#fffbeb',
+    text: '#b45309',
+    icon: '#b45309',
+    hoverBackground: '#f59e0b',
+    hoverText: '#ffffff',
+    border: '#fde68a',
+  },
+  danger: {
+    background: '#fef2f2',
+    text: '#b91c1c',
+    icon: '#b91c1c',
+    hoverBackground: '#dc2626',
+    hoverText: '#ffffff',
+    border: '#fecaca',
+  },
+  disabled: {
+    background: '#e5e7eb',
+    text: '#9ca3af',
+    icon: '#9ca3af',
+    border: '#d1d5db',
+  },
+  heroNavigation: {
+    inactiveBackground: '#ffffff',
+    inactiveText: '#2563eb',
+    inactiveIcon: '#2563eb',
+    inactiveBorder: '#ffffff',
+    hoverBackground: '#ffffff',
+    hoverText: '#1d4ed8',
+    activeBackground: '#ffffff',
+    activeText: '#2563eb',
+    activeBorder: '#2563eb',
+    shadow: '#0f172a2e',
+  },
+  search: {
+    background: '#0f8f9d',
+    icon: '#ffffff',
+    hoverBackground: '#0b7480',
+    border: '#0b7480',
+  },
+  sidebar: {
+    inactiveBackground: '#00000000',
+    inactiveText: '#ffffff',
+    inactiveIcon: '#ffffff',
+    hoverBackground: '#ffffff',
+    hoverText: '#2563eb',
+    activeBackground: '#ffffff',
+    activeText: '#2563eb',
+    activeIcon: '#2563eb',
+    border: '#00000000',
+  },
+}
+
+const BUTTON_COLOR_SECTIONS = [
+  {
+    key: 'primary',
+    title: 'Primary buttons',
+    description: 'Save, submit, send, create, add, assign, confirm, sign in, and other main actions.',
+    fields: [
+      ['background', 'Primary button background'],
+      ['text', 'Primary button text'],
+      ['icon', 'Primary button icon'],
+      ['hoverBackground', 'Primary hover background'],
+      ['hoverText', 'Primary hover text'],
+      ['activeBackground', 'Primary active background'],
+      ['activeText', 'Primary active text'],
+      ['border', 'Primary border'],
+      ['focusRing', 'Primary focus-ring color'],
+    ],
+  },
+  {
+    key: 'secondary',
+    title: 'Secondary buttons',
+    description: 'View, edit, back, cancel, download, learn more, filter, and supporting actions.',
+    fields: [
+      ['background', 'Secondary background'],
+      ['text', 'Secondary text'],
+      ['icon', 'Secondary icon'],
+      ['hoverBackground', 'Secondary hover background'],
+      ['hoverText', 'Secondary hover text'],
+      ['activeBackground', 'Secondary active background'],
+      ['activeText', 'Secondary active text'],
+      ['border', 'Secondary border'],
+    ],
+  },
+  {
+    key: 'success',
+    title: 'Success / Accept buttons',
+    description: 'Accept, approve, complete, and positive decisions.',
+    fields: [
+      ['background', 'Success background'],
+      ['text', 'Success text'],
+      ['icon', 'Success icon'],
+      ['hoverBackground', 'Success hover background'],
+      ['hoverText', 'Success hover text'],
+      ['border', 'Success border'],
+    ],
+  },
+  {
+    key: 'revision',
+    title: 'Revision / Warning buttons',
+    description: 'Request revision, reschedule, unassign, and warning actions.',
+    fields: [
+      ['background', 'Revision background'],
+      ['text', 'Revision text'],
+      ['icon', 'Revision icon'],
+      ['hoverBackground', 'Revision hover background'],
+      ['hoverText', 'Revision hover text'],
+      ['border', 'Revision border'],
+    ],
+  },
+  {
+    key: 'danger',
+    title: 'Danger buttons',
+    description: 'Reject, delete, remove, logout, cancel meeting, and destructive actions.',
+    fields: [
+      ['background', 'Danger background'],
+      ['text', 'Danger text'],
+      ['icon', 'Danger icon'],
+      ['hoverBackground', 'Danger hover background'],
+      ['hoverText', 'Danger hover text'],
+      ['border', 'Danger border'],
+    ],
+  },
+  {
+    key: 'disabled',
+    title: 'Disabled buttons',
+    description: 'Buttons unavailable while loading or because an action is not permitted.',
+    fields: [
+      ['background', 'Disabled background'],
+      ['text', 'Disabled text'],
+      ['icon', 'Disabled icon'],
+      ['border', 'Disabled border'],
+    ],
+  },
+  {
+    key: 'heroNavigation',
+    title: 'Hero navigation buttons',
+    description: 'Inactive, hover, and active navigation buttons displayed over each role hero picture.',
+    fields: [
+      ['inactiveBackground', 'Hero navigation inactive background'],
+      ['inactiveText', 'Hero navigation inactive text'],
+      ['inactiveIcon', 'Hero navigation inactive icon'],
+      ['inactiveBorder', 'Hero navigation inactive border'],
+      ['hoverBackground', 'Hero navigation hover background'],
+      ['hoverText', 'Hero navigation hover text'],
+      ['activeBackground', 'Hero navigation active background'],
+      ['activeText', 'Hero navigation active text'],
+      ['activeBorder', 'Hero navigation active border'],
+      ['shadow', 'Hero navigation shadow color'],
+    ],
+  },
+  {
+    key: 'search',
+    title: 'Search button',
+    description: 'The rectangular search button attached to the role hero search field.',
+    fields: [
+      ['background', 'Search button background'],
+      ['icon', 'Search button icon'],
+      ['hoverBackground', 'Search button hover background'],
+      ['border', 'Search button border'],
+    ],
+  },
+  {
+    key: 'sidebar',
+    title: 'Sidebar buttons',
+    description: 'Inactive, hover, and active utility navigation items in the role and Admin sidebars.',
+    fields: [
+      ['inactiveBackground', 'Sidebar inactive background'],
+      ['inactiveText', 'Sidebar inactive text'],
+      ['inactiveIcon', 'Sidebar inactive icon'],
+      ['hoverBackground', 'Sidebar hover background'],
+      ['hoverText', 'Sidebar hover text'],
+      ['activeBackground', 'Sidebar active background'],
+      ['activeText', 'Sidebar active text'],
+      ['activeIcon', 'Sidebar active icon'],
+      ['border', 'Sidebar inactive border'],
+    ],
+  },
+]
+
+const BUTTON_COLOR_CSS_VARIABLES = {
+  primary: {
+    background: '--btn-primary-bg',
+    text: '--btn-primary-text',
+    icon: '--btn-primary-icon',
+    hoverBackground: '--btn-primary-hover-bg',
+    hoverText: '--btn-primary-hover-text',
+    activeBackground: '--btn-primary-active-bg',
+    activeText: '--btn-primary-active-text',
+    border: '--btn-primary-border',
+    focusRing: '--btn-primary-focus-ring',
+  },
+  secondary: {
+    background: '--btn-secondary-bg',
+    text: '--btn-secondary-text',
+    icon: '--btn-secondary-icon',
+    hoverBackground: '--btn-secondary-hover-bg',
+    hoverText: '--btn-secondary-hover-text',
+    activeBackground: '--btn-secondary-active-bg',
+    activeText: '--btn-secondary-active-text',
+    border: '--btn-secondary-border',
+  },
+  success: {
+    background: '--btn-success-bg',
+    text: '--btn-success-text',
+    icon: '--btn-success-icon',
+    hoverBackground: '--btn-success-hover-bg',
+    hoverText: '--btn-success-hover-text',
+    border: '--btn-success-border',
+  },
+  revision: {
+    background: '--btn-revision-bg',
+    text: '--btn-revision-text',
+    icon: '--btn-revision-icon',
+    hoverBackground: '--btn-revision-hover-bg',
+    hoverText: '--btn-revision-hover-text',
+    border: '--btn-revision-border',
+  },
+  danger: {
+    background: '--btn-danger-bg',
+    text: '--btn-danger-text',
+    icon: '--btn-danger-icon',
+    hoverBackground: '--btn-danger-hover-bg',
+    hoverText: '--btn-danger-hover-text',
+    border: '--btn-danger-border',
+  },
+  disabled: {
+    background: '--btn-disabled-bg',
+    text: '--btn-disabled-text',
+    icon: '--btn-disabled-icon',
+    border: '--btn-disabled-border',
+  },
+  heroNavigation: {
+    inactiveBackground: '--hero-nav-inactive-bg',
+    inactiveText: '--hero-nav-inactive-text',
+    inactiveIcon: '--hero-nav-inactive-icon',
+    inactiveBorder: '--hero-nav-inactive-border',
+    hoverBackground: '--hero-nav-hover-bg',
+    hoverText: '--hero-nav-hover-text',
+    activeBackground: '--hero-nav-active-bg',
+    activeText: '--hero-nav-active-text',
+    activeBorder: '--hero-nav-active-border',
+    shadow: '--hero-nav-shadow',
+  },
+  search: {
+    background: '--search-btn-bg',
+    icon: '--search-btn-icon',
+    hoverBackground: '--search-btn-hover-bg',
+    border: '--search-btn-border',
+  },
+  sidebar: {
+    inactiveBackground: '--sidebar-btn-inactive-bg',
+    inactiveText: '--sidebar-btn-inactive-text',
+    inactiveIcon: '--sidebar-btn-inactive-icon',
+    hoverBackground: '--sidebar-btn-hover-bg',
+    hoverText: '--sidebar-btn-hover-text',
+    activeBackground: '--sidebar-btn-active-bg',
+    activeText: '--sidebar-btn-active-text',
+    activeIcon: '--sidebar-btn-active-icon',
+    border: '--sidebar-btn-border',
+  },
+}
+
+function cloneDefaultButtonColors() {
+  return JSON.parse(JSON.stringify(DEFAULT_BUTTON_COLORS))
+}
+
+function isValidThemeHexColor(value) {
+  return /^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(String(value || '').trim())
+}
+
+function normalizeThemeHexColor(value, fallback) {
+  const raw = String(value || '').trim()
+  return isValidThemeHexColor(raw) ? raw.toLowerCase() : fallback
+}
+
+function normalizeButtonColors(colors = {}) {
+  const source = colors && typeof colors === 'object' ? colors : {}
+  const normalized = {}
+  for (const [sectionKey, defaultSection] of Object.entries(DEFAULT_BUTTON_COLORS)) {
+    const incomingSection = source[sectionKey] && typeof source[sectionKey] === 'object' ? source[sectionKey] : {}
+    normalized[sectionKey] = {}
+    for (const [fieldKey, defaultValue] of Object.entries(defaultSection)) {
+      normalized[sectionKey][fieldKey] = normalizeThemeHexColor(incomingSection[fieldKey], defaultValue)
+    }
+  }
+  return normalized
+}
+
+function applyButtonColorCssVariables(colors = DEFAULT_BUTTON_COLORS) {
+  if (typeof document === 'undefined') return
+  const normalized = normalizeButtonColors(colors)
+  const root = document.documentElement
+  for (const [sectionKey, fields] of Object.entries(BUTTON_COLOR_CSS_VARIABLES)) {
+    for (const [fieldKey, cssVariable] of Object.entries(fields)) {
+      root.style.setProperty(cssVariable, normalized[sectionKey][fieldKey])
+    }
+  }
+}
+
+function colorPickerValue(value) {
+  const raw = String(value || '').trim()
+  if (/^#[0-9a-f]{3}$/i.test(raw)) {
+    return `#${raw.slice(1).split('').map((char) => `${char}${char}`).join('')}`
+  }
+  if (/^#[0-9a-f]{8}$/i.test(raw)) return raw.slice(0, 7)
+  if (/^#[0-9a-f]{6}$/i.test(raw)) return raw
+  return '#000000'
+}
+
+function parseThemeHexColor(value) {
+  const raw = String(value || '').trim().replace('#', '')
+  if (![3, 6, 8].includes(raw.length) || !/^[0-9a-f]+$/i.test(raw)) return null
+  const expanded = raw.length === 3 ? raw.split('').map((char) => `${char}${char}`).join('') : raw
+  const rgb = expanded.slice(0, 6)
+  const alpha = expanded.length === 8 ? parseInt(expanded.slice(6, 8), 16) / 255 : 1
+  return {
+    r: parseInt(rgb.slice(0, 2), 16),
+    g: parseInt(rgb.slice(2, 4), 16),
+    b: parseInt(rgb.slice(4, 6), 16),
+    a: alpha,
+  }
+}
+
+function compositeThemeColor(color, base = { r: 255, g: 255, b: 255 }) {
+  if (!color) return null
+  return {
+    r: Math.round(color.r * color.a + base.r * (1 - color.a)),
+    g: Math.round(color.g * color.a + base.g * (1 - color.a)),
+    b: Math.round(color.b * color.a + base.b * (1 - color.a)),
+  }
+}
+
+function relativeThemeLuminance(color) {
+  const rgb = [color.r, color.g, color.b].map((channel) => {
+    const normalized = channel / 255
+    return normalized <= 0.03928 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4
+  })
+  return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
+}
+
+function themeContrastRatio(background, foreground) {
+  const bg = compositeThemeColor(parseThemeHexColor(background))
+  const fg = compositeThemeColor(parseThemeHexColor(foreground), bg || undefined)
+  if (!bg || !fg) return 1
+  const lighter = Math.max(relativeThemeLuminance(bg), relativeThemeLuminance(fg))
+  const darker = Math.min(relativeThemeLuminance(bg), relativeThemeLuminance(fg))
+  return (lighter + 0.05) / (darker + 0.05)
+}
+
+function themeColorDistance(first, second) {
+  const a = compositeThemeColor(parseThemeHexColor(first))
+  const b = compositeThemeColor(parseThemeHexColor(second))
+  if (!a || !b) return 0
+  return Math.sqrt(((a.r - b.r) ** 2) + ((a.g - b.g) ** 2) + ((a.b - b.b) ** 2))
+}
+
+function validateButtonColorValues(colors = {}) {
+  const invalid = []
+  for (const section of BUTTON_COLOR_SECTIONS) {
+    for (const [fieldKey, label] of section.fields) {
+      if (!isValidThemeHexColor(colors?.[section.key]?.[fieldKey])) invalid.push(label)
+    }
+  }
+  return invalid
+}
+
+function getButtonColorContrastWarnings(colors = {}) {
+  const normalized = normalizeButtonColors(colors)
+  const warnings = []
+  const pairs = [
+    ['Primary button text', normalized.primary.background, normalized.primary.text],
+    ['Primary button icon', normalized.primary.background, normalized.primary.icon],
+    ['Primary hover text', normalized.primary.hoverBackground, normalized.primary.hoverText],
+    ['Secondary button text', normalized.secondary.background, normalized.secondary.text],
+    ['Secondary button icon', normalized.secondary.background, normalized.secondary.icon],
+    ['Success button text', normalized.success.background, normalized.success.text],
+    ['Success button icon', normalized.success.background, normalized.success.icon],
+    ['Revision button text', normalized.revision.background, normalized.revision.text],
+    ['Revision button icon', normalized.revision.background, normalized.revision.icon],
+    ['Danger button text', normalized.danger.background, normalized.danger.text],
+    ['Danger button icon', normalized.danger.background, normalized.danger.icon],
+    ['Hero inactive text', normalized.heroNavigation.inactiveBackground, normalized.heroNavigation.inactiveText],
+    ['Hero inactive icon', normalized.heroNavigation.inactiveBackground, normalized.heroNavigation.inactiveIcon],
+    ['Hero active text', normalized.heroNavigation.activeBackground, normalized.heroNavigation.activeText],
+    ['Search icon', normalized.search.background, normalized.search.icon],
+    ['Sidebar inactive text', normalized.sidebar.inactiveBackground === '#00000000' ? '#4d4c4d' : normalized.sidebar.inactiveBackground, normalized.sidebar.inactiveText],
+    ['Sidebar active text', normalized.sidebar.activeBackground, normalized.sidebar.activeText],
+    ['Sidebar active icon', normalized.sidebar.activeBackground, normalized.sidebar.activeIcon],
+  ]
+  for (const [label, background, foreground] of pairs) {
+    if (themeContrastRatio(background, foreground) < 3) warnings.push(`${label} may have insufficient contrast.`)
+  }
+  if (
+    themeColorDistance(normalized.heroNavigation.inactiveBackground, normalized.heroNavigation.activeBackground) < 24
+    && themeColorDistance(normalized.heroNavigation.inactiveText, normalized.heroNavigation.activeText) < 24
+    && themeColorDistance(normalized.heroNavigation.inactiveBorder, normalized.heroNavigation.activeBorder) < 24
+  ) {
+    warnings.push('Hero navigation active and inactive states may be difficult to distinguish.')
+  }
+  if (
+    themeColorDistance(normalized.sidebar.inactiveBackground, normalized.sidebar.activeBackground) < 24
+    && themeColorDistance(normalized.sidebar.inactiveText, normalized.sidebar.activeText) < 24
+  ) {
+    warnings.push('Sidebar active and inactive states may be difficult to distinguish.')
+  }
+  return Array.from(new Set(warnings))
+}
+
 const defaultWebsiteSettings = {
   siteName: 'Pharmacy Research Platform',
   adminPanelName: 'Pharmacy Research Platform Control Center',
@@ -549,6 +990,7 @@ const defaultWebsiteSettings = {
   adminWelcome: 'Manage website content, user access, deadlines, projects, database status, and audit activity from one admin control panel.',
   maintenanceNotice: '',
   assetUpdatedAt: '',
+  button_colors: cloneDefaultButtonColors(),
   roleHeroes: cloneRoleHeroDefaults(),
 }
 
@@ -793,6 +1235,7 @@ function getPdfReportSettingsForRole(role, roleSettings = {}, globalSettings = d
 
 function normalizeSettings(settings) {
   const next = { ...defaultWebsiteSettings, ...(settings || {}) }
+  next.button_colors = normalizeButtonColors(next.button_colors || next.buttonColors)
   next.roleHeroes = normalizeRoleHeroSettings(next.roleHeroes, next)
   return next
 }
@@ -895,7 +1338,7 @@ function optimizeImageFile(file, options = {}) {
   })
 }
 
-const adminPanelTabs = ['overview', 'branding', 'login-settings', 'about-us', 'users', 'supervisors', 'dual-roles', 'invitations', 'deadlines', 'notifications', 'reports', 'pdf-report', 'group-requests', 'database', 'audit', 'profile-settings']
+const adminPanelTabs = ['overview', 'branding', 'button-colors', 'login-settings', 'about-us', 'users', 'supervisors', 'dual-roles', 'invitations', 'deadlines', 'notifications', 'reports', 'pdf-report', 'group-requests', 'database', 'audit', 'profile-settings']
 
 const adminPanelPathAliases = {
   '': 'overview',
@@ -906,6 +1349,9 @@ const adminPanelPathAliases = {
   settings: 'branding',
   website: 'branding',
   'website-settings': 'branding',
+  buttons: 'button-colors',
+  'button-colors': 'button-colors',
+  'button-color-customization': 'button-colors',
   login: 'login-settings',
   'login-settings': 'login-settings',
   'about-us': 'about-us',
@@ -2764,8 +3210,41 @@ function triggerGuidelinesDownload() {
 function RoleFeatureSearch({ role = 'student', items = [], availableTabs = [], onNavigate }) {
   const [query, setQuery] = useState('')
   const [focused, setFocused] = useState(false)
+  const [isResultsOpen, setIsResultsOpen] = useState(false)
+  const searchRootRef = useRef(null)
+  const searchInputRef = useRef(null)
   const normalizedRole = normalizeRoleHeroRole(role)
-  if (!SEARCH_ENABLED_ROLES.includes(normalizedRole)) return null
+  const isSearchEnabled = SEARCH_ENABLED_ROLES.includes(normalizedRole)
+
+  useEffect(() => {
+    if (!isSearchEnabled) return undefined
+
+    function handleOutsidePointer(event) {
+      if (!searchRootRef.current?.contains(event.target)) {
+        setFocused(false)
+        setIsResultsOpen(false)
+      }
+    }
+
+    function handleEscape(event) {
+      if (event.key !== 'Escape') return
+      setIsResultsOpen(false)
+      setFocused(false)
+      searchInputRef.current?.blur()
+    }
+
+    document.addEventListener('mousedown', handleOutsidePointer)
+    document.addEventListener('touchstart', handleOutsidePointer, { passive: true })
+    document.addEventListener('keydown', handleEscape)
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsidePointer)
+      document.removeEventListener('touchstart', handleOutsidePointer)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [isSearchEnabled])
+
+  if (!isSearchEnabled) return null
   const availableTabSet = new Set([...(availableTabs || []), 'reports', 'about-us', 'profile-settings', 'research-workspace', 'dashboard'])
   const filteredItems = items.filter((item) => !item.requiresTabVisible || availableTabSet.has(item.tab))
   const trimmedQuery = query.trim()
@@ -2780,6 +3259,7 @@ function RoleFeatureSearch({ role = 'student', items = [], availableTabs = [], o
   function handleSelect(item) {
     setQuery('')
     setFocused(false)
+    setIsResultsOpen(false)
     if (item.action === 'download-guidelines') {
       triggerGuidelinesDownload()
       return
@@ -2800,27 +3280,101 @@ function RoleFeatureSearch({ role = 'student', items = [], availableTabs = [], o
     }
   }
 
+  function handleFeatureSearchSubmit(event) {
+    event.preventDefault()
+
+    if (!trimmedQuery) {
+      setIsResultsOpen(false)
+      searchInputRef.current?.focus()
+      return
+    }
+
+    setFocused(true)
+    setIsResultsOpen(true)
+    searchInputRef.current?.focus()
+  }
+
+  function handleQueryChange(event) {
+    const nextQuery = event.target.value
+    setQuery(nextQuery)
+    setFocused(true)
+    setIsResultsOpen(Boolean(nextQuery.trim()))
+  }
+
+  function handleInputKeyDown(event) {
+    if (event.key === 'ArrowDown' && isResultsOpen && results.length) {
+      event.preventDefault()
+      searchRootRef.current?.querySelector('.role-feature-search__result')?.focus()
+    }
+  }
+
+  function handleResultKeyDown(event, index) {
+    const resultButtons = Array.from(searchRootRef.current?.querySelectorAll('.role-feature-search__result') || [])
+    if (!resultButtons.length) return
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      resultButtons[(index + 1) % resultButtons.length]?.focus()
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      resultButtons[(index - 1 + resultButtons.length) % resultButtons.length]?.focus()
+    } else if (event.key === 'Home') {
+      event.preventDefault()
+      resultButtons[0]?.focus()
+    } else if (event.key === 'End') {
+      event.preventDefault()
+      resultButtons[resultButtons.length - 1]?.focus()
+    } else if (event.key === 'Escape') {
+      event.preventDefault()
+      setIsResultsOpen(false)
+      searchInputRef.current?.focus()
+    }
+  }
+
   return (
-    <div className={`role-feature-search role-feature-search-${normalizedRole}`}>
-      <div className={`role-feature-search__box ${focused ? 'is-focused' : ''}`}>
-        <Search size={18} aria-hidden="true" />
-        <input
-          type="search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => window.setTimeout(() => setFocused(false), 140)}
-          placeholder="Search pages, tools, and actions..."
-          aria-label="Search pages, tools, and actions"
-          autoComplete="off"
-        />
-        {query && (
-          <button type="button" className="role-feature-search__clear" onMouseDown={(event) => event.preventDefault()} onClick={() => setQuery('')} aria-label="Clear search"><XCircle size={17} /></button>
-        )}
-      </div>
-      {focused && trimmedQuery && (
-        <div className="role-feature-search__results" role="listbox" aria-label="Search results">
-          {results.length ? results.map((item) => {
+    <div ref={searchRootRef} className={`role-feature-search role-feature-search-${normalizedRole}`}>
+      <form className={`role-feature-search__box ${focused ? 'is-focused' : ''}`} onSubmit={handleFeatureSearchSubmit}>
+        <div className="role-feature-search__input-shell">
+          <input
+            ref={searchInputRef}
+            type="search"
+            value={query}
+            onChange={handleQueryChange}
+            onFocus={() => {
+              setFocused(true)
+              if (trimmedQuery) setIsResultsOpen(true)
+            }}
+            onKeyDown={handleInputKeyDown}
+            placeholder="Search pages, tools, and actions..."
+            className="role-feature-search__input"
+            aria-label="Search pages, tools, and actions"
+            aria-expanded={isResultsOpen && Boolean(trimmedQuery)}
+            aria-controls="role-feature-search-results"
+            autoComplete="off"
+          />
+          {query && (
+            <button
+              type="button"
+              className="role-feature-search__clear"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                setQuery('')
+                setIsResultsOpen(false)
+                searchInputRef.current?.focus()
+              }}
+              aria-label="Clear search"
+            >
+              <XCircle size={17} />
+            </button>
+          )}
+        </div>
+        <button type="submit" className="role-feature-search__button" aria-label="Search">
+          <Search aria-hidden="true" />
+        </button>
+      </form>
+      {isResultsOpen && trimmedQuery && (
+        <div id="role-feature-search-results" className="role-feature-search__results" role="listbox" aria-label="Search results">
+          {results.length ? results.map((item, index) => {
             const Icon = item.icon
             return (
               <button
@@ -2832,6 +3386,7 @@ function RoleFeatureSearch({ role = 'student', items = [], availableTabs = [], o
                 style={{ background: '#ffffff', backgroundColor: '#ffffff', backgroundImage: 'none', color: '#111827' }}
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => handleSelect(item)}
+                onKeyDown={(event) => handleResultKeyDown(event, index)}
                 role="option"
               >
                 <span className="role-feature-search__result-icon">{Icon ? <Icon size={17} /> : <Search size={17} />}</span>
@@ -3475,6 +4030,10 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', 'light')
     localStorage.removeItem('pharmatrack-theme')
   }, [])
+
+  useEffect(() => {
+    applyButtonColorCssVariables(websiteSettings.button_colors)
+  }, [websiteSettings.button_colors])
 
   useEffect(() => {
     loadWebsiteSettingsFromSupabase()
@@ -7828,7 +8387,7 @@ export default function App() {
 
         <RoleHeroBanner role={allowedRole} settings={websiteSettings} onNavigate={handleMainNavClick} navigationItems={mainNavItems} activeTab={tab} className="authenticated-role-hero" />
 
-        <main className={`app-content-panel ${tab === 'dashboard' ? 'empty-dashboard-content-panel' : ''}`}>
+        <main className={`app-content-panel ${tab === 'dashboard' && allowedRole === 'admin' ? 'empty-dashboard-content-panel' : ''} ${tab === 'dashboard' && allowedRole !== 'admin' ? 'role-dashboard-content-panel' : ''}`}>
         {message && tab !== 'dashboard' && <div className="message no-print">{message}</div>}
 
         {tab === 'dashboard' && roleContextReady && (
@@ -8744,6 +9303,159 @@ function UserProfileMenu({ currentUser, onLogout, onOpenProfile }) {
 }
 
 
+function ColorSettingField({ label, value, defaultValue, onChange, onReset }) {
+  const valid = isValidThemeHexColor(value)
+  return (
+    <div className={`button-color-setting-field${valid ? '' : ' is-invalid'}`}>
+      <div className="button-color-setting-label-row">
+        <span>{label}</span>
+        <span className="button-color-setting-preview" style={{ backgroundColor: valid ? value : '#ffffff' }} aria-hidden="true" />
+      </div>
+      <div className="button-color-setting-controls">
+        <input
+          className="button-color-picker"
+          type="color"
+          value={colorPickerValue(value)}
+          onChange={(event) => onChange(event.target.value)}
+          aria-label={`${label} color picker`}
+        />
+        <input
+          className="button-color-hex-input"
+          type="text"
+          value={value || ''}
+          onChange={(event) => onChange(event.target.value.trim())}
+          placeholder="#2563eb"
+          spellCheck="false"
+          aria-label={`${label} HEX value`}
+          aria-invalid={!valid}
+        />
+        <button type="button" className="button-color-field-reset" onClick={() => onReset(defaultValue)} aria-label={`Reset ${label}`} title={`Reset ${label}`}>
+          <RefreshCw size={14} />
+        </button>
+      </div>
+      {!valid && <small className="button-color-field-error">Use a valid 3-, 6-, or 8-digit HEX value.</small>}
+    </div>
+  )
+}
+
+function ButtonColorCustomizationPanel({
+  colors,
+  savedColors,
+  onChange,
+  onResetField,
+  onSave,
+  onResetPreview,
+  onRestoreDefaults,
+  loadingKey = '',
+  status = '',
+  error = '',
+}) {
+  const normalizedPreview = normalizeButtonColors(colors)
+  const contrastWarnings = getButtonColorContrastWarnings(colors)
+  const invalidFields = validateButtonColorValues(colors)
+  return (
+    <div className="button-color-customization-page admin-panel-stack">
+      <div className="card button-color-customization-intro">
+        <SectionHeader icon={Palette} title="Button Color Customization" subtitle="Control button backgrounds, text, icons, borders, hover states, active states, hero navigation, search, and sidebar colors across the entire platform" />
+        <div className="soft-box settings-note">
+          <b>Connected to the existing Website Settings system</b>
+          <p>These values are saved inside the existing <code>app_settings</code> website record through the current <code>save_website_settings</code> flow. No duplicate table, route, or permissions system is created.</p>
+        </div>
+        {error && <div className="button-color-message is-error" role="alert">{error}</div>}
+        {status && <div className="button-color-message is-success" role="status">{status}</div>}
+        {invalidFields.length > 0 && (
+          <div className="button-color-message is-error" role="alert">
+            <b>Invalid color values:</b> {invalidFields.join(', ')}
+          </div>
+        )}
+        {contrastWarnings.length > 0 && (
+          <div className="button-color-message is-warning" role="status">
+            <b>Contrast review:</b>
+            <ul>{contrastWarnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>
+          </div>
+        )}
+      </div>
+
+      <div className="button-color-editor-layout">
+        <div className="button-color-sections">
+          {BUTTON_COLOR_SECTIONS.map((section, sectionIndex) => (
+            <details className="card button-color-section" key={section.key} open={sectionIndex < 2 ? true : undefined}>
+              <summary>
+                <span><b>{section.title}</b><small>{section.description}</small></span>
+                <span className="button-color-section-count">{section.fields.length} colors</span>
+              </summary>
+              <div className="button-color-field-grid">
+                {section.fields.map(([fieldKey, label]) => (
+                  <ColorSettingField
+                    key={`${section.key}-${fieldKey}`}
+                    label={label}
+                    value={colors?.[section.key]?.[fieldKey] ?? DEFAULT_BUTTON_COLORS[section.key][fieldKey]}
+                    defaultValue={DEFAULT_BUTTON_COLORS[section.key][fieldKey]}
+                    onChange={(value) => onChange(section.key, fieldKey, value)}
+                    onReset={(value) => onResetField(section.key, fieldKey, value)}
+                  />
+                ))}
+              </div>
+            </details>
+          ))}
+        </div>
+
+        <aside className="card button-color-live-preview">
+          <SectionHeader icon={Eye} title="Live Preview" subtitle="Preview updates immediately. These buttons do not perform actions." />
+          <div className="button-color-preview-stack" style={{
+            '--preview-primary-bg': normalizedPreview.primary.background,
+            '--preview-primary-text': normalizedPreview.primary.text,
+            '--preview-primary-border': normalizedPreview.primary.border,
+          }}>
+            <button type="button" className="button-theme-preview button-theme-preview--primary"><Save size={16} /> Primary Button</button>
+            <button type="button" className="button-theme-preview button-theme-preview--secondary"><Eye size={16} /> Secondary Button</button>
+            <button type="button" className="button-theme-preview button-theme-preview--success"><CheckCircle2 size={16} /> Accept Button</button>
+            <button type="button" className="button-theme-preview button-theme-preview--revision"><RefreshCw size={16} /> Revision Button</button>
+            <button type="button" className="button-theme-preview button-theme-preview--danger"><XCircle size={16} /> Reject Button</button>
+            <button type="button" className="button-theme-preview" disabled><Lock size={16} /> Disabled Button</button>
+            <div className="button-theme-preview-group">
+              <span>Hero navigation</span>
+              <button type="button" className="hero-nav-button button-theme-preview-hero">Inactive</button>
+              <button type="button" className="hero-nav-button button-theme-preview-hero active" aria-current="page">Active</button>
+            </div>
+            <div className="button-theme-preview-group">
+              <span>Search</span>
+              <button type="button" className="role-feature-search__button button-theme-preview-search" aria-label="Search preview"><Search size={21} /></button>
+            </div>
+            <div className="button-theme-preview-sidebar">
+              <span>Sidebar</span>
+              <button type="button"><span className="side-nav-icon"><Settings size={16} /></span><span>Inactive item</span></button>
+              <button type="button" className="active"><span className="side-nav-icon"><Settings size={16} /></span><span>Active item</span></button>
+            </div>
+          </div>
+          <div className="button-color-saved-indicator">
+            <span className="button-color-setting-preview" style={{ background: savedColors?.primary?.background || DEFAULT_BUTTON_COLORS.primary.background }} />
+            <span><b>Last saved primary color</b><small>{savedColors?.primary?.background || DEFAULT_BUTTON_COLORS.primary.background}</small></span>
+          </div>
+        </aside>
+      </div>
+
+      <div className="card button-color-sticky-actions">
+        <div>
+          <b>Publish button colors</b>
+          <p>Saving updates the existing website settings record and makes the CSS variables available to every role after loading or refreshing the site.</p>
+        </div>
+        <div className="settings-actions compact-actions">
+          <button type="button" className="primary min-button-width" disabled={Boolean(loadingKey)} onClick={onSave}>
+            <ButtonContent loading={loadingKey === 'save-button-colors'} loadingText="Saving colors..." icon={Save}>Save Button Colors</ButtonContent>
+          </button>
+          <button type="button" className="secondary min-button-width" disabled={Boolean(loadingKey)} onClick={onResetPreview}>
+            <RefreshCw size={16} /> Reset Preview
+          </button>
+          <button type="button" className="danger min-button-width" disabled={Boolean(loadingKey)} onClick={onRestoreDefaults}>
+            <RefreshCw size={16} /> Restore Default Button Colors
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function AdminControlPanel({
   settings,
   aboutUsPage = defaultAboutUsPage,
@@ -8801,13 +9513,20 @@ function AdminControlPanel({
   const [brandingError, setBrandingError] = useState('')
   const [panelActionLoading, setPanelActionLoading] = useState('')
   const [selectedRoleHero, setSelectedRoleHero] = useState('student')
+  const [buttonColorStatus, setButtonColorStatus] = useState('')
+  const [buttonColorError, setButtonColorError] = useState('')
   useEffect(() => {
     setDraft(settings)
   }, [settings])
 
+  useEffect(() => {
+    applyButtonColorCssVariables(adminPanelTab === 'button-colors' ? draft.button_colors : settings.button_colors)
+  }, [adminPanelTab, draft.button_colors, settings.button_colors])
+
   const navItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'branding', label: 'Website Settings', icon: SlidersHorizontal },
+    { id: 'button-colors', label: 'Button Color Customization', icon: Palette },
     { id: 'login-settings', label: 'Login Page Settings', icon: Lock },
     { id: 'about-us', label: 'About Us Customization', icon: BookOpen },
     { id: 'users', label: 'Users & Roles', icon: Users },
@@ -8835,6 +9554,89 @@ function AdminControlPanel({
 
   function updateDraft(key, value) {
     setDraft((current) => ({ ...current, [key]: value }))
+  }
+
+
+  function updateButtonColorDraft(sectionKey, fieldKey, value) {
+    setButtonColorError('')
+    setButtonColorStatus('Preview updated. Save when you are satisfied with the colors.')
+    setDraft((current) => {
+      const currentColors = current.button_colors && typeof current.button_colors === 'object' ? current.button_colors : cloneDefaultButtonColors()
+      return {
+        ...current,
+        button_colors: {
+          ...currentColors,
+          [sectionKey]: {
+            ...DEFAULT_BUTTON_COLORS[sectionKey],
+            ...(currentColors[sectionKey] || {}),
+            [fieldKey]: value,
+          },
+        },
+      }
+    })
+  }
+
+  function resetButtonColorField(sectionKey, fieldKey, value) {
+    updateButtonColorDraft(sectionKey, fieldKey, value)
+    setButtonColorStatus('Field reset to the approved default. This is still a preview until saved.')
+  }
+
+  async function saveButtonColors() {
+    const invalid = validateButtonColorValues(draft.button_colors)
+    if (invalid.length) {
+      const errorText = `Please correct these invalid HEX values before saving: ${invalid.join(', ')}`
+      setButtonColorError(errorText)
+      await showAppAlert(errorText, { title: 'Invalid Button Colors', type: 'warning' })
+      return
+    }
+
+    const normalizedColors = normalizeButtonColors(draft.button_colors)
+    const warnings = getButtonColorContrastWarnings(normalizedColors)
+    if (warnings.length) {
+      const confirmed = await showAppConfirm(
+        `Some color combinations may be difficult to read:\n\n${warnings.slice(0, 8).join('\n')}\n\nSave these colors anyway?`,
+        { title: 'Contrast Warning', type: 'warning', confirmLabel: 'Save Anyway' },
+      )
+      if (!confirmed) return
+    }
+
+    const nextDraft = { ...draft, button_colors: normalizedColors }
+    setDraft(nextDraft)
+    setButtonColorError('')
+    const result = await updateSettings(nextDraft)
+    if (result?.ok) {
+      setButtonColorStatus('Button colors saved successfully and applied through the existing website-settings system.')
+      applyButtonColorCssVariables(result.settings?.button_colors || normalizedColors)
+    } else {
+      setButtonColorError('Button colors could not be saved globally. The current values remain available as a local preview.')
+    }
+  }
+
+  function resetButtonColorPreview() {
+    const saved = normalizeButtonColors(settings.button_colors)
+    setDraft((current) => ({ ...current, button_colors: saved }))
+    applyButtonColorCssVariables(saved)
+    setButtonColorError('')
+    setButtonColorStatus('Preview reset to the last saved button colors. No database change was made.')
+  }
+
+  async function restoreDefaultButtonColors() {
+    const confirmed = await showAppConfirm(
+      'Restore the approved default palette for all button categories? This will save the defaults globally after confirmation.',
+      { title: 'Restore Default Button Colors', type: 'warning', confirmLabel: 'Restore Defaults' },
+    )
+    if (!confirmed) return
+    const defaults = cloneDefaultButtonColors()
+    const nextDraft = { ...draft, button_colors: defaults }
+    setDraft(nextDraft)
+    applyButtonColorCssVariables(defaults)
+    const result = await updateSettings(nextDraft)
+    if (result?.ok) {
+      setButtonColorError('')
+      setButtonColorStatus('Default button colors restored and saved successfully.')
+    } else {
+      setButtonColorError('Default colors were restored in the preview, but the global save failed.')
+    }
   }
 
 
@@ -9059,7 +9861,7 @@ function AdminControlPanel({
       <main className="admin-panel-main">
         <header className="admin-panel-topbar no-print">
           <div>
-            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'about-us' ? 'About Us Customization' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'supervisors' ? 'Supervisor Management' : adminPanelTab === 'dual-roles' ? 'Dual Role Management' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Inbox' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'pdf-report' ? 'PDF Report Customization' : adminPanelTab === 'group-requests' ? 'Group Join Requests' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : adminPanelTab === 'profile-settings' ? 'Profile Settings' : 'Control Center'}</h1>
+            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'button-colors' ? 'Button Color Customization' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'about-us' ? 'About Us Customization' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'supervisors' ? 'Supervisor Management' : adminPanelTab === 'dual-roles' ? 'Dual Role Management' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Inbox' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'pdf-report' ? 'PDF Report Customization' : adminPanelTab === 'group-requests' ? 'Group Join Requests' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : adminPanelTab === 'profile-settings' ? 'Profile Settings' : 'Control Center'}</h1>
             {adminPanelTab !== 'overview' && <p>{settings.adminWelcome}</p>}
           </div>
           <div className="admin-topbar-actions">
@@ -9153,6 +9955,22 @@ function AdminControlPanel({
               })()}
             </div>
           </div>
+        )}
+
+
+        {adminPanelTab === 'button-colors' && (
+          <ButtonColorCustomizationPanel
+            colors={draft.button_colors || cloneDefaultButtonColors()}
+            savedColors={normalizeButtonColors(settings.button_colors)}
+            onChange={updateButtonColorDraft}
+            onResetField={resetButtonColorField}
+            onSave={() => runPanelAction('save-button-colors', saveButtonColors)}
+            onResetPreview={resetButtonColorPreview}
+            onRestoreDefaults={() => runPanelAction('restore-button-colors', restoreDefaultButtonColors)}
+            loadingKey={panelActionLoading}
+            status={buttonColorStatus}
+            error={buttonColorError}
+          />
         )}
 
         {adminPanelTab === 'login-settings' && (
@@ -9807,8 +10625,109 @@ function DashboardOverviewCard({ icon: Icon, title, children, action }) {
   )
 }
 
-function RoleDashboardOverview() {
-  return null
+function RoleDashboardOverview({ role = 'student', onNavigate }) {
+  if (role === 'admin') return null
+
+  const cardsByRole = {
+    student: [
+      {
+        icon: BookOpen,
+        title: 'Your Research Workspace',
+        description: 'Keep weekly reports, project progress, deadlines, and supervisor feedback together in one focused workspace.',
+        buttonLabel: 'Open workspace',
+        tab: 'research-workspace',
+      },
+      {
+        icon: MessageSquareText,
+        title: 'Questions and Guidance',
+        description: 'Ask research questions, review replies, and keep important guidance from your supervisor easy to find.',
+        buttonLabel: 'Open questions',
+        tab: 'questions',
+      },
+      {
+        icon: CalendarDays,
+        title: 'Plan a Supervisor Meeting',
+        description: 'Send a meeting request, follow its status, and keep upcoming research discussions organized.',
+        buttonLabel: 'View meeting requests',
+        tab: 'meetings',
+      },
+    ],
+    supervisor: [
+      {
+        icon: BookOpen,
+        title: 'Supervision Workspace',
+        description: 'Review weekly progress, provide feedback, manage deadlines, and follow each supervised project in one place.',
+        buttonLabel: 'Open workspace',
+        tab: 'research-workspace',
+      },
+      {
+        icon: ClipboardCheck,
+        title: 'Manage Research Projects',
+        description: 'Create, update, and organize supervised research projects while keeping every project record accessible.',
+        buttonLabel: 'Manage projects',
+        tab: 'project-management',
+      },
+      {
+        icon: MessageSquareText,
+        title: 'Support Your Students',
+        description: 'Review student questions and provide clear research guidance without losing the discussion history.',
+        buttonLabel: 'Open student questions',
+        tab: 'questions',
+      },
+    ],
+    committee: [
+      {
+        icon: ClipboardCheck,
+        title: 'Review Research Submissions',
+        description: 'Open submitted projects, examine their information, and complete committee review decisions.',
+        buttonLabel: 'Start reviewing',
+        tab: 'research-workspace',
+        sectionId: 'review-project-submissions',
+      },
+      {
+        icon: Users,
+        title: 'Research Group Requests',
+        description: 'Review group membership requests and help place eligible students into the correct research groups.',
+        buttonLabel: 'View group requests',
+        tab: 'group-requests',
+      },
+      {
+        icon: Printer,
+        title: 'Committee Reports',
+        description: 'Open the reporting area to review, prepare, and print role-appropriate research information.',
+        buttonLabel: 'Open reports',
+        tab: 'reports',
+      },
+    ],
+  }
+
+  const cards = cardsByRole[role] || cardsByRole.student
+
+  return (
+    <section className="role-dashboard-feature-section" aria-label={`${getRoleLabel(role)} dashboard shortcuts`}>
+      <div className="role-dashboard-feature-grid">
+        {cards.map((card) => {
+          const Icon = card.icon
+          return (
+            <article className="role-dashboard-feature-card" key={`${role}-${card.title}`}>
+              <div className="role-dashboard-feature-icon" aria-hidden="true">
+                <Icon />
+              </div>
+              <h2>{card.title}</h2>
+              <p>{card.description}</p>
+              <button
+                type="button"
+                className="role-dashboard-feature-button"
+                onClick={() => onNavigate?.(card.tab, card.sectionId || '')}
+              >
+                {card.buttonLabel}
+              </button>
+            </article>
+          )
+        })}
+      </div>
+    </section>
+  )
 }
 
 function ResearchWorkspaceShell({ role = 'student', children }) {
