@@ -9248,6 +9248,15 @@ export default function App() {
             </button>
           </div>
           <div className="main-header-actions">
+            <NotificationBellMenu
+              data={data}
+              role={allowedRole}
+              currentUser={currentUser}
+              dataLoading={dataLoading}
+              unreadCount={stats.unread}
+              markNotificationRead={markNotificationRead}
+              removeNotification={removeNotification}
+            />
             {(isAdminBaseRole || committeeSupervisorAccess) && (
               <RoleSwitchDropdown
                 activeRole={allowedRole}
@@ -9258,17 +9267,6 @@ export default function App() {
             <UserProfileMenu currentUser={currentUser} onLogout={logout} onOpenProfile={() => handleMainNavClick('profile-settings')} />
           </div>
         </header>
-
-        <NotificationBellMenu
-          data={data}
-          role={allowedRole}
-          currentUser={currentUser}
-          dataLoading={dataLoading}
-          unreadCount={stats.unread}
-          markNotificationRead={markNotificationRead}
-          removeNotification={removeNotification}
-          showTrigger={false}
-        />
 
         <RoleHeroBanner role={allowedRole} settings={websiteSettings} onNavigate={handleMainNavClick} navigationItems={mainNavItems} activeTab={tab} className="authenticated-role-hero" />
 
@@ -9854,7 +9852,6 @@ function NotificationBellMenu({ data, role, currentUser, dataLoading = false, un
           aria-label="Open inbox"
           aria-expanded={open}
         >
-          <span className="notification-icon" aria-hidden="true"><InboxTrayIcon size={18} /></span>
           <strong className="inbox-button-label">Inbox</strong>
           {unreadCount > 0 && <span className="inbox-unread-count notification-badge">{unreadCount}</span>}
         </button>
