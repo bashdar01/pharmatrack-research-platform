@@ -25609,8 +25609,6 @@ html body #root .role-feature-search__clear:focus-visible {
 
 .public-section-heading h2,
 .public-benefits-intro h2,
-.public-about-copy h2,
-.public-contact-copy h2,
 .public-cta-section h2,
 .public-legal-card h1 {
   margin: 0;
@@ -25622,8 +25620,7 @@ html body #root .role-feature-search__clear:focus-visible {
 }
 
 .public-section-heading > p:not(.public-section-kicker),
-.public-benefits-intro > p:not(.public-section-kicker),
-.public-contact-copy > p:not(.public-section-kicker) {
+.public-benefits-intro > p:not(.public-section-kicker) {
   margin: 19px auto 0;
   color: #60778a;
   font-size: 1.02rem;
@@ -25823,142 +25820,6 @@ html body #root .role-feature-search__clear:focus-visible {
   margin: 0 0 7px;
 }
 
-.public-about-section {
-  display: grid;
-  grid-template-columns: minmax(360px, 0.9fr) minmax(0, 1.1fr);
-  align-items: center;
-  gap: 75px;
-}
-
-.public-about-media {
-  min-height: 480px;
-  border-radius: 27px;
-  overflow: hidden;
-  background: linear-gradient(135deg, #0b3441, #0d9488);
-  box-shadow: 0 25px 65px rgba(17, 57, 70, 0.16);
-}
-
-.public-about-media img {
-  width: 100%;
-  height: 100%;
-  min-height: 480px;
-  object-fit: cover;
-}
-
-.public-about-placeholder {
-  min-height: 480px;
-  padding: 40px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 22px;
-  color: #ffffff;
-  text-align: center;
-}
-
-.public-about-placeholder span {
-  font-size: 1.3rem;
-  font-weight: 850;
-}
-
-.public-about-subtitle {
-  margin: 14px 0 0;
-  color: #087f78;
-  font-size: 1.05rem;
-  font-weight: 800;
-}
-
-.public-about-rich-content {
-  margin-top: 23px;
-  color: #566f81;
-  font-size: 0.98rem;
-  line-height: 1.75;
-}
-
-.public-about-rich-content h1,
-.public-about-rich-content h2,
-.public-about-rich-content h3,
-.public-about-rich-content h4 {
-  color: #1b3549;
-}
-
-.public-about-rich-content img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 15px;
-}
-
-.public-about-guidelines {
-  width: fit-content;
-  margin-top: 23px;
-  border-color: #c3ddd9;
-  background: #ffffff;
-  color: #087f78;
-}
-
-.public-about-guidelines:hover,
-.public-about-guidelines:focus-visible {
-  background: #eaf8f6;
-  color: #076e69;
-}
-
-.public-contact-section {
-  width: 100%;
-  max-width: none;
-  padding-inline: max(32px, calc((100vw - 1260px) / 2));
-  background: #ffffff;
-  display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(420px, 1.2fr);
-  align-items: center;
-  gap: 74px;
-}
-
-.public-contact-card {
-  padding: 28px;
-  border: 1px solid #dceae9;
-  border-radius: 22px;
-  background: #f7fbfb;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 13px;
-}
-
-.public-contact-card > div,
-.public-contact-card > a {
-  min-height: 94px;
-  padding: 18px;
-  border: 1px solid #dfebea;
-  border-radius: 15px;
-  background: #ffffff;
-  color: #335066;
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  text-decoration: none;
-}
-
-.public-contact-card svg {
-  flex: 0 0 auto;
-  color: #0d9488;
-}
-
-.public-contact-card span {
-  min-width: 0;
-  font-size: 0.86rem;
-  font-weight: 750;
-  overflow-wrap: anywhere;
-}
-
-.public-contact-card small {
-  display: block;
-  margin-bottom: 4px;
-  color: #718595;
-  font-size: 0.72rem;
-  font-weight: 750;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
 
 .public-cta-section {
   width: min(1260px, calc(100% - 64px));
@@ -26215,9 +26076,7 @@ html body #root .role-feature-search__clear:focus-visible {
     min-height: 470px;
   }
 
-  .public-benefits-section,
-  .public-about-section,
-  .public-contact-section {
+  .public-benefits-section {
     grid-template-columns: 1fr;
     gap: 45px;
   }
@@ -26310,8 +26169,7 @@ html body #root .role-feature-search__clear:focus-visible {
   }
 
   .public-workflow-section,
-  .public-benefits-section,
-  .public-contact-section {
+  .public-benefits-section {
     width: 100%;
     padding-inline: 15px;
   }
@@ -26319,8 +26177,7 @@ html body #root .role-feature-search__clear:focus-visible {
   .public-feature-grid,
   .public-role-grid,
   .public-workflow-list,
-  .public-benefit-grid,
-  .public-contact-card {
+  .public-benefit-grid {
     grid-template-columns: 1fr;
   }
 
@@ -26329,11 +26186,6 @@ html body #root .role-feature-search__clear:focus-visible {
     min-height: 0;
   }
 
-  .public-about-media,
-  .public-about-media img,
-  .public-about-placeholder {
-    min-height: 340px;
-  }
 
   .public-cta-section {
     margin-bottom: 75px;

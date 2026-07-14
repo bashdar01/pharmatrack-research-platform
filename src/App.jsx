@@ -4458,8 +4458,6 @@ const PUBLIC_SECTION_ROUTES = {
   '/features': 'features',
   '/how-it-works': 'how-it-works',
   '/roles': 'roles',
-  '/about-us': 'about-us',
-  '/contact': 'contact',
 }
 
 const PUBLIC_PATHS = new Set([
@@ -4467,8 +4465,6 @@ const PUBLIC_PATHS = new Set([
   '/features',
   '/how-it-works',
   '/roles',
-  '/about-us',
-  '/contact',
   '/privacy',
   '/terms',
 ])
@@ -4510,9 +4506,7 @@ function PublicHeader({ settings = defaultWebsiteSettings }) {
           <a href="/features" onClick={closeMenu}>Features</a>
           <a href="/how-it-works" onClick={closeMenu}>How It Works</a>
           <a href="/roles" onClick={closeMenu}>Roles</a>
-          <a href="/about-us" onClick={closeMenu}>About Us</a>
           <a href={RESEARCH_GUIDELINES_PDF_URL} download={RESEARCH_GUIDELINES_DOWNLOAD_NAME} onClick={closeMenu}>Research Guidelines</a>
-          <a href="/contact" onClick={closeMenu}>Contact</a>
           <a className="public-nav-signin" href="/login" onClick={closeMenu}>Sign In</a>
           <a className="public-nav-start" href="/register" onClick={closeMenu}>Get Started</a>
         </nav>
@@ -4538,12 +4532,10 @@ function PublicFooter({ settings = defaultWebsiteSettings }) {
           <a href="/features">Features</a>
           <a href="/how-it-works">How It Works</a>
           <a href="/roles">Roles</a>
-          <a href="/about-us">About Us</a>
         </div>
         <div>
           <h3>Resources</h3>
           <a href={RESEARCH_GUIDELINES_PDF_URL} download={RESEARCH_GUIDELINES_DOWNLOAD_NAME}>Research Guidelines</a>
-          <a href="/contact">Contact</a>
           <a href="/privacy">Privacy Policy</a>
           <a href="/terms">Terms of Use</a>
         </div>
@@ -4575,8 +4567,6 @@ function PublicLegalPage({ type, settings }) {
               <p>The Research Management Platform uses account and research-workflow information only to provide its secure academic services. Protected project, report, meeting, and user information is available only after authentication and according to assigned permissions.</p>
               <h2>Information and access</h2>
               <p>Public pages provide general platform information only. Authenticated information remains protected by the platform’s existing authentication, permissions, and database security policies.</p>
-              <h2>Questions</h2>
-              <p>For questions about privacy or institutional data handling, contact Hawler Medical University through the contact information provided on this website.</p>
             </>
           ) : (
             <>
@@ -4595,13 +4585,8 @@ function PublicLegalPage({ type, settings }) {
   )
 }
 
-function PublicHomepage({ settings = defaultWebsiteSettings, aboutUsPage = defaultAboutUsPage }) {
-  const normalizedAbout = normalizeAboutUsPage(aboutUsPage)
+function PublicHomepage({ settings = defaultWebsiteSettings }) {
   const heroImage = settingImageUrl(settings.heroImage, '/hero-page.png', settings.assetUpdatedAt)
-  const contactData = normalizedAbout.content_json || {}
-  const contactEmail = String(contactData.contact_email || contactData.email || '').trim()
-  const contactPhone = String(contactData.contact_phone || contactData.phone || '').trim()
-  const contactAddress = String(contactData.contact_address || contactData.address || 'Hawler Medical University, College of Pharmacy, Erbil, Kurdistan Region').trim()
   const publicHeadline = settings.homepageHeadline && settings.homepageHeadline !== defaultWebsiteSettings.homepageHeadline
     ? settings.homepageHeadline
     : 'Manage the Complete Research Journey in One Platform'
@@ -4769,33 +4754,6 @@ function PublicHomepage({ settings = defaultWebsiteSettings, aboutUsPage = defau
           </div>
         </section>
 
-        <section className="public-section public-about-section" id="about-us">
-          <div className="public-about-media">
-            {normalizedAbout.image_url ? <img src={normalizedAbout.image_url} alt={normalizedAbout.title} /> : <div className="public-about-placeholder"><Building2 size={56} /><span>Hawler Medical University</span></div>}
-          </div>
-          <article className="public-about-copy">
-            <p className="public-section-kicker"><Info size={17} /> About Us</p>
-            <h2>{normalizedAbout.title}</h2>
-            {normalizedAbout.subtitle && <p className="public-about-subtitle">{normalizedAbout.subtitle}</p>}
-            <div className="public-about-rich-content" dangerouslySetInnerHTML={{ __html: normalizedAbout.content_html }} />
-            <a className="public-secondary-action public-about-guidelines" href={RESEARCH_GUIDELINES_PDF_URL} download={RESEARCH_GUIDELINES_DOWNLOAD_NAME}><Download size={17} /> Download Research Guidelines</a>
-          </article>
-        </section>
-
-        <section className="public-section public-contact-section" id="contact">
-          <div className="public-contact-copy">
-            <p className="public-section-kicker"><Mail size={17} /> Contact</p>
-            <h2>Contact the University</h2>
-            <p>For institutional enquiries about the Research Management Platform, contact Hawler Medical University or the College of Pharmacy through the available university channels.</p>
-          </div>
-          <div className="public-contact-card">
-            <div><Building2 size={21} /><span><small>Institution</small>Hawler Medical University – College of Pharmacy</span></div>
-            <div><Info size={21} /><span><small>Address</small>{contactAddress}</span></div>
-            {contactEmail && <a href={`mailto:${contactEmail}`}><Mail size={21} /><span><small>Email</small>{contactEmail}</span></a>}
-            {contactPhone && <a href={`tel:${contactPhone.replace(/\s+/g, '')}`}><Clock size={21} /><span><small>Phone</small>{contactPhone}</span></a>}
-            <a href="https://hmu.edu.krd/" target="_blank" rel="noopener noreferrer"><GraduationCap size={21} /><span><small>University website</small>Visit Hawler Medical University</span></a>
-          </div>
-        </section>
 
         <section className="public-cta-section">
           <div>
@@ -9445,7 +9403,7 @@ export default function App() {
       if (publicPath === '/privacy' || publicPath === '/terms') {
         return <><PublicLegalPage type={publicPath === '/privacy' ? 'privacy' : 'terms'} settings={websiteSettings} /><AppDialog dialog={appDialog} onClose={closeAppDialog} /></>
       }
-      return <><PublicHomepage settings={websiteSettings} aboutUsPage={aboutUsPage} /><AppDialog dialog={appDialog} onClose={closeAppDialog} /></>
+      return <><PublicHomepage settings={websiteSettings} /><AppDialog dialog={appDialog} onClose={closeAppDialog} /></>
     }
 
     const loginMode = acceptedInvitation || hasInvitationToken || (!isAdminPortal && publicPath === '/register') ? 'register' : 'login'
