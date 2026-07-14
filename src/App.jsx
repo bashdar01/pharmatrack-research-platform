@@ -583,17 +583,6 @@ const DEFAULT_BUTTON_COLORS = {
     hoverBackground: '#0b7480',
     border: '#0b7480',
   },
-  sidebar: {
-    inactiveBackground: '#00000000',
-    inactiveText: '#ffffff',
-    inactiveIcon: '#ffffff',
-    hoverBackground: '#ffffff',
-    hoverText: '#2563eb',
-    activeBackground: '#ffffff',
-    activeText: '#2563eb',
-    activeIcon: '#2563eb',
-    border: '#00000000',
-  },
 }
 
 const BUTTON_COLOR_SECTIONS = [
@@ -706,22 +695,6 @@ const BUTTON_COLOR_SECTIONS = [
       ['border', 'Search button border'],
     ],
   },
-  {
-    key: 'sidebar',
-    title: 'Sidebar buttons',
-    description: 'Inactive, hover, and active utility navigation items in the role and Admin sidebars.',
-    fields: [
-      ['inactiveBackground', 'Sidebar inactive background'],
-      ['inactiveText', 'Sidebar inactive text'],
-      ['inactiveIcon', 'Sidebar inactive icon'],
-      ['hoverBackground', 'Sidebar hover background'],
-      ['hoverText', 'Sidebar hover text'],
-      ['activeBackground', 'Sidebar active background'],
-      ['activeText', 'Sidebar active text'],
-      ['activeIcon', 'Sidebar active icon'],
-      ['border', 'Sidebar inactive border'],
-    ],
-  },
 ]
 
 const BUTTON_COLOR_CSS_VARIABLES = {
@@ -794,17 +767,400 @@ const BUTTON_COLOR_CSS_VARIABLES = {
     hoverBackground: '--search-btn-hover-bg',
     border: '--search-btn-border',
   },
-  sidebar: {
-    inactiveBackground: '--sidebar-btn-inactive-bg',
-    inactiveText: '--sidebar-btn-inactive-text',
-    inactiveIcon: '--sidebar-btn-inactive-icon',
-    hoverBackground: '--sidebar-btn-hover-bg',
-    hoverText: '--sidebar-btn-hover-text',
-    activeBackground: '--sidebar-btn-active-bg',
-    activeText: '--sidebar-btn-active-text',
-    activeIcon: '--sidebar-btn-active-icon',
-    border: '--sidebar-btn-border',
+}
+
+
+const DEFAULT_INTERFACE_COLORS = {
+  topHeader: {
+    background: '#ffffff',
+    text: '#1f2937',
+    icon: '#1f2937',
+    border: '#e5e7eb',
+    shadow: 'rgba(15, 23, 42, 0.08)',
+    buttonBackground: '#ffffff',
+    buttonText: '#1f2937',
+    buttonIcon: '#1f2937',
+    buttonHoverBackground: '#f3f4f6',
+    buttonHoverText: '#111827',
+    hamburgerBackground: '#2563eb',
+    hamburgerIcon: '#ffffff',
+    inboxTriggerBackground: '#ffffff',
+    inboxTriggerIcon: '#2563eb',
+    roleDropdownBackground: '#ffffff',
+    roleDropdownText: '#1f2937',
+    avatarBackground: '#dbeafe',
+    avatarText: '#1e3a8a',
   },
+  sidebar: {
+    background: '#292829',
+    secondaryBackground: '#292829',
+    border: 'rgba(255, 255, 255, 0.12)',
+    shadow: 'rgba(15, 23, 42, 0.18)',
+    text: '#ffffff',
+    icon: '#ffffff',
+    inactiveBackground: 'rgba(255, 255, 255, 0.10)',
+    inactiveText: '#ffffff',
+    inactiveIcon: '#ffffff',
+    hoverBackground: '#ffffff',
+    hoverText: '#4d4c4d',
+    hoverIcon: '#4d4c4d',
+    activeBackground: '#ffffff',
+    activeText: '#4d4c4d',
+    activeIcon: '#4d4c4d',
+    utilityBackground: 'rgba(255, 255, 255, 0.10)',
+    utilityText: '#ffffff',
+    closeButtonBackground: 'rgba(255, 255, 255, 0.12)',
+    closeButtonIcon: '#ffffff',
+    scrollbarTrack: 'transparent',
+    scrollbarThumb: 'rgba(255, 255, 255, 0.35)',
+  },
+  inbox: {
+    popupBackground: '#ffffff',
+    headerBackground: '#ffffff',
+    titleText: '#111827',
+    text: '#374151',
+    secondaryText: '#6b7280',
+    icon: '#2563eb',
+    border: '#e5e7eb',
+    shadow: 'rgba(15, 23, 42, 0.20)',
+    unreadBackground: '#eff6ff',
+    unreadText: '#1f2937',
+    readBackground: '#ffffff',
+    readText: '#4b5563',
+    hoverBackground: '#f8fafc',
+    badgeBackground: '#dc2626',
+    badgeText: '#ffffff',
+    unreadIndicator: '#2563eb',
+    emptyBackground: '#f9fafb',
+    emptyText: '#6b7280',
+    markReadBackground: '#f3f4f6',
+    markReadText: '#374151',
+    deleteBackground: '#fef2f2',
+    deleteText: '#b91c1c',
+    closeBackground: '#ffffff',
+    closeIcon: '#4b5563',
+  },
+}
+
+const INTERFACE_COLOR_SECTIONS = [
+  {
+    key: 'topHeader',
+    title: 'Top Header Colors',
+    description: 'Authenticated header, mobile hamburger, Inbox trigger, role switcher, profile avatar, and header utility controls.',
+    fields: [
+      ['background', 'Header background'],
+      ['text', 'Header text color'],
+      ['icon', 'Header icon color'],
+      ['buttonBackground', 'Header button background'],
+      ['buttonText', 'Header button text color'],
+      ['buttonIcon', 'Header button icon color'],
+      ['buttonHoverBackground', 'Header button hover background'],
+      ['buttonHoverText', 'Header button hover text'],
+      ['border', 'Header border color'],
+      ['shadow', 'Header shadow color'],
+      ['hamburgerBackground', 'Hamburger button background'],
+      ['hamburgerIcon', 'Hamburger icon color'],
+      ['inboxTriggerBackground', 'Inbox trigger background'],
+      ['inboxTriggerIcon', 'Inbox trigger icon color'],
+      ['roleDropdownBackground', 'Role dropdown background'],
+      ['roleDropdownText', 'Role dropdown text color'],
+      ['avatarBackground', 'Profile / avatar background'],
+      ['avatarText', 'Profile / avatar text color'],
+    ],
+  },
+  {
+    key: 'sidebar',
+    title: 'Sidebar Colors',
+    description: 'Complete role and Admin Subdomain sidebar appearance, navigation states, utility controls, close button, and scrollbar.',
+    fields: [
+      ['background', 'Sidebar main background'],
+      ['secondaryBackground', 'Sidebar secondary background'],
+      ['border', 'Sidebar border color'],
+      ['shadow', 'Sidebar shadow color'],
+      ['text', 'Sidebar text color'],
+      ['icon', 'Sidebar icon color'],
+      ['inactiveBackground', 'Sidebar inactive item background'],
+      ['inactiveText', 'Sidebar inactive item text'],
+      ['inactiveIcon', 'Sidebar inactive item icon'],
+      ['hoverBackground', 'Sidebar hover background'],
+      ['hoverText', 'Sidebar hover text'],
+      ['hoverIcon', 'Sidebar hover icon'],
+      ['activeBackground', 'Sidebar active background'],
+      ['activeText', 'Sidebar active text'],
+      ['activeIcon', 'Sidebar active icon'],
+      ['utilityBackground', 'Sidebar utility button background'],
+      ['utilityText', 'Sidebar utility button text'],
+      ['closeButtonBackground', 'Sidebar close button background'],
+      ['closeButtonIcon', 'Sidebar close X icon color'],
+      ['scrollbarTrack', 'Sidebar scrollbar track'],
+      ['scrollbarThumb', 'Sidebar scrollbar thumb'],
+    ],
+  },
+  {
+    key: 'inbox',
+    title: 'Inbox Colors',
+    description: 'Existing Inbox popup, message states, unread badge, text, indicators, action buttons, close button, and empty state.',
+    fields: [
+      ['popupBackground', 'Inbox popup background'],
+      ['headerBackground', 'Inbox header background'],
+      ['titleText', 'Inbox title text'],
+      ['text', 'Inbox normal text'],
+      ['secondaryText', 'Inbox secondary / date text'],
+      ['icon', 'Inbox icon color'],
+      ['border', 'Inbox border'],
+      ['shadow', 'Inbox shadow color'],
+      ['unreadBackground', 'Inbox unread item background'],
+      ['unreadText', 'Inbox unread item text'],
+      ['readBackground', 'Inbox read item background'],
+      ['readText', 'Inbox read item text'],
+      ['hoverBackground', 'Inbox item hover background'],
+      ['badgeBackground', 'Unread count badge background'],
+      ['badgeText', 'Unread count badge text'],
+      ['unreadIndicator', 'Unread indicator color'],
+      ['emptyBackground', 'Empty-state background'],
+      ['emptyText', 'Empty-state text'],
+      ['markReadBackground', 'Mark as Read button background'],
+      ['markReadText', 'Mark as Read button text'],
+      ['deleteBackground', 'Delete button background'],
+      ['deleteText', 'Delete button text'],
+      ['closeBackground', 'Close button background'],
+      ['closeIcon', 'Close X icon color'],
+    ],
+  },
+]
+
+const INTERFACE_COLOR_CSS_VARIABLES = {
+  topHeader: {
+    background: '--top-header-bg',
+    text: '--top-header-text',
+    icon: '--top-header-icon',
+    border: '--top-header-border',
+    shadow: '--top-header-shadow',
+    buttonBackground: '--top-header-button-bg',
+    buttonText: '--top-header-button-text',
+    buttonIcon: '--top-header-button-icon',
+    buttonHoverBackground: '--top-header-button-hover-bg',
+    buttonHoverText: '--top-header-button-hover-text',
+    hamburgerBackground: '--top-header-hamburger-bg',
+    hamburgerIcon: '--top-header-hamburger-icon',
+    inboxTriggerBackground: '--top-header-inbox-trigger-bg',
+    inboxTriggerIcon: '--top-header-inbox-trigger-icon',
+    roleDropdownBackground: '--top-header-role-dropdown-bg',
+    roleDropdownText: '--top-header-role-dropdown-text',
+    avatarBackground: '--top-header-avatar-bg',
+    avatarText: '--top-header-avatar-text',
+  },
+  sidebar: {
+    background: '--sidebar-bg',
+    secondaryBackground: '--sidebar-secondary-bg',
+    border: '--sidebar-border',
+    shadow: '--sidebar-shadow',
+    text: '--sidebar-text',
+    icon: '--sidebar-icon',
+    inactiveBackground: '--sidebar-inactive-bg',
+    inactiveText: '--sidebar-inactive-text',
+    inactiveIcon: '--sidebar-inactive-icon',
+    hoverBackground: '--sidebar-hover-bg',
+    hoverText: '--sidebar-hover-text',
+    hoverIcon: '--sidebar-hover-icon',
+    activeBackground: '--sidebar-active-bg',
+    activeText: '--sidebar-active-text',
+    activeIcon: '--sidebar-active-icon',
+    utilityBackground: '--sidebar-utility-bg',
+    utilityText: '--sidebar-utility-text',
+    closeButtonBackground: '--sidebar-close-bg',
+    closeButtonIcon: '--sidebar-close-icon',
+    scrollbarTrack: '--sidebar-scrollbar-track',
+    scrollbarThumb: '--sidebar-scrollbar-thumb',
+  },
+  inbox: {
+    popupBackground: '--inbox-popup-bg',
+    headerBackground: '--inbox-header-bg',
+    titleText: '--inbox-title-text',
+    text: '--inbox-text',
+    secondaryText: '--inbox-secondary-text',
+    icon: '--inbox-icon',
+    border: '--inbox-border',
+    shadow: '--inbox-shadow',
+    unreadBackground: '--inbox-unread-bg',
+    unreadText: '--inbox-unread-text',
+    readBackground: '--inbox-read-bg',
+    readText: '--inbox-read-text',
+    hoverBackground: '--inbox-hover-bg',
+    badgeBackground: '--inbox-badge-bg',
+    badgeText: '--inbox-badge-text',
+    unreadIndicator: '--inbox-unread-indicator',
+    emptyBackground: '--inbox-empty-bg',
+    emptyText: '--inbox-empty-text',
+    markReadBackground: '--inbox-mark-read-bg',
+    markReadText: '--inbox-mark-read-text',
+    deleteBackground: '--inbox-delete-bg',
+    deleteText: '--inbox-delete-text',
+    closeBackground: '--inbox-close-bg',
+    closeIcon: '--inbox-close-icon',
+  },
+}
+
+const INTERFACE_COLOR_SECTION_ALIASES = {
+  topHeader: ['topHeader', 'top_header', 'header', 'authenticatedHeader'],
+  sidebar: ['sidebar', 'sideBar', 'navigationSidebar'],
+  inbox: ['inbox', 'notifications', 'notificationDropdown', 'notification_dropdown'],
+}
+
+const INTERFACE_COLOR_FIELD_ALIASES = {
+  background: ['background', 'backgroundColor', 'bg'],
+  secondaryBackground: ['secondaryBackground', 'secondaryBackgroundColor', 'gradientEnd', 'secondaryBg'],
+  text: ['text', 'textColor', 'color', 'foreground'],
+  icon: ['icon', 'iconColor'],
+  border: ['border', 'borderColor'],
+  shadow: ['shadow', 'shadowColor'],
+  buttonBackground: ['buttonBackground', 'buttonBg'],
+  buttonText: ['buttonText', 'buttonTextColor'],
+  buttonIcon: ['buttonIcon', 'buttonIconColor'],
+  buttonHoverBackground: ['buttonHoverBackground', 'buttonHoverBg', 'hoverBackground'],
+  buttonHoverText: ['buttonHoverText', 'buttonHoverTextColor', 'hoverText'],
+  hamburgerBackground: ['hamburgerBackground', 'hamburgerBg'],
+  hamburgerIcon: ['hamburgerIcon', 'hamburgerIconColor'],
+  inboxTriggerBackground: ['inboxTriggerBackground', 'inboxButtonBackground', 'inboxTriggerBg'],
+  inboxTriggerIcon: ['inboxTriggerIcon', 'inboxButtonIcon', 'inboxTriggerIconColor'],
+  roleDropdownBackground: ['roleDropdownBackground', 'roleDropdownBg'],
+  roleDropdownText: ['roleDropdownText', 'roleDropdownTextColor'],
+  avatarBackground: ['avatarBackground', 'profileBackground', 'avatarBg'],
+  avatarText: ['avatarText', 'profileText', 'avatarTextColor'],
+  inactiveBackground: ['inactiveBackground', 'inactiveBg'],
+  inactiveText: ['inactiveText', 'inactiveTextColor'],
+  inactiveIcon: ['inactiveIcon', 'inactiveIconColor'],
+  hoverBackground: ['hoverBackground', 'hoverBg'],
+  hoverText: ['hoverText', 'hoverTextColor'],
+  hoverIcon: ['hoverIcon', 'hoverIconColor'],
+  activeBackground: ['activeBackground', 'activeBg'],
+  activeText: ['activeText', 'activeTextColor'],
+  activeIcon: ['activeIcon', 'activeIconColor'],
+  utilityBackground: ['utilityBackground', 'utilityBg'],
+  utilityText: ['utilityText', 'utilityTextColor'],
+  closeButtonBackground: ['closeButtonBackground', 'closeBackground', 'closeButtonBg'],
+  closeButtonIcon: ['closeButtonIcon', 'closeIcon', 'closeButtonIconColor'],
+  scrollbarTrack: ['scrollbarTrack', 'scrollTrack'],
+  scrollbarThumb: ['scrollbarThumb', 'scrollThumb'],
+  popupBackground: ['popupBackground', 'popupBg', 'background'],
+  headerBackground: ['headerBackground', 'headerBg'],
+  titleText: ['titleText', 'titleColor'],
+  secondaryText: ['secondaryText', 'dateText', 'mutedText'],
+  unreadBackground: ['unreadBackground', 'unreadBg'],
+  unreadText: ['unreadText', 'unreadTextColor'],
+  readBackground: ['readBackground', 'readBg'],
+  readText: ['readText', 'readTextColor'],
+  badgeBackground: ['badgeBackground', 'badgeBg'],
+  badgeText: ['badgeText', 'badgeTextColor'],
+  unreadIndicator: ['unreadIndicator', 'indicatorColor'],
+  emptyBackground: ['emptyBackground', 'emptyBg'],
+  emptyText: ['emptyText', 'emptyTextColor'],
+  markReadBackground: ['markReadBackground', 'markReadBg'],
+  markReadText: ['markReadText', 'markReadTextColor'],
+  deleteBackground: ['deleteBackground', 'deleteBg'],
+  deleteText: ['deleteText', 'deleteTextColor'],
+  closeBackground: ['closeBackground', 'closeBg'],
+  closeIcon: ['closeIcon', 'closeIconColor'],
+}
+
+function cloneDefaultInterfaceColors() {
+  return JSON.parse(JSON.stringify(DEFAULT_INTERFACE_COLORS))
+}
+
+function isValidThemeCssColor(value) {
+  const raw = String(value || '').trim()
+  if (!raw) return false
+  if (raw.toLowerCase() === 'transparent') return true
+  if (/^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(raw)) return true
+  const match = raw.match(/^rgba?\((.*)\)$/i)
+  if (!match) return false
+  const parts = match[1].split(',').map((part) => part.trim())
+  const wantsAlpha = /^rgba/i.test(raw)
+  if (parts.length !== (wantsAlpha ? 4 : 3)) return false
+  const channelsValid = parts.slice(0, 3).every((part) => {
+    if (/^\d+(?:\.\d+)?%$/.test(part)) {
+      const number = Number(part.slice(0, -1))
+      return number >= 0 && number <= 100
+    }
+    if (!/^\d+(?:\.\d+)?$/.test(part)) return false
+    const number = Number(part)
+    return number >= 0 && number <= 255
+  })
+  if (!channelsValid) return false
+  if (!wantsAlpha) return true
+  if (!/^(?:0|1|0?\.\d+)$/.test(parts[3])) return false
+  const alpha = Number(parts[3])
+  return alpha >= 0 && alpha <= 1
+}
+
+function normalizeThemeCssColor(value, fallback) {
+  const raw = String(value ?? '').trim()
+  return isValidThemeCssColor(raw) ? raw : fallback
+}
+
+function normalizeInterfaceColors(colors = {}, legacySidebar = {}) {
+  const parsed = parseJsonObject(colors)
+  const source = parseJsonObject(parsed.interface_colors ?? parsed.interfaceColors ?? parsed.interface_theme ?? parsed.interfaceTheme ?? parsed)
+  const legacySidebarSource = parseJsonObject(legacySidebar)
+  const normalized = {}
+
+  for (const [sectionKey, defaultSection] of Object.entries(DEFAULT_INTERFACE_COLORS)) {
+    const aliases = INTERFACE_COLOR_SECTION_ALIASES[sectionKey] || [sectionKey]
+    let incomingSection = {}
+    for (const alias of aliases) {
+      const candidate = parseJsonObject(source?.[alias])
+      if (Object.keys(candidate).length) {
+        incomingSection = candidate
+        break
+      }
+    }
+    if (sectionKey === 'sidebar') incomingSection = { ...legacySidebarSource, ...incomingSection }
+
+    normalized[sectionKey] = {}
+    for (const [fieldKey, defaultValue] of Object.entries(defaultSection)) {
+      const fieldAliases = [fieldKey, ...(INTERFACE_COLOR_FIELD_ALIASES[fieldKey] || [])]
+      const incomingValue = firstDefinedThemeValue(incomingSection, [...new Set(fieldAliases)])
+      normalized[sectionKey][fieldKey] = normalizeThemeCssColor(incomingValue, defaultValue)
+    }
+  }
+
+  return normalized
+}
+
+function interfaceColorSettingsMatch(left, right) {
+  return JSON.stringify(normalizeInterfaceColors(left)) === JSON.stringify(normalizeInterfaceColors(right))
+}
+
+function applyInterfaceTheme(colors = DEFAULT_INTERFACE_COLORS) {
+  if (typeof document === 'undefined') return normalizeInterfaceColors(colors)
+  const normalized = normalizeInterfaceColors(colors)
+  const root = document.documentElement
+
+  for (const [sectionKey, fields] of Object.entries(INTERFACE_COLOR_CSS_VARIABLES)) {
+    for (const [fieldKey, cssVariable] of Object.entries(fields)) {
+      const value = normalized?.[sectionKey]?.[fieldKey] ?? DEFAULT_INTERFACE_COLORS?.[sectionKey]?.[fieldKey]
+      if (value) root.style.setProperty(cssVariable, value)
+    }
+  }
+
+  const sidebar = normalized.sidebar
+  const compatibilityVariables = {
+    '--sidebar-btn-inactive-bg': sidebar.inactiveBackground,
+    '--sidebar-btn-inactive-text': sidebar.inactiveText,
+    '--sidebar-btn-inactive-icon': sidebar.inactiveIcon,
+    '--sidebar-btn-hover-bg': sidebar.hoverBackground,
+    '--sidebar-btn-hover-text': sidebar.hoverText,
+    '--sidebar-btn-active-bg': sidebar.activeBackground,
+    '--sidebar-btn-active-text': sidebar.activeText,
+    '--sidebar-btn-active-icon': sidebar.activeIcon,
+    '--sidebar-btn-border': sidebar.border,
+    '--sidebar-inactive-border': sidebar.border,
+    '--sidebar-active-border': sidebar.border,
+  }
+  Object.entries(compatibilityVariables).forEach(([name, value]) => root.style.setProperty(name, value))
+
+  root.dataset.interfaceThemeReady = 'true'
+  return normalized
 }
 
 function cloneDefaultButtonColors() {
@@ -928,6 +1284,11 @@ function colorPickerValue(value) {
   }
   if (/^#[0-9a-f]{8}$/i.test(raw)) return raw.slice(0, 7)
   if (/^#[0-9a-f]{6}$/i.test(raw)) return raw
+  const parsed = parseThemeCssColor(raw)
+  if (parsed) {
+    const toHex = (number) => Math.max(0, Math.min(255, Math.round(number))).toString(16).padStart(2, '0')
+    return `#${toHex(parsed.r)}${toHex(parsed.g)}${toHex(parsed.b)}`
+  }
   return '#000000'
 }
 
@@ -943,6 +1304,83 @@ function parseThemeHexColor(value) {
     b: parseInt(rgb.slice(4, 6), 16),
     a: alpha,
   }
+}
+
+
+function parseThemeCssColor(value) {
+  const raw = String(value || '').trim()
+  if (!raw) return null
+  if (raw.toLowerCase() === 'transparent') return { r: 0, g: 0, b: 0, a: 0 }
+  const hex = parseThemeHexColor(raw)
+  if (hex) return hex
+  const match = raw.match(/^rgba?\((.*)\)$/i)
+  if (!match) return null
+  const parts = match[1].split(',').map((part) => part.trim())
+  const wantsAlpha = /^rgba/i.test(raw)
+  if (parts.length !== (wantsAlpha ? 4 : 3)) return null
+  const channels = parts.slice(0, 3).map((part) => (
+    part.endsWith('%') ? (Number(part.slice(0, -1)) / 100) * 255 : Number(part)
+  ))
+  if (channels.some((number) => !Number.isFinite(number) || number < 0 || number > 255)) return null
+  const alpha = wantsAlpha ? Number(parts[3]) : 1
+  if (!Number.isFinite(alpha) || alpha < 0 || alpha > 1) return null
+  return { r: channels[0], g: channels[1], b: channels[2], a: alpha }
+}
+
+function themeCssContrastRatio(background, foreground, base = { r: 255, g: 255, b: 255 }) {
+  const bg = compositeThemeColor(parseThemeCssColor(background), base)
+  const fg = compositeThemeColor(parseThemeCssColor(foreground), bg || base)
+  if (!bg || !fg) return 1
+  const lighter = Math.max(relativeThemeLuminance(bg), relativeThemeLuminance(fg))
+  const darker = Math.min(relativeThemeLuminance(bg), relativeThemeLuminance(fg))
+  return (lighter + 0.05) / (darker + 0.05)
+}
+
+function validateInterfaceColorValues(colors = {}) {
+  const normalizedSource = colors && typeof colors === 'object' ? colors : {}
+  const invalid = []
+  for (const section of INTERFACE_COLOR_SECTIONS) {
+    for (const [fieldKey, label] of section.fields) {
+      const value = normalizedSource?.[section.key]?.[fieldKey]
+      if (!isValidThemeCssColor(value)) invalid.push(label)
+    }
+  }
+  return invalid
+}
+
+function getInterfaceColorContrastWarnings(colors = {}) {
+  const normalized = normalizeInterfaceColors(colors)
+  const warnings = []
+  const pairs = [
+    ['Top header text', normalized.topHeader.background, normalized.topHeader.text],
+    ['Top header icon', normalized.topHeader.background, normalized.topHeader.icon],
+    ['Header button text', normalized.topHeader.buttonBackground, normalized.topHeader.buttonText],
+    ['Header button icon', normalized.topHeader.buttonBackground, normalized.topHeader.buttonIcon],
+    ['Hamburger icon', normalized.topHeader.hamburgerBackground, normalized.topHeader.hamburgerIcon],
+    ['Inbox trigger icon', normalized.topHeader.inboxTriggerBackground, normalized.topHeader.inboxTriggerIcon],
+    ['Role dropdown text', normalized.topHeader.roleDropdownBackground, normalized.topHeader.roleDropdownText],
+    ['Avatar text', normalized.topHeader.avatarBackground, normalized.topHeader.avatarText],
+    ['Sidebar text', normalized.sidebar.background, normalized.sidebar.text],
+    ['Sidebar icon', normalized.sidebar.background, normalized.sidebar.icon],
+    ['Sidebar inactive text', normalized.sidebar.inactiveBackground === 'transparent' ? normalized.sidebar.background : normalized.sidebar.inactiveBackground, normalized.sidebar.inactiveText],
+    ['Sidebar inactive icon', normalized.sidebar.inactiveBackground === 'transparent' ? normalized.sidebar.background : normalized.sidebar.inactiveBackground, normalized.sidebar.inactiveIcon],
+    ['Sidebar hover text', normalized.sidebar.hoverBackground, normalized.sidebar.hoverText],
+    ['Sidebar active text', normalized.sidebar.activeBackground, normalized.sidebar.activeText],
+    ['Inbox title', normalized.inbox.headerBackground, normalized.inbox.titleText],
+    ['Inbox normal text', normalized.inbox.popupBackground, normalized.inbox.text],
+    ['Inbox secondary text', normalized.inbox.popupBackground, normalized.inbox.secondaryText],
+    ['Inbox unread text', normalized.inbox.unreadBackground, normalized.inbox.unreadText],
+    ['Inbox read text', normalized.inbox.readBackground, normalized.inbox.readText],
+    ['Inbox badge text', normalized.inbox.badgeBackground, normalized.inbox.badgeText],
+    ['Inbox empty-state text', normalized.inbox.emptyBackground, normalized.inbox.emptyText],
+    ['Inbox Mark as Read text', normalized.inbox.markReadBackground, normalized.inbox.markReadText],
+    ['Inbox Delete text', normalized.inbox.deleteBackground, normalized.inbox.deleteText],
+    ['Inbox close icon', normalized.inbox.closeBackground, normalized.inbox.closeIcon],
+  ]
+  for (const [label, background, foreground] of pairs) {
+    if (themeCssContrastRatio(background, foreground) < 3) warnings.push(`${label} may be difficult to read.`)
+  }
+  return Array.from(new Set(warnings))
 }
 
 function compositeThemeColor(color, base = { r: 255, g: 255, b: 255 }) {
@@ -1007,9 +1445,6 @@ function getButtonColorContrastWarnings(colors = {}) {
     ['Hero inactive icon', normalized.heroNavigation.inactiveBackground, normalized.heroNavigation.inactiveIcon],
     ['Hero active text', normalized.heroNavigation.activeBackground, normalized.heroNavigation.activeText],
     ['Search icon', normalized.search.background, normalized.search.icon],
-    ['Sidebar inactive text', normalized.sidebar.inactiveBackground === '#00000000' ? '#4d4c4d' : normalized.sidebar.inactiveBackground, normalized.sidebar.inactiveText],
-    ['Sidebar active text', normalized.sidebar.activeBackground, normalized.sidebar.activeText],
-    ['Sidebar active icon', normalized.sidebar.activeBackground, normalized.sidebar.activeIcon],
   ]
   for (const [label, background, foreground] of pairs) {
     if (themeContrastRatio(background, foreground) < 3) warnings.push(`${label} may have insufficient contrast.`)
@@ -1020,12 +1455,6 @@ function getButtonColorContrastWarnings(colors = {}) {
     && themeColorDistance(normalized.heroNavigation.inactiveBorder, normalized.heroNavigation.activeBorder) < 24
   ) {
     warnings.push('Hero navigation active and inactive states may be difficult to distinguish.')
-  }
-  if (
-    themeColorDistance(normalized.sidebar.inactiveBackground, normalized.sidebar.activeBackground) < 24
-    && themeColorDistance(normalized.sidebar.inactiveText, normalized.sidebar.activeText) < 24
-  ) {
-    warnings.push('Sidebar active and inactive states may be difficult to distinguish.')
   }
   return Array.from(new Set(warnings))
 }
@@ -1068,6 +1497,7 @@ const defaultWebsiteSettings = {
   maintenanceNotice: '',
   assetUpdatedAt: '',
   button_colors: cloneDefaultButtonColors(),
+  interface_colors: cloneDefaultInterfaceColors(),
   roleHeroes: cloneRoleHeroDefaults(),
 }
 
@@ -1318,10 +1748,34 @@ function normalizeSettings(settings) {
     ?? rawSettings.button_theme
     ?? rawSettings.buttonTheme
     ?? defaultWebsiteSettings.button_colors
+  const parsedButtonColors = parseJsonObject(savedButtonColors)
+  const buttonColorSource = parseJsonObject(
+    parsedButtonColors.button_colors
+      ?? parsedButtonColors.buttonColors
+      ?? parsedButtonColors.button_theme
+      ?? parsedButtonColors.buttonTheme
+      ?? parsedButtonColors
+  )
+  const legacySidebarColors = parseJsonObject(
+    buttonColorSource.sidebar
+      ?? buttonColorSource.sidebarButtons
+      ?? buttonColorSource.sidebar_buttons
+      ?? {}
+  )
+  const savedInterfaceColors = rawSettings.interface_colors
+    ?? rawSettings.interfaceColors
+    ?? rawSettings.interface_theme
+    ?? rawSettings.interfaceTheme
+    ?? {}
+
   next.button_colors = normalizeButtonColors(savedButtonColors)
+  next.interface_colors = normalizeInterfaceColors(savedInterfaceColors, legacySidebarColors)
   delete next.buttonColors
   delete next.button_theme
   delete next.buttonTheme
+  delete next.interfaceColors
+  delete next.interface_theme
+  delete next.interfaceTheme
   next.roleHeroes = normalizeRoleHeroSettings(next.roleHeroes, next)
   return next
 }
@@ -1331,10 +1785,12 @@ function loadWebsiteSettings() {
     const saved = localStorage.getItem('pharmatrack-website-settings')
     const settings = saved ? normalizeSettings(saved) : normalizeSettings(defaultWebsiteSettings)
     applyButtonTheme(settings.button_colors)
+    applyInterfaceTheme(settings.interface_colors)
     return settings
   } catch {
     const settings = normalizeSettings(defaultWebsiteSettings)
     applyButtonTheme(settings.button_colors)
+    applyInterfaceTheme(settings.interface_colors)
     return settings
   }
 }
@@ -4123,7 +4579,8 @@ export default function App() {
 
   useLayoutEffect(() => {
     applyButtonTheme(websiteSettings?.button_colors)
-  }, [websiteSettings?.button_colors])
+    applyInterfaceTheme(websiteSettings?.interface_colors)
+  }, [websiteSettings?.button_colors, websiteSettings?.interface_colors])
 
   useEffect(() => {
     loadWebsiteSettingsFromSupabase()
@@ -4341,6 +4798,7 @@ export default function App() {
       if (row?.value) {
         const settings = normalizeSettings(row.value)
         applyButtonTheme(settings.button_colors)
+        applyInterfaceTheme(settings.interface_colors)
         setWebsiteSettings(settings)
         saveWebsiteSettingsLocal(settings)
       }
@@ -4545,6 +5003,7 @@ export default function App() {
     const commitSettings = (value) => {
       const committed = normalizeSettings(value)
       applyButtonTheme(committed.button_colors)
+      applyInterfaceTheme(committed.interface_colors)
       setWebsiteSettings(committed)
       saveWebsiteSettingsLocal(committed)
       return committed
@@ -4600,6 +5059,9 @@ export default function App() {
         const savedSettings = normalizeSettings(verification.data?.value || savedValue || nextSettings)
         if (options.verifyButtonColors && !buttonColorSettingsMatch(savedSettings.button_colors, nextSettings.button_colors)) {
           throw new Error('Supabase returned success, but the saved button_colors value did not match the selected colors.')
+        }
+        if (options.verifyInterfaceColors && !interfaceColorSettingsMatch(savedSettings.interface_colors, nextSettings.interface_colors)) {
+          throw new Error('Supabase returned success, but the saved interface_colors value did not match the selected colors.')
         }
 
         const committedSettings = commitSettings(savedSettings)
@@ -9076,6 +9538,7 @@ function NotificationBellMenu({ data, role, currentUser, dataLoading = false, un
         aria-label="Open inbox"
         aria-expanded={open}
       >
+        <span className="notification-icon" aria-hidden="true"><InboxTrayIcon size={18} /></span>
         <strong className="inbox-button-label">Inbox</strong>
         {unreadCount > 0 && <span className="inbox-unread-count notification-badge">{unreadCount}</span>}
       </button>
@@ -9420,8 +9883,17 @@ function UserProfileMenu({ currentUser, onLogout, onOpenProfile }) {
 }
 
 
-function ColorSettingField({ label, value, defaultValue, onChange, onReset }) {
-  const valid = isValidThemeHexColor(value)
+function ColorSettingField({
+  label,
+  value,
+  defaultValue,
+  onChange,
+  onReset,
+  validator = isValidThemeHexColor,
+  placeholder = '#2563eb',
+  validationMessage = 'Use a valid 3-, 6-, or 8-digit HEX value.',
+}) {
+  const valid = validator(value)
   return (
     <div className={`button-color-setting-field${valid ? '' : ' is-invalid'}`}>
       <div className="button-color-setting-label-row">
@@ -9440,17 +9912,17 @@ function ColorSettingField({ label, value, defaultValue, onChange, onReset }) {
           className="button-color-hex-input"
           type="text"
           value={value || ''}
-          onChange={(event) => onChange(event.target.value.trim())}
-          placeholder="#2563eb"
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
           spellCheck="false"
-          aria-label={`${label} HEX value`}
+          aria-label={`${label} color value`}
           aria-invalid={!valid}
         />
         <button type="button" className="button-color-field-reset" onClick={() => onReset(defaultValue)} aria-label={`Reset ${label}`} title={`Reset ${label}`}>
           <RefreshCw size={14} />
         </button>
       </div>
-      {!valid && <small className="button-color-field-error">Use a valid 3-, 6-, or 8-digit HEX value.</small>}
+      {!valid && <small className="button-color-field-error">{validationMessage}</small>}
     </div>
   )
 }
@@ -9473,7 +9945,7 @@ function ButtonColorCustomizationPanel({
   return (
     <div className="button-color-customization-page admin-panel-stack">
       <div className="card button-color-customization-intro">
-        <SectionHeader icon={Palette} title="Button Color Customization" subtitle="Control button backgrounds, text, icons, borders, hover states, active states, hero navigation, search, and sidebar colors across the entire platform" />
+        <SectionHeader icon={Palette} title="Button Color Customization" subtitle="Control button backgrounds, text, icons, borders, hover states, active states, hero navigation, and search colors across the entire platform" />
         <div className="soft-box settings-note">
           <b>Connected to the existing Website Settings system</b>
           <p>These values are saved inside the existing <code>app_settings</code> website record through the current <code>save_website_settings</code> flow. No duplicate table, route, or permissions system is created.</p>
@@ -9539,11 +10011,6 @@ function ButtonColorCustomizationPanel({
               <span>Search</span>
               <button type="button" className="role-feature-search__button button-theme-preview-search" aria-label="Search preview"><Search size={21} /></button>
             </div>
-            <div className="button-theme-preview-sidebar">
-              <span>Sidebar</span>
-              <button type="button"><span className="side-nav-icon"><Settings size={16} /></span><span>Inactive item</span></button>
-              <button type="button" className="active"><span className="side-nav-icon"><Settings size={16} /></span><span>Active item</span></button>
-            </div>
           </div>
           <div className="button-color-saved-indicator">
             <span className="button-color-setting-preview" style={{ background: savedColors?.primary?.background || DEFAULT_BUTTON_COLORS.primary.background }} />
@@ -9566,6 +10033,156 @@ function ButtonColorCustomizationPanel({
           </button>
           <button type="button" className="danger min-button-width" disabled={Boolean(loadingKey)} onClick={onRestoreDefaults}>
             <RefreshCw size={16} /> Restore Default Button Colors
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
+function InterfaceColorCustomizationPanel({
+  colors,
+  savedColors,
+  onChange,
+  onResetField,
+  onSave,
+  onResetPreview,
+  onRestoreDefaults,
+  loadingKey = '',
+  status = '',
+  error = '',
+}) {
+  const normalizedPreview = normalizeInterfaceColors(colors)
+  const contrastWarnings = getInterfaceColorContrastWarnings(colors)
+  const invalidFields = validateInterfaceColorValues(colors)
+
+  return (
+    <div className="interface-color-customization-page admin-panel-stack">
+      <div className="card button-color-customization-intro">
+        <SectionHeader icon={SlidersHorizontal} title="Interface Color Customization" subtitle="Customize the authenticated Top Header, complete Sidebar appearance, and existing Inbox popup across all roles" />
+        <div className="soft-box settings-note">
+          <b>One shared settings source</b>
+          <p>Top Header, Sidebar, and Inbox colors are saved under <code>interface_colors</code> in the same existing <code>app_settings</code> website record. Existing Sidebar button values are migrated into this canonical Sidebar section automatically.</p>
+        </div>
+        {error && <div className="button-color-message is-error" role="alert">{error}</div>}
+        {status && <div className="button-color-message is-success" role="status">{status}</div>}
+        {invalidFields.length > 0 && (
+          <div className="button-color-message is-error" role="alert">
+            <b>Invalid color values:</b> {invalidFields.join(', ')}
+          </div>
+        )}
+        {contrastWarnings.length > 0 && (
+          <div className="button-color-message is-warning" role="status">
+            <b>Readability review:</b>
+            <ul>{contrastWarnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>
+          </div>
+        )}
+      </div>
+
+      <div className="button-color-editor-layout interface-color-editor-layout">
+        <div className="button-color-sections">
+          {INTERFACE_COLOR_SECTIONS.map((section) => (
+            <details className="card button-color-section" key={section.key} open>
+              <summary>
+                <span><b>{section.title}</b><small>{section.description}</small></span>
+                <span className="button-color-section-count">{section.fields.length} colors</span>
+              </summary>
+              <div className="button-color-field-grid">
+                {section.fields.map(([fieldKey, label]) => (
+                  <ColorSettingField
+                    key={`${section.key}-${fieldKey}`}
+                    label={label}
+                    value={colors?.[section.key]?.[fieldKey] ?? DEFAULT_INTERFACE_COLORS[section.key][fieldKey]}
+                    defaultValue={DEFAULT_INTERFACE_COLORS[section.key][fieldKey]}
+                    onChange={(value) => onChange(section.key, fieldKey, value)}
+                    onReset={(value) => onResetField(section.key, fieldKey, value)}
+                    validator={isValidThemeCssColor}
+                    placeholder={fieldKey.toLowerCase().includes('shadow') || fieldKey.toLowerCase().includes('background') ? 'rgba(15, 23, 42, 0.18)' : '#2563eb'}
+                    validationMessage="Use HEX, 8-digit HEX, RGB, RGBA, or transparent."
+                  />
+                ))}
+              </div>
+            </details>
+          ))}
+        </div>
+
+        <aside className="card button-color-live-preview interface-color-live-preview">
+          <SectionHeader icon={Eye} title="Interface Live Preview" subtitle="Preview controls are visual only and do not perform real actions." />
+
+          <div className="interface-preview-section">
+            <span className="interface-preview-label">Top Header Preview</span>
+            <div className="interface-header-preview">
+              <button type="button" className="interface-preview-hamburger" aria-label="Hamburger preview"><span /><span /><span /></button>
+              <div className="interface-preview-header-copy"><b>Research Dashboard</b><small>Student role</small></div>
+              <div className="interface-preview-header-actions">
+                <button type="button" className="interface-preview-inbox"><InboxTrayIcon size={17} /><span>3</span></button>
+                <select defaultValue="student" aria-label="Role preview"><option value="student">Student</option></select>
+                <button type="button" className="interface-preview-avatar" aria-label="Profile preview">M</button>
+              </div>
+            </div>
+          </div>
+
+          <div className="interface-preview-section">
+            <span className="interface-preview-label">Sidebar Preview</span>
+            <div className="interface-sidebar-preview">
+              <div className="interface-sidebar-preview-head">
+                <b>Navigation</b>
+                <button type="button" className="interface-sidebar-preview-close" aria-label="Close preview">×</button>
+              </div>
+              <button type="button" className="interface-sidebar-preview-item"><LayoutDashboard size={16} /> Inactive item</button>
+              <button type="button" className="interface-sidebar-preview-item is-hovered"><BookOpen size={16} /> Hovered item</button>
+              <button type="button" className="interface-sidebar-preview-item active"><Settings size={16} /> Active item</button>
+              <button type="button" className="interface-sidebar-preview-utility"><FileText size={16} /> Utility button</button>
+            </div>
+          </div>
+
+          <div className="interface-preview-section">
+            <span className="interface-preview-label">Inbox Preview</span>
+            <div className="interface-inbox-preview">
+              <div className="interface-inbox-preview-head">
+                <div><b>Inbox</b><small>1 unread</small></div>
+                <button type="button" className="interface-inbox-preview-close" aria-label="Close Inbox preview">×</button>
+              </div>
+              <div className="interface-inbox-preview-list">
+                <article className="interface-inbox-preview-item unread">
+                  <span className="interface-inbox-preview-dot" />
+                  <div><b>New project update</b><p>Your research project has a new decision.</p><small>Today, 10:30</small></div>
+                  <div className="interface-inbox-preview-actions">
+                    <button type="button" className="interface-inbox-preview-read">Mark read</button>
+                    <button type="button" className="interface-inbox-preview-delete" aria-label="Delete preview"><Trash2 size={13} /></button>
+                  </div>
+                </article>
+                <article className="interface-inbox-preview-item read">
+                  <span className="interface-inbox-preview-dot" />
+                  <div><b>Weekly report received</b><p>Your previous message has been read.</p><small>Yesterday</small></div>
+                </article>
+                <div className="interface-inbox-preview-empty">No additional Inbox messages.</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="button-color-saved-indicator">
+            <span className="button-color-setting-preview" style={{ background: savedColors?.topHeader?.background || DEFAULT_INTERFACE_COLORS.topHeader.background }} />
+            <span><b>Last saved header color</b><small>{savedColors?.topHeader?.background || DEFAULT_INTERFACE_COLORS.topHeader.background}</small></span>
+          </div>
+        </aside>
+      </div>
+
+      <div className="card button-color-sticky-actions">
+        <div>
+          <b>Publish interface colors</b>
+          <p>Saving updates the existing website settings row, applies the theme immediately, and preserves every unrelated customization value.</p>
+        </div>
+        <div className="settings-actions compact-actions">
+          <button type="button" className="primary min-button-width" disabled={Boolean(loadingKey)} onClick={onSave}>
+            <ButtonContent loading={loadingKey === 'save-interface-colors'} loadingText="Saving interface colors..." icon={Save}>Save Interface Colors</ButtonContent>
+          </button>
+          <button type="button" className="secondary min-button-width" disabled={Boolean(loadingKey)} onClick={onResetPreview}>
+            <RefreshCw size={16} /> Reset Unsaved Changes
+          </button>
+          <button type="button" className="danger min-button-width" disabled={Boolean(loadingKey)} onClick={onRestoreDefaults}>
+            <RefreshCw size={16} /> Restore Default Interface Colors
           </button>
         </div>
       </div>
@@ -9632,18 +10249,22 @@ function AdminControlPanel({
   const [selectedRoleHero, setSelectedRoleHero] = useState('student')
   const [buttonColorStatus, setButtonColorStatus] = useState('')
   const [buttonColorError, setButtonColorError] = useState('')
+  const [interfaceColorStatus, setInterfaceColorStatus] = useState('')
+  const [interfaceColorError, setInterfaceColorError] = useState('')
   useEffect(() => {
     setDraft(settings)
   }, [settings])
 
   useEffect(() => {
-    applyButtonColorCssVariables(adminPanelTab === 'button-colors' ? draft.button_colors : settings.button_colors)
-  }, [adminPanelTab, draft.button_colors, settings.button_colors])
+    const previewingColors = adminPanelTab === 'button-colors'
+    applyButtonColorCssVariables(previewingColors ? draft.button_colors : settings.button_colors)
+    applyInterfaceTheme(previewingColors ? draft.interface_colors : settings.interface_colors)
+  }, [adminPanelTab, draft.button_colors, draft.interface_colors, settings.button_colors, settings.interface_colors])
 
   const navItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'branding', label: 'Website Settings', icon: SlidersHorizontal },
-    { id: 'button-colors', label: 'Button Color Customization', icon: Palette },
+    { id: 'button-colors', label: 'Color Customization', icon: Palette },
     { id: 'login-settings', label: 'Login Page Settings', icon: Lock },
     { id: 'about-us', label: 'About Us Customization', icon: BookOpen },
     { id: 'users', label: 'Users & Roles', icon: Users },
@@ -9717,7 +10338,7 @@ function AdminControlPanel({
       if (!confirmed) return { ok: false }
     }
 
-    const nextDraft = normalizeSettings({ ...draft, button_colors: normalizedColors })
+    const nextDraft = normalizeSettings({ ...settings, button_colors: normalizedColors })
     setButtonColorError('')
     setButtonColorStatus('Saving and verifying button colors...')
 
@@ -9758,7 +10379,7 @@ function AdminControlPanel({
     if (!confirmed) return { ok: false }
 
     const defaults = cloneDefaultButtonColors()
-    const nextDraft = normalizeSettings({ ...draft, button_colors: defaults })
+    const nextDraft = normalizeSettings({ ...settings, button_colors: defaults })
     const result = await updateSettings(nextDraft, {
       deferCommitUntilSuccess: true,
       verifyButtonColors: true,
@@ -9778,6 +10399,122 @@ function AdminControlPanel({
     setButtonColorError('')
     setButtonColorStatus('Default button colors were restored, verified, and applied successfully.')
     await showAppAlert('Default button colors were restored successfully.', { title: 'Defaults Restored', type: 'success' })
+    return { ok: true, settings: savedSettings }
+  }
+
+
+  function updateInterfaceColorDraft(sectionKey, fieldKey, value) {
+    setInterfaceColorError('')
+    setInterfaceColorStatus('Preview updated. Save when you are satisfied with the interface colors.')
+    setDraft((current) => {
+      const currentColors = normalizeInterfaceColors(current.interface_colors)
+      return {
+        ...current,
+        interface_colors: {
+          ...currentColors,
+          [sectionKey]: {
+            ...DEFAULT_INTERFACE_COLORS[sectionKey],
+            ...(currentColors[sectionKey] || {}),
+            [fieldKey]: value,
+          },
+        },
+      }
+    })
+  }
+
+  function resetInterfaceColorField(sectionKey, fieldKey, value) {
+    updateInterfaceColorDraft(sectionKey, fieldKey, value)
+    setInterfaceColorStatus('Field reset to the approved default. This is still a preview until saved.')
+  }
+
+  async function saveInterfaceColors() {
+    const invalid = validateInterfaceColorValues(draft.interface_colors)
+    if (invalid.length) {
+      const errorText = `Please correct these invalid color values before saving: ${invalid.join(', ')}`
+      setInterfaceColorError(errorText)
+      await showAppAlert(errorText, { title: 'Invalid Interface Colors', type: 'warning' })
+      return { ok: false }
+    }
+
+    const normalizedColors = normalizeInterfaceColors(draft.interface_colors)
+    const warnings = getInterfaceColorContrastWarnings(normalizedColors)
+    if (warnings.length) {
+      const confirmed = await showAppConfirm(
+        `This color combination may be difficult to read:\n\n${warnings.slice(0, 10).join('\n')}\n\nSave these colors anyway?`,
+        { title: 'Interface Contrast Warning', type: 'warning', confirmLabel: 'Save Anyway' },
+      )
+      if (!confirmed) return { ok: false }
+    }
+
+    const nextDraft = normalizeSettings({
+      ...settings,
+      interface_colors: normalizedColors,
+    })
+    setInterfaceColorError('')
+    setInterfaceColorStatus('Saving and verifying interface colors...')
+
+    const result = await updateSettings(nextDraft, {
+      deferCommitUntilSuccess: true,
+      verifyInterfaceColors: true,
+    })
+
+    if (!result?.ok) {
+      const errorText = result?.error?.message || 'Interface colors could not be saved to the existing website settings record.'
+      setInterfaceColorStatus('')
+      setInterfaceColorError(errorText)
+      await showAppAlert(errorText, { title: 'Interface Colors Not Saved', type: 'error' })
+      return result
+    }
+
+    const savedSettings = normalizeSettings(result.settings || nextDraft)
+    setDraft(savedSettings)
+    applyButtonTheme(savedSettings.button_colors)
+    applyInterfaceTheme(savedSettings.interface_colors)
+    setInterfaceColorStatus('Top Header, Sidebar, and Inbox colors were saved, verified, and applied to the live website.')
+    await showAppAlert('Interface colors were saved successfully and are now applied across the website.', { title: 'Interface Colors Saved', type: 'success' })
+    return { ok: true, settings: savedSettings }
+  }
+
+  function resetInterfaceColorPreview() {
+    const saved = normalizeInterfaceColors(settings.interface_colors)
+    setDraft((current) => ({ ...current, interface_colors: saved }))
+    applyInterfaceTheme(saved)
+    setInterfaceColorError('')
+    setInterfaceColorStatus('Unsaved interface changes were reset to the last saved colors. No database change was made.')
+  }
+
+  async function restoreDefaultInterfaceColors() {
+    const confirmed = await showAppConfirm(
+      'Restore the approved default colors for the Top Header, Sidebar, and Inbox? Unrelated website settings will be preserved.',
+      { title: 'Restore Default Interface Colors', type: 'warning', confirmLabel: 'Restore Defaults' },
+    )
+    if (!confirmed) return { ok: false }
+
+    const defaults = cloneDefaultInterfaceColors()
+    const nextDraft = normalizeSettings({
+      ...settings,
+      interface_colors: defaults,
+    })
+    const result = await updateSettings(nextDraft, {
+      deferCommitUntilSuccess: true,
+      verifyInterfaceColors: true,
+    })
+
+    if (!result?.ok) {
+      const errorText = result?.error?.message || 'Default interface colors could not be saved.'
+      setInterfaceColorError(errorText)
+      setInterfaceColorStatus('')
+      await showAppAlert(errorText, { title: 'Defaults Not Restored', type: 'error' })
+      return result
+    }
+
+    const savedSettings = normalizeSettings(result.settings || nextDraft)
+    setDraft(savedSettings)
+    applyButtonTheme(savedSettings.button_colors)
+    applyInterfaceTheme(savedSettings.interface_colors)
+    setInterfaceColorError('')
+    setInterfaceColorStatus('Default interface colors were restored, verified, and applied successfully.')
+    await showAppAlert('Default interface colors were restored successfully.', { title: 'Defaults Restored', type: 'success' })
     return { ok: true, settings: savedSettings }
   }
 
@@ -10003,7 +10740,7 @@ function AdminControlPanel({
       <main className="admin-panel-main">
         <header className="admin-panel-topbar no-print">
           <div>
-            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'button-colors' ? 'Button Color Customization' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'about-us' ? 'About Us Customization' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'supervisors' ? 'Supervisor Management' : adminPanelTab === 'dual-roles' ? 'Dual Role Management' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Inbox' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'pdf-report' ? 'PDF Report Customization' : adminPanelTab === 'group-requests' ? 'Group Join Requests' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : adminPanelTab === 'profile-settings' ? 'Profile Settings' : 'Control Center'}</h1>
+            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'button-colors' ? 'Color Customization' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'about-us' ? 'About Us Customization' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'supervisors' ? 'Supervisor Management' : adminPanelTab === 'dual-roles' ? 'Dual Role Management' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Inbox' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'pdf-report' ? 'PDF Report Customization' : adminPanelTab === 'group-requests' ? 'Group Join Requests' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : adminPanelTab === 'profile-settings' ? 'Profile Settings' : 'Control Center'}</h1>
             {adminPanelTab !== 'overview' && <p>{settings.adminWelcome}</p>}
           </div>
           <div className="admin-topbar-actions">
@@ -10101,18 +10838,32 @@ function AdminControlPanel({
 
 
         {adminPanelTab === 'button-colors' && (
-          <ButtonColorCustomizationPanel
-            colors={draft.button_colors || cloneDefaultButtonColors()}
-            savedColors={normalizeButtonColors(settings.button_colors)}
-            onChange={updateButtonColorDraft}
-            onResetField={resetButtonColorField}
-            onSave={() => runPanelAction('save-button-colors', saveButtonColors)}
-            onResetPreview={resetButtonColorPreview}
-            onRestoreDefaults={() => runPanelAction('restore-button-colors', restoreDefaultButtonColors)}
-            loadingKey={panelActionLoading}
-            status={buttonColorStatus}
-            error={buttonColorError}
-          />
+          <div className="complete-color-customization-stack">
+            <ButtonColorCustomizationPanel
+              colors={draft.button_colors || cloneDefaultButtonColors()}
+              savedColors={normalizeButtonColors(settings.button_colors)}
+              onChange={updateButtonColorDraft}
+              onResetField={resetButtonColorField}
+              onSave={() => runPanelAction('save-button-colors', saveButtonColors)}
+              onResetPreview={resetButtonColorPreview}
+              onRestoreDefaults={() => runPanelAction('restore-button-colors', restoreDefaultButtonColors)}
+              loadingKey={panelActionLoading}
+              status={buttonColorStatus}
+              error={buttonColorError}
+            />
+            <InterfaceColorCustomizationPanel
+              colors={draft.interface_colors || cloneDefaultInterfaceColors()}
+              savedColors={normalizeInterfaceColors(settings.interface_colors)}
+              onChange={updateInterfaceColorDraft}
+              onResetField={resetInterfaceColorField}
+              onSave={() => runPanelAction('save-interface-colors', saveInterfaceColors)}
+              onResetPreview={resetInterfaceColorPreview}
+              onRestoreDefaults={() => runPanelAction('restore-interface-colors', restoreDefaultInterfaceColors)}
+              loadingKey={panelActionLoading}
+              status={interfaceColorStatus}
+              error={interfaceColorError}
+            />
+          </div>
         )}
 
         {adminPanelTab === 'login-settings' && (

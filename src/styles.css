@@ -23352,3 +23352,656 @@ html body #root .role-feature-search__button svg [fill]:not([fill="none"]) {
 html body #root :where(.main-side-nav button, .sidebar-utility-link, .admin-side-nav button) svg [fill]:not([fill="none"]) {
   fill: currentColor !important;
 }
+
+/* =========================================================
+   AUTHENTICATED INTERFACE COLOR CUSTOMIZATION
+   Canonical source: website_settings.interface_colors
+   This final layer intentionally follows all legacy overrides.
+   ========================================================= */
+:root {
+  --top-header-bg: #ffffff;
+  --top-header-text: #1f2937;
+  --top-header-icon: #1f2937;
+  --top-header-border: #e5e7eb;
+  --top-header-shadow: rgba(15, 23, 42, 0.08);
+  --top-header-button-bg: #ffffff;
+  --top-header-button-text: #1f2937;
+  --top-header-button-icon: #1f2937;
+  --top-header-button-hover-bg: #f3f4f6;
+  --top-header-button-hover-text: #111827;
+  --top-header-hamburger-bg: #2563eb;
+  --top-header-hamburger-icon: #ffffff;
+  --top-header-inbox-trigger-bg: #ffffff;
+  --top-header-inbox-trigger-icon: #2563eb;
+  --top-header-role-dropdown-bg: #ffffff;
+  --top-header-role-dropdown-text: #1f2937;
+  --top-header-avatar-bg: #dbeafe;
+  --top-header-avatar-text: #1e3a8a;
+
+  --sidebar-bg: #292829;
+  --sidebar-secondary-bg: #292829;
+  --sidebar-border: rgba(255, 255, 255, 0.12);
+  --sidebar-shadow: rgba(15, 23, 42, 0.18);
+  --sidebar-text: #ffffff;
+  --sidebar-icon: #ffffff;
+  --sidebar-inactive-bg: rgba(255, 255, 255, 0.10);
+  --sidebar-inactive-text: #ffffff;
+  --sidebar-inactive-icon: #ffffff;
+  --sidebar-hover-bg: #ffffff;
+  --sidebar-hover-text: #4d4c4d;
+  --sidebar-hover-icon: #4d4c4d;
+  --sidebar-active-bg: #ffffff;
+  --sidebar-active-text: #4d4c4d;
+  --sidebar-active-icon: #4d4c4d;
+  --sidebar-utility-bg: rgba(255, 255, 255, 0.10);
+  --sidebar-utility-text: #ffffff;
+  --sidebar-close-bg: rgba(255, 255, 255, 0.12);
+  --sidebar-close-icon: #ffffff;
+  --sidebar-scrollbar-track: transparent;
+  --sidebar-scrollbar-thumb: rgba(255, 255, 255, 0.35);
+
+  --inbox-popup-bg: #ffffff;
+  --inbox-header-bg: #ffffff;
+  --inbox-title-text: #111827;
+  --inbox-text: #374151;
+  --inbox-secondary-text: #6b7280;
+  --inbox-icon: #2563eb;
+  --inbox-border: #e5e7eb;
+  --inbox-shadow: rgba(15, 23, 42, 0.20);
+  --inbox-unread-bg: #eff6ff;
+  --inbox-unread-text: #1f2937;
+  --inbox-read-bg: #ffffff;
+  --inbox-read-text: #4b5563;
+  --inbox-hover-bg: #f8fafc;
+  --inbox-badge-bg: #dc2626;
+  --inbox-badge-text: #ffffff;
+  --inbox-unread-indicator: #2563eb;
+  --inbox-empty-bg: #f9fafb;
+  --inbox-empty-text: #6b7280;
+  --inbox-mark-read-bg: #f3f4f6;
+  --inbox-mark-read-text: #374151;
+  --inbox-delete-bg: #fef2f2;
+  --inbox-delete-text: #b91c1c;
+  --inbox-close-bg: #ffffff;
+  --inbox-close-icon: #4b5563;
+}
+
+/* Authenticated role header and Admin Subdomain header. */
+html body #root#root .main-compact-header,
+html body #root#root .admin-panel-topbar {
+  background: var(--top-header-bg) !important;
+  background-color: var(--top-header-bg) !important;
+  background-image: none !important;
+  color: var(--top-header-text) !important;
+  border-color: var(--top-header-border) !important;
+  box-shadow: 0 4px 16px var(--top-header-shadow) !important;
+}
+
+html body #root#root .main-compact-header :is(.main-header-role-label, .main-header-title-block h1),
+html body #root#root .admin-panel-topbar :is(h1, p) {
+  color: var(--top-header-text) !important;
+  -webkit-text-fill-color: var(--top-header-text) !important;
+}
+
+html body #root#root .main-compact-header :is(svg, svg path, svg circle, svg line, svg polyline, svg rect),
+html body #root#root .admin-panel-topbar :is(svg, svg path, svg circle, svg line, svg polyline, svg rect) {
+  color: var(--top-header-icon) !important;
+  stroke: var(--top-header-icon) !important;
+}
+
+html body #root#root .admin-panel-topbar .admin-preview-link,
+html body #root#root .main-compact-header .header-action-button {
+  background: var(--top-header-button-bg) !important;
+  background-color: var(--top-header-button-bg) !important;
+  color: var(--top-header-button-text) !important;
+  -webkit-text-fill-color: var(--top-header-button-text) !important;
+  border-color: var(--top-header-border) !important;
+}
+html body #root#root .admin-panel-topbar .admin-preview-link:hover,
+html body #root#root .main-compact-header .header-action-button:hover:not(:disabled) {
+  background: var(--top-header-button-hover-bg) !important;
+  background-color: var(--top-header-button-hover-bg) !important;
+  color: var(--top-header-button-hover-text) !important;
+  -webkit-text-fill-color: var(--top-header-button-hover-text) !important;
+}
+html body #root#root .admin-panel-topbar .admin-preview-link :is(svg, svg path, svg circle, svg line, svg polyline, svg rect),
+html body #root#root .main-compact-header .header-action-button :is(svg, svg path, svg circle, svg line, svg polyline, svg rect) {
+  color: var(--top-header-button-icon) !important;
+  stroke: var(--top-header-button-icon) !important;
+}
+
+/* Hamburger remains an interface-only control and is never recolored by generic button rules. */
+html body #root#root .main-compact-header .sidebar-menu-toggle {
+  background: var(--top-header-hamburger-bg) !important;
+  background-color: var(--top-header-hamburger-bg) !important;
+  background-image: none !important;
+  color: var(--top-header-hamburger-icon) !important;
+  border-color: var(--top-header-border) !important;
+}
+html body #root#root .main-compact-header .sidebar-menu-toggle span {
+  background: var(--top-header-hamburger-icon) !important;
+  background-color: var(--top-header-hamburger-icon) !important;
+}
+
+/* Inbox trigger in the top header. */
+html body #root#root .main-compact-header .main-notification-button,
+html body #root#root .main-compact-header .header-inbox-button {
+  background: var(--top-header-inbox-trigger-bg) !important;
+  background-color: var(--top-header-inbox-trigger-bg) !important;
+  background-image: none !important;
+  color: var(--top-header-inbox-trigger-icon) !important;
+  -webkit-text-fill-color: var(--top-header-inbox-trigger-icon) !important;
+  border-color: var(--top-header-border) !important;
+}
+html body #root#root .main-compact-header .main-notification-button:hover,
+html body #root#root .main-compact-header .main-notification-button.active {
+  background: var(--top-header-button-hover-bg) !important;
+  background-color: var(--top-header-button-hover-bg) !important;
+  color: var(--top-header-button-hover-text) !important;
+  -webkit-text-fill-color: var(--top-header-button-hover-text) !important;
+}
+html body #root#root .main-compact-header .main-notification-button .notification-icon,
+html body #root#root .main-compact-header .main-notification-button .notification-icon :is(svg, svg path, svg circle, svg line, svg polyline, svg rect) {
+  color: var(--top-header-inbox-trigger-icon) !important;
+  stroke: var(--top-header-inbox-trigger-icon) !important;
+  background: transparent !important;
+}
+html body #root#root .main-compact-header .main-notification-button:hover .notification-icon,
+html body #root#root .main-compact-header .main-notification-button.active .notification-icon,
+html body #root#root .main-compact-header .main-notification-button:hover .notification-icon :is(svg, svg path),
+html body #root#root .main-compact-header .main-notification-button.active .notification-icon :is(svg, svg path) {
+  color: var(--top-header-button-hover-text) !important;
+  stroke: var(--top-header-button-hover-text) !important;
+}
+
+html body #root#root .main-compact-header .role-switch-dropdown select {
+  background: var(--top-header-role-dropdown-bg) !important;
+  background-color: var(--top-header-role-dropdown-bg) !important;
+  color: var(--top-header-role-dropdown-text) !important;
+  -webkit-text-fill-color: var(--top-header-role-dropdown-text) !important;
+  border-color: var(--top-header-border) !important;
+}
+
+html body #root#root .main-compact-header :is(.student-profile-trigger, .student-profile-trigger.redesigned, .user-profile-menu .student-profile-trigger.redesigned),
+html body #root#root .interface-preview-avatar {
+  background: var(--top-header-avatar-bg) !important;
+  background-color: var(--top-header-avatar-bg) !important;
+  background-image: none !important;
+  color: var(--top-header-avatar-text) !important;
+  -webkit-text-fill-color: var(--top-header-avatar-text) !important;
+  border-color: var(--top-header-border) !important;
+}
+html body #root#root .main-compact-header :is(.student-profile-trigger, .student-profile-trigger.redesigned) > span:not(.profile-online-dot) {
+  color: var(--top-header-avatar-text) !important;
+  -webkit-text-fill-color: var(--top-header-avatar-text) !important;
+}
+
+/* Full role and Admin Subdomain Sidebar appearance. */
+html body #root#root :is(.app-main-shell .main-sidebar, .main-sidebar, .admin-sidebar) {
+  background: linear-gradient(180deg, var(--sidebar-bg), var(--sidebar-secondary-bg)) !important;
+  background-color: var(--sidebar-bg) !important;
+  color: var(--sidebar-text) !important;
+  border-color: var(--sidebar-border) !important;
+  box-shadow: 6px 0 24px var(--sidebar-shadow) !important;
+}
+
+html body #root#root :is(.main-sidebar, .admin-sidebar) :is(.admin-brand-block h2, .admin-brand-block p, .sidebar-fixed-head, .sidebar-fixed-head b, .sidebar-fixed-head span) {
+  color: var(--sidebar-text) !important;
+  -webkit-text-fill-color: var(--sidebar-text) !important;
+}
+html body #root#root :is(.main-sidebar, .admin-sidebar) :is(.admin-logo-mark, .admin-logo-mark svg, .admin-brand-block svg) {
+  color: var(--sidebar-icon) !important;
+  stroke: var(--sidebar-icon) !important;
+}
+
+html body #root#root :is(.main-side-nav button, .main-side-nav .sidebar-utility-link, .admin-side-nav button) {
+  background: var(--sidebar-inactive-bg) !important;
+  background-color: var(--sidebar-inactive-bg) !important;
+  background-image: none !important;
+  color: var(--sidebar-inactive-text) !important;
+  -webkit-text-fill-color: var(--sidebar-inactive-text) !important;
+  border-color: var(--sidebar-border) !important;
+  box-shadow: none !important;
+}
+html body #root#root :is(.main-side-nav button, .main-side-nav .sidebar-utility-link, .admin-side-nav button) :is(span, b, strong) {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+html body #root#root :is(.main-side-nav button, .main-side-nav .sidebar-utility-link, .admin-side-nav button) :is(svg, svg path, svg circle, svg line, svg polyline, svg rect, .side-nav-icon) {
+  color: var(--sidebar-inactive-icon) !important;
+  stroke: var(--sidebar-inactive-icon) !important;
+}
+
+html body #root#root :is(.main-side-nav button, .main-side-nav .sidebar-utility-link, .admin-side-nav button):hover:not(:disabled),
+html body #root#root .interface-sidebar-preview-item.is-hovered {
+  background: var(--sidebar-hover-bg) !important;
+  background-color: var(--sidebar-hover-bg) !important;
+  color: var(--sidebar-hover-text) !important;
+  -webkit-text-fill-color: var(--sidebar-hover-text) !important;
+  border-color: var(--sidebar-border) !important;
+}
+html body #root#root :is(.main-side-nav button, .main-side-nav .sidebar-utility-link, .admin-side-nav button):hover:not(:disabled) :is(svg, svg path, svg circle, svg line, svg polyline, svg rect, .side-nav-icon),
+html body #root#root .interface-sidebar-preview-item.is-hovered svg {
+  color: var(--sidebar-hover-icon) !important;
+  stroke: var(--sidebar-hover-icon) !important;
+}
+
+html body #root#root :is(.main-side-nav button.active, .main-side-nav button[aria-current="page"], .main-side-nav .sidebar-utility-link.active, .admin-side-nav button.active, .admin-side-nav button[aria-current="page"]),
+html body #root#root .interface-sidebar-preview-item.active {
+  background: var(--sidebar-active-bg) !important;
+  background-color: var(--sidebar-active-bg) !important;
+  color: var(--sidebar-active-text) !important;
+  -webkit-text-fill-color: var(--sidebar-active-text) !important;
+  border-color: var(--sidebar-border) !important;
+}
+html body #root#root :is(.main-side-nav button.active, .main-side-nav button[aria-current="page"], .main-side-nav .sidebar-utility-link.active, .admin-side-nav button.active, .admin-side-nav button[aria-current="page"]) :is(svg, svg path, svg circle, svg line, svg polyline, svg rect, .side-nav-icon),
+html body #root#root .interface-sidebar-preview-item.active svg {
+  color: var(--sidebar-active-icon) !important;
+  stroke: var(--sidebar-active-icon) !important;
+}
+
+html body #root#root :is(.sidebar-utility-nav button:not(.active):not(:hover), .sidebar-utility-nav .sidebar-utility-link:not(:hover), .admin-sidebar .admin-logout) {
+  background: var(--sidebar-utility-bg) !important;
+  background-color: var(--sidebar-utility-bg) !important;
+  color: var(--sidebar-utility-text) !important;
+  -webkit-text-fill-color: var(--sidebar-utility-text) !important;
+  border-color: var(--sidebar-border) !important;
+}
+html body #root#root :is(.sidebar-utility-nav button:not(.active):not(:hover), .sidebar-utility-nav .sidebar-utility-link:not(:hover), .admin-sidebar .admin-logout) :is(svg, svg path, svg circle, svg line, svg polyline, svg rect, .side-nav-icon) {
+  color: var(--sidebar-utility-text) !important;
+  stroke: var(--sidebar-utility-text) !important;
+}
+
+html body #root#root :is(.sidebar-close-button, .interface-sidebar-preview-close) {
+  background: var(--sidebar-close-bg) !important;
+  background-color: var(--sidebar-close-bg) !important;
+  color: var(--sidebar-close-icon) !important;
+  -webkit-text-fill-color: var(--sidebar-close-icon) !important;
+  border-color: var(--sidebar-border) !important;
+}
+html body #root#root :is(.main-sidebar, .admin-sidebar)::-webkit-scrollbar,
+html body #root#root :is(.main-sidebar, .admin-sidebar) *::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+html body #root#root :is(.main-sidebar, .admin-sidebar)::-webkit-scrollbar-track,
+html body #root#root :is(.main-sidebar, .admin-sidebar) *::-webkit-scrollbar-track {
+  background: var(--sidebar-scrollbar-track) !important;
+}
+html body #root#root :is(.main-sidebar, .admin-sidebar)::-webkit-scrollbar-thumb,
+html body #root#root :is(.main-sidebar, .admin-sidebar) *::-webkit-scrollbar-thumb {
+  background: var(--sidebar-scrollbar-thumb) !important;
+  border-radius: 999px;
+}
+html body #root#root :is(.main-sidebar, .admin-sidebar) {
+  scrollbar-color: var(--sidebar-scrollbar-thumb) var(--sidebar-scrollbar-track);
+}
+
+/* Existing Inbox dropdown/popup. */
+html body #root#root :is(.notification-popover, .inbox-popup, .inbox-dropdown, .notification-dropdown),
+html body #root#root .interface-inbox-preview {
+  background: var(--inbox-popup-bg) !important;
+  background-color: var(--inbox-popup-bg) !important;
+  background-image: none !important;
+  color: var(--inbox-text) !important;
+  border-color: var(--inbox-border) !important;
+  box-shadow: 0 18px 45px var(--inbox-shadow) !important;
+}
+
+html body #root#root :is(.notification-popover-head, .interface-inbox-preview-head) {
+  background: var(--inbox-header-bg) !important;
+  background-color: var(--inbox-header-bg) !important;
+  background-image: none !important;
+  border-color: var(--inbox-border) !important;
+}
+html body #root#root :is(.notification-popover-head b, .notification-title, .interface-inbox-preview-head b, .interface-inbox-preview-item b) {
+  color: var(--inbox-title-text) !important;
+  -webkit-text-fill-color: var(--inbox-title-text) !important;
+}
+html body #root#root :is(.notification-popover-head small, .notification-time, .interface-inbox-preview-head small, .interface-inbox-preview-item small) {
+  color: var(--inbox-secondary-text) !important;
+  -webkit-text-fill-color: var(--inbox-secondary-text) !important;
+}
+html body #root#root :is(.notification-message, .notification-popover-content, .interface-inbox-preview-item p) {
+  color: var(--inbox-text) !important;
+  -webkit-text-fill-color: var(--inbox-text) !important;
+}
+html body #root#root :is(.notification-popover, .interface-inbox-preview) :is(svg, svg path, svg circle, svg line, svg polyline, svg rect) {
+  color: var(--inbox-icon) !important;
+  stroke: var(--inbox-icon) !important;
+}
+
+html body #root#root :is(.notification-popover-item.unread, .interface-inbox-preview-item.unread) {
+  background: var(--inbox-unread-bg) !important;
+  background-color: var(--inbox-unread-bg) !important;
+  color: var(--inbox-unread-text) !important;
+  border-color: var(--inbox-border) !important;
+}
+html body #root#root :is(.notification-popover-item.unread, .interface-inbox-preview-item.unread) :is(.notification-title, .notification-message, b, p) {
+  color: var(--inbox-unread-text) !important;
+  -webkit-text-fill-color: var(--inbox-unread-text) !important;
+}
+html body #root#root :is(.notification-popover-item:not(.unread), .interface-inbox-preview-item.read) {
+  background: var(--inbox-read-bg) !important;
+  background-color: var(--inbox-read-bg) !important;
+  color: var(--inbox-read-text) !important;
+  border-color: var(--inbox-border) !important;
+}
+html body #root#root :is(.notification-popover-item:not(.unread), .interface-inbox-preview-item.read) :is(.notification-title, .notification-message, b, p) {
+  color: var(--inbox-read-text) !important;
+  -webkit-text-fill-color: var(--inbox-read-text) !important;
+}
+html body #root#root :is(.notification-popover-item, .interface-inbox-preview-item):hover {
+  background: var(--inbox-hover-bg) !important;
+  background-color: var(--inbox-hover-bg) !important;
+}
+
+html body #root#root :is(.notification-badge, .inbox-unread-count) {
+  background: var(--inbox-badge-bg) !important;
+  background-color: var(--inbox-badge-bg) !important;
+  color: var(--inbox-badge-text) !important;
+  -webkit-text-fill-color: var(--inbox-badge-text) !important;
+  border-color: var(--top-header-bg) !important;
+}
+html body #root#root :is(.notification-dot, .interface-inbox-preview-dot) {
+  background: var(--inbox-unread-indicator) !important;
+  background-color: var(--inbox-unread-indicator) !important;
+}
+html body #root#root :is(.notification-popover-state, .interface-inbox-preview-empty) {
+  background: var(--inbox-empty-bg) !important;
+  background-color: var(--inbox-empty-bg) !important;
+  color: var(--inbox-empty-text) !important;
+  -webkit-text-fill-color: var(--inbox-empty-text) !important;
+}
+
+html body #root#root :is(.notification-read-button, .interface-inbox-preview-read) {
+  background: var(--inbox-mark-read-bg) !important;
+  background-color: var(--inbox-mark-read-bg) !important;
+  color: var(--inbox-mark-read-text) !important;
+  -webkit-text-fill-color: var(--inbox-mark-read-text) !important;
+  border-color: var(--inbox-border) !important;
+}
+html body #root#root :is(.notification-read-button, .interface-inbox-preview-read) :is(span, svg, svg path) {
+  color: var(--inbox-mark-read-text) !important;
+  stroke: var(--inbox-mark-read-text) !important;
+}
+html body #root#root :is(.notification-delete-button, .interface-inbox-preview-delete) {
+  background: var(--inbox-delete-bg) !important;
+  background-color: var(--inbox-delete-bg) !important;
+  color: var(--inbox-delete-text) !important;
+  -webkit-text-fill-color: var(--inbox-delete-text) !important;
+  border-color: var(--inbox-border) !important;
+}
+html body #root#root :is(.notification-delete-button, .interface-inbox-preview-delete) :is(svg, svg path, svg circle, svg line, svg polyline, svg rect) {
+  color: var(--inbox-delete-text) !important;
+  stroke: var(--inbox-delete-text) !important;
+}
+html body #root#root :is(.notification-x-plain, .notification-popover-close, .interface-inbox-preview-close) {
+  background: var(--inbox-close-bg) !important;
+  background-color: var(--inbox-close-bg) !important;
+  color: var(--inbox-close-icon) !important;
+  -webkit-text-fill-color: var(--inbox-close-icon) !important;
+  border-color: var(--inbox-border) !important;
+}
+
+/* Admin color-editor layout and live previews. */
+.complete-color-customization-stack {
+  display: grid;
+  gap: 30px;
+}
+.interface-color-customization-page {
+  padding-top: 6px;
+  border-top: 1px solid rgba(15, 23, 42, 0.10);
+}
+.interface-color-customization-page .button-color-setting-preview {
+  background-image:
+    linear-gradient(45deg, rgba(148, 163, 184, .22) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(148, 163, 184, .22) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(148, 163, 184, .22) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(148, 163, 184, .22) 75%);
+  background-size: 8px 8px;
+  background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+}
+.interface-preview-section {
+  display: grid;
+  gap: 8px;
+}
+.interface-preview-label {
+  color: #475569;
+  font-size: .76rem;
+  font-weight: 900;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+}
+.interface-header-preview {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px;
+  border: 1px solid var(--top-header-border);
+  border-radius: 14px;
+  background: var(--top-header-bg);
+  color: var(--top-header-text);
+  box-shadow: 0 4px 16px var(--top-header-shadow);
+}
+html body #root#root .interface-preview-hamburger {
+  width: 36px !important;
+  min-width: 36px !important;
+  height: 36px !important;
+  padding: 8px !important;
+  margin: 0 !important;
+  display: grid !important;
+  align-content: center !important;
+  gap: 4px !important;
+  border-radius: 9px !important;
+  background: var(--top-header-hamburger-bg) !important;
+  border-color: var(--top-header-border) !important;
+}
+.interface-preview-hamburger span {
+  width: 100%;
+  height: 2px;
+  border-radius: 99px;
+  background: var(--top-header-hamburger-icon);
+}
+.interface-preview-header-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  margin-right: auto;
+}
+.interface-preview-header-copy b,
+.interface-preview-header-copy small {
+  color: var(--top-header-text) !important;
+}
+.interface-preview-header-copy small { font-size: .7rem; opacity: .75; }
+.interface-preview-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+html body #root#root .interface-preview-inbox,
+html body #root#root .interface-preview-avatar {
+  width: 34px !important;
+  min-width: 34px !important;
+  height: 34px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 9px !important;
+}
+html body #root#root .interface-preview-inbox {
+  position: relative;
+  background: var(--top-header-inbox-trigger-bg) !important;
+  color: var(--top-header-inbox-trigger-icon) !important;
+  border-color: var(--top-header-border) !important;
+}
+.interface-preview-inbox > span {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--inbox-badge-bg);
+  color: var(--inbox-badge-text) !important;
+  font-size: .62rem;
+}
+.interface-preview-header-actions select {
+  width: 82px;
+  height: 34px;
+  padding: 4px 7px;
+  border-radius: 9px;
+  background: var(--top-header-role-dropdown-bg) !important;
+  color: var(--top-header-role-dropdown-text) !important;
+  border-color: var(--top-header-border) !important;
+  font-size: .72rem;
+}
+
+.interface-sidebar-preview {
+  display: grid;
+  gap: 7px;
+  padding: 12px;
+  border: 1px solid var(--sidebar-border);
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--sidebar-bg), var(--sidebar-secondary-bg));
+  color: var(--sidebar-text);
+  box-shadow: 4px 0 14px var(--sidebar-shadow);
+}
+.interface-sidebar-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--sidebar-text);
+}
+.interface-sidebar-preview-head b { color: var(--sidebar-text) !important; }
+html body #root#root .interface-sidebar-preview :is(.interface-sidebar-preview-item, .interface-sidebar-preview-utility) {
+  width: 100%;
+  min-height: 37px;
+  margin: 0 !important;
+  padding: 7px 9px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  border: 1px solid var(--sidebar-border) !important;
+  border-radius: 9px;
+  background: var(--sidebar-inactive-bg) !important;
+  color: var(--sidebar-inactive-text) !important;
+}
+html body #root#root .interface-sidebar-preview .interface-sidebar-preview-utility {
+  background: var(--sidebar-utility-bg) !important;
+  color: var(--sidebar-utility-text) !important;
+}
+
+.interface-inbox-preview {
+  overflow: hidden;
+  border: 1px solid var(--inbox-border);
+  border-radius: 14px;
+}
+.interface-inbox-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px;
+  border-bottom: 1px solid var(--inbox-border);
+}
+.interface-inbox-preview-head > div { display: grid; gap: 2px; }
+.interface-inbox-preview-list {
+  display: grid;
+  gap: 7px;
+  padding: 8px;
+  background: var(--inbox-popup-bg);
+}
+.interface-inbox-preview-item {
+  display: grid;
+  grid-template-columns: 7px minmax(0, 1fr) auto;
+  gap: 7px;
+  align-items: start;
+  padding: 9px;
+  border: 1px solid var(--inbox-border);
+  border-radius: 10px;
+}
+.interface-inbox-preview-item p {
+  margin: 3px 0;
+  font-size: .7rem;
+  line-height: 1.3;
+}
+.interface-inbox-preview-item small { font-size: .65rem; }
+.interface-inbox-preview-dot {
+  width: 7px;
+  height: 7px;
+  margin-top: 5px;
+  border-radius: 999px;
+}
+.interface-inbox-preview-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+html body #root#root .interface-inbox-preview-actions button,
+html body #root#root .interface-inbox-preview-close {
+  min-height: 27px;
+  margin: 0 !important;
+  padding: 0 7px;
+  border-radius: 7px;
+  font-size: .65rem;
+}
+html body #root#root .interface-inbox-preview-delete,
+html body #root#root .interface-inbox-preview-close {
+  width: 27px !important;
+  min-width: 27px !important;
+  padding: 0 !important;
+}
+.interface-inbox-preview-empty {
+  padding: 9px;
+  border-radius: 9px;
+  text-align: center;
+  font-size: .7rem;
+}
+
+@media (max-width: 760px) {
+  .interface-preview-header-copy { display: none; }
+  .interface-preview-header-actions { margin-left: auto; }
+  .interface-preview-header-actions select { width: 74px; }
+  .interface-inbox-preview-item { grid-template-columns: 7px minmax(0, 1fr); }
+  .interface-inbox-preview-actions { grid-column: 2; }
+}
+
+/* Ensure the newly exposed Inbox trigger icon is visible despite legacy text-only overrides. */
+html body #root#root .main-compact-header .main-notification-button .notification-icon {
+  position: static !important;
+  inset: auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+html body #root#root .main-compact-header .main-notification-button .notification-icon svg {
+  display: block !important;
+  width: 18px !important;
+  height: 18px !important;
+  color: var(--top-header-inbox-trigger-icon) !important;
+  stroke: var(--top-header-inbox-trigger-icon) !important;
+}
+html body #root#root .main-compact-header .main-notification-button .inbox-button-label {
+  position: static !important;
+  color: var(--top-header-inbox-trigger-icon) !important;
+  -webkit-text-fill-color: var(--top-header-inbox-trigger-icon) !important;
+}
+html body #root#root .main-compact-header .main-notification-button:hover .inbox-button-label,
+html body #root#root .main-compact-header .main-notification-button.active .inbox-button-label {
+  color: var(--top-header-button-hover-text) !important;
+  -webkit-text-fill-color: var(--top-header-button-hover-text) !important;
+}
