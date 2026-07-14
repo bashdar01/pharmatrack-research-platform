@@ -24231,3 +24231,431 @@ html body #root#root .interface-sidebar-preview .interface-sidebar-preview-utili
     flex-basis: 38px !important;
   }
 }
+
+/* =========================================================
+   FINAL AUTHENTICATED HEADER + COMPACT SHARED SIDEBAR REFINEMENT
+   Canonical colors: website_settings.interface_colors.sidebar/topHeader
+   ========================================================= */
+:root {
+  --sidebar-icon-inactive: var(--sidebar-icon-container-icon, #2f8f86);
+  --sidebar-icon-hover: var(--sidebar-icon-container-hover-icon, #35b8ae);
+  --sidebar-icon-active: var(--sidebar-icon-container-active-icon, #35b8ae);
+}
+
+/* Authenticated headers contain global controls only; no page/role title space. */
+html body #root#root .main-compact-header {
+  min-height: 64px !important;
+  height: 64px !important;
+  padding: 0 16px 0 0 !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 0 !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+html body #root#root .main-compact-header .main-compact-left {
+  align-self: stretch !important;
+  min-width: 64px !important;
+  height: 64px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  gap: 0 !important;
+}
+
+html body #root#root .main-compact-header .main-header-title-block,
+html body #root#root .main-compact-header .main-header-role-label,
+html body #root#root .main-compact-header .main-header-title-block h1 {
+  display: none !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+html body #root#root .main-compact-header .main-header-actions {
+  min-width: 0 !important;
+  margin-left: auto !important;
+  padding-left: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+}
+
+/* Full square hamburger, flush with the far-left edge. */
+html body #root#root .main-compact-header button.sidebar-menu-toggle {
+  align-self: stretch !important;
+  width: 64px !important;
+  min-width: 64px !important;
+  max-width: 64px !important;
+  height: 64px !important;
+  min-height: 64px !important;
+  max-height: 64px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-right: 1px solid var(--top-header-border) !important;
+  border-radius: 0 !important;
+  display: inline-flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  background: var(--top-header-hamburger-bg) !important;
+  background-color: var(--top-header-hamburger-bg) !important;
+  background-image: none !important;
+  color: var(--top-header-hamburger-icon) !important;
+  box-shadow: none !important;
+  transform: none !important;
+  box-sizing: border-box !important;
+}
+
+html body #root#root .main-compact-header button.sidebar-menu-toggle:hover,
+html body #root#root .main-compact-header button.sidebar-menu-toggle:focus-visible,
+html body #root#root .main-compact-header button.sidebar-menu-toggle:active {
+  background: var(--top-header-hamburger-bg) !important;
+  color: var(--top-header-hamburger-icon) !important;
+  filter: brightness(.94) !important;
+  outline: 3px solid color-mix(in srgb, var(--top-header-hamburger-bg) 35%, transparent) !important;
+  outline-offset: -3px !important;
+}
+
+html body #root#root .main-compact-header button.sidebar-menu-toggle span {
+  width: 22px !important;
+  height: 2px !important;
+  min-height: 2px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  background: currentColor !important;
+  background-color: currentColor !important;
+  color: currentColor !important;
+  box-shadow: none !important;
+}
+
+/* Admin Subdomain topbar also has no page title or reserved title column. */
+html body #root#root .admin-panel-topbar {
+  min-height: 64px !important;
+  padding: 0 16px !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+}
+
+html body #root#root .admin-panel-topbar > div:first-child:not(.admin-topbar-actions),
+html body #root#root .admin-panel-topbar :is(h1, .main-header-role-label) {
+  display: none !important;
+}
+
+html body #root#root .admin-panel-topbar .admin-topbar-actions {
+  margin-left: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+}
+
+/* No dark page veil while the fixed/off-canvas sidebar is open. */
+html body #root#root :is(.sidebar-backdrop, .admin-sidebar-backdrop) {
+  background: transparent !important;
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Shared compact spacing for all real sidebars and the Admin Subdomain. */
+html body #root#root :is(
+  .main-sidebar .main-side-nav,
+  .main-sidebar .sidebar-utility-nav,
+  .admin-sidebar .admin-side-nav,
+  .admin-panel-shell .admin-side-nav
+) {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  padding: 10px !important;
+  margin: 0 !important;
+  background: var(--sidebar-bg) !important;
+  background-color: var(--sidebar-bg) !important;
+  background-image: none !important;
+}
+
+html body #root#root :is(
+  .main-side-nav button,
+  .main-side-nav .sidebar-utility-link,
+  .main-side-nav .sidebar-nav-item,
+  .admin-side-nav button,
+  .admin-side-nav .admin-sidebar-link,
+  .admin-sidebar .admin-logout
+) {
+  width: 100% !important;
+  min-height: 50px !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 8px 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  border-radius: 14px !important;
+  box-sizing: border-box !important;
+  font-size: .94rem !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  text-align: left !important;
+  overflow: hidden !important;
+}
+
+html body #root#root :is(
+  .main-side-nav button,
+  .main-side-nav .sidebar-utility-link,
+  .admin-side-nav button,
+  .admin-sidebar .admin-logout
+):not(.active):not(:hover) {
+  background: var(--sidebar-inactive-bg) !important;
+  color: var(--sidebar-inactive-text) !important;
+  border-color: var(--sidebar-border) !important;
+}
+
+html body #root#root :is(
+  .main-side-nav button,
+  .main-side-nav .sidebar-utility-link,
+  .admin-side-nav button,
+  .admin-sidebar .admin-logout
+):hover:not(:disabled) {
+  background: var(--sidebar-hover-bg) !important;
+  color: var(--sidebar-hover-text) !important;
+  border-color: var(--sidebar-border) !important;
+}
+
+html body #root#root :is(
+  .main-side-nav button.active,
+  .main-side-nav button[aria-current="page"],
+  .main-side-nav .sidebar-utility-link.active,
+  .main-side-nav .sidebar-utility-link[aria-current="page"],
+  .admin-side-nav button.active,
+  .admin-side-nav button[aria-current="page"]
+) {
+  background: var(--sidebar-active-bg) !important;
+  color: var(--sidebar-active-text) !important;
+  border-color: var(--sidebar-border) !important;
+}
+
+html body #root#root :is(
+  .main-side-nav .sidebar-item-label,
+  .main-side-nav button > span:not(.side-nav-icon):not(.tab-badge),
+  .main-side-nav .sidebar-utility-link > span:not(.side-nav-icon),
+  .admin-side-nav .sidebar-item-label,
+  .admin-side-nav button > span:not(.side-nav-icon):not(.tab-badge),
+  .admin-sidebar .admin-logout > span:not(.side-nav-icon)
+) {
+  min-width: 0 !important;
+  margin: 0 !important;
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: normal !important;
+  font-size: .94rem !important;
+  font-weight: 700 !important;
+  line-height: 1.18 !important;
+}
+
+/* Smaller customizable icon containers. */
+html body #root#root :is(
+  .main-side-nav .side-nav-icon,
+  .main-side-nav .sidebar-icon-container,
+  .admin-side-nav .side-nav-icon,
+  .admin-side-nav .sidebar-icon-container,
+  .admin-sidebar .admin-logout .side-nav-icon
+) {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+  flex: 0 0 34px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: var(--sidebar-icon-container-radius) !important;
+  background: var(--sidebar-icon-container-bg) !important;
+  border: 1px solid var(--sidebar-icon-container-border) !important;
+  color: var(--sidebar-icon-inactive) !important;
+  -webkit-text-fill-color: var(--sidebar-icon-inactive) !important;
+  box-shadow: 0 3px 9px var(--sidebar-icon-container-shadow) !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+html body #root#root :is(
+  .main-side-nav .side-nav-icon,
+  .main-side-nav .sidebar-icon-container,
+  .admin-side-nav .side-nav-icon,
+  .admin-side-nav .sidebar-icon-container,
+  .admin-sidebar .admin-logout .side-nav-icon
+) :is(svg, svg path, svg circle, svg line, svg polyline, svg rect) {
+  width: 19px !important;
+  height: 19px !important;
+  max-width: 19px !important;
+  max-height: 19px !important;
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+html body #root#root :is(
+  .main-side-nav .side-nav-icon,
+  .main-side-nav .sidebar-icon-container,
+  .admin-side-nav .side-nav-icon,
+  .admin-side-nav .sidebar-icon-container,
+  .admin-sidebar .admin-logout .side-nav-icon
+) svg [fill]:not([fill="none"]) {
+  fill: currentColor !important;
+}
+
+html body #root#root :is(
+  .main-side-nav button:hover,
+  .main-side-nav .sidebar-utility-link:hover,
+  .admin-side-nav button:hover,
+  .admin-sidebar .admin-logout:hover
+) :is(.side-nav-icon, .sidebar-icon-container) {
+  background: var(--sidebar-icon-container-hover-bg) !important;
+  color: var(--sidebar-icon-hover) !important;
+  -webkit-text-fill-color: var(--sidebar-icon-hover) !important;
+}
+
+html body #root#root :is(
+  .main-side-nav button.active,
+  .main-side-nav button[aria-current="page"],
+  .main-side-nav .sidebar-utility-link.active,
+  .main-side-nav .sidebar-utility-link[aria-current="page"],
+  .admin-side-nav button.active,
+  .admin-side-nav button[aria-current="page"]
+) :is(.side-nav-icon, .sidebar-icon-container) {
+  background: var(--sidebar-icon-container-active-bg) !important;
+  color: var(--sidebar-icon-active) !important;
+  -webkit-text-fill-color: var(--sidebar-icon-active) !important;
+}
+
+html body #root#root :is(
+  .main-side-nav button:disabled,
+  .main-side-nav [aria-disabled="true"],
+  .admin-side-nav button:disabled,
+  .admin-side-nav [aria-disabled="true"]
+) :is(.side-nav-icon, .sidebar-icon-container) {
+  background: var(--sidebar-icon-container-disabled-bg) !important;
+  color: var(--sidebar-icon-container-disabled-icon) !important;
+  -webkit-text-fill-color: var(--sidebar-icon-container-disabled-icon) !important;
+}
+
+html body #root#root :is(.main-side-nav, .admin-side-nav) :is(.side-nav-icon, .sidebar-icon-container) img {
+  width: 70% !important;
+  height: 70% !important;
+  max-width: 23px !important;
+  max-height: 23px !important;
+  object-fit: contain !important;
+}
+
+/* Admin Subdomain spaces and wrappers use the selected background, never a gray rail. */
+html body #root#root :is(
+  .admin-sidebar,
+  .admin-sidebar .admin-side-nav,
+  .admin-sidebar .admin-brand-block,
+  .admin-sidebar .admin-sidebar-inner,
+  .admin-sidebar .admin-sidebar-list
+) {
+  background-color: var(--sidebar-bg) !important;
+  background-image: none !important;
+}
+
+@media (max-width: 768px) {
+  html body #root#root .main-compact-header {
+    min-height: 56px !important;
+    height: 56px !important;
+    padding-right: 10px !important;
+  }
+
+  html body #root#root .main-compact-header .main-compact-left {
+    min-width: 56px !important;
+    height: 56px !important;
+  }
+
+  html body #root#root .main-compact-header button.sidebar-menu-toggle {
+    width: 56px !important;
+    min-width: 56px !important;
+    max-width: 56px !important;
+    height: 56px !important;
+    min-height: 56px !important;
+    max-height: 56px !important;
+  }
+
+  html body #root#root .main-compact-header .main-header-actions {
+    padding-left: 8px !important;
+    gap: 6px !important;
+  }
+
+  html body #root#root .admin-panel-topbar {
+    min-height: 56px !important;
+    padding: 0 10px !important;
+  }
+
+  html body #root#root :is(
+    .main-side-nav button,
+    .main-side-nav .sidebar-utility-link,
+    .admin-side-nav button,
+    .admin-sidebar .admin-logout
+  ) {
+    min-height: 46px !important;
+    padding: 7px 10px !important;
+    gap: 9px !important;
+    border-radius: 13px !important;
+    font-size: .9rem !important;
+  }
+
+  html body #root#root :is(
+    .main-side-nav .sidebar-item-label,
+    .main-side-nav button > span:not(.side-nav-icon):not(.tab-badge),
+    .main-side-nav .sidebar-utility-link > span:not(.side-nav-icon),
+    .admin-side-nav .sidebar-item-label,
+    .admin-side-nav button > span:not(.side-nav-icon):not(.tab-badge),
+    .admin-sidebar .admin-logout > span:not(.side-nav-icon)
+  ) {
+    font-size: .9rem !important;
+  }
+
+  html body #root#root :is(
+    .main-side-nav .side-nav-icon,
+    .main-side-nav .sidebar-icon-container,
+    .admin-side-nav .side-nav-icon,
+    .admin-side-nav .sidebar-icon-container,
+    .admin-sidebar .admin-logout .side-nav-icon
+  ) {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    flex: 0 0 32px !important;
+  }
+
+  html body #root#root :is(
+    .main-side-nav .side-nav-icon,
+    .main-side-nav .sidebar-icon-container,
+    .admin-side-nav .side-nav-icon,
+    .admin-side-nav .sidebar-icon-container,
+    .admin-sidebar .admin-logout .side-nav-icon
+  ) :is(svg, svg path, svg circle, svg line, svg polyline, svg rect) {
+    width: 18px !important;
+    height: 18px !important;
+    max-width: 18px !important;
+    max-height: 18px !important;
+  }
+}

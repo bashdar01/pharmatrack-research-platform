@@ -1211,6 +1211,28 @@ function applyInterfaceTheme(colors = DEFAULT_INTERFACE_COLORS) {
   }
 
   const sidebar = normalized.sidebar
+  const defaultSidebar = DEFAULT_INTERFACE_COLORS.sidebar
+  const resolvedInactiveIcon = sidebar.inactiveIcon !== defaultSidebar.inactiveIcon
+    ? sidebar.inactiveIcon
+    : sidebar.iconContainerIcon
+  const resolvedHoverIcon = sidebar.hoverIcon !== defaultSidebar.hoverIcon
+    ? sidebar.hoverIcon
+    : sidebar.iconContainerHoverIcon
+  const resolvedActiveIcon = sidebar.activeIcon !== defaultSidebar.activeIcon
+    ? sidebar.activeIcon
+    : sidebar.iconContainerActiveIcon
+
+  root.style.setProperty('--sidebar-icon', resolvedInactiveIcon)
+  root.style.setProperty('--sidebar-inactive-icon', resolvedInactiveIcon)
+  root.style.setProperty('--sidebar-hover-icon', resolvedHoverIcon)
+  root.style.setProperty('--sidebar-active-icon', resolvedActiveIcon)
+  root.style.setProperty('--sidebar-icon-inactive', resolvedInactiveIcon)
+  root.style.setProperty('--sidebar-icon-hover', resolvedHoverIcon)
+  root.style.setProperty('--sidebar-icon-active', resolvedActiveIcon)
+  root.style.setProperty('--sidebar-icon-container-icon', resolvedInactiveIcon)
+  root.style.setProperty('--sidebar-icon-container-hover-icon', resolvedHoverIcon)
+  root.style.setProperty('--sidebar-icon-container-active-icon', resolvedActiveIcon)
+
   const compatibilityVariables = {
     '--sidebar-btn-inactive-bg': sidebar.inactiveBackground,
     '--sidebar-btn-inactive-text': sidebar.inactiveText,
@@ -8896,7 +8918,6 @@ export default function App() {
     )
   }
 
-  const roleLabel = getActiveRoleLabel(baseRole, allowedRole)
   const mainNavItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, show: true },
     { id: 'research-workspace', label: 'Research Workspace', icon: BookOpen, show: true },
@@ -8916,11 +8937,6 @@ export default function App() {
     { id: 'scholar', label: 'HMU Google Scholar', icon: GraduationCap, type: 'external' },
     { id: 'profile-settings', label: 'Profile Settings', icon: Settings, type: 'button' },
   ]
-  const currentPageTitle = tab === 'about-us'
-    ? 'About Us'
-    : tab === 'profile-settings'
-      ? 'Profile Settings'
-      : mainNavItems.find((item) => item.id === tab)?.label || utilityNavItems.find((item) => item.id === tab)?.label || roleLabel
   function handleMainNavClick(tabId, sectionId = '') {
     setSidebarOpen(false)
 
@@ -8976,24 +8992,24 @@ export default function App() {
             const Icon = item.icon
             if (item.type === 'download') {
               return (
-                <a key={item.id} href={RESEARCH_GUIDELINES_PDF_URL} download={RESEARCH_GUIDELINES_DOWNLOAD_NAME} className="sidebar-utility-link">
+                <a key={item.id} href={RESEARCH_GUIDELINES_PDF_URL} download={RESEARCH_GUIDELINES_DOWNLOAD_NAME} className="sidebar-utility-link sidebar-nav-item">
                   <span className="side-nav-icon sidebar-icon-container"><Icon size={18} /></span>
-                  <span>{item.label}</span>
+                  <span className="sidebar-item-label">{item.label}</span>
                 </a>
               )
             }
             if (item.type === 'external') {
               return (
-                <a key={item.id} href="https://scholar.google.com/citations?hl=en&view_op=search_authors&mauthors=hawler+medical+universty&btnG=" target="_blank" rel="noopener noreferrer" className="sidebar-utility-link">
+                <a key={item.id} href="https://scholar.google.com/citations?hl=en&view_op=search_authors&mauthors=hawler+medical+universty&btnG=" target="_blank" rel="noopener noreferrer" className="sidebar-utility-link sidebar-nav-item">
                   <span className="side-nav-icon sidebar-icon-container"><Icon size={18} /></span>
-                  <span>{item.label}</span>
+                  <span className="sidebar-item-label">{item.label}</span>
                 </a>
               )
             }
             return (
-              <button key={item.id} type="button" onClick={() => handleMainNavClick(item.id)} className={tab === item.id ? 'active' : ''}>
+              <button key={item.id} type="button" onClick={() => handleMainNavClick(item.id)} className={`sidebar-nav-item ${tab === item.id ? 'active' : ''}`} aria-current={tab === item.id ? 'page' : undefined}>
                 <span className="side-nav-icon sidebar-icon-container">{item.id === 'about-us' ? <img src={aboutUsHmuLogo} alt="HMU logo" className="about-us-hmu-logo" /> : Icon ? <Icon size={18} /> : null}</span>
-                <span>{item.label}</span>
+                <span className="sidebar-item-label">{item.label}</span>
               </button>
             )
           })}
@@ -9009,11 +9025,6 @@ export default function App() {
               <span></span>
               <span></span>
             </button>
-            <div className="main-header-title-block">
-              <span className="main-header-role-label">{roleLabel}</span>
-              <h1>{currentPageTitle}</h1>
-            </div>
-
           </div>
           <div className="main-header-actions">
             <NotificationBellMenu
@@ -10502,15 +10513,29 @@ function AdminControlPanel({
     setInterfaceColorStatus('Preview updated. Save when you are satisfied with the interface colors.')
     setDraft((current) => {
       const currentColors = normalizeInterfaceColors(current.interface_colors)
+      const nextSection = {
+        ...DEFAULT_INTERFACE_COLORS[sectionKey],
+        ...(currentColors[sectionKey] || {}),
+        [fieldKey]: value,
+      }
+
+      if (sectionKey === 'sidebar') {
+        const iconFieldGroups = [
+          ['icon', 'inactiveIcon', 'iconContainerIcon'],
+          ['hoverIcon', 'iconContainerHoverIcon'],
+          ['activeIcon', 'iconContainerActiveIcon'],
+        ]
+        const relatedFields = iconFieldGroups.find((fields) => fields.includes(fieldKey))
+        relatedFields?.forEach((relatedField) => {
+          nextSection[relatedField] = value
+        })
+      }
+
       return {
         ...current,
         interface_colors: {
           ...currentColors,
-          [sectionKey]: {
-            ...DEFAULT_INTERFACE_COLORS[sectionKey],
-            ...(currentColors[sectionKey] || {}),
-            [fieldKey]: value,
-          },
+          [sectionKey]: nextSection,
         },
       }
     })
@@ -10822,25 +10847,21 @@ function AdminControlPanel({
           {navItems.map((item) => {
             const Icon = item.icon
             return (
-              <button key={item.id} className={adminPanelTab === item.id ? 'active' : ''} onClick={() => changeAdminPanelTab(item.id)}>
+              <button key={item.id} type="button" className={`admin-sidebar-link sidebar-nav-item ${adminPanelTab === item.id ? 'active' : ''}`} aria-current={adminPanelTab === item.id ? 'page' : undefined} onClick={() => changeAdminPanelTab(item.id)}>
                 <span className="side-nav-icon sidebar-icon-container"><Icon size={17} /></span>
-                <span>{item.label}</span>
+                <span className="sidebar-item-label">{item.label}</span>
               </button>
             )
           })}
         </nav>
-        <button className="admin-logout" onClick={onLogout}>
+        <button type="button" className="admin-logout sidebar-nav-item" onClick={onLogout}>
           <span className="side-nav-icon sidebar-icon-container"><LogOut size={16} /></span>
-          <span>Logout</span>
+          <span className="sidebar-item-label">Logout</span>
         </button>
       </aside>
 
       <main className="admin-panel-main">
         <header className="admin-panel-topbar no-print">
-          <div>
-            <h1>{adminPanelTab === 'branding' ? 'Website Settings' : adminPanelTab === 'button-colors' ? 'Color Customization' : adminPanelTab === 'login-settings' ? 'Login Page Settings' : adminPanelTab === 'about-us' ? 'About Us Customization' : adminPanelTab === 'users' ? 'Users & Roles' : adminPanelTab === 'supervisors' ? 'Supervisor Management' : adminPanelTab === 'dual-roles' ? 'Dual Role Management' : adminPanelTab === 'invitations' ? 'Invitation Manager' : adminPanelTab === 'deadlines' ? 'Deadline Manager' : adminPanelTab === 'notifications' ? 'Inbox' : adminPanelTab === 'reports' ? 'Reports' : adminPanelTab === 'pdf-report' ? 'PDF Report Customization' : adminPanelTab === 'group-requests' ? 'Group Join Requests' : adminPanelTab === 'database' ? 'Database Tools' : adminPanelTab === 'audit' ? 'Audit Log' : adminPanelTab === 'profile-settings' ? 'Profile Settings' : 'Control Center'}</h1>
-            {adminPanelTab !== 'overview' && <p>{settings.adminWelcome}</p>}
-          </div>
           <div className="admin-topbar-actions">
             <a className="admin-preview-link admin-guidelines-link" href={RESEARCH_GUIDELINES_PDF_URL} download={RESEARCH_GUIDELINES_DOWNLOAD_NAME}><FileText size={16} /> Research Guidelines</a>
             <a className="admin-preview-link" href="/" target="_blank" rel="noreferrer">Open main website</a>
