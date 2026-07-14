@@ -35,6 +35,14 @@ import {
   UserCog,
   Users,
   Trash2,
+  Menu,
+  X,
+  ArrowRight,
+  Building2,
+  Target,
+  Workflow,
+  FileCheck2,
+  Bell,
 } from 'lucide-react'
 import { supabase, isSupabaseConfigured } from './lib/supabaseClient'
 import aboutUsHmuLogo from './assets/about-us-hmu-logo.svg'
@@ -4445,8 +4453,370 @@ function AppDialog({ dialog, onClose }) {
   )
 }
 
-function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = false, settings = defaultWebsiteSettings, invitation = null }) {
-  const [mode, setMode] = useState('login')
+
+const PUBLIC_SECTION_ROUTES = {
+  '/features': 'features',
+  '/how-it-works': 'how-it-works',
+  '/roles': 'roles',
+  '/about-us': 'about-us',
+  '/contact': 'contact',
+}
+
+const PUBLIC_PATHS = new Set([
+  '/',
+  '/features',
+  '/how-it-works',
+  '/roles',
+  '/about-us',
+  '/contact',
+  '/privacy',
+  '/terms',
+])
+
+function normalizePublicPath(pathname = '/') {
+  const normalized = `/${String(pathname || '/').split('?')[0].split('#')[0].split('/').filter(Boolean).join('/')}`
+  return normalized === '/' ? '/' : normalized.replace(/\/$/, '')
+}
+
+function isPublicInformationPath(pathname = '/') {
+  return PUBLIC_PATHS.has(normalizePublicPath(pathname))
+}
+
+function PublicHeader({ settings = defaultWebsiteSettings }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const siteName = settings.siteName || defaultWebsiteSettings.siteName
+  const closeMenu = () => setMenuOpen(false)
+
+  return (
+    <header className="public-site-header">
+      <div className="public-header-inner">
+        <a className="public-brand" href="/" aria-label={`${siteName} home`} onClick={closeMenu}>
+          <img src={aboutUsHmuLogo} alt="Hawler Medical University logo" />
+          <span><strong>Hawler Medical University</strong><small>{siteName}</small></span>
+        </a>
+
+        <button
+          type="button"
+          className="public-mobile-menu-button"
+          aria-label={menuOpen ? 'Close public navigation' : 'Open public navigation'}
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((current) => !current)}
+        >
+          {menuOpen ? <X size={23} /> : <Menu size={23} />}
+        </button>
+
+        <nav className={`public-navigation ${menuOpen ? 'open' : ''}`} aria-label="Public navigation">
+          <a href="/" onClick={closeMenu}>Home</a>
+          <a href="/features" onClick={closeMenu}>Features</a>
+          <a href="/how-it-works" onClick={closeMenu}>How It Works</a>
+          <a href="/roles" onClick={closeMenu}>Roles</a>
+          <a href="/about-us" onClick={closeMenu}>About Us</a>
+          <a href={RESEARCH_GUIDELINES_PDF_URL} download={RESEARCH_GUIDELINES_DOWNLOAD_NAME} onClick={closeMenu}>Research Guidelines</a>
+          <a href="/contact" onClick={closeMenu}>Contact</a>
+          <a className="public-nav-signin" href="/login" onClick={closeMenu}>Sign In</a>
+          <a className="public-nav-start" href="/register" onClick={closeMenu}>Get Started</a>
+        </nav>
+      </div>
+    </header>
+  )
+}
+
+function PublicFooter({ settings = defaultWebsiteSettings }) {
+  const siteName = settings.siteName || defaultWebsiteSettings.siteName
+  return (
+    <footer className="public-site-footer">
+      <div className="public-footer-grid">
+        <div className="public-footer-brand">
+          <img src={aboutUsHmuLogo} alt="Hawler Medical University logo" />
+          <div>
+            <h2>{siteName}</h2>
+            <p>A secure academic platform supporting the complete research journey at Hawler Medical University, College of Pharmacy.</p>
+          </div>
+        </div>
+        <div>
+          <h3>Platform</h3>
+          <a href="/features">Features</a>
+          <a href="/how-it-works">How It Works</a>
+          <a href="/roles">Roles</a>
+          <a href="/about-us">About Us</a>
+        </div>
+        <div>
+          <h3>Resources</h3>
+          <a href={RESEARCH_GUIDELINES_PDF_URL} download={RESEARCH_GUIDELINES_DOWNLOAD_NAME}>Research Guidelines</a>
+          <a href="/contact">Contact</a>
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/terms">Terms of Use</a>
+        </div>
+        <div>
+          <h3>Access</h3>
+          <a href="/login">Sign In</a>
+          <a href="/register">Get Started</a>
+        </div>
+      </div>
+      <div className="public-footer-bottom">
+        <span>© {new Date().getFullYear()} Hawler Medical University – College of Pharmacy</span>
+        <span>Research Management Platform</span>
+      </div>
+    </footer>
+  )
+}
+
+function PublicLegalPage({ type, settings }) {
+  const isPrivacy = type === 'privacy'
+  return (
+    <div className="public-site-shell">
+      <PublicHeader settings={settings} />
+      <main className="public-legal-main">
+        <section className="public-legal-card">
+          <p className="public-section-kicker"><ShieldCheck size={17} /> Platform information</p>
+          <h1>{isPrivacy ? 'Privacy Policy' : 'Terms of Use'}</h1>
+          {isPrivacy ? (
+            <>
+              <p>The Research Management Platform uses account and research-workflow information only to provide its secure academic services. Protected project, report, meeting, and user information is available only after authentication and according to assigned permissions.</p>
+              <h2>Information and access</h2>
+              <p>Public pages provide general platform information only. Authenticated information remains protected by the platform’s existing authentication, permissions, and database security policies.</p>
+              <h2>Questions</h2>
+              <p>For questions about privacy or institutional data handling, contact Hawler Medical University through the contact information provided on this website.</p>
+            </>
+          ) : (
+            <>
+              <p>This platform is provided for authorized academic research management at Hawler Medical University, College of Pharmacy.</p>
+              <h2>Responsible use</h2>
+              <p>Users must protect their account credentials, use the platform only for authorized academic purposes, and ensure submitted information and documents are accurate and appropriate.</p>
+              <h2>Access and availability</h2>
+              <p>Features are available according to the user’s approved role and institutional permissions. Unauthorized access or attempts to bypass platform controls are prohibited.</p>
+            </>
+          )}
+          <a className="public-inline-link" href="/">Return to homepage <ArrowRight size={16} /></a>
+        </section>
+      </main>
+      <PublicFooter settings={settings} />
+    </div>
+  )
+}
+
+function PublicHomepage({ settings = defaultWebsiteSettings, aboutUsPage = defaultAboutUsPage }) {
+  const normalizedAbout = normalizeAboutUsPage(aboutUsPage)
+  const heroImage = settingImageUrl(settings.heroImage, '/hero-page.png', settings.assetUpdatedAt)
+  const contactData = normalizedAbout.content_json || {}
+  const contactEmail = String(contactData.contact_email || contactData.email || '').trim()
+  const contactPhone = String(contactData.contact_phone || contactData.phone || '').trim()
+  const contactAddress = String(contactData.contact_address || contactData.address || 'Hawler Medical University, College of Pharmacy, Erbil, Kurdistan Region').trim()
+  const publicHeadline = settings.homepageHeadline && settings.homepageHeadline !== defaultWebsiteSettings.homepageHeadline
+    ? settings.homepageHeadline
+    : 'Manage the Complete Research Journey in One Platform'
+  const publicSubtitle = settings.homepageSubtitle && settings.homepageSubtitle !== defaultWebsiteSettings.homepageSubtitle
+    ? settings.homepageSubtitle
+    : 'A unified research management platform connecting students, supervisors, research committees, and administrators from project proposal to completion.'
+
+  useEffect(() => {
+    const path = normalizePublicPath(window.location.pathname)
+    const hashSection = decodeURIComponent(String(window.location.hash || '').replace(/^#/, ''))
+    const targetId = hashSection || PUBLIC_SECTION_ROUTES[path]
+    if (!targetId) {
+      window.scrollTo({ top: 0, behavior: 'auto' })
+      return undefined
+    }
+    const timer = window.setTimeout(() => {
+      document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 80)
+    return () => window.clearTimeout(timer)
+  }, [])
+
+  const features = [
+    { icon: ClipboardCheck, title: 'Research Project Management', text: 'Organize proposals, approved projects, research groups, and project responsibilities in one structured workflow.' },
+    { icon: Users, title: 'Research Group Membership', text: 'Support group discovery, student join requests, membership decisions, and clear supervisor oversight.' },
+    { icon: UserPlus, title: 'Project Leader Assignment', text: 'Assign project leadership clearly and keep student responsibilities visible throughout the project.' },
+    { icon: FileText, title: 'Weekly Progress Reports', text: 'Record consistent weekly progress and maintain an organized history of research activity.' },
+    { icon: MessageSquareText, title: 'Supervisor Feedback', text: 'Enable supervisors to review work, provide guidance, and request revisions when necessary.' },
+    { icon: CalendarDays, title: 'Deadlines and Milestones', text: 'Coordinate important submission dates, research milestones, and institutional deadlines.' },
+    { icon: Clock, title: 'Meeting Requests', text: 'Manage student–supervisor meeting requests and responses through a documented process.' },
+    { icon: Mail, title: 'Questions and Attachments', text: 'Keep research questions, answers, and supporting files connected to the correct project context.' },
+    { icon: ShieldCheck, title: 'Research Committee Review', text: 'Support transparent proposal review, acceptance, rejection, and revision decisions.' },
+    { icon: Bell, title: 'Inbox Notifications', text: 'Bring important decisions, messages, and workflow updates into one secure Inbox.' },
+    { icon: Printer, title: 'PDF Reports', text: 'Generate consistent printable reports for academic review, documentation, and administration.' },
+    { icon: Settings, title: 'Administrative Customization', text: 'Allow authorized administrators to manage institutional content, appearance, roles, and platform settings.' },
+  ]
+
+  const workflow = [
+    'Supervisor submits a research project.',
+    'Research Committee reviews the submission.',
+    'Accepted projects become available to students.',
+    'Students request to join a research group.',
+    'Project members manage progress and weekly reports.',
+    'Supervisors review reports and provide feedback.',
+    'Deadlines, meetings, and questions are managed.',
+    'The project proceeds toward final evaluation.',
+  ]
+
+  const roles = [
+    { id: 'student-role', icon: GraduationCap, title: 'Student', text: 'Join an approved research group, monitor project progress, submit weekly reports, ask questions, request meetings, and follow deadlines and supervisor feedback.' },
+    { id: 'supervisor-role', icon: ClipboardCheck, title: 'Supervisor', text: 'Submit and manage research projects, supervise group membership, review weekly reports, provide feedback, organize deadlines, and support student progress.' },
+    { id: 'committee-role', icon: ShieldCheck, title: 'Research Committee', text: 'Review submitted projects, make documented decisions, oversee group requests, and monitor the academic progress of approved research.' },
+    { id: 'admin-role', icon: UserCog, title: 'Admin', text: 'Manage approved users, roles, assignments, platform settings, institutional content, reporting tools, and administrative oversight.' },
+  ]
+
+  const benefits = [
+    ['Centralized management', 'Research information, communication, documents, and decisions remain connected.'],
+    ['Clear communication', 'Students, supervisors, committees, and administrators work through defined channels.'],
+    ['Transparent decisions', 'Project and membership decisions can be followed through a structured workflow.'],
+    ['Progress monitoring', 'Weekly reports and milestones help teams understand current research progress.'],
+    ['Secure documents', 'Attachments and reports remain within the protected role-based platform.'],
+    ['Academic accountability', 'Responsibilities, feedback, deadlines, and outcomes remain organized and traceable.'],
+  ]
+
+  return (
+    <div className="public-site-shell">
+      <PublicHeader settings={settings} />
+      <main>
+        <section className="public-hero" id="home">
+          <div className="public-hero-backdrop" style={{ '--public-hero-image': cssImageUrl(heroImage) }} aria-hidden="true" />
+          <div className="public-hero-inner">
+            <div className="public-hero-copy">
+              <p className="public-hero-kicker"><Building2 size={18} /> Hawler Medical University · College of Pharmacy</p>
+              <h1>{publicHeadline}</h1>
+              <p>{publicSubtitle}</p>
+              <div className="public-hero-actions">
+                <a className="public-primary-action" href="/register">Get Started <ArrowRight size={18} /></a>
+                <a className="public-secondary-action" href="/login">Sign In</a>
+                <a className="public-text-action" href="/features">Learn More</a>
+              </div>
+              <div className="public-trust-row" aria-label="Platform qualities">
+                <span><ShieldCheck size={16} /> Role-protected</span>
+                <span><FileCheck2 size={16} /> Structured workflow</span>
+                <span><Users size={16} /> Academic collaboration</span>
+              </div>
+            </div>
+
+            <div className="public-hero-visual" aria-label="Decorative research workflow illustration">
+              <div className="public-visual-orbit public-visual-orbit-one" />
+              <div className="public-visual-orbit public-visual-orbit-two" />
+              <div className="public-visual-document">
+                <div className="public-document-mark"><BookOpen size={27} /></div>
+                <strong>Research Journey</strong>
+                <span>Proposal to completion</span>
+                <div className="public-progress-track"><i /></div>
+              </div>
+              <div className="public-visual-card public-visual-card-one"><ClipboardCheck size={20} /><span>Project Proposal</span></div>
+              <div className="public-visual-card public-visual-card-two"><ShieldCheck size={20} /><span>Committee Review</span></div>
+              <div className="public-visual-card public-visual-card-three"><FileText size={20} /><span>Progress Reports</span></div>
+              <div className="public-visual-card public-visual-card-four"><CheckCircle2 size={20} /><span>Final Evaluation</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section className="public-section public-features-section" id="features">
+          <div className="public-section-heading">
+            <p className="public-section-kicker"><Target size={17} /> Platform capabilities</p>
+            <h2>Everything Needed to Manage Academic Research</h2>
+            <p>Purpose-built tools support each stage of the institutional research process without exposing protected information publicly.</p>
+          </div>
+          <div className="public-feature-grid">
+            {features.map(({ icon: Icon, title, text }) => (
+              <article className="public-feature-card" key={title}>
+                <span className="public-feature-icon"><Icon size={23} /></span>
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="public-section public-workflow-section" id="how-it-works">
+          <div className="public-section-heading public-section-heading-light">
+            <p className="public-section-kicker"><Workflow size={17} /> Research workflow</p>
+            <h2>How the Research Process Moves Forward</h2>
+            <p>A clear sequence connects proposal submission, academic review, student participation, progress monitoring, and final evaluation.</p>
+          </div>
+          <div className="public-workflow-list">
+            {workflow.map((item, index) => (
+              <article key={item} className="public-workflow-step">
+                <span>{String(index + 1).padStart(2, '0')}</span>
+                <p>{item}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="public-section" id="roles">
+          <div className="public-section-heading">
+            <p className="public-section-kicker"><Users size={17} /> Platform roles</p>
+            <h2>Designed Around Academic Responsibilities</h2>
+            <p>Every role receives access to the tools and information required for its part of the research process.</p>
+          </div>
+          <div className="public-role-grid">
+            {roles.map(({ id, icon: Icon, title, text }) => (
+              <article className="public-role-card" id={id} key={title}>
+                <span className="public-role-icon"><Icon size={27} /></span>
+                <h3>{title}</h3>
+                <p>{text}</p>
+                <a href={`/roles#${id}`}>Learn About This Role <ArrowRight size={15} /></a>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="public-section public-benefits-section">
+          <div className="public-benefits-intro">
+            <p className="public-section-kicker"><CheckCircle2 size={17} /> Institutional benefits</p>
+            <h2>A More Connected and Accountable Research Environment</h2>
+            <p>The platform reduces fragmented communication and brings the main academic research activities into one consistent process.</p>
+          </div>
+          <div className="public-benefit-grid">
+            {benefits.map(([title, text]) => (
+              <article key={title}><CheckCircle2 size={20} /><div><h3>{title}</h3><p>{text}</p></div></article>
+            ))}
+          </div>
+        </section>
+
+        <section className="public-section public-about-section" id="about-us">
+          <div className="public-about-media">
+            {normalizedAbout.image_url ? <img src={normalizedAbout.image_url} alt={normalizedAbout.title} /> : <div className="public-about-placeholder"><Building2 size={56} /><span>Hawler Medical University</span></div>}
+          </div>
+          <article className="public-about-copy">
+            <p className="public-section-kicker"><Info size={17} /> About Us</p>
+            <h2>{normalizedAbout.title}</h2>
+            {normalizedAbout.subtitle && <p className="public-about-subtitle">{normalizedAbout.subtitle}</p>}
+            <div className="public-about-rich-content" dangerouslySetInnerHTML={{ __html: normalizedAbout.content_html }} />
+            <a className="public-secondary-action public-about-guidelines" href={RESEARCH_GUIDELINES_PDF_URL} download={RESEARCH_GUIDELINES_DOWNLOAD_NAME}><Download size={17} /> Download Research Guidelines</a>
+          </article>
+        </section>
+
+        <section className="public-section public-contact-section" id="contact">
+          <div className="public-contact-copy">
+            <p className="public-section-kicker"><Mail size={17} /> Contact</p>
+            <h2>Contact the University</h2>
+            <p>For institutional enquiries about the Research Management Platform, contact Hawler Medical University or the College of Pharmacy through the available university channels.</p>
+          </div>
+          <div className="public-contact-card">
+            <div><Building2 size={21} /><span><small>Institution</small>Hawler Medical University – College of Pharmacy</span></div>
+            <div><Info size={21} /><span><small>Address</small>{contactAddress}</span></div>
+            {contactEmail && <a href={`mailto:${contactEmail}`}><Mail size={21} /><span><small>Email</small>{contactEmail}</span></a>}
+            {contactPhone && <a href={`tel:${contactPhone.replace(/\s+/g, '')}`}><Clock size={21} /><span><small>Phone</small>{contactPhone}</span></a>}
+            <a href="https://hmu.edu.krd/" target="_blank" rel="noopener noreferrer"><GraduationCap size={21} /><span><small>University website</small>Visit Hawler Medical University</span></a>
+          </div>
+        </section>
+
+        <section className="public-cta-section">
+          <div>
+            <p className="public-section-kicker"><BookOpen size={17} /> Secure platform access</p>
+            <h2>Begin Your Research Journey</h2>
+            <p>Create an account or sign in to access the secure research management platform.</p>
+          </div>
+          <div className="public-cta-actions">
+            <a className="public-primary-action" href="/register">Create an Account <ArrowRight size={18} /></a>
+            <a className="public-secondary-action" href="/login">Sign In</a>
+          </div>
+        </section>
+      </main>
+      <PublicFooter settings={settings} />
+    </div>
+  )
+}
+
+function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = false, settings = defaultWebsiteSettings, invitation = null, initialMode = 'login' }) {
+  const normalizedInitialMode = initialMode === 'register' ? 'register' : 'login'
+  const [mode, setMode] = useState(normalizedInitialMode)
   const [form, setForm] = useState({
     full_name: '',
     email: '',
@@ -4457,7 +4827,10 @@ function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = fa
   })
 
   useEffect(() => {
-    if (!invitation) return
+    if (!invitation) {
+      setMode(normalizedInitialMode)
+      return
+    }
     setMode('register')
     setForm((current) => ({
       ...current,
@@ -4465,7 +4838,7 @@ function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = fa
       email: invitation.email || current.email,
       role: invitation.role || current.role,
     }))
-  }, [invitation])
+  }, [invitation, normalizedInitialMode])
 
   const isRegister = mode === 'register'
   const isForgotPassword = mode === 'forgot'
@@ -9065,7 +9438,18 @@ export default function App() {
   }
 
   if (!currentUser) {
-    return <><LoginPage onLogin={handleLogin} onForgotPassword={handleForgotPassword} message={message} loading={loginLoading} adminOnly={isAdminPortal} settings={websiteSettings} invitation={acceptedInvitation} /><AppDialog dialog={appDialog} onClose={closeAppDialog} /></>
+    const publicPath = normalizePublicPath(typeof window !== 'undefined' ? window.location.pathname : '/')
+    const hasInvitationToken = typeof window !== 'undefined' && Boolean(new URLSearchParams(window.location.search).get('invite'))
+
+    if (!isAdminPortal && !acceptedInvitation && !hasInvitationToken && isPublicInformationPath(publicPath)) {
+      if (publicPath === '/privacy' || publicPath === '/terms') {
+        return <><PublicLegalPage type={publicPath === '/privacy' ? 'privacy' : 'terms'} settings={websiteSettings} /><AppDialog dialog={appDialog} onClose={closeAppDialog} /></>
+      }
+      return <><PublicHomepage settings={websiteSettings} aboutUsPage={aboutUsPage} /><AppDialog dialog={appDialog} onClose={closeAppDialog} /></>
+    }
+
+    const loginMode = acceptedInvitation || hasInvitationToken || (!isAdminPortal && publicPath === '/register') ? 'register' : 'login'
+    return <><LoginPage key={`${isAdminPortal ? 'admin' : 'public'}-${loginMode}`} onLogin={handleLogin} onForgotPassword={handleForgotPassword} message={message} loading={loginLoading} adminOnly={isAdminPortal} settings={websiteSettings} invitation={acceptedInvitation} initialMode={loginMode} /><AppDialog dialog={appDialog} onClose={closeAppDialog} /></>
   }
 
   if (isAdminPortal && allowedRole !== 'admin' && !isAdminBaseRole) {
