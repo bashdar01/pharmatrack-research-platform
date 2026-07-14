@@ -18433,26 +18433,26 @@ html body #root .admin-panel-shell .admin-logout {
 }
 
 /* =========================================================
-   ADMIN SUBDOMAIN SIDEBAR COLOR RESTORE
-   Visual-only: restore admin sidebar background to the original gray
-   instead of the navy/blue color. Does not affect sidebar logic.
+   ADMIN SUBDOMAIN SIDEBAR THEME BRIDGE
+   Visual-only: use the shared dynamic sidebar theme without changing logic.
    ========================================================= */
 html body #root .admin-panel-shell .admin-sidebar,
 html body #root .admin-panel-shell .admin-sidebar.open {
-  background: #4d4c4d !important;
-  border-right-color: rgba(255, 255, 255, 0.16) !important;
-  box-shadow: none !important;
+  background: linear-gradient(180deg, var(--sidebar-bg), var(--sidebar-secondary-bg)) !important;
+  background-color: var(--sidebar-bg) !important;
+  border-right-color: var(--sidebar-border) !important;
+  box-shadow: 6px 0 24px var(--sidebar-shadow) !important;
 }
 
 html body #root .admin-panel-shell .admin-side-nav button.active,
 html body #root .admin-panel-shell .admin-side-nav button:hover {
-  background: #ffffff !important;
-  color: #4d4c4d !important;
+  background: var(--sidebar-active-bg) !important;
+  color: var(--sidebar-active-text) !important;
 }
 
 html body #root .admin-panel-shell .admin-side-nav button,
 html body #root .admin-panel-shell .admin-logout {
-  color: rgba(255, 255, 255, 0.86) !important;
+  color: var(--sidebar-inactive-text) !important;
 }
 
 html body #root .admin-panel-shell .admin-side-nav button > svg,
@@ -18463,7 +18463,7 @@ html body #root .admin-panel-shell .admin-logout svg {
 }
 
 /* FINAL ADMIN SUBDOMAIN SIDEBAR CLEANUP
-   Remove the extra profile card and align admin sidebar button colors with the gray sidebar. */
+   Remove the extra profile card and align Admin Subdomain colors with the shared sidebar theme. */
 html body #root .admin-sidebar .admin-profile-mini,
 html body #root .admin-profile-mini.admin-profile-actions {
   display: none !important;
@@ -18472,31 +18472,33 @@ html body #root .admin-profile-mini.admin-profile-actions {
 html body #root .admin-sidebar,
 html body #root .admin-layout .admin-sidebar,
 html body #root .admin-portal-sidebar {
-  background: #4d4c4d !important;
-  color: #ffffff !important;
-  border-right: 1px solid rgba(255, 255, 255, 0.14) !important;
-  box-shadow: 10px 0 28px rgba(41, 40, 41, 0.18) !important;
+  background: linear-gradient(180deg, var(--sidebar-bg), var(--sidebar-secondary-bg)) !important;
+  background-color: var(--sidebar-bg) !important;
+  color: var(--sidebar-text) !important;
+  border-right: 1px solid var(--sidebar-border) !important;
+  box-shadow: 10px 0 28px var(--sidebar-shadow) !important;
 }
 
 html body #root .admin-sidebar .admin-brand-block {
   margin-bottom: 4px !important;
   padding-bottom: 14px !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-bottom: 1px solid var(--sidebar-border) !important;
 }
 
 html body #root .admin-sidebar .admin-logo-mark {
-  background: rgba(255, 255, 255, 0.12) !important;
-  border: 1px solid rgba(255, 255, 255, 0.20) !important;
-  color: #ffffff !important;
+  background: var(--sidebar-icon-container-bg) !important;
+  border: 1px solid var(--sidebar-icon-container-border) !important;
+  color: var(--sidebar-icon-container-icon) !important;
 }
 
 html body #root .admin-sidebar .admin-brand-block h2,
 html body #root .admin-sidebar .admin-brand-block p {
-  color: #ffffff !important;
+  color: var(--sidebar-text) !important;
 }
 
 html body #root .admin-sidebar .admin-brand-block p {
-  color: rgba(255, 255, 255, 0.72) !important;
+  color: var(--sidebar-text) !important;
+  opacity: .72;
 }
 
 html body #root .admin-side-nav {
@@ -18505,34 +18507,28 @@ html body #root .admin-side-nav {
 
 html body #root .admin-sidebar .admin-side-nav button,
 html body #root .admin-sidebar .admin-logout {
-  background: rgba(255, 255, 255, 0.08) !important;
-  color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: var(--sidebar-inactive-bg) !important;
+  color: var(--sidebar-inactive-text) !important;
+  border: 1px solid var(--sidebar-border) !important;
   box-shadow: none !important;
 }
 
-html body #root .admin-sidebar .admin-side-nav button svg,
-html body #root .admin-sidebar .admin-logout svg,
-html body #root .admin-sidebar .admin-side-nav button span,
-html body #root .admin-sidebar .admin-logout span {
-  color: #ffffff !important;
-  stroke: #ffffff !important;
+html body #root .admin-sidebar .admin-side-nav button span:not(.side-nav-icon),
+html body #root .admin-sidebar .admin-logout span:not(.side-nav-icon) {
+  color: inherit !important;
 }
 
 html body #root .admin-sidebar .admin-side-nav button:hover,
 html body #root .admin-sidebar .admin-side-nav button.active {
-  background: #ffffff !important;
-  color: #4d4c4d !important;
-  border-color: #ffffff !important;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14) !important;
+  background: var(--sidebar-active-bg) !important;
+  color: var(--sidebar-active-text) !important;
+  border-color: var(--sidebar-border) !important;
+  box-shadow: 0 8px 18px var(--sidebar-shadow) !important;
 }
 
-html body #root .admin-sidebar .admin-side-nav button:hover svg,
-html body #root .admin-sidebar .admin-side-nav button.active svg,
-html body #root .admin-sidebar .admin-side-nav button:hover span,
-html body #root .admin-sidebar .admin-side-nav button.active span {
-  color: #4d4c4d !important;
-  stroke: #4d4c4d !important;
+html body #root .admin-sidebar .admin-side-nav button:hover span:not(.side-nav-icon),
+html body #root .admin-sidebar .admin-side-nav button.active span:not(.side-nav-icon) {
+  color: inherit !important;
 }
 
 html body #root .admin-sidebar .admin-logout {
@@ -24004,4 +24000,234 @@ html body #root#root .main-compact-header .main-notification-button:hover .inbox
 html body #root#root .main-compact-header .main-notification-button.active .inbox-button-label {
   color: var(--top-header-button-hover-text) !important;
   -webkit-text-fill-color: var(--top-header-button-hover-text) !important;
+}
+
+/* =========================================================
+   FINAL SHARED SIDEBAR SURFACE + ICON CONTAINER THEME
+   Removes the Admin Subdomain gray rail and makes every sidebar
+   icon tile use the canonical interface_colors.sidebar settings.
+   ========================================================= */
+html body #root#root :is(
+  .app-main-shell .main-sidebar,
+  .main-sidebar,
+  .admin-panel-shell .admin-sidebar,
+  .admin-sidebar,
+  .admin-subdomain-sidebar,
+  .admin-portal-sidebar
+) {
+  background: linear-gradient(180deg, var(--sidebar-bg), var(--sidebar-secondary-bg)) !important;
+  background-color: var(--sidebar-bg) !important;
+  background-image: linear-gradient(180deg, var(--sidebar-bg), var(--sidebar-secondary-bg)) !important;
+  color: var(--sidebar-text) !important;
+  border-color: var(--sidebar-border) !important;
+  box-shadow: 6px 0 24px var(--sidebar-shadow) !important;
+}
+
+/* The navigation surface itself must never expose the old gray rail. */
+html body #root#root :is(
+  .main-sidebar .main-side-nav,
+  .main-sidebar .sidebar-utility-nav,
+  .admin-sidebar .admin-side-nav,
+  .admin-panel-shell .admin-side-nav,
+  .admin-subdomain-sidebar .admin-side-nav,
+  .admin-sidebar-nav,
+  .admin-sidebar-list,
+  .admin-sidebar-inner
+) {
+  background: var(--sidebar-bg) !important;
+  background-color: var(--sidebar-bg) !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+html body #root#root :is(
+  .admin-sidebar,
+  .admin-subdomain-sidebar,
+  .admin-sidebar-nav,
+  .admin-sidebar-list,
+  .admin-sidebar-inner,
+  .admin-side-nav
+)::before,
+html body #root#root :is(
+  .admin-sidebar,
+  .admin-subdomain-sidebar,
+  .admin-sidebar-nav,
+  .admin-sidebar-list,
+  .admin-sidebar-inner,
+  .admin-side-nav
+)::after {
+  content: none !important;
+  display: none !important;
+  background: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+html body #root#root :is(.admin-sidebar .admin-side-nav, .admin-panel-shell .admin-side-nav) {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+  padding: 12px 14px !important;
+  margin: 0 !important;
+}
+
+html body #root#root :is(
+  .main-side-nav button,
+  .main-side-nav .sidebar-utility-link,
+  .admin-side-nav button,
+  .admin-sidebar .admin-logout
+) {
+  position: relative !important;
+  width: 100% !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+/* Shared rounded icon container across role and Admin Subdomain sidebars. */
+html body #root#root :is(
+  .main-side-nav .side-nav-icon,
+  .main-side-nav .sidebar-icon-container,
+  .admin-side-nav .side-nav-icon,
+  .admin-side-nav .sidebar-icon-container,
+  .admin-sidebar .admin-logout .side-nav-icon,
+  .sidebar-icon-wrap,
+  .sidebar-icon-box,
+  .sidebar-item-icon,
+  .admin-sidebar-icon,
+  .sidebar-link-icon,
+  .interface-sidebar-preview-icon
+) {
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+  flex: 0 0 42px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  background: var(--sidebar-icon-container-bg) !important;
+  background-color: var(--sidebar-icon-container-bg) !important;
+  background-image: none !important;
+  border: 1px solid var(--sidebar-icon-container-border) !important;
+  border-radius: var(--sidebar-icon-container-radius) !important;
+  color: var(--sidebar-icon-container-icon) !important;
+  -webkit-text-fill-color: var(--sidebar-icon-container-icon) !important;
+  box-shadow: 0 4px 12px var(--sidebar-icon-container-shadow) !important;
+}
+
+html body #root#root :is(
+  .main-side-nav .side-nav-icon,
+  .main-side-nav .sidebar-icon-container,
+  .admin-side-nav .side-nav-icon,
+  .admin-side-nav .sidebar-icon-container,
+  .admin-sidebar .admin-logout .side-nav-icon,
+  .interface-sidebar-preview-icon
+) :is(svg, svg path, svg circle, svg line, svg polyline, svg rect) {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+html body #root#root :is(
+  .main-side-nav .side-nav-icon,
+  .main-side-nav .sidebar-icon-container,
+  .admin-side-nav .side-nav-icon,
+  .admin-side-nav .sidebar-icon-container,
+  .admin-sidebar .admin-logout .side-nav-icon,
+  .interface-sidebar-preview-icon
+) svg [fill]:not([fill="none"]) {
+  fill: currentColor !important;
+}
+
+html body #root#root :is(
+  .main-side-nav button:hover,
+  .main-side-nav .sidebar-utility-link:hover,
+  .admin-side-nav button:hover,
+  .admin-sidebar .admin-logout:hover,
+  .interface-sidebar-preview-item.is-hovered
+) :is(.side-nav-icon, .sidebar-icon-container, .interface-sidebar-preview-icon) {
+  background: var(--sidebar-icon-container-hover-bg) !important;
+  background-color: var(--sidebar-icon-container-hover-bg) !important;
+  color: var(--sidebar-icon-container-hover-icon) !important;
+  -webkit-text-fill-color: var(--sidebar-icon-container-hover-icon) !important;
+}
+
+html body #root#root :is(
+  .main-side-nav button.active,
+  .main-side-nav button[aria-current="page"],
+  .main-side-nav .sidebar-utility-link.active,
+  .main-side-nav .sidebar-utility-link[aria-current="page"],
+  .admin-side-nav button.active,
+  .admin-side-nav button[aria-current="page"],
+  .interface-sidebar-preview-item.active
+) :is(.side-nav-icon, .sidebar-icon-container, .interface-sidebar-preview-icon) {
+  background: var(--sidebar-icon-container-active-bg) !important;
+  background-color: var(--sidebar-icon-container-active-bg) !important;
+  color: var(--sidebar-icon-container-active-icon) !important;
+  -webkit-text-fill-color: var(--sidebar-icon-container-active-icon) !important;
+}
+
+html body #root#root :is(
+  .main-side-nav button:disabled,
+  .main-side-nav [aria-disabled="true"],
+  .admin-side-nav button:disabled,
+  .admin-side-nav [aria-disabled="true"],
+  .admin-sidebar .admin-logout:disabled
+) :is(.side-nav-icon, .sidebar-icon-container) {
+  background: var(--sidebar-icon-container-disabled-bg) !important;
+  background-color: var(--sidebar-icon-container-disabled-bg) !important;
+  color: var(--sidebar-icon-container-disabled-icon) !important;
+  -webkit-text-fill-color: var(--sidebar-icon-container-disabled-icon) !important;
+}
+
+/* Keep uploaded/custom image icons contained without replacing their artwork. */
+html body #root#root :is(.side-nav-icon, .sidebar-icon-container) img {
+  width: 72% !important;
+  height: 72% !important;
+  max-width: 30px !important;
+  max-height: 30px !important;
+  object-fit: contain !important;
+}
+
+/* Preview icon tiles use exactly the same variables and states. */
+.interface-sidebar-preview-icon {
+  transition: background-color .18s ease, color .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+html body #root#root .interface-sidebar-preview :is(.interface-sidebar-preview-item, .interface-sidebar-preview-utility) {
+  min-height: 54px !important;
+  gap: 10px !important;
+}
+html body #root#root .interface-sidebar-preview .interface-sidebar-preview-utility .interface-sidebar-preview-icon {
+  background: var(--sidebar-icon-container-bg) !important;
+  color: var(--sidebar-icon-container-icon) !important;
+}
+
+/* Radius fields do not render a color picker, so their text input uses the full row. */
+.button-color-setting-controls.no-color-picker {
+  grid-template-columns: minmax(0, 1fr) 38px;
+}
+.button-color-setting-controls.no-color-picker .button-color-hex-input {
+  grid-column: 1;
+}
+
+@media (max-width: 768px) {
+  html body #root#root :is(
+    .main-side-nav .side-nav-icon,
+    .main-side-nav .sidebar-icon-container,
+    .admin-side-nav .side-nav-icon,
+    .admin-side-nav .sidebar-icon-container,
+    .admin-sidebar .admin-logout .side-nav-icon
+  ) {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    flex-basis: 38px !important;
+  }
 }

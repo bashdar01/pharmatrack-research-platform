@@ -813,6 +813,17 @@ const DEFAULT_INTERFACE_COLORS = {
     closeButtonIcon: '#ffffff',
     scrollbarTrack: 'transparent',
     scrollbarThumb: 'rgba(255, 255, 255, 0.35)',
+    iconContainerBackground: '#ffffff',
+    iconContainerBorder: '#d1d5db',
+    iconContainerIcon: '#2f8f86',
+    iconContainerHoverBackground: '#ffffff',
+    iconContainerHoverIcon: '#35b8ae',
+    iconContainerActiveBackground: '#ffffff',
+    iconContainerActiveIcon: '#35b8ae',
+    iconContainerDisabledBackground: '#e5e7eb',
+    iconContainerDisabledIcon: '#9ca3af',
+    iconContainerShadow: 'rgba(15, 23, 42, 0.12)',
+    iconContainerRadius: '18px',
   },
   inbox: {
     popupBackground: '#ffffff',
@@ -897,6 +908,25 @@ const INTERFACE_COLOR_SECTIONS = [
     ],
   },
   {
+    id: 'sidebar-icon-container',
+    key: 'sidebar',
+    title: 'Sidebar Icon Container Colors',
+    description: 'Rounded icon tile background, border, icon, hover, active, disabled, shadow, and corner radius across role and Admin Subdomain sidebars.',
+    fields: [
+      ['iconContainerBackground', 'Icon container background'],
+      ['iconContainerBorder', 'Icon container border'],
+      ['iconContainerIcon', 'Icon color'],
+      ['iconContainerHoverBackground', 'Icon container hover background'],
+      ['iconContainerHoverIcon', 'Icon hover color'],
+      ['iconContainerActiveBackground', 'Icon container active background'],
+      ['iconContainerActiveIcon', 'Icon active color'],
+      ['iconContainerDisabledBackground', 'Icon container disabled background'],
+      ['iconContainerDisabledIcon', 'Icon disabled color'],
+      ['iconContainerShadow', 'Icon container shadow'],
+      ['iconContainerRadius', 'Icon container corner radius'],
+    ],
+  },
+  {
     key: 'inbox',
     title: 'Inbox Colors',
     description: 'Existing Inbox popup, message states, unread badge, text, indicators, action buttons, close button, and empty state.',
@@ -972,6 +1002,17 @@ const INTERFACE_COLOR_CSS_VARIABLES = {
     closeButtonIcon: '--sidebar-close-icon',
     scrollbarTrack: '--sidebar-scrollbar-track',
     scrollbarThumb: '--sidebar-scrollbar-thumb',
+    iconContainerBackground: '--sidebar-icon-container-bg',
+    iconContainerBorder: '--sidebar-icon-container-border',
+    iconContainerIcon: '--sidebar-icon-container-icon',
+    iconContainerHoverBackground: '--sidebar-icon-container-hover-bg',
+    iconContainerHoverIcon: '--sidebar-icon-container-hover-icon',
+    iconContainerActiveBackground: '--sidebar-icon-container-active-bg',
+    iconContainerActiveIcon: '--sidebar-icon-container-active-icon',
+    iconContainerDisabledBackground: '--sidebar-icon-container-disabled-bg',
+    iconContainerDisabledIcon: '--sidebar-icon-container-disabled-icon',
+    iconContainerShadow: '--sidebar-icon-container-shadow',
+    iconContainerRadius: '--sidebar-icon-container-radius',
   },
   inbox: {
     popupBackground: '--inbox-popup-bg',
@@ -1042,6 +1083,17 @@ const INTERFACE_COLOR_FIELD_ALIASES = {
   closeButtonIcon: ['closeButtonIcon', 'closeIcon', 'closeButtonIconColor'],
   scrollbarTrack: ['scrollbarTrack', 'scrollTrack'],
   scrollbarThumb: ['scrollbarThumb', 'scrollThumb'],
+  iconContainerBackground: ['iconContainerBackground', 'iconContainerBg', 'sidebarIconBackground'],
+  iconContainerBorder: ['iconContainerBorder', 'iconContainerBorderColor', 'sidebarIconBorder'],
+  iconContainerIcon: ['iconContainerIcon', 'iconContainerIconColor', 'sidebarIconColor'],
+  iconContainerHoverBackground: ['iconContainerHoverBackground', 'iconContainerHoverBg'],
+  iconContainerHoverIcon: ['iconContainerHoverIcon', 'iconContainerHoverIconColor'],
+  iconContainerActiveBackground: ['iconContainerActiveBackground', 'iconContainerActiveBg'],
+  iconContainerActiveIcon: ['iconContainerActiveIcon', 'iconContainerActiveIconColor'],
+  iconContainerDisabledBackground: ['iconContainerDisabledBackground', 'iconContainerDisabledBg'],
+  iconContainerDisabledIcon: ['iconContainerDisabledIcon', 'iconContainerDisabledIconColor'],
+  iconContainerShadow: ['iconContainerShadow', 'iconContainerShadowColor'],
+  iconContainerRadius: ['iconContainerRadius', 'iconContainerBorderRadius', 'sidebarIconRadius'],
   popupBackground: ['popupBackground', 'popupBg', 'background'],
   headerBackground: ['headerBackground', 'headerBg'],
   titleText: ['titleText', 'titleColor'],
@@ -1093,9 +1145,24 @@ function isValidThemeCssColor(value) {
   return alpha >= 0 && alpha <= 1
 }
 
+const INTERFACE_LENGTH_FIELDS = new Set(['iconContainerRadius'])
+
+function isValidThemeCssLength(value) {
+  const raw = String(value || '').trim()
+  if (!raw) return false
+  if (raw === '0') return true
+  return /^(?:\d+|\d*\.\d+)(?:px|rem|em|%|vh|vw)$/i.test(raw)
+}
+
 function normalizeThemeCssColor(value, fallback) {
   const raw = String(value ?? '').trim()
   return isValidThemeCssColor(raw) ? raw : fallback
+}
+
+function normalizeInterfaceThemeValue(fieldKey, value, fallback) {
+  const raw = String(value ?? '').trim()
+  if (INTERFACE_LENGTH_FIELDS.has(fieldKey)) return isValidThemeCssLength(raw) ? raw : fallback
+  return normalizeThemeCssColor(raw, fallback)
 }
 
 function normalizeInterfaceColors(colors = {}, legacySidebar = {}) {
@@ -1120,7 +1187,7 @@ function normalizeInterfaceColors(colors = {}, legacySidebar = {}) {
     for (const [fieldKey, defaultValue] of Object.entries(defaultSection)) {
       const fieldAliases = [fieldKey, ...(INTERFACE_COLOR_FIELD_ALIASES[fieldKey] || [])]
       const incomingValue = firstDefinedThemeValue(incomingSection, [...new Set(fieldAliases)])
-      normalized[sectionKey][fieldKey] = normalizeThemeCssColor(incomingValue, defaultValue)
+      normalized[sectionKey][fieldKey] = normalizeInterfaceThemeValue(fieldKey, incomingValue, defaultValue)
     }
   }
 
@@ -1342,7 +1409,8 @@ function validateInterfaceColorValues(colors = {}) {
   for (const section of INTERFACE_COLOR_SECTIONS) {
     for (const [fieldKey, label] of section.fields) {
       const value = normalizedSource?.[section.key]?.[fieldKey]
-      if (!isValidThemeCssColor(value)) invalid.push(label)
+      const valid = INTERFACE_LENGTH_FIELDS.has(fieldKey) ? isValidThemeCssLength(value) : isValidThemeCssColor(value)
+      if (!valid) invalid.push(label)
     }
   }
   return invalid
@@ -1366,6 +1434,10 @@ function getInterfaceColorContrastWarnings(colors = {}) {
     ['Sidebar inactive icon', normalized.sidebar.inactiveBackground === 'transparent' ? normalized.sidebar.background : normalized.sidebar.inactiveBackground, normalized.sidebar.inactiveIcon],
     ['Sidebar hover text', normalized.sidebar.hoverBackground, normalized.sidebar.hoverText],
     ['Sidebar active text', normalized.sidebar.activeBackground, normalized.sidebar.activeText],
+    ['Sidebar icon container icon', normalized.sidebar.iconContainerBackground, normalized.sidebar.iconContainerIcon],
+    ['Sidebar icon container hover icon', normalized.sidebar.iconContainerHoverBackground, normalized.sidebar.iconContainerHoverIcon],
+    ['Sidebar icon container active icon', normalized.sidebar.iconContainerActiveBackground, normalized.sidebar.iconContainerActiveIcon],
+    ['Sidebar icon container disabled icon', normalized.sidebar.iconContainerDisabledBackground, normalized.sidebar.iconContainerDisabledIcon],
     ['Inbox title', normalized.inbox.headerBackground, normalized.inbox.titleText],
     ['Inbox normal text', normalized.inbox.popupBackground, normalized.inbox.text],
     ['Inbox secondary text', normalized.inbox.popupBackground, normalized.inbox.secondaryText],
@@ -8905,7 +8977,7 @@ export default function App() {
             if (item.type === 'download') {
               return (
                 <a key={item.id} href={RESEARCH_GUIDELINES_PDF_URL} download={RESEARCH_GUIDELINES_DOWNLOAD_NAME} className="sidebar-utility-link">
-                  <span className="side-nav-icon"><Icon size={18} /></span>
+                  <span className="side-nav-icon sidebar-icon-container"><Icon size={18} /></span>
                   <span>{item.label}</span>
                 </a>
               )
@@ -8913,14 +8985,14 @@ export default function App() {
             if (item.type === 'external') {
               return (
                 <a key={item.id} href="https://scholar.google.com/citations?hl=en&view_op=search_authors&mauthors=hawler+medical+universty&btnG=" target="_blank" rel="noopener noreferrer" className="sidebar-utility-link">
-                  <span className="side-nav-icon"><Icon size={18} /></span>
+                  <span className="side-nav-icon sidebar-icon-container"><Icon size={18} /></span>
                   <span>{item.label}</span>
                 </a>
               )
             }
             return (
               <button key={item.id} type="button" onClick={() => handleMainNavClick(item.id)} className={tab === item.id ? 'active' : ''}>
-                <span className="side-nav-icon">{item.id === 'about-us' ? <img src={aboutUsHmuLogo} alt="HMU logo" className="about-us-hmu-logo" /> : Icon ? <Icon size={18} /> : null}</span>
+                <span className="side-nav-icon sidebar-icon-container">{item.id === 'about-us' ? <img src={aboutUsHmuLogo} alt="HMU logo" className="about-us-hmu-logo" /> : Icon ? <Icon size={18} /> : null}</span>
                 <span>{item.label}</span>
               </button>
             )
@@ -9892,22 +9964,29 @@ function ColorSettingField({
   validator = isValidThemeHexColor,
   placeholder = '#2563eb',
   validationMessage = 'Use a valid 3-, 6-, or 8-digit HEX value.',
+  showColorPicker = true,
+  previewStyle = {},
 }) {
   const valid = validator(value)
+  const visualPreviewStyle = showColorPicker
+    ? { backgroundColor: valid ? value : '#ffffff', ...previewStyle }
+    : { backgroundColor: '#ffffff', borderRadius: valid ? value : defaultValue, ...previewStyle }
   return (
     <div className={`button-color-setting-field${valid ? '' : ' is-invalid'}`}>
       <div className="button-color-setting-label-row">
         <span>{label}</span>
-        <span className="button-color-setting-preview" style={{ backgroundColor: valid ? value : '#ffffff' }} aria-hidden="true" />
+        <span className="button-color-setting-preview" style={visualPreviewStyle} aria-hidden="true" />
       </div>
-      <div className="button-color-setting-controls">
-        <input
-          className="button-color-picker"
-          type="color"
-          value={colorPickerValue(value)}
-          onChange={(event) => onChange(event.target.value)}
-          aria-label={`${label} color picker`}
-        />
+      <div className={`button-color-setting-controls${showColorPicker ? '' : ' no-color-picker'}`}>
+        {showColorPicker && (
+          <input
+            className="button-color-picker"
+            type="color"
+            value={colorPickerValue(value)}
+            onChange={(event) => onChange(event.target.value)}
+            aria-label={`${label} color picker`}
+          />
+        )}
         <input
           className="button-color-hex-input"
           type="text"
@@ -9915,7 +9994,7 @@ function ColorSettingField({
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
           spellCheck="false"
-          aria-label={`${label} color value`}
+          aria-label={`${label} value`}
           aria-invalid={!valid}
         />
         <button type="button" className="button-color-field-reset" onClick={() => onReset(defaultValue)} aria-label={`Reset ${label}`} title={`Reset ${label}`}>
@@ -10083,25 +10162,29 @@ function InterfaceColorCustomizationPanel({
       <div className="button-color-editor-layout interface-color-editor-layout">
         <div className="button-color-sections">
           {INTERFACE_COLOR_SECTIONS.map((section) => (
-            <details className="card button-color-section" key={section.key} open>
+            <details className="card button-color-section" key={section.id || section.key} open>
               <summary>
                 <span><b>{section.title}</b><small>{section.description}</small></span>
                 <span className="button-color-section-count">{section.fields.length} colors</span>
               </summary>
               <div className="button-color-field-grid">
-                {section.fields.map(([fieldKey, label]) => (
-                  <ColorSettingField
-                    key={`${section.key}-${fieldKey}`}
-                    label={label}
-                    value={colors?.[section.key]?.[fieldKey] ?? DEFAULT_INTERFACE_COLORS[section.key][fieldKey]}
-                    defaultValue={DEFAULT_INTERFACE_COLORS[section.key][fieldKey]}
-                    onChange={(value) => onChange(section.key, fieldKey, value)}
-                    onReset={(value) => onResetField(section.key, fieldKey, value)}
-                    validator={isValidThemeCssColor}
-                    placeholder={fieldKey.toLowerCase().includes('shadow') || fieldKey.toLowerCase().includes('background') ? 'rgba(15, 23, 42, 0.18)' : '#2563eb'}
-                    validationMessage="Use HEX, 8-digit HEX, RGB, RGBA, or transparent."
-                  />
-                ))}
+                {section.fields.map(([fieldKey, label]) => {
+                  const isLengthField = INTERFACE_LENGTH_FIELDS.has(fieldKey)
+                  return (
+                    <ColorSettingField
+                      key={`${section.key}-${fieldKey}`}
+                      label={label}
+                      value={colors?.[section.key]?.[fieldKey] ?? DEFAULT_INTERFACE_COLORS[section.key][fieldKey]}
+                      defaultValue={DEFAULT_INTERFACE_COLORS[section.key][fieldKey]}
+                      onChange={(value) => onChange(section.key, fieldKey, value)}
+                      onReset={(value) => onResetField(section.key, fieldKey, value)}
+                      validator={isLengthField ? isValidThemeCssLength : isValidThemeCssColor}
+                      showColorPicker={!isLengthField}
+                      placeholder={isLengthField ? '18px' : fieldKey.toLowerCase().includes('shadow') || fieldKey.toLowerCase().includes('background') ? 'rgba(15, 23, 42, 0.18)' : '#2563eb'}
+                      validationMessage={isLengthField ? 'Use a CSS length such as 18px, 1rem, or 50%.' : 'Use HEX, 8-digit HEX, RGB, RGBA, or transparent.'}
+                    />
+                  )
+                })}
               </div>
             </details>
           ))}
@@ -10130,10 +10213,21 @@ function InterfaceColorCustomizationPanel({
                 <b>Navigation</b>
                 <button type="button" className="interface-sidebar-preview-close" aria-label="Close preview">×</button>
               </div>
-              <button type="button" className="interface-sidebar-preview-item"><LayoutDashboard size={16} /> Inactive item</button>
-              <button type="button" className="interface-sidebar-preview-item is-hovered"><BookOpen size={16} /> Hovered item</button>
-              <button type="button" className="interface-sidebar-preview-item active"><Settings size={16} /> Active item</button>
-              <button type="button" className="interface-sidebar-preview-utility"><FileText size={16} /> Utility button</button>
+              <button type="button" className="interface-sidebar-preview-item">
+                <span className="interface-sidebar-preview-icon"><LayoutDashboard size={16} /></span><span>Inactive item</span>
+              </button>
+              <button type="button" className="interface-sidebar-preview-item is-hovered">
+                <span className="interface-sidebar-preview-icon"><BookOpen size={16} /></span><span>Hovered item</span>
+              </button>
+              <button type="button" className="interface-sidebar-preview-item active">
+                <span className="interface-sidebar-preview-icon"><Settings size={16} /></span><span>Active item</span>
+              </button>
+              <button type="button" className="interface-sidebar-preview-utility">
+                <span className="interface-sidebar-preview-icon"><Printer size={16} /></span><span>Print/PDF Reports</span>
+              </button>
+              <button type="button" className="interface-sidebar-preview-item admin-example">
+                <span className="interface-sidebar-preview-icon"><SlidersHorizontal size={16} /></span><span>Admin Subdomain</span>
+              </button>
             </div>
           </div>
 
@@ -10729,12 +10823,16 @@ function AdminControlPanel({
             const Icon = item.icon
             return (
               <button key={item.id} className={adminPanelTab === item.id ? 'active' : ''} onClick={() => changeAdminPanelTab(item.id)}>
-                <Icon size={17} /> {item.label}
+                <span className="side-nav-icon sidebar-icon-container"><Icon size={17} /></span>
+                <span>{item.label}</span>
               </button>
             )
           })}
         </nav>
-        <button className="admin-logout" onClick={onLogout}><LogOut size={16} /> Logout</button>
+        <button className="admin-logout" onClick={onLogout}>
+          <span className="side-nav-icon sidebar-icon-container"><LogOut size={16} /></span>
+          <span>Logout</span>
+        </button>
       </aside>
 
       <main className="admin-panel-main">
