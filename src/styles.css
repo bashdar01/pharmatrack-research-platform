@@ -24802,3 +24802,260 @@ html body #root .notification-bell-menu--triggerless > .notification-popover {
     width: auto;
   }
 }
+
+/* =========================================================
+   ROLE HERO GALLERY + PAGE-BASED CROSSFADE
+   Extends the existing role hero system; no second hero layer.
+   ========================================================= */
+html body #root .role-hero-picture-card__media {
+  isolation: isolate !important;
+}
+
+html body #root .role-hero-picture-card__media .role-hero-picture-card__image {
+  position: absolute !important;
+  inset: 0 !important;
+  object-position: var(--role-hero-object-position, center center) !important;
+  will-change: opacity, transform !important;
+  backface-visibility: hidden !important;
+}
+
+html body #root .role-hero-picture-card__image--active {
+  z-index: 2 !important;
+  animation: roleHeroImageEnter 460ms ease both !important;
+}
+
+html body #root .role-hero-picture-card__image--outgoing {
+  z-index: 1 !important;
+  pointer-events: none !important;
+  animation: roleHeroImageExit 460ms ease both !important;
+}
+
+@keyframes roleHeroImageEnter {
+  from {
+    opacity: 0;
+    transform: scale(1.012);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes roleHeroImageExit {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.006);
+  }
+}
+
+.role-hero-preview-toolbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 18px 0 12px;
+}
+
+.role-hero-preview-toolbar .field {
+  width: min(360px, 100%);
+  margin: 0;
+}
+
+.role-hero-preview-toolbar > small {
+  max-width: 520px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.role-hero-gallery-message {
+  margin: 14px 0 0 !important;
+}
+
+.role-hero-content-settings {
+  margin-top: 20px;
+}
+
+.role-hero-gallery-section,
+.role-hero-assignment-section {
+  margin-top: 26px;
+  padding-top: 22px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.role-hero-gallery-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.role-hero-gallery-heading h3 {
+  margin: 0 0 5px;
+  color: #0f172a;
+  font-size: 1.08rem;
+}
+
+.role-hero-gallery-heading p {
+  margin: 0;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.role-hero-gallery-count {
+  flex: 0 0 auto;
+  padding: 7px 11px;
+  border: 1px solid #bae6fd;
+  border-radius: 999px;
+  background: #f0f9ff;
+  color: #0369a1;
+  font-size: .82rem;
+  font-weight: 750;
+}
+
+.role-hero-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.role-hero-gallery-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #dbe4ee;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, .08);
+}
+
+.role-hero-gallery-card.is-preserved-extra {
+  opacity: .78;
+  border-style: dashed;
+}
+
+.role-hero-gallery-card__preview {
+  position: relative;
+  min-height: 170px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #e0f2fe, #ecfeff 55%, #f8fafc);
+}
+
+.role-hero-gallery-card__preview img {
+  width: 100%;
+  height: 190px;
+  display: block;
+  object-fit: cover;
+}
+
+.role-hero-gallery-card__empty {
+  min-height: 170px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.role-hero-gallery-card__number,
+.role-hero-gallery-card__preserved {
+  position: absolute;
+  top: 10px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: .76rem;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, .2);
+}
+
+.role-hero-gallery-card__number {
+  left: 10px;
+  background: rgba(15, 23, 42, .82);
+}
+
+.role-hero-gallery-card__preserved {
+  right: 10px;
+  background: rgba(180, 83, 9, .9);
+}
+
+.role-hero-gallery-card__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 15px;
+}
+
+.role-hero-gallery-card__fields .wide-field {
+  grid-column: 1 / -1;
+}
+
+.role-hero-gallery-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 15px 15px;
+}
+
+.role-hero-gallery-card__actions button {
+  min-height: 38px !important;
+  padding: 7px 11px !important;
+  border-radius: 10px !important;
+  font-size: .84rem !important;
+}
+
+.role-hero-assignment-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.role-hero-editor-message {
+  margin-top: 14px !important;
+}
+
+html body #root .admin-subdomain-role-hero {
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+@media (max-width: 1000px) {
+  .role-hero-gallery-grid,
+  .role-hero-assignment-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .role-hero-preview-toolbar,
+  .role-hero-gallery-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .role-hero-gallery-grid,
+  .role-hero-assignment-grid,
+  .role-hero-gallery-card__fields {
+    grid-template-columns: 1fr;
+  }
+
+  .role-hero-gallery-card__fields .wide-field {
+    grid-column: auto;
+  }
+
+  .role-hero-gallery-card__actions button {
+    flex: 1 1 120px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html body #root .role-hero-picture-card__image--active,
+  html body #root .role-hero-picture-card__image--outgoing {
+    animation: none !important;
+  }
+}

@@ -350,6 +350,9 @@ const ROLE_HERO_DEFAULTS = {
   student: {
     imageUrl: '',
     imagePath: '',
+    imageCount: 1,
+    images: [],
+    pageAssignments: {},
     title: 'Welcome to Your Research Journey',
     subtitle: 'Track your project, weekly reports, deadlines, meetings, and supervisor feedback in one place.',
     overlayOpacity: 0.38,
@@ -362,6 +365,9 @@ const ROLE_HERO_DEFAULTS = {
   supervisor: {
     imageUrl: '',
     imagePath: '',
+    imageCount: 1,
+    images: [],
+    pageAssignments: {},
     title: 'Guide Research, Support Progress',
     subtitle: 'Manage research projects, students, deadlines, weekly reports, feedback, and meetings.',
     overlayOpacity: 0.38,
@@ -374,6 +380,9 @@ const ROLE_HERO_DEFAULTS = {
   committee: {
     imageUrl: '',
     imagePath: '',
+    imageCount: 1,
+    images: [],
+    pageAssignments: {},
     title: 'Review Research, Maintain Quality',
     subtitle: 'Evaluate submissions, manage project decisions, and monitor approved research projects.',
     overlayOpacity: 0.38,
@@ -386,6 +395,9 @@ const ROLE_HERO_DEFAULTS = {
   admin: {
     imageUrl: '',
     imagePath: '',
+    imageCount: 1,
+    images: [],
+    pageAssignments: {},
     title: 'Manage the Research Platform',
     subtitle: 'Control users, assignments, projects, reports, platform settings, and customization.',
     overlayOpacity: 0.38,
@@ -398,14 +410,67 @@ const ROLE_HERO_DEFAULTS = {
 }
 
 const roleHeroOptions = [
-  { value: 'student', label: 'Student Dashboard' },
-  { value: 'supervisor', label: 'Supervisor Dashboard' },
-  { value: 'committee', label: 'Research Committee Dashboard' },
-  { value: 'admin', label: 'Admin Dashboard' },
+  { value: 'student', label: 'Student' },
+  { value: 'supervisor', label: 'Supervisor' },
+  { value: 'committee', label: 'Research Committee' },
+  { value: 'admin', label: 'Admin' },
 ]
 
+const ROLE_HERO_PAGE_OPTIONS = {
+  student: [
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'research-workspace', label: 'Research Workspace' },
+    { id: 'questions', label: 'Questions' },
+    { id: 'meetings', label: 'Meeting Requests' },
+    { id: 'join-group', label: 'Join Research Group' },
+    { id: 'reports', label: 'Print/PDF Reports' },
+    { id: 'about-us', label: 'About Us' },
+    { id: 'profile-settings', label: 'Profile Settings' },
+  ],
+  supervisor: [
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'research-workspace', label: 'Research Workspace' },
+    { id: 'project-management', label: 'Project Management' },
+    { id: 'questions', label: 'Student Questions' },
+    { id: 'meetings', label: 'Meeting Requests' },
+    { id: 'groups', label: 'Research Groups' },
+    { id: 'reports', label: 'Print/PDF Reports' },
+    { id: 'about-us', label: 'About Us' },
+    { id: 'profile-settings', label: 'Profile Settings' },
+  ],
+  committee: [
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'research-workspace', label: 'Research Workspace' },
+    { id: 'group-requests', label: 'Group Join Requests' },
+    { id: 'reports', label: 'Print/PDF Reports' },
+    { id: 'about-us', label: 'About Us' },
+    { id: 'profile-settings', label: 'Profile Settings' },
+  ],
+  admin: [
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'research-workspace', label: 'Research Workspace' },
+    { id: 'overview', label: 'Admin Overview' },
+    { id: 'branding', label: 'Website Settings' },
+    { id: 'button-colors', label: 'Color Customization' },
+    { id: 'login-settings', label: 'Login Page Settings' },
+    { id: 'about-us', label: 'About Us Customization' },
+    { id: 'users', label: 'Users & Roles' },
+    { id: 'supervisors', label: 'Supervisor Management' },
+    { id: 'dual-roles', label: 'Dual Role Management' },
+    { id: 'invitations', label: 'Invite Users' },
+    { id: 'deadlines', label: 'Deadlines' },
+    { id: 'notifications', label: 'Inbox' },
+    { id: 'group-requests', label: 'Group Join Requests' },
+    { id: 'database', label: 'Database' },
+    { id: 'audit', label: 'Audit Log' },
+    { id: 'reports', label: 'Reports' },
+    { id: 'pdf-report', label: 'PDF Report Customization' },
+    { id: 'profile-settings', label: 'Profile Settings' },
+  ],
+}
+
 function cloneRoleHeroDefaults() {
-  return Object.fromEntries(Object.entries(ROLE_HERO_DEFAULTS).map(([role, settings]) => [role, { ...settings }]))
+  return JSON.parse(JSON.stringify(ROLE_HERO_DEFAULTS))
 }
 
 function normalizeRoleHeroRole(role) {
@@ -414,6 +479,11 @@ function normalizeRoleHeroRole(role) {
   if (['supervisor', 'advisor'].includes(normalized)) return 'supervisor'
   if (['admin', 'administrator'].includes(normalized)) return 'admin'
   return 'student'
+}
+
+function getRoleHeroPageOptions(role) {
+  const normalized = normalizeRoleHeroRole(role)
+  return ROLE_HERO_PAGE_OPTIONS[normalized] || ROLE_HERO_PAGE_OPTIONS.student
 }
 
 function clampNumber(value, min, max, fallback) {
@@ -435,12 +505,72 @@ function sanitizeRoleHeroRoute(value) {
   return ''
 }
 
+function normalizeRoleHeroImage(role, image = {}, index = 0) {
+  const normalizedRole = normalizeRoleHeroRole(role)
+  const safeIndex = Math.max(0, Number(index) || 0)
+  const rawId = String(image?.id || image?.imageId || '').trim()
+  const id = rawId || `${normalizedRole}-hero-${safeIndex + 1}`
+  const imageUrl = sanitizeSettingImageUrl(image?.imageUrl || image?.image_url || image?.url || image?.src || '')
+  const storagePath = String(image?.storagePath || image?.storage_path || image?.imagePath || image?.image_path || '').trim()
+  const position = ['center', 'top', 'bottom', 'left', 'right'].includes(String(image?.position || image?.objectPosition || '').toLowerCase())
+    ? String(image.position || image.objectPosition).toLowerCase()
+    : 'center'
+  return {
+    id,
+    imageUrl,
+    storagePath,
+    imagePath: storagePath,
+    altText: String(image?.altText || image?.alt_text || '').trim(),
+    enabled: image?.enabled !== false,
+    order: Math.max(1, Number(image?.order) || safeIndex + 1),
+    position,
+  }
+}
+
 function normalizeRoleHeroConfig(role, config = {}) {
   const key = normalizeRoleHeroRole(role)
   const defaults = ROLE_HERO_DEFAULTS[key] || ROLE_HERO_DEFAULTS.student
-  const next = { ...defaults, ...(config || {}) }
-  next.imageUrl = sanitizeSettingImageUrl(next.imageUrl || next.image_url || next.image || '')
-  next.imagePath = String(next.imagePath || next.image_path || '')
+  const rawConfig = config && typeof config === 'object' ? config : {}
+  const next = { ...defaults, ...rawConfig }
+  const legacyImageUrl = sanitizeSettingImageUrl(next.imageUrl || next.image_url || next.image || '')
+  const legacyImagePath = String(next.imagePath || next.image_path || '')
+  const rawImages = Array.isArray(rawConfig.images)
+    ? rawConfig.images
+    : Array.isArray(rawConfig.gallery)
+      ? rawConfig.gallery
+      : []
+  let images = rawImages.map((image, index) => normalizeRoleHeroImage(key, image, index))
+  if (!images.length && (legacyImageUrl || legacyImagePath)) {
+    images = [normalizeRoleHeroImage(key, {
+      id: `${key}-hero-1`,
+      imageUrl: legacyImageUrl,
+      storagePath: legacyImagePath,
+      altText: `${getRoleHeroLabel(key)} hero image`,
+      enabled: true,
+      order: 1,
+    }, 0)]
+  }
+  const imageCount = Math.round(clampNumber(rawConfig.imageCount ?? rawConfig.image_count ?? Math.max(1, images.length || 1), 1, 12, 1))
+  const minimumSlotCount = Math.max(1, imageCount)
+  while (images.length < minimumSlotCount) {
+    images.push(normalizeRoleHeroImage(key, { id: `${key}-hero-${images.length + 1}`, enabled: true, order: images.length + 1 }, images.length))
+  }
+  images = images
+    .map((image, index) => normalizeRoleHeroImage(key, image, index))
+    .sort((a, b) => a.order - b.order)
+    .map((image, index) => ({ ...image, order: index + 1 }))
+
+  const firstImage = images.find((image) => image.imageUrl) || images[0]
+  next.role = key
+  next.imageCount = imageCount
+  next.images = images
+  next.imageUrl = firstImage?.imageUrl || ''
+  next.imagePath = firstImage?.storagePath || ''
+  next.pageAssignments = Object.fromEntries(
+    Object.entries(rawConfig.pageAssignments || rawConfig.page_assignments || {})
+      .map(([pageKey, imageId]) => [String(pageKey || '').trim(), String(imageId || '').trim()])
+      .filter(([pageKey, imageId]) => pageKey && imageId)
+  )
   next.title = String(next.title || defaults.title).trim() || defaults.title
   next.subtitle = String(next.subtitle || defaults.subtitle).trim() || defaults.subtitle
   next.overlayOpacity = clampNumber(next.overlayOpacity ?? next.overlay ?? defaults.overlayOpacity, 0, 0.85, defaults.overlayOpacity)
@@ -510,7 +640,38 @@ function getRoleHeroSettings(settings = defaultWebsiteSettings, role = 'student'
 
 function getRoleHeroLabel(role) {
   const normalized = normalizeRoleHeroRole(role)
-  return roleHeroOptions.find((item) => item.value === normalized)?.label || 'Student Dashboard'
+  return roleHeroOptions.find((item) => item.value === normalized)?.label || 'Student'
+}
+
+function getEnabledRoleHeroImages(hero, excludedIds = []) {
+  const excluded = new Set((excludedIds || []).map(String))
+  const count = Math.max(1, Math.min(12, Number(hero?.imageCount) || 1))
+  return (Array.isArray(hero?.images) ? hero.images : [])
+    .slice()
+    .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+    .filter((image) => image?.enabled !== false && image?.imageUrl && !excluded.has(String(image.id)))
+    .slice(0, count)
+}
+
+function getRoleHeroImageForPage(hero, pageKey = 'dashboard', navigationItems = [], excludedIds = []) {
+  const enabledImages = getEnabledRoleHeroImages(hero, excludedIds)
+  if (!enabledImages.length) return null
+  const normalizedPageKey = String(pageKey || 'dashboard')
+  const assignedImageId = hero?.pageAssignments?.[normalizedPageKey]
+  const assignedImage = assignedImageId
+    ? enabledImages.find((image) => String(image.id) === String(assignedImageId))
+    : null
+  if (assignedImage) return assignedImage
+
+  const navigationIds = (navigationItems || []).map((item) => String(item?.id || item)).filter(Boolean)
+  const configuredPageIds = getRoleHeroPageOptions(hero?.role || 'student').map((item) => item.id)
+  const pageIds = navigationIds.length ? navigationIds : configuredPageIds
+  let pageIndex = pageIds.indexOf(normalizedPageKey)
+  if (pageIndex < 0) pageIndex = configuredPageIds.indexOf(normalizedPageKey)
+  if (pageIndex < 0) {
+    pageIndex = Array.from(normalizedPageKey).reduce((sum, character) => sum + character.charCodeAt(0), 0)
+  }
+  return enabledImages[Math.abs(pageIndex) % enabledImages.length]
 }
 
 const DEFAULT_BUTTON_COLORS = {
@@ -4029,23 +4190,76 @@ function RoleFeatureSearch({ role = 'student', items = [], availableTabs = [], o
   )
 }
 
-function RoleHeroBanner({ role = 'student', settings = defaultWebsiteSettings, onNavigate, navigationItems = [], activeTab = '', className = '' }) {
-  const hero = getRoleHeroSettings(settings, role)
-  const image = versionedAssetUrl(hero?.imageUrl, settings?.assetUpdatedAt)
-  const [imageFailed, setImageFailed] = useState(false)
+function getRoleHeroObjectPosition(position = 'center') {
+  const positions = {
+    center: 'center center',
+    top: 'center top',
+    bottom: 'center bottom',
+    left: 'left center',
+    right: 'right center',
+  }
+  return positions[position] || positions.center
+}
+
+function RoleHeroBanner({ role = 'student', settings = defaultWebsiteSettings, onNavigate, navigationItems = [], activeTab = '', pageKey = '', className = '' }) {
+  const roleClass = normalizeRoleHeroRole(role)
+  const hero = useMemo(() => getRoleHeroSettings(settings, roleClass), [settings, roleClass])
+  const resolvedPageKey = String(pageKey || activeTab || 'dashboard')
+  const [failedImageIds, setFailedImageIds] = useState([])
+  const desiredHeroImage = useMemo(
+    () => getRoleHeroImageForPage({ ...hero, role: roleClass }, resolvedPageKey, navigationItems, failedImageIds),
+    [hero, roleClass, resolvedPageKey, navigationItems, failedImageIds],
+  )
+  const desiredDisplayImage = useMemo(() => {
+    if (!desiredHeroImage?.imageUrl) return null
+    return {
+      ...desiredHeroImage,
+      src: versionedAssetUrl(desiredHeroImage.imageUrl, settings?.assetUpdatedAt),
+    }
+  }, [desiredHeroImage, settings?.assetUpdatedAt])
+  const [activeImage, setActiveImage] = useState(desiredDisplayImage)
+  const [outgoingImage, setOutgoingImage] = useState(null)
+  const activeImageRef = useRef(desiredDisplayImage)
 
   useEffect(() => {
-    setImageFailed(false)
-  }, [image])
+    setFailedImageIds([])
+  }, [roleClass, settings?.roleHeroes, settings?.assetUpdatedAt])
+
+  useEffect(() => {
+    const enabledImages = getEnabledRoleHeroImages(hero)
+    enabledImages.forEach((image) => {
+      if (!image.imageUrl || typeof window === 'undefined') return
+      const preloadImage = new window.Image()
+      preloadImage.src = versionedAssetUrl(image.imageUrl, settings?.assetUpdatedAt)
+    })
+  }, [hero, settings?.assetUpdatedAt])
+
+  useEffect(() => {
+    const previous = activeImageRef.current
+    const previousKey = previous?.id || previous?.src || ''
+    const nextKey = desiredDisplayImage?.id || desiredDisplayImage?.src || ''
+    if (previousKey === nextKey) return undefined
+
+    setOutgoingImage(previous || null)
+    activeImageRef.current = desiredDisplayImage
+    setActiveImage(desiredDisplayImage)
+    const timer = window.setTimeout(() => setOutgoingImage(null), 480)
+    return () => window.clearTimeout(timer)
+  }, [desiredDisplayImage])
 
   if (!hero?.enabled) return null
-  const roleClass = normalizeRoleHeroRole(role)
   const hasFeatureSearch = SEARCH_ENABLED_ROLES.includes(roleClass)
   const alignClass = ['center', 'right'].includes(hero.alignment) ? hero.alignment : 'left'
-  const shouldShowImage = Boolean(image && !imageFailed)
+  const shouldShowImage = Boolean(activeImage?.src)
   const heroStyle = {
     '--role-hero-overlay': hero.overlayOpacity,
     '--role-hero-text': hero.textColor,
+  }
+
+  function handleImageError(image) {
+    if (!image?.id) return
+    console.warn(`Role hero image could not be loaded: ${image.id}`)
+    setFailedImageIds((current) => current.includes(image.id) ? current : [...current, image.id])
   }
 
   function handleHeroCta() {
@@ -4059,15 +4273,28 @@ function RoleHeroBanner({ role = 'student', settings = defaultWebsiteSettings, o
   }
 
   return (
-    <section className={`role-hero-banner role-hero-picture-card role-hero-navigation-shell role-hero-${roleClass} role-hero-align-${alignClass} ${shouldShowImage ? 'role-hero-has-image' : 'role-hero-no-image'} ${hasFeatureSearch ? 'role-hero-has-feature-search' : 'role-hero-no-feature-search'} ${className}`.trim()} style={heroStyle}>
-      <div className="role-hero-picture-card__media" aria-hidden="true">
-        {shouldShowImage && (
+    <section className={`role-hero-banner role-hero-picture-card role-hero-navigation-shell role-hero-${roleClass} role-hero-align-${alignClass} ${shouldShowImage ? 'role-hero-has-image' : 'role-hero-no-image'} ${hasFeatureSearch ? 'role-hero-has-feature-search' : 'role-hero-no-feature-search'} ${className}`.trim()} style={heroStyle} data-hero-page={resolvedPageKey}>
+      <div className="role-hero-picture-card__media">
+        {outgoingImage?.src && (
           <img
-            className="role-hero-picture-card__image"
-            src={image}
+            key={`outgoing-${outgoingImage.id || outgoingImage.src}`}
+            className="role-hero-picture-card__image role-hero-picture-card__image--outgoing"
+            src={outgoingImage.src}
             alt=""
-            loading="lazy"
-            onError={() => setImageFailed(true)}
+            aria-hidden="true"
+            style={{ '--role-hero-object-position': getRoleHeroObjectPosition(outgoingImage.position) }}
+          />
+        )}
+        {activeImage?.src && (
+          <img
+            key={`active-${activeImage.id || activeImage.src}-${resolvedPageKey}`}
+            className="role-hero-picture-card__image role-hero-picture-card__image--active"
+            src={activeImage.src}
+            alt={activeImage.altText || ''}
+            loading="eager"
+            decoding="async"
+            style={{ '--role-hero-object-position': getRoleHeroObjectPosition(activeImage.position) }}
+            onError={() => handleImageError(activeImage)}
           />
         )}
       </div>
@@ -4116,7 +4343,6 @@ function RoleHeroBanner({ role = 'student', settings = defaultWebsiteSettings, o
     </section>
   )
 }
-
 
 
 function getActionLoadingText(key = '') {
@@ -10359,6 +10585,7 @@ function AdminControlPanel({
   const [brandingError, setBrandingError] = useState('')
   const [panelActionLoading, setPanelActionLoading] = useState('')
   const [selectedRoleHero, setSelectedRoleHero] = useState('student')
+  const [selectedRoleHeroPreviewPage, setSelectedRoleHeroPreviewPage] = useState('dashboard')
   const [buttonColorStatus, setButtonColorStatus] = useState('')
   const [buttonColorError, setButtonColorError] = useState('')
   const [interfaceColorStatus, setInterfaceColorStatus] = useState('')
@@ -10366,6 +10593,13 @@ function AdminControlPanel({
   useEffect(() => {
     setDraft(settings)
   }, [settings])
+
+  useEffect(() => {
+    const availablePages = getRoleHeroPageOptions(selectedRoleHero)
+    if (!availablePages.some((page) => page.id === selectedRoleHeroPreviewPage)) {
+      setSelectedRoleHeroPreviewPage(availablePages[0]?.id || 'dashboard')
+    }
+  }, [selectedRoleHero, selectedRoleHeroPreviewPage])
 
   useEffect(() => {
     const previewingColors = adminPanelTab === 'button-colors'
@@ -10660,80 +10894,152 @@ function AdminControlPanel({
     })
   }
 
-  async function handleRoleHeroImageUpload(role, file) {
+  function updateRoleHeroImageDraft(role, imageId, patch = {}) {
+    const normalizedRole = normalizeRoleHeroRole(role)
+    setDraft((current) => {
+      const currentHeroes = normalizeRoleHeroSettings(current.roleHeroes, current)
+      const currentHero = currentHeroes[normalizedRole]
+      const existingImages = Array.isArray(currentHero.images) ? currentHero.images : []
+      const imageIndex = existingImages.findIndex((image) => String(image.id) === String(imageId))
+      const nextImages = existingImages.slice()
+      if (imageIndex >= 0) {
+        nextImages[imageIndex] = normalizeRoleHeroImage(normalizedRole, { ...nextImages[imageIndex], ...(patch || {}) }, imageIndex)
+      } else {
+        nextImages.push(normalizeRoleHeroImage(normalizedRole, { id: imageId, ...(patch || {}) }, nextImages.length))
+      }
+      const nextHero = normalizeRoleHeroConfig(normalizedRole, { ...currentHero, images: nextImages })
+      return {
+        ...current,
+        roleHeroes: {
+          ...currentHeroes,
+          [normalizedRole]: nextHero,
+        },
+      }
+    })
+  }
+
+  function updateRoleHeroImageCount(role, value) {
+    const imageCount = Math.round(clampNumber(value, 1, 12, 1))
+    updateRoleHeroDraft(role, { imageCount })
+    setBrandingError(`This role will use up to ${imageCount} hero picture${imageCount === 1 ? '' : 's'}. Extra uploaded pictures are preserved.`)
+  }
+
+  function updateRoleHeroPageAssignment(role, pageKey, imageId) {
+    const normalizedRole = normalizeRoleHeroRole(role)
+    const roleHeroes = normalizeRoleHeroSettings(draft.roleHeroes, draft)
+    const currentHero = roleHeroes[normalizedRole]
+    const nextAssignments = { ...(currentHero.pageAssignments || {}) }
+    if (imageId) nextAssignments[pageKey] = imageId
+    else delete nextAssignments[pageKey]
+    updateRoleHeroDraft(normalizedRole, { pageAssignments: nextAssignments })
+  }
+
+  function resetRoleHeroPageAssignments(role) {
+    updateRoleHeroDraft(role, { pageAssignments: {} })
+    setBrandingError('Page assignments reset to deterministic gallery rotation. Save Role Hero Settings to publish the change.')
+  }
+
+  function moveRoleHeroImage(role, imageId, direction) {
+    const normalizedRole = normalizeRoleHeroRole(role)
+    const roleHeroes = normalizeRoleHeroSettings(draft.roleHeroes, draft)
+    const currentHero = roleHeroes[normalizedRole]
+    const images = currentHero.images.slice().sort((a, b) => a.order - b.order)
+    const currentIndex = images.findIndex((image) => String(image.id) === String(imageId))
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+    if (currentIndex < 0 || targetIndex < 0 || targetIndex >= images.length) return
+    const [moved] = images.splice(currentIndex, 1)
+    images.splice(targetIndex, 0, moved)
+    updateRoleHeroDraft(normalizedRole, { images: images.map((image, index) => ({ ...image, order: index + 1 })) })
+  }
+
+  async function handleRoleHeroImageUpload(role, imageId, file) {
     const normalizedRole = normalizeRoleHeroRole(role)
     if (!file || panelActionLoading) return
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
     if (!allowedTypes.includes(file.type)) {
-      setBrandingError('Please choose a JPG, PNG, or WEBP image for the role dashboard picture.')
+      setBrandingError('Please choose a JPG, PNG, or WEBP image for the role hero gallery.')
       return
     }
     if (file.size > 7 * 1024 * 1024) {
-      setBrandingError('Please choose an image smaller than 7 MB for faster dashboard loading. The picture will be auto-fitted to the dashboard area.')
+      setBrandingError('Please choose an image smaller than 7 MB for faster hero loading.')
       return
     }
 
     try {
-      setPanelActionLoading(`upload-role-hero-${normalizedRole}`)
-      setBrandingError('Uploading and auto-fitting role dashboard picture...')
+      setPanelActionLoading(`upload-role-hero-${normalizedRole}-${imageId}`)
+      setBrandingError('Uploading the new hero picture. The current picture will remain unchanged until upload succeeds...')
       const outputType = file.type === 'image/png' || file.type === 'image/webp' ? file.type : 'image/jpeg'
       const dataUrl = await optimizeImageFile(file, { maxWidth: 1920, maxHeight: 900, quality: 0.88, outputType })
       let imageUrl = dataUrl
-      let imagePath = ''
+      let storagePath = ''
 
       if (isSupabaseConfigured) {
         const blob = await fetch(dataUrl).then((response) => response.blob())
         const extension = outputType === 'image/png' ? 'png' : outputType === 'image/webp' ? 'webp' : 'jpg'
         const safeName = String(file.name || `${normalizedRole}-hero`).replace(/[^a-z0-9._-]/gi, '-').toLowerCase()
-        imagePath = `role-heroes/${normalizedRole}-hero-${Date.now()}-${safeName}.${extension}`
+        storagePath = `role-heroes/${normalizedRole}/${imageId}-${Date.now()}-${safeName}.${extension}`
         const upload = await supabase.storage
           .from('app-assets')
-          .upload(imagePath, blob, { contentType: outputType, cacheControl: '3600', upsert: true })
-
-        if (upload.error) {
-          updateRoleHeroDraft(normalizedRole, { imageUrl: dataUrl, imagePath: '' })
-          setBrandingError(`Role hero preview loaded locally, but global upload failed: ${upload.error.message}. Check the existing app-assets storage bucket and website settings SQL.`)
-          return
-        }
-
-        const { data: publicData } = supabase.storage.from('app-assets').getPublicUrl(imagePath)
-        imageUrl = publicData?.publicUrl || dataUrl
+          .upload(storagePath, blob, { contentType: outputType, cacheControl: '3600', upsert: false })
+        if (upload.error) throw upload.error
+        const { data: publicData } = supabase.storage.from('app-assets').getPublicUrl(storagePath)
+        imageUrl = publicData?.publicUrl || ''
+        if (!imageUrl) throw new Error('The uploaded image did not return a public URL.')
       }
 
-      updateRoleHeroDraft(normalizedRole, { imageUrl, imagePath })
-      setBrandingError(isSupabaseConfigured ? 'Role dashboard picture uploaded and auto-fitted. Click Save Role Hero Settings to publish it globally.' : 'Role dashboard picture preview loaded locally and auto-fitted. Connect Supabase Storage to save it globally for all users.')
+      updateRoleHeroImageDraft(normalizedRole, imageId, {
+        imageUrl,
+        storagePath,
+        imagePath: storagePath,
+        enabled: true,
+        altText: String(file.name || '').replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' '),
+      })
+      setBrandingError(isSupabaseConfigured
+        ? 'Hero picture uploaded successfully. Click Save Role Hero Settings to publish the gallery.'
+        : 'Hero picture loaded as a local preview. Connect Supabase Storage to publish it globally.')
     } catch (error) {
-      try {
-        const fallback = await fileToDataUrl(file)
-        updateRoleHeroDraft(normalizedRole, { imageUrl: fallback, imagePath: '' })
-        setBrandingError(`Role dashboard picture preview loaded locally and auto-fitted, but upload failed: ${error.message || 'Unknown error'}`)
-      } catch {
-        setBrandingError(error.message || 'Could not upload the selected role hero image. Try a smaller JPG, PNG, or WEBP file.')
-      }
+      setBrandingError(`The replacement was not applied because upload failed: ${error.message || 'Unknown error'}`)
     } finally {
       setPanelActionLoading('')
     }
   }
 
-  async function removeRoleHeroImage(role) {
+  async function removeRoleHeroGalleryImage(role, imageId) {
     const normalizedRole = normalizeRoleHeroRole(role)
-    const currentHeroes = normalizeRoleHeroSettings(draft.roleHeroes, draft)
-    const oldPath = currentHeroes[normalizedRole]?.imagePath
-    updateRoleHeroDraft(normalizedRole, { imageUrl: '', imagePath: '' })
-    if (isSupabaseConfigured && oldPath) {
+    const roleHeroes = normalizeRoleHeroSettings(draft.roleHeroes, draft)
+    const currentHero = roleHeroes[normalizedRole]
+    const image = currentHero.images.find((item) => String(item.id) === String(imageId))
+    if (!image?.imageUrl && !image?.storagePath) return
+    const confirmed = await showAppConfirm(
+      'Remove this hero picture from the gallery? Pages assigned to it will automatically use the next available picture.',
+      { title: 'Remove Hero Picture', type: 'warning', confirmLabel: 'Remove Picture' },
+    )
+    if (!confirmed) return
+
+    const nextAssignments = Object.fromEntries(
+      Object.entries(currentHero.pageAssignments || {}).filter(([, assignedId]) => String(assignedId) !== String(imageId))
+    )
+    updateRoleHeroDraft(normalizedRole, {
+      images: currentHero.images.map((item) => String(item.id) === String(imageId)
+        ? { ...item, imageUrl: '', storagePath: '', imagePath: '', altText: '', enabled: false }
+        : item),
+      pageAssignments: nextAssignments,
+    })
+
+    if (isSupabaseConfigured && image.storagePath) {
       try {
-        await supabase.storage.from('app-assets').remove([oldPath])
-      } catch {
-        // Hiding the image in settings is enough even if old storage cleanup fails.
+        await supabase.storage.from('app-assets').remove([image.storagePath])
+      } catch (error) {
+        console.warn('Hero image storage cleanup failed:', error)
       }
     }
-    setBrandingError('Role dashboard picture removed. Click Save Role Hero Settings to publish the change globally.')
+    setBrandingError('Hero picture removed from the draft gallery. Save Role Hero Settings to publish the change.')
   }
 
   function resetRoleHeroDraft(role) {
     const normalizedRole = normalizeRoleHeroRole(role)
-    updateRoleHeroDraft(normalizedRole, ROLE_HERO_DEFAULTS[normalizedRole] || ROLE_HERO_DEFAULTS.student)
-    setBrandingError('Role hero reset to the default text and fallback background. Click Save Role Hero Settings to publish it globally.')
+    updateRoleHeroDraft(normalizedRole, cloneRoleHeroDefaults()[normalizedRole] || cloneRoleHeroDefaults().student)
+    setBrandingError('Role hero reset to its approved default settings. Click Save Role Hero Settings to publish it globally.')
   }
 
   async function handleImageUpload(key, file) {
@@ -10875,6 +11181,16 @@ function AdminControlPanel({
           </div>
         </header>
 
+        <RoleHeroBanner
+          role="admin"
+          settings={settings}
+          navigationItems={navItems}
+          activeTab={adminPanelTab}
+          pageKey={adminPanelTab}
+          className="authenticated-role-hero admin-subdomain-role-hero"
+          onNavigate={changeAdminPanelTab}
+        />
+
         {message && adminPanelTab !== 'overview' && <div className="message no-print">{message}</div>}
         {dataLoading && adminPanelTab !== 'overview' && <LoadingBlock text="Loading admin records..." />}
 
@@ -10921,39 +11237,122 @@ function AdminControlPanel({
             </div>
 
             <div className="card role-hero-editor-card">
-              <SectionHeader icon={ImageIcon} title="Role Dashboard Pictures" subtitle="Customize large dashboard pictures and text using the existing website settings and app-assets storage" />
+              <SectionHeader icon={ImageIcon} title="Role Hero Customization" subtitle="Manage role hero text, multiple pictures, gallery order, and page assignments using the existing website settings and app-assets storage" />
               {(() => {
                 const roleHeroes = normalizeRoleHeroSettings(draft.roleHeroes, draft)
-                const selectedHero = roleHeroes[normalizeRoleHeroRole(selectedRoleHero)] || roleHeroes.student
+                const normalizedSelectedRole = normalizeRoleHeroRole(selectedRoleHero)
+                const selectedHero = roleHeroes[normalizedSelectedRole] || roleHeroes.student
+                const pageOptions = getRoleHeroPageOptions(normalizedSelectedRole)
+                const previewNavigationItems = pageOptions.map((page) => ({ ...page, icon: page.id === 'dashboard' || page.id === 'overview' ? LayoutDashboard : undefined }))
+                const galleryImages = selectedHero.images.slice().sort((a, b) => a.order - b.order)
+                const enabledUploadedImages = getEnabledRoleHeroImages(selectedHero)
+                const activeUploadedCount = galleryImages
+                  .slice(0, selectedHero.imageCount)
+                  .filter((image) => image.enabled !== false && image.imageUrl)
+                  .length
+                const missingCount = Math.max(0, selectedHero.imageCount - activeUploadedCount)
                 return (
                   <>
                     <div className="role-hero-editor-top">
-                      <label className="field"><span>Role / page</span><select value={selectedRoleHero} onChange={(e) => setSelectedRoleHero(e.target.value)}>{roleHeroOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-                      <label className="settings-toggle role-hero-enable-toggle"><input type="checkbox" checked={selectedHero.enabled !== false} onChange={(e) => updateRoleHeroDraft(selectedRoleHero, { enabled: e.target.checked })} /><span><b>Show dashboard picture</b><small>Hide or show this large role dashboard picture section.</small></span></label>
+                      <label className="field"><span>Role</span><select value={selectedRoleHero} onChange={(e) => setSelectedRoleHero(e.target.value)}>{roleHeroOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+                      <label className="field"><span>Number of Hero Pictures</span><input type="number" min="1" max="12" value={selectedHero.imageCount} onChange={(e) => updateRoleHeroImageCount(selectedRoleHero, e.target.value)} /><small>Choose between 1 and 12. Reducing the number preserves extra uploaded images.</small></label>
+                      <label className="settings-toggle role-hero-enable-toggle"><input type="checkbox" checked={selectedHero.enabled !== false} onChange={(e) => updateRoleHeroDraft(selectedRoleHero, { enabled: e.target.checked })} /><span><b>Show role hero</b><small>Show this full-width hero on authenticated pages for the selected role.</small></span></label>
                     </div>
 
-                    <RoleHeroBanner role={selectedRoleHero} settings={{ ...draft, roleHeroes }} className="role-hero-admin-preview" onNavigate={() => {}} />
+                    {missingCount > 0 && (
+                      <div className="message role-hero-gallery-message">Upload {missingCount} more image{missingCount === 1 ? '' : 's'} to complete the selected hero gallery.</div>
+                    )}
 
-                    <div className="form-grid role-hero-settings-grid">
-                      <label className="field wide-field"><span>Dashboard picture URL</span><input value={selectedHero.imageUrl || ''} onChange={(e) => updateRoleHeroDraft(selectedRoleHero, { imageUrl: e.target.value, imagePath: '' })} placeholder="Paste image URL or upload below" /><small>Images are automatically resized visually to fit inside the dashboard picture area without cropping or stretching.</small></label>
-                      <label className="field wide-field"><span>Upload dashboard picture</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => handleRoleHeroImageUpload(selectedRoleHero, e.target.files?.[0])} /><small>Recommended: 1600px or wider. The page will auto-resize the picture so the full image remains visible on desktop and mobile.</small></label>
-                      <label className="field wide-field"><span>Heading</span><input value={selectedHero.title || ''} onChange={(e) => updateRoleHeroDraft(selectedRoleHero, { title: e.target.value })} placeholder={ROLE_HERO_DEFAULTS[normalizeRoleHeroRole(selectedRoleHero)].title} /></label>
-                      <label className="field wide-field"><span>Subtitle</span><textarea value={selectedHero.subtitle || ''} onChange={(e) => updateRoleHeroDraft(selectedRoleHero, { subtitle: e.target.value })} placeholder={ROLE_HERO_DEFAULTS[normalizeRoleHeroRole(selectedRoleHero)].subtitle} /></label>
+                    <div className="role-hero-preview-toolbar">
+                      <label className="field"><span>Preview page</span><select value={selectedRoleHeroPreviewPage} onChange={(e) => setSelectedRoleHeroPreviewPage(e.target.value)}>{pageOptions.map((page) => <option key={page.id} value={page.id}>{page.label}</option>)}</select></label>
+                      <small>The preview buttons change only this preview and never leave the customization page.</small>
+                    </div>
+
+                    <RoleHeroBanner
+                      role={selectedRoleHero}
+                      settings={{ ...draft, roleHeroes }}
+                      className="role-hero-admin-preview"
+                      navigationItems={previewNavigationItems}
+                      activeTab={selectedRoleHeroPreviewPage}
+                      pageKey={selectedRoleHeroPreviewPage}
+                      onNavigate={(pageId) => setSelectedRoleHeroPreviewPage(pageId)}
+                    />
+
+                    <div className="form-grid role-hero-settings-grid role-hero-content-settings">
+                      <label className="field wide-field"><span>Heading</span><input value={selectedHero.title || ''} onChange={(e) => updateRoleHeroDraft(selectedRoleHero, { title: e.target.value })} placeholder={ROLE_HERO_DEFAULTS[normalizedSelectedRole].title} /></label>
+                      <label className="field wide-field"><span>Subtitle</span><textarea value={selectedHero.subtitle || ''} onChange={(e) => updateRoleHeroDraft(selectedRoleHero, { subtitle: e.target.value })} placeholder={ROLE_HERO_DEFAULTS[normalizedSelectedRole].subtitle} /></label>
                       <label className="field"><span>Text color</span><input type="color" value={selectedHero.textColor || '#ffffff'} onChange={(e) => updateRoleHeroDraft(selectedRoleHero, { textColor: e.target.value })} /></label>
                       <label className="field"><span>Text alignment</span><select value={selectedHero.alignment || 'left'} onChange={(e) => updateRoleHeroDraft(selectedRoleHero, { alignment: e.target.value })}><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></label>
+                      <label className="field"><span>Overlay opacity</span><input type="range" min="0" max="0.85" step="0.05" value={selectedHero.overlayOpacity} onChange={(e) => updateRoleHeroDraft(selectedRoleHero, { overlayOpacity: Number(e.target.value) })} /><small>{Math.round(Number(selectedHero.overlayOpacity || 0) * 100)}%</small></label>
                       <label className="field"><span>Optional button label</span><input value={selectedHero.buttonLabel || ''} onChange={(e) => updateRoleHeroDraft(selectedRoleHero, { buttonLabel: e.target.value })} placeholder="Example: View My Research" /></label>
-                      <label className="field wide-field"><span>Optional button destination</span><input value={selectedHero.buttonRoute || ''} onChange={(e) => updateRoleHeroDraft(selectedRoleHero, { buttonRoute: e.target.value })} placeholder="Example: dashboard, reports, meetings, questions, /student/my-research" /></label>
+                      <label className="field wide-field"><span>Optional button destination</span><input value={selectedHero.buttonRoute || ''} onChange={(e) => updateRoleHeroDraft(selectedRoleHero, { buttonRoute: e.target.value })} placeholder="Example: dashboard, reports, meetings, questions" /></label>
+                    </div>
+
+                    <div className="role-hero-gallery-section">
+                      <div className="role-hero-gallery-heading">
+                        <div><h3>Hero Image Gallery &amp; Page Assignment</h3><p>Upload, replace, enable, arrange, and describe the pictures used by this role.</p></div>
+                        <span className="role-hero-gallery-count">{activeUploadedCount}/{selectedHero.imageCount} active slots ready</span>
+                      </div>
+
+                      <div className="role-hero-gallery-grid">
+                        {galleryImages.map((image, index) => {
+                          const isWithinSelectedCount = index < selectedHero.imageCount
+                          const uploadKey = `upload-role-hero-${normalizedSelectedRole}-${image.id}`
+                          return (
+                            <article key={image.id} className={`role-hero-gallery-card ${isWithinSelectedCount ? '' : 'is-preserved-extra'}`.trim()}>
+                              <div className="role-hero-gallery-card__preview">
+                                {image.imageUrl ? <img src={versionedAssetUrl(image.imageUrl, draft.assetUpdatedAt)} alt={image.altText || `Hero picture ${index + 1}`} style={{ objectPosition: getRoleHeroObjectPosition(image.position) }} /> : <div className="role-hero-gallery-card__empty"><ImageIcon size={28} /><span>Upload picture {index + 1}</span></div>}
+                                <span className="role-hero-gallery-card__number">{index + 1}</span>
+                                {!isWithinSelectedCount && <span className="role-hero-gallery-card__preserved">Preserved extra</span>}
+                              </div>
+
+                              <div className="role-hero-gallery-card__fields">
+                                <label className="field wide-field"><span>Picture URL</span><input value={image.imageUrl || ''} onChange={(e) => updateRoleHeroImageDraft(selectedRoleHero, image.id, { imageUrl: e.target.value, storagePath: '', imagePath: '' })} placeholder="Paste a hosted JPG, PNG, or WEBP URL" /></label>
+                                <label className="field wide-field"><span>{image.imageUrl ? 'Replace picture' : 'Upload picture'}</span><input type="file" accept="image/jpeg,image/png,image/webp" disabled={Boolean(panelActionLoading)} onChange={(e) => handleRoleHeroImageUpload(selectedRoleHero, image.id, e.target.files?.[0])} /><small>{panelActionLoading === uploadKey ? 'Uploading…' : 'Maximum 7 MB. Existing picture remains until replacement succeeds.'}</small></label>
+                                <label className="field wide-field"><span>Alternative text</span><input value={image.altText || ''} onChange={(e) => updateRoleHeroImageDraft(selectedRoleHero, image.id, { altText: e.target.value })} placeholder="Describe this picture for accessibility" /></label>
+                                <label className="field"><span>Image position</span><select value={image.position || 'center'} onChange={(e) => updateRoleHeroImageDraft(selectedRoleHero, image.id, { position: e.target.value })}><option value="center">Center</option><option value="top">Top</option><option value="bottom">Bottom</option><option value="left">Left</option><option value="right">Right</option></select></label>
+                                <label className="settings-toggle compact-toggle"><input type="checkbox" checked={image.enabled !== false} onChange={(e) => updateRoleHeroImageDraft(selectedRoleHero, image.id, { enabled: e.target.checked })} /><span><b>Enabled</b><small>Disabled pictures are not loaded or used.</small></span></label>
+                              </div>
+
+                              <div className="role-hero-gallery-card__actions">
+                                <button type="button" className="secondary" disabled={index === 0 || Boolean(panelActionLoading)} onClick={() => moveRoleHeroImage(selectedRoleHero, image.id, 'up')}>Move Up</button>
+                                <button type="button" className="secondary" disabled={index === galleryImages.length - 1 || Boolean(panelActionLoading)} onClick={() => moveRoleHeroImage(selectedRoleHero, image.id, 'down')}>Move Down</button>
+                                <button type="button" className="danger" disabled={!image.imageUrl || Boolean(panelActionLoading)} onClick={() => removeRoleHeroGalleryImage(selectedRoleHero, image.id)}><Trash2 size={15} /> Remove</button>
+                              </div>
+                            </article>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="role-hero-assignment-section">
+                      <div className="role-hero-gallery-heading">
+                        <div><h3>Page Assignments</h3><p>Select a fixed picture for a page, or leave it on automatic deterministic rotation.</p></div>
+                        <button type="button" className="secondary" onClick={() => resetRoleHeroPageAssignments(selectedRoleHero)}><RefreshCw size={15} /> Reset Assignments</button>
+                      </div>
+                      <div className="role-hero-assignment-grid">
+                        {pageOptions.map((page) => (
+                          <label className="field" key={page.id}>
+                            <span>{page.label}</span>
+                            <select value={selectedHero.pageAssignments?.[page.id] || ''} onChange={(e) => updateRoleHeroPageAssignment(selectedRoleHero, page.id, e.target.value)}>
+                              <option value="">Automatic gallery rotation</option>
+                              {enabledUploadedImages.map((image) => <option key={image.id} value={image.id}>Picture {image.order}{image.altText ? ` — ${image.altText}` : ''}</option>)}
+                            </select>
+                          </label>
+                        ))}
+                      </div>
                     </div>
 
                     <div className="settings-actions compact-actions">
                       <button className="primary min-button-width" disabled={Boolean(panelActionLoading)} onClick={() => runPanelAction('save-role-heroes', () => updateSettings({ ...draft, roleHeroes: normalizeRoleHeroSettings(draft.roleHeroes, draft) }))}><ButtonContent loading={panelActionLoading === 'save-role-heroes'} loadingText="Saving..." icon={Save}>Save Role Hero Settings</ButtonContent></button>
-                      <button className="secondary min-button-width" disabled={Boolean(panelActionLoading)} onClick={() => runPanelAction(`remove-role-hero-${selectedRoleHero}`, () => removeRoleHeroImage(selectedRoleHero))}><ButtonContent loading={panelActionLoading === `remove-role-hero-${selectedRoleHero}`} loadingText="Removing..." icon={Trash2}>Remove Image</ButtonContent></button>
                       <button className="secondary min-button-width" disabled={Boolean(panelActionLoading)} onClick={() => resetRoleHeroDraft(selectedRoleHero)}><RefreshCw size={16} /> Reset Selected Role</button>
                     </div>
 
+                    {brandingError && <div className="message role-hero-editor-message">{brandingError}</div>}
+
                     <div className="soft-box settings-note">
-                      <b>Connected to existing customization</b>
-                      <p>These role dashboard pictures are saved inside the existing website settings record and use the existing Supabase Storage bucket <code>app-assets</code>. The displayed image automatically fits the page using cover resizing, so uploaded pictures fill the dashboard without stretching. No duplicate settings page, upload table, or storage bucket is created.</p>
+                      <b>Connected to the existing customization system</b>
+                      <p>The gallery is saved inside the current website settings record and uses the existing Supabase Storage bucket <code>app-assets</code>. Existing single images are automatically migrated to Picture 1. No duplicate settings table, upload table, route, or bucket is created.</p>
                     </div>
                   </>
                 )
