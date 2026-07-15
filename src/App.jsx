@@ -4673,20 +4673,6 @@ function PublicHomepage({ settings = defaultWebsiteSettings }) {
               </div>
             </div>
 
-            <div className="public-hero-visual" aria-label="Decorative research workflow illustration">
-              <div className="public-visual-orbit public-visual-orbit-one" />
-              <div className="public-visual-orbit public-visual-orbit-two" />
-              <div className="public-visual-document">
-                <div className="public-document-mark"><BookOpen size={27} /></div>
-                <strong>Research Journey</strong>
-                <span>Proposal to completion</span>
-                <div className="public-progress-track"><i /></div>
-              </div>
-              <div className="public-visual-card public-visual-card-one"><ClipboardCheck size={20} /><span>Project Proposal</span></div>
-              <div className="public-visual-card public-visual-card-two"><ShieldCheck size={20} /><span>Committee Review</span></div>
-              <div className="public-visual-card public-visual-card-three"><FileText size={20} /><span>Progress Reports</span></div>
-              <div className="public-visual-card public-visual-card-four"><CheckCircle2 size={20} /><span>Final Evaluation</span></div>
-            </div>
           </div>
         </section>
 

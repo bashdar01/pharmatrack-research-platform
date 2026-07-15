@@ -25471,128 +25471,7 @@ html body #root .role-feature-search__clear:focus-visible {
   gap: 7px;
 }
 
-.public-hero-visual {
-  position: relative;
-  min-height: 500px;
-  display: grid;
-  place-items: center;
-}
 
-.public-hero-visual::before {
-  content: '';
-  position: absolute;
-  width: 390px;
-  height: 390px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(105, 234, 216, 0.22), rgba(255, 255, 255, 0.035) 60%, transparent 70%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.public-visual-orbit {
-  position: absolute;
-  border: 1px dashed rgba(195, 250, 242, 0.25);
-  border-radius: 50%;
-}
-
-.public-visual-orbit-one {
-  width: 470px;
-  height: 470px;
-  animation: publicOrbitSpin 34s linear infinite;
-}
-
-.public-visual-orbit-two {
-  width: 330px;
-  height: 330px;
-  animation: publicOrbitSpinReverse 26s linear infinite;
-}
-
-.public-visual-document {
-  position: relative;
-  z-index: 3;
-  width: 260px;
-  min-height: 295px;
-  padding: 34px 30px;
-  border: 1px solid rgba(255, 255, 255, 0.38);
-  border-radius: 28px;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(235, 255, 252, 0.82));
-  box-shadow: 0 35px 75px rgba(3, 25, 34, 0.37);
-  color: #15324a;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  backdrop-filter: blur(12px);
-}
-
-.public-document-mark {
-  width: 78px;
-  height: 78px;
-  margin-bottom: 25px;
-  border-radius: 24px;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(135deg, #0d9488, #1d70a2);
-  color: #ffffff;
-  box-shadow: 0 17px 30px rgba(13, 148, 136, 0.28);
-}
-
-.public-visual-document strong {
-  font-size: 1.27rem;
-}
-
-.public-visual-document > span {
-  margin-top: 6px;
-  color: #647b8e;
-  font-size: 0.88rem;
-}
-
-.public-progress-track {
-  width: 100%;
-  height: 9px;
-  margin-top: 28px;
-  border-radius: 999px;
-  background: #d9e7e7;
-  overflow: hidden;
-}
-
-.public-progress-track i {
-  display: block;
-  width: 78%;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #0d9488, #20c4b7);
-}
-
-.public-visual-card {
-  position: absolute;
-  z-index: 4;
-  min-width: 174px;
-  padding: 15px 17px;
-  border: 1px solid rgba(255, 255, 255, 0.34);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 17px 38px rgba(3, 25, 34, 0.25);
-  color: #28475d;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 0.83rem;
-  font-weight: 800;
-  backdrop-filter: blur(10px);
-}
-
-.public-visual-card svg {
-  color: #0d9488;
-}
-
-.public-visual-card-one { top: 60px; left: 0; transform: rotate(-3deg); }
-.public-visual-card-two { top: 112px; right: -20px; transform: rotate(3deg); }
-.public-visual-card-three { bottom: 72px; left: -15px; transform: rotate(2deg); }
-.public-visual-card-four { bottom: 27px; right: 4px; transform: rotate(-2deg); }
-
-@keyframes publicOrbitSpin { to { transform: rotate(360deg); } }
-@keyframes publicOrbitSpinReverse { to { transform: rotate(-360deg); } }
 
 .public-section {
   width: min(1260px, calc(100% - 64px));
@@ -26072,10 +25951,6 @@ html body #root .role-feature-search__clear:focus-visible {
     justify-content: center;
   }
 
-  .public-hero-visual {
-    min-height: 470px;
-  }
-
   .public-benefits-section {
     grid-template-columns: 1fr;
     gap: 45px;
@@ -26147,23 +26022,6 @@ html body #root .role-feature-search__clear:focus-visible {
     grid-column: 1 / -1;
   }
 
-  .public-hero-visual {
-    min-height: 390px;
-    transform: scale(0.88);
-    margin: -20px -30px;
-  }
-
-  .public-visual-card {
-    min-width: 145px;
-    padding: 12px;
-    font-size: 0.75rem;
-  }
-
-  .public-visual-card-one { left: 5px; }
-  .public-visual-card-two { right: 0; }
-  .public-visual-card-three { left: 0; }
-  .public-visual-card-four { right: 0; }
-
   .public-section {
     padding: 78px 0;
   }
@@ -26233,19 +26091,12 @@ html body #root .role-feature-search__clear:focus-visible {
     grid-column: auto;
   }
 
-  .public-hero-visual {
-    transform: scale(0.75);
-    margin: -50px -70px;
-  }
-
   .public-footer-grid {
     grid-template-columns: 1fr;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .public-visual-orbit,
-  .public-visual-card,
   .public-primary-action,
   .public-secondary-action,
   .public-feature-card {
@@ -26255,5 +26106,130 @@ html body #root .role-feature-search__clear:focus-visible {
 
   html {
     scroll-behavior: auto;
+  }
+}
+
+
+/* ============================================================
+   Public homepage full-width refinement
+   The decorative Research Journey orbit/card visual was removed.
+   ============================================================ */
+html body #root .public-site-shell,
+html body #root .public-site-shell > main {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  overflow-x: clip !important;
+}
+
+html body #root .public-header-inner {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding-inline: clamp(18px, 3.5vw, 64px) !important;
+}
+
+html body #root .public-hero {
+  width: 100% !important;
+  min-height: calc(100svh - 78px) !important;
+}
+
+html body #root .public-hero-inner {
+  width: 100% !important;
+  max-width: none !important;
+  min-height: calc(100svh - 78px) !important;
+  margin: 0 !important;
+  padding: clamp(72px, 9vh, 118px) clamp(24px, 6vw, 104px) !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+html body #root .public-hero-copy {
+  width: 100% !important;
+  max-width: 1180px !important;
+  margin: 0 !important;
+}
+
+html body #root .public-hero-copy h1 {
+  max-width: 1050px !important;
+}
+
+html body #root .public-hero-copy > p:not(.public-hero-kicker) {
+  max-width: 880px !important;
+}
+
+html body #root .public-section {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 104px clamp(24px, 5vw, 88px) !important;
+}
+
+html body #root .public-workflow-section,
+html body #root .public-benefits-section {
+  width: 100% !important;
+  max-width: none !important;
+  padding-inline: clamp(24px, 5vw, 88px) !important;
+}
+
+html body #root .public-cta-section {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 64px clamp(24px, 6vw, 104px) !important;
+  border-radius: 0 !important;
+}
+
+html body #root .public-site-footer {
+  width: 100% !important;
+  max-width: none !important;
+  padding-inline: clamp(24px, 5vw, 88px) !important;
+}
+
+@media (max-width: 980px) {
+  html body #root .public-hero-inner {
+    min-height: calc(100svh - 68px) !important;
+    padding-block: 72px !important;
+  }
+
+  html body #root .public-hero-copy {
+    max-width: 900px !important;
+    margin: 0 auto !important;
+  }
+}
+
+@media (max-width: 700px) {
+  html body #root .public-header-inner,
+  html body #root .public-hero-inner,
+  html body #root .public-section,
+  html body #root .public-cta-section {
+    width: 100% !important;
+  }
+
+  html body #root .public-header-inner {
+    padding-inline: 12px !important;
+  }
+
+  html body #root .public-hero {
+    min-height: calc(100svh - 68px) !important;
+  }
+
+  html body #root .public-hero-inner {
+    min-height: calc(100svh - 68px) !important;
+    padding: 56px 18px 68px !important;
+  }
+
+  html body #root .public-section,
+  html body #root .public-workflow-section,
+  html body #root .public-benefits-section {
+    padding: 76px 18px !important;
+  }
+
+  html body #root .public-cta-section {
+    padding: 44px 20px !important;
+  }
+
+  html body #root .public-site-footer {
+    padding-inline: 20px !important;
   }
 }
