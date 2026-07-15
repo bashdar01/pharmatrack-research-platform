@@ -16988,7 +16988,7 @@ html body #root .meeting-status-badge {
   border: 1px solid #d1d5db !important;
   color: #4d4c4d !important;
   font-weight: 800 !important;
-  font-size: 0.72rem !important;
+  font-size: 0.88rem !important;
   line-height: 1 !important;
 }
 
@@ -23368,6 +23368,10 @@ html body #root :where(.main-side-nav button, .sidebar-utility-link, .admin-side
   --top-header-hamburger-bg: #2563eb;
   --top-header-hamburger-icon: #ffffff;
   --top-header-inbox-trigger-bg: #ffffff;
+  --top-header-inbox-trigger-text: #2563eb;
+  --top-header-inbox-trigger-hover-bg: #f3f4f6;
+  --top-header-inbox-trigger-hover-text: #111827;
+  --top-header-inbox-trigger-border: #e5e7eb;
   --top-header-inbox-trigger-icon: #2563eb;
   --top-header-role-dropdown-bg: #ffffff;
   --top-header-role-dropdown-text: #1f2937;
@@ -23830,8 +23834,16 @@ html body #root#root .interface-preview-avatar {
 html body #root#root .interface-preview-inbox {
   position: relative;
   background: var(--top-header-inbox-trigger-bg) !important;
-  color: var(--top-header-inbox-trigger-icon) !important;
-  border-color: var(--top-header-border) !important;
+  color: var(--top-header-inbox-trigger-text, var(--top-header-inbox-trigger-icon)) !important;
+  border-color: var(--top-header-inbox-trigger-border, var(--top-header-border)) !important;
+  font-size: .72rem !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+}
+html body #root#root .interface-preview-inbox:hover,
+html body #root#root .interface-preview-inbox:focus-visible {
+  background: var(--top-header-inbox-trigger-hover-bg, var(--top-header-button-hover-bg)) !important;
+  color: var(--top-header-inbox-trigger-hover-text, var(--top-header-button-hover-text)) !important;
 }
 .interface-preview-inbox > span {
   position: absolute;
@@ -26333,9 +26345,9 @@ html body #root#root#root button.main-notification-button.header-inbox-button.in
   background: var(--top-header-inbox-trigger-bg, #ffffff) !important;
   background-color: var(--top-header-inbox-trigger-bg, #ffffff) !important;
   background-image: none !important;
-  color: var(--top-header-inbox-trigger-icon, #2563eb) !important;
-  -webkit-text-fill-color: var(--top-header-inbox-trigger-icon, #2563eb) !important;
-  border: 1px solid var(--top-header-border, #e5e7eb) !important;
+  color: var(--top-header-inbox-trigger-text, var(--top-header-inbox-trigger-icon, #2563eb)) !important;
+  -webkit-text-fill-color: var(--top-header-inbox-trigger-text, var(--top-header-inbox-trigger-icon, #2563eb)) !important;
+  border: 1px solid var(--top-header-inbox-trigger-border, var(--top-header-border, #e5e7eb)) !important;
   box-sizing: border-box !important;
   overflow: visible !important;
 }
@@ -26346,10 +26358,10 @@ html body #root#root#root .main-compact-header .notification-bell-menu > button.
 html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button:hover,
 html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button:focus-visible,
 html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button.active {
-  background: var(--top-header-button-hover-bg, #f3f4f6) !important;
-  background-color: var(--top-header-button-hover-bg, #f3f4f6) !important;
-  color: var(--top-header-button-hover-text, #111827) !important;
-  -webkit-text-fill-color: var(--top-header-button-hover-text, #111827) !important;
+  background: var(--top-header-inbox-trigger-hover-bg, var(--top-header-button-hover-bg, #f3f4f6)) !important;
+  background-color: var(--top-header-inbox-trigger-hover-bg, var(--top-header-button-hover-bg, #f3f4f6)) !important;
+  color: var(--top-header-inbox-trigger-hover-text, var(--top-header-button-hover-text, #111827)) !important;
+  -webkit-text-fill-color: var(--top-header-inbox-trigger-hover-text, var(--top-header-button-hover-text, #111827)) !important;
 }
 
 html body #root#root#root .main-compact-header .header-inbox-button .inbox-button-label,
@@ -26408,6 +26420,46 @@ html body #root#root#root .main-header-actions .header-inbox-button .inbox-unrea
 
   html body #root#root#root .main-compact-header .header-inbox-button .inbox-button-label,
   html body #root#root#root .main-header-actions .header-inbox-button .inbox-button-label {
-    font-size: 0.67rem !important;
+    font-size: 0.80rem !important;
+  }
+}
+
+
+/* =========================================================
+   FINAL CUSTOMIZABLE TEXT-ONLY INBOX BUTTON
+   Uses the existing Top Header Color Customization settings.
+   ========================================================= */
+html body #root#root#root .main-compact-header .notification-bell-menu > button.main-notification-button.header-inbox-button,
+html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button,
+html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button {
+  background: var(--top-header-inbox-trigger-bg, #ffffff) !important;
+  background-color: var(--top-header-inbox-trigger-bg, #ffffff) !important;
+  color: var(--top-header-inbox-trigger-text, var(--top-header-inbox-trigger-icon, #2563eb)) !important;
+  -webkit-text-fill-color: var(--top-header-inbox-trigger-text, var(--top-header-inbox-trigger-icon, #2563eb)) !important;
+  border-color: var(--top-header-inbox-trigger-border, var(--top-header-border, #e5e7eb)) !important;
+}
+html body #root#root#root .main-compact-header .notification-bell-menu > button.main-notification-button.header-inbox-button:hover,
+html body #root#root#root .main-compact-header .notification-bell-menu > button.main-notification-button.header-inbox-button:focus-visible,
+html body #root#root#root .main-compact-header .notification-bell-menu > button.main-notification-button.header-inbox-button.active,
+html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button:hover,
+html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button:focus-visible,
+html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button.active {
+  background: var(--top-header-inbox-trigger-hover-bg, #f3f4f6) !important;
+  background-color: var(--top-header-inbox-trigger-hover-bg, #f3f4f6) !important;
+  color: var(--top-header-inbox-trigger-hover-text, #111827) !important;
+  -webkit-text-fill-color: var(--top-header-inbox-trigger-hover-text, #111827) !important;
+}
+html body #root#root#root .main-compact-header .header-inbox-button .inbox-button-label,
+html body #root#root#root .main-header-actions .header-inbox-button .inbox-button-label {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+  font-size: 0.88rem !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+}
+@media (max-width: 768px) {
+  html body #root#root#root .main-compact-header .header-inbox-button .inbox-button-label,
+  html body #root#root#root .main-header-actions .header-inbox-button .inbox-button-label {
+    font-size: 0.80rem !important;
   }
 }

@@ -954,6 +954,11 @@ const DEFAULT_INTERFACE_COLORS = {
     hamburgerBackground: '#2563eb',
     hamburgerIcon: '#ffffff',
     inboxTriggerBackground: '#ffffff',
+    inboxTriggerText: '#2563eb',
+    inboxTriggerHoverBackground: '#f3f4f6',
+    inboxTriggerHoverText: '#111827',
+    inboxTriggerBorder: '#e5e7eb',
+    // Legacy compatibility: older saved settings used inboxTriggerIcon for the text-only trigger.
     inboxTriggerIcon: '#2563eb',
     roleDropdownBackground: '#ffffff',
     roleDropdownText: '#1f2937',
@@ -1040,6 +1045,11 @@ const INTERFACE_COLOR_SECTIONS = [
       ['shadow', 'Header shadow color'],
       ['hamburgerBackground', 'Hamburger button background'],
       ['hamburgerIcon', 'Hamburger icon color'],
+      ['inboxTriggerBackground', 'Inbox button background'],
+      ['inboxTriggerText', 'Inbox button text color'],
+      ['inboxTriggerHoverBackground', 'Inbox button hover background'],
+      ['inboxTriggerHoverText', 'Inbox button hover text color'],
+      ['inboxTriggerBorder', 'Inbox button border color'],
       ['roleDropdownBackground', 'Role dropdown background'],
       ['roleDropdownText', 'Role dropdown text color'],
       ['avatarBackground', 'Profile / avatar background'],
@@ -1141,6 +1151,10 @@ const INTERFACE_COLOR_CSS_VARIABLES = {
     hamburgerBackground: '--top-header-hamburger-bg',
     hamburgerIcon: '--top-header-hamburger-icon',
     inboxTriggerBackground: '--top-header-inbox-trigger-bg',
+    inboxTriggerText: '--top-header-inbox-trigger-text',
+    inboxTriggerHoverBackground: '--top-header-inbox-trigger-hover-bg',
+    inboxTriggerHoverText: '--top-header-inbox-trigger-hover-text',
+    inboxTriggerBorder: '--top-header-inbox-trigger-border',
     inboxTriggerIcon: '--top-header-inbox-trigger-icon',
     roleDropdownBackground: '--top-header-role-dropdown-bg',
     roleDropdownText: '--top-header-role-dropdown-text',
@@ -1230,7 +1244,11 @@ const INTERFACE_COLOR_FIELD_ALIASES = {
   hamburgerBackground: ['hamburgerBackground', 'hamburgerBg'],
   hamburgerIcon: ['hamburgerIcon', 'hamburgerIconColor'],
   inboxTriggerBackground: ['inboxTriggerBackground', 'inboxButtonBackground', 'inboxTriggerBg'],
-  inboxTriggerIcon: ['inboxTriggerIcon', 'inboxButtonIcon', 'inboxTriggerIconColor'],
+  inboxTriggerText: ['inboxTriggerText', 'inboxButtonText', 'inboxTriggerTextColor', 'inboxTriggerIcon', 'inboxButtonIcon', 'inboxTriggerIconColor'],
+  inboxTriggerHoverBackground: ['inboxTriggerHoverBackground', 'inboxButtonHoverBackground', 'inboxTriggerHoverBg'],
+  inboxTriggerHoverText: ['inboxTriggerHoverText', 'inboxButtonHoverText', 'inboxTriggerHoverTextColor'],
+  inboxTriggerBorder: ['inboxTriggerBorder', 'inboxButtonBorder', 'inboxTriggerBorderColor'],
+  inboxTriggerIcon: ['inboxTriggerIcon', 'inboxButtonIcon', 'inboxTriggerIconColor', 'inboxTriggerText', 'inboxButtonText'],
   roleDropdownBackground: ['roleDropdownBackground', 'roleDropdownBg'],
   roleDropdownText: ['roleDropdownText', 'roleDropdownTextColor'],
   avatarBackground: ['avatarBackground', 'profileBackground', 'avatarBg'],
@@ -10767,6 +10785,7 @@ function InterfaceColorCustomizationPanel({
               <button type="button" className="interface-preview-hamburger" aria-label="Hamburger preview"><span /><span /><span /></button>
               <div className="interface-preview-header-copy"><b>Research Dashboard</b><small>Student role</small></div>
               <div className="interface-preview-header-actions">
+                <button type="button" className="interface-preview-inbox" aria-label="Inbox button preview">Inbox<span>2</span></button>
                 <select defaultValue="student" aria-label="Role preview"><option value="student">Student</option></select>
                 <button type="button" className="interface-preview-avatar" aria-label="Profile preview">M</button>
               </div>
