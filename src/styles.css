@@ -26233,3 +26233,74 @@ html body #root .public-site-footer {
     padding-inline: 20px !important;
   }
 }
+
+
+/* ============================================================
+   Public homepage action text refinement
+   Keep all button/action labels white in every interaction state.
+   ============================================================ */
+html body #root .public-navigation > a.public-nav-signin,
+html body #root .public-navigation > a.public-nav-start,
+html body #root .public-primary-action,
+html body #root .public-secondary-action,
+html body #root .public-text-action,
+html body #root .public-role-card a,
+html body #root .public-inline-link {
+  color: #ffffff !important;
+}
+
+html body #root .public-navigation > a.public-nav-signin {
+  background: #0d9488 !important;
+  border-color: #0d9488 !important;
+}
+
+html body #root .public-navigation > a.public-nav-signin:hover,
+html body #root .public-navigation > a.public-nav-signin:focus-visible {
+  background: #087f78 !important;
+  border-color: #087f78 !important;
+  color: #ffffff !important;
+}
+
+html body #root .public-secondary-action:hover,
+html body #root .public-secondary-action:focus-visible {
+  background: rgba(13, 148, 136, 0.92) !important;
+  border-color: #5eead4 !important;
+  color: #ffffff !important;
+}
+
+html body #root .public-text-action:hover,
+html body #root .public-text-action:focus-visible {
+  color: #ffffff !important;
+}
+
+html body #root .public-role-card a,
+html body #root .public-inline-link {
+  width: fit-content;
+  min-height: 40px;
+  padding: 9px 14px;
+  border: 1px solid #0d9488;
+  border-radius: 10px;
+  background: #0d9488;
+}
+
+html body #root .public-role-card a:hover,
+html body #root .public-role-card a:focus-visible,
+html body #root .public-inline-link:hover,
+html body #root .public-inline-link:focus-visible {
+  background: #087f78 !important;
+  border-color: #087f78 !important;
+  color: #ffffff !important;
+}
+
+html body #root button.public-mobile-menu-button {
+  background: #0d9488 !important;
+  border-color: #0d9488 !important;
+  color: #ffffff !important;
+}
+
+html body #root button.public-mobile-menu-button:hover,
+html body #root button.public-mobile-menu-button:focus-visible {
+  background: #087f78 !important;
+  border-color: #087f78 !important;
+  color: #ffffff !important;
+}

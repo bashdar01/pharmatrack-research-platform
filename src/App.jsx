@@ -4667,7 +4667,6 @@ function PublicHomepage({ settings = defaultWebsiteSettings }) {
                 <a className="public-text-action" href="/features">Learn More</a>
               </div>
               <div className="public-trust-row" aria-label="Platform qualities">
-                <span><ShieldCheck size={16} /> Role-protected</span>
                 <span><FileCheck2 size={16} /> Structured workflow</span>
                 <span><Users size={16} /> Academic collaboration</span>
               </div>
