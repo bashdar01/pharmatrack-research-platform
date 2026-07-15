@@ -26939,3 +26939,58 @@ html body #root .sidebar-overlay-control input[type='number'] {
     transition: none !important;
   }
 }
+
+
+/* =========================================================
+   FINAL FIX: sidebar click-catcher must never tint the page.
+   It remains present only to detect outside clicks.
+   ========================================================= */
+html body #root .sidebar-outside-layer,
+html body #root .admin-sidebar-outside-layer,
+html body #root div.sidebar-outside-layer {
+  position: fixed !important;
+  inset: var(--top-header-height, 64px) 0 0 0 !important;
+  z-index: 1190 !important;
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  outline: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  mix-blend-mode: normal !important;
+  isolation: auto !important;
+  cursor: default !important;
+}
+
+html body #root .sidebar-outside-layer::before,
+html body #root .sidebar-outside-layer::after,
+html body #root .admin-sidebar-outside-layer::before,
+html body #root .admin-sidebar-outside-layer::after {
+  content: none !important;
+  display: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Opening a sidebar must not dim, desaturate, fade, or blur any page layer. */
+html body.sidebar-overlay-open #root,
+html body #root .main-dashboard-with-sidebar.sidebar-open .main-workspace,
+html body #root .admin-panel-shell.admin-sidebar-open .admin-panel-main,
+html body #root .main-dashboard-with-sidebar.sidebar-open .main-compact-header,
+html body #root .admin-panel-shell.admin-sidebar-open .admin-panel-topbar {
+  opacity: 1 !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}

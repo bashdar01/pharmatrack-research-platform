@@ -9573,7 +9573,11 @@ export default function App() {
   return (
     <div className={`app app-main-shell main-dashboard-with-sidebar role-${allowedRole} ${sidebarOpen ? 'sidebar-open' : ''}`}>
       {sidebarOpen && (
-        <button type="button" className="sidebar-outside-layer no-print" aria-label="Close navigation menu" onClick={() => setSidebarOpen(false)} />
+        <div
+          className="sidebar-outside-layer no-print"
+          aria-hidden="true"
+          onPointerDown={() => setSidebarOpen(false)}
+        />
       )}
       <aside
         id="authenticated-sidebar"
@@ -11561,7 +11565,11 @@ function AdminControlPanel({
   return (
     <div className={`admin-panel-shell ${adminSidebarOpen ? 'admin-sidebar-open' : ''}`}>
       {adminSidebarOpen && (
-        <button type="button" className="sidebar-outside-layer admin-sidebar-outside-layer no-print" aria-label="Close Admin navigation menu" onClick={() => setAdminSidebarOpen(false)} />
+        <div
+          className="sidebar-outside-layer admin-sidebar-outside-layer no-print"
+          aria-hidden="true"
+          onPointerDown={() => setAdminSidebarOpen(false)}
+        />
       )}
       <aside
         id="admin-subdomain-sidebar"
