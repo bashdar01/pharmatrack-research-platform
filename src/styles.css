@@ -25621,9 +25621,12 @@ html body #root .role-feature-search__clear:focus-visible {
 }
 
 .public-role-grid {
+  width: min(100%, 1440px);
+  margin-inline: auto;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
+  align-items: stretch;
 }
 
 .public-role-card {
