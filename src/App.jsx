@@ -967,6 +967,8 @@ const DEFAULT_INTERFACE_COLORS = {
   },
   sidebar: {
     background: '#292829',
+    backgroundOpacity: 92,
+    backdropBlur: 8,
     secondaryBackground: '#292829',
     border: 'rgba(255, 255, 255, 0.12)',
     shadow: 'rgba(15, 23, 42, 0.18)',
@@ -1059,7 +1061,7 @@ const INTERFACE_COLOR_SECTIONS = [
   {
     key: 'sidebar',
     title: 'Sidebar Colors',
-    description: 'Complete role and Admin Subdomain sidebar appearance, navigation states, utility controls, close button, and scrollbar.',
+    description: 'Complete role and Admin Subdomain overlay sidebar appearance, navigation states, utility controls, background transparency, blur, and scrollbar.',
     fields: [
       ['background', 'Sidebar main background'],
       ['secondaryBackground', 'Sidebar secondary background'],
@@ -1078,8 +1080,6 @@ const INTERFACE_COLOR_SECTIONS = [
       ['activeIcon', 'Sidebar active icon'],
       ['utilityBackground', 'Sidebar utility button background'],
       ['utilityText', 'Sidebar utility button text'],
-      ['closeButtonBackground', 'Sidebar close button background'],
-      ['closeButtonIcon', 'Sidebar close X icon color'],
       ['scrollbarTrack', 'Sidebar scrollbar track'],
       ['scrollbarThumb', 'Sidebar scrollbar thumb'],
     ],
@@ -1163,6 +1163,8 @@ const INTERFACE_COLOR_CSS_VARIABLES = {
   },
   sidebar: {
     background: '--sidebar-bg',
+    backgroundOpacity: '--sidebar-bg-opacity',
+    backdropBlur: '--sidebar-backdrop-blur-value',
     secondaryBackground: '--sidebar-secondary-bg',
     border: '--sidebar-border',
     shadow: '--sidebar-shadow',
@@ -1232,6 +1234,8 @@ const INTERFACE_COLOR_SECTION_ALIASES = {
 const INTERFACE_COLOR_FIELD_ALIASES = {
   background: ['background', 'backgroundColor', 'bg'],
   secondaryBackground: ['secondaryBackground', 'secondaryBackgroundColor', 'gradientEnd', 'secondaryBg'],
+  backgroundOpacity: ['backgroundOpacity', 'sidebarBackgroundOpacity', 'background_opacity', 'opacity'],
+  backdropBlur: ['backdropBlur', 'sidebarBackdropBlur', 'backdrop_blur', 'blur'],
   text: ['text', 'textColor', 'color', 'foreground'],
   icon: ['icon', 'iconColor'],
   border: ['border', 'borderColor'],
@@ -1331,6 +1335,19 @@ function isValidThemeCssColor(value) {
 }
 
 const INTERFACE_LENGTH_FIELDS = new Set(['iconContainerRadius'])
+const INTERFACE_NUMBER_FIELDS = {
+  backgroundOpacity: { min: 78, max: 100, fallback: 92 },
+  backdropBlur: { min: 0, max: 20, fallback: 8 },
+}
+
+function normalizeInterfaceNumber(fieldKey, value, fallback) {
+  const config = INTERFACE_NUMBER_FIELDS[fieldKey]
+  if (!config) return fallback
+  const parsed = Number(value)
+  const safeFallback = Number.isFinite(Number(fallback)) ? Number(fallback) : config.fallback
+  if (!Number.isFinite(parsed)) return safeFallback
+  return Math.min(config.max, Math.max(config.min, Math.round(parsed)))
+}
 
 function isValidThemeCssLength(value) {
   const raw = String(value || '').trim()
@@ -1345,6 +1362,7 @@ function normalizeThemeCssColor(value, fallback) {
 }
 
 function normalizeInterfaceThemeValue(fieldKey, value, fallback) {
+  if (INTERFACE_NUMBER_FIELDS[fieldKey]) return normalizeInterfaceNumber(fieldKey, value, fallback)
   const raw = String(value ?? '').trim()
   if (INTERFACE_LENGTH_FIELDS.has(fieldKey)) return isValidThemeCssLength(raw) ? raw : fallback
   return normalizeThemeCssColor(raw, fallback)
@@ -1391,11 +1409,23 @@ function applyInterfaceTheme(colors = DEFAULT_INTERFACE_COLORS) {
   for (const [sectionKey, fields] of Object.entries(INTERFACE_COLOR_CSS_VARIABLES)) {
     for (const [fieldKey, cssVariable] of Object.entries(fields)) {
       const value = normalized?.[sectionKey]?.[fieldKey] ?? DEFAULT_INTERFACE_COLORS?.[sectionKey]?.[fieldKey]
-      if (value) root.style.setProperty(cssVariable, value)
+      if (value !== undefined && value !== null) root.style.setProperty(cssVariable, String(value))
     }
   }
 
   const sidebar = normalized.sidebar
+  const sidebarOpacity = normalizeInterfaceNumber('backgroundOpacity', sidebar.backgroundOpacity, 92)
+  const sidebarBlur = normalizeInterfaceNumber('backdropBlur', sidebar.backdropBlur, 8)
+  root.style.setProperty('--sidebar-bg-opacity', String(sidebarOpacity))
+  root.style.setProperty('--sidebar-bg-opacity-percent', `${sidebarOpacity}%`)
+  root.style.setProperty('--sidebar-backdrop-blur', `${sidebarBlur}px`)
+  const parsedSidebarBackground = parseThemeCssColor(sidebar.background)
+  if (parsedSidebarBackground) {
+    const alpha = Math.min(1, Math.max(0, (parsedSidebarBackground.a ?? 1) * (sidebarOpacity / 100)))
+    root.style.setProperty('--sidebar-bg-rgba', `rgba(${Math.round(parsedSidebarBackground.r)}, ${Math.round(parsedSidebarBackground.g)}, ${Math.round(parsedSidebarBackground.b)}, ${alpha.toFixed(3)})`)
+  } else {
+    root.style.setProperty('--sidebar-bg-rgba', `rgba(41, 40, 41, ${(sidebarOpacity / 100).toFixed(3)})`)
+  }
 
   // Keep sidebar item-icon colors and rounded icon-container colors independent.
   // The previous compatibility mapping replaced the icon-container color with the
@@ -1609,9 +1639,17 @@ function validateInterfaceColorValues(colors = {}) {
   for (const section of INTERFACE_COLOR_SECTIONS) {
     for (const [fieldKey, label] of section.fields) {
       const value = normalizedSource?.[section.key]?.[fieldKey]
-      const valid = INTERFACE_LENGTH_FIELDS.has(fieldKey) ? isValidThemeCssLength(value) : isValidThemeCssColor(value)
+      const valid = INTERFACE_LENGTH_FIELDS.has(fieldKey)
+        ? isValidThemeCssLength(value)
+        : isValidThemeCssColor(value)
       if (!valid) invalid.push(label)
     }
+  }
+  const sidebar = normalizedSource?.sidebar || {}
+  for (const [fieldKey, label] of [['backgroundOpacity', 'Sidebar Background Opacity'], ['backdropBlur', 'Sidebar Backdrop Blur']]) {
+    const config = INTERFACE_NUMBER_FIELDS[fieldKey]
+    const value = Number(sidebar[fieldKey])
+    if (!Number.isFinite(value) || value < config.min || value > config.max) invalid.push(label)
   }
   return invalid
 }
@@ -5154,31 +5192,17 @@ export default function App() {
   useEffect(() => {
     if (!sidebarOpen) return undefined
 
-    const handleOutsideSidebarClose = (event) => {
-      const target = event.target
-      const sidebarElement = sidebarRef.current
-      const toggleElement = sidebarToggleRef.current
-
-      if (!target || sidebarElement?.contains(target) || toggleElement?.contains(target)) {
-        return
-      }
-
-      setSidebarOpen(false)
-    }
-
+    document.body.classList.add('sidebar-overlay-open')
     const handleSidebarEscape = (event) => {
       if (event.key === 'Escape') {
         setSidebarOpen(false)
+        window.requestAnimationFrame(() => sidebarToggleRef.current?.focus())
       }
     }
 
-    document.addEventListener('mousedown', handleOutsideSidebarClose)
-    document.addEventListener('touchstart', handleOutsideSidebarClose, { passive: true })
     document.addEventListener('keydown', handleSidebarEscape)
-
     return () => {
-      document.removeEventListener('mousedown', handleOutsideSidebarClose)
-      document.removeEventListener('touchstart', handleOutsideSidebarClose)
+      document.body.classList.remove('sidebar-overlay-open')
       document.removeEventListener('keydown', handleSidebarEscape)
     }
   }, [sidebarOpen])
@@ -9548,16 +9572,23 @@ export default function App() {
 
   return (
     <div className={`app app-main-shell main-dashboard-with-sidebar role-${allowedRole} ${sidebarOpen ? 'sidebar-open' : ''}`}>
-      <aside ref={sidebarRef} className={`main-sidebar no-print ${sidebarOpen ? 'open' : ''}`} aria-label="Role navigation">
-        <div className="sidebar-fixed-head">
-          <button type="button" className="sidebar-close-button" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar">×</button>
-        </div>
+      {sidebarOpen && (
+        <button type="button" className="sidebar-outside-layer no-print" aria-label="Close navigation menu" onClick={() => setSidebarOpen(false)} />
+      )}
+      <aside
+        id="authenticated-sidebar"
+        ref={sidebarRef}
+        className={`main-sidebar app-sidebar authenticated-sidebar no-print ${sidebarOpen ? 'open is-open' : ''}`}
+        aria-label="Role navigation"
+        aria-hidden={!sidebarOpen}
+        inert={sidebarOpen ? undefined : true}
+      >
         <nav className="main-side-nav sidebar-utility-nav" aria-label="Sidebar utilities">
           {utilityNavItems.map((item) => {
             const Icon = item.icon
             if (item.type === 'download') {
               return (
-                <a key={item.id} href={RESEARCH_GUIDELINES_PDF_URL} download={RESEARCH_GUIDELINES_DOWNLOAD_NAME} className="sidebar-utility-link sidebar-nav-item">
+                <a key={item.id} href={RESEARCH_GUIDELINES_PDF_URL} download={RESEARCH_GUIDELINES_DOWNLOAD_NAME} className="sidebar-utility-link sidebar-nav-item" onClick={() => setSidebarOpen(false)}>
                   <span className="side-nav-icon sidebar-icon-container"><Icon size={18} /></span>
                   <span className="sidebar-item-label">{item.label}</span>
                 </a>
@@ -9565,7 +9596,7 @@ export default function App() {
             }
             if (item.type === 'external') {
               return (
-                <a key={item.id} href="https://scholar.google.com/citations?hl=en&view_op=search_authors&mauthors=hawler+medical+universty&btnG=" target="_blank" rel="noopener noreferrer" className="sidebar-utility-link sidebar-nav-item">
+                <a key={item.id} href="https://scholar.google.com/citations?hl=en&view_op=search_authors&mauthors=hawler+medical+universty&btnG=" target="_blank" rel="noopener noreferrer" className="sidebar-utility-link sidebar-nav-item" onClick={() => setSidebarOpen(false)}>
                   <span className="side-nav-icon sidebar-icon-container"><Icon size={18} /></span>
                   <span className="sidebar-item-label">{item.label}</span>
                 </a>
@@ -9585,7 +9616,7 @@ export default function App() {
       <div className="main-workspace">
         <header className="main-compact-header no-print">
           <div className="main-compact-left">
-            <button ref={sidebarToggleRef} type="button" className="sidebar-menu-toggle" onClick={() => setSidebarOpen((open) => !open)} aria-label={sidebarOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={sidebarOpen}>
+            <button ref={sidebarToggleRef} type="button" className="sidebar-menu-toggle hamburger-button" onClick={() => setSidebarOpen((open) => !open)} aria-label={sidebarOpen ? 'Close navigation menu' : 'Open navigation menu'} aria-expanded={sidebarOpen} aria-controls="authenticated-sidebar">
               <span></span>
               <span></span>
               <span></span>
@@ -10747,6 +10778,24 @@ function InterfaceColorCustomizationPanel({
 
       <div className="button-color-editor-layout interface-color-editor-layout">
         <div className="button-color-sections">
+          <details className="card button-color-section sidebar-overlay-controls" open>
+            <summary>
+              <span><b>Sidebar Transparency & Blur</b><small>Control only the overlay panel background. Sidebar text, icons, and buttons remain fully opaque.</small></span>
+              <span className="button-color-section-count">2 controls</span>
+            </summary>
+            <div className="sidebar-overlay-control-grid">
+              <label className="sidebar-overlay-control">
+                <span><b>Sidebar Background Opacity</b><output>{normalizedPreview.sidebar.backgroundOpacity}%</output></span>
+                <input type="range" min="78" max="100" step="1" value={normalizedPreview.sidebar.backgroundOpacity} onChange={(event) => onChange('sidebar', 'backgroundOpacity', Number(event.target.value))} />
+                <input type="number" min="78" max="100" step="1" value={normalizedPreview.sidebar.backgroundOpacity} onChange={(event) => onChange('sidebar', 'backgroundOpacity', Number(event.target.value))} aria-label="Sidebar Background Opacity percentage" />
+              </label>
+              <label className="sidebar-overlay-control">
+                <span><b>Sidebar Backdrop Blur</b><output>{normalizedPreview.sidebar.backdropBlur}px</output></span>
+                <input type="range" min="0" max="20" step="1" value={normalizedPreview.sidebar.backdropBlur} onChange={(event) => onChange('sidebar', 'backdropBlur', Number(event.target.value))} />
+                <input type="number" min="0" max="20" step="1" value={normalizedPreview.sidebar.backdropBlur} onChange={(event) => onChange('sidebar', 'backdropBlur', Number(event.target.value))} aria-label="Sidebar Backdrop Blur pixels" />
+              </label>
+            </div>
+          </details>
           {INTERFACE_COLOR_SECTIONS.map((section) => (
             <details className="card button-color-section" key={section.id || section.key} open>
               <summary>
@@ -10797,7 +10846,7 @@ function InterfaceColorCustomizationPanel({
             <div className="interface-sidebar-preview">
               <div className="interface-sidebar-preview-head">
                 <b>Navigation</b>
-                <button type="button" className="interface-sidebar-preview-close" aria-label="Close preview">×</button>
+                <small>Click outside to close</small>
               </div>
               <button type="button" className="interface-sidebar-preview-item">
                 <span className="interface-sidebar-preview-icon"><LayoutDashboard size={16} /></span><span>Inactive item</span>
@@ -10932,6 +10981,26 @@ function AdminControlPanel({
   const [buttonColorError, setButtonColorError] = useState('')
   const [interfaceColorStatus, setInterfaceColorStatus] = useState('')
   const [interfaceColorError, setInterfaceColorError] = useState('')
+  const [adminSidebarOpen, setAdminSidebarOpen] = useState(false)
+  const adminSidebarRef = useRef(null)
+  const adminSidebarToggleRef = useRef(null)
+
+  useEffect(() => {
+    if (!adminSidebarOpen) return undefined
+    document.body.classList.add('sidebar-overlay-open')
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setAdminSidebarOpen(false)
+        window.requestAnimationFrame(() => adminSidebarToggleRef.current?.focus())
+      }
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.body.classList.remove('sidebar-overlay-open')
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [adminSidebarOpen])
+
   useEffect(() => {
     setDraft(settings)
   }, [settings])
@@ -10970,6 +11039,7 @@ function AdminControlPanel({
 
   function changeAdminPanelTab(nextTab) {
     if (!isAdminPanelTab(nextTab)) return
+    setAdminSidebarOpen(false)
     setAdminPanelTab(nextTab)
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href)
@@ -11489,8 +11559,18 @@ function AdminControlPanel({
   }
 
   return (
-    <div className="admin-panel-shell">
-      <aside className="admin-sidebar no-print">
+    <div className={`admin-panel-shell ${adminSidebarOpen ? 'admin-sidebar-open' : ''}`}>
+      {adminSidebarOpen && (
+        <button type="button" className="sidebar-outside-layer admin-sidebar-outside-layer no-print" aria-label="Close Admin navigation menu" onClick={() => setAdminSidebarOpen(false)} />
+      )}
+      <aside
+        id="admin-subdomain-sidebar"
+        ref={adminSidebarRef}
+        className={`admin-sidebar admin-subdomain-sidebar app-sidebar no-print ${adminSidebarOpen ? 'open is-open' : ''}`}
+        aria-label="Admin Subdomain navigation"
+        aria-hidden={!adminSidebarOpen}
+        inert={adminSidebarOpen ? undefined : true}
+      >
         <div className="admin-brand-block">
           <div className="admin-logo-mark"><Settings size={22} /></div>
           <div>
@@ -11509,7 +11589,7 @@ function AdminControlPanel({
             )
           })}
         </nav>
-        <button type="button" className="admin-logout sidebar-nav-item" onClick={onLogout}>
+        <button type="button" className="admin-logout sidebar-nav-item" onClick={() => { setAdminSidebarOpen(false); onLogout() }}>
           <span className="side-nav-icon sidebar-icon-container"><LogOut size={16} /></span>
           <span className="sidebar-item-label">Logout</span>
         </button>
@@ -11517,6 +11597,17 @@ function AdminControlPanel({
 
       <main className="admin-panel-main">
         <header className="admin-panel-topbar no-print">
+          <button
+            ref={adminSidebarToggleRef}
+            type="button"
+            className="sidebar-menu-toggle hamburger-button admin-sidebar-menu-toggle"
+            onClick={() => setAdminSidebarOpen((open) => !open)}
+            aria-label={adminSidebarOpen ? 'Close Admin navigation menu' : 'Open Admin navigation menu'}
+            aria-expanded={adminSidebarOpen}
+            aria-controls="admin-subdomain-sidebar"
+          >
+            <span></span><span></span><span></span>
+          </button>
           <div className="admin-topbar-actions">
             <a className="admin-preview-link admin-guidelines-link" href={RESEARCH_GUIDELINES_PDF_URL} download={RESEARCH_GUIDELINES_DOWNLOAD_NAME}><FileText size={16} /> Research Guidelines</a>
             <a className="admin-preview-link" href="/" target="_blank" rel="noreferrer">Open main website</a>
