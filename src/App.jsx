@@ -1419,13 +1419,21 @@ function applyInterfaceTheme(colors = DEFAULT_INTERFACE_COLORS) {
   root.style.setProperty('--sidebar-bg-opacity', String(sidebarOpacity))
   root.style.setProperty('--sidebar-bg-opacity-percent', `${sidebarOpacity}%`)
   root.style.setProperty('--sidebar-backdrop-blur', `${sidebarBlur}px`)
-  const parsedSidebarBackground = parseThemeCssColor(sidebar.background)
-  if (parsedSidebarBackground) {
-    const alpha = Math.min(1, Math.max(0, (parsedSidebarBackground.a ?? 1) * (sidebarOpacity / 100)))
-    root.style.setProperty('--sidebar-bg-rgba', `rgba(${Math.round(parsedSidebarBackground.r)}, ${Math.round(parsedSidebarBackground.g)}, ${Math.round(parsedSidebarBackground.b)}, ${alpha.toFixed(3)})`)
-  } else {
-    root.style.setProperty('--sidebar-bg-rgba', `rgba(41, 40, 41, ${(sidebarOpacity / 100).toFixed(3)})`)
+  const toSidebarRgba = (value, fallbackRgb = [41, 40, 41]) => {
+    const parsed = parseThemeCssColor(value)
+    const red = parsed ? Math.round(parsed.r) : fallbackRgb[0]
+    const green = parsed ? Math.round(parsed.g) : fallbackRgb[1]
+    const blue = parsed ? Math.round(parsed.b) : fallbackRgb[2]
+    const sourceAlpha = parsed ? (parsed.a ?? 1) : 1
+    const alpha = Math.min(1, Math.max(0, sourceAlpha * (sidebarOpacity / 100)))
+    return `rgba(${red}, ${green}, ${blue}, ${alpha.toFixed(3)})`
   }
+
+  // Keep the panel element itself fully opaque so labels and icons remain clear.
+  // Only these two background colors receive the selected 0–100% opacity.
+  root.style.setProperty('--sidebar-bg-rgba', toSidebarRgba(sidebar.background))
+  root.style.setProperty('--sidebar-secondary-bg-rgba', toSidebarRgba(sidebar.secondaryBackground, [41, 40, 41]))
+  root.style.setProperty('--sidebar-effective-backdrop-blur', `${sidebarOpacity === 0 ? 0 : sidebarBlur}px`)
 
   // Keep sidebar item-icon colors and rounded icon-container colors independent.
   // The previous compatibility mapping replaced the icon-container color with the
@@ -10784,7 +10792,7 @@ function InterfaceColorCustomizationPanel({
         <div className="button-color-sections">
           <details className="card button-color-section sidebar-overlay-controls" open>
             <summary>
-              <span><b>Sidebar Transparency & Blur</b><small>Control only the overlay panel background. Sidebar text, icons, and buttons remain fully opaque.</small></span>
+              <span><b>Sidebar Transparency & Blur</b><small>Set 0% for a fully see-through panel or 100% for a solid panel. Sidebar text, icons, and buttons remain fully opaque.</small></span>
               <span className="button-color-section-count">2 controls</span>
             </summary>
             <div className="sidebar-overlay-control-grid">
