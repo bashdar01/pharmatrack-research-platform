@@ -26994,3 +26994,103 @@ html body #root .admin-panel-shell.admin-sidebar-open .admin-panel-topbar {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
+
+/* =========================================================
+   FINAL SIDEBAR BEHAVIOR: header-anchored dropdown panel
+   Opens directly below the hamburger without shifting or dimming the page.
+   ========================================================= */
+html body #root .main-sidebar.app-sidebar,
+html body #root .main-sidebar.authenticated-sidebar,
+html body #root .admin-sidebar.app-sidebar,
+html body #root .admin-subdomain-sidebar {
+  position: fixed !important;
+  top: var(--top-header-height, 64px) !important;
+  left: 0 !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: min(310px, calc(100vw - 16px)) !important;
+  min-width: 0 !important;
+  max-width: 310px !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: min(78vh, calc(100dvh - var(--top-header-height, 64px) - 12px)) !important;
+  margin: 0 !important;
+  padding: 10px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain !important;
+  transform-origin: top left !important;
+  transform: translate3d(0, -14px, 0) scaleY(0.96) !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  border: 1px solid var(--sidebar-border, rgba(255, 255, 255, 0.12)) !important;
+  border-top: 0 !important;
+  border-radius: 0 0 18px 18px !important;
+  box-shadow: 0 18px 34px var(--sidebar-shadow, rgba(15, 23, 42, 0.18)) !important;
+  transition:
+    transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 170ms ease,
+    visibility 240ms ease !important;
+}
+
+html body #root .main-sidebar.app-sidebar.open,
+html body #root .main-sidebar.app-sidebar.is-open,
+html body #root .main-dashboard-with-sidebar.sidebar-open .main-sidebar,
+html body #root .admin-sidebar.app-sidebar.open,
+html body #root .admin-sidebar.app-sidebar.is-open,
+html body #root .admin-panel-shell.admin-sidebar-open .admin-sidebar {
+  transform: translate3d(0, 0, 0) scaleY(1) !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* Keep the click-catcher invisible while allowing outside-click closing. */
+html body #root .sidebar-outside-layer,
+html body #root .admin-sidebar-outside-layer,
+html body #root div.sidebar-outside-layer {
+  inset: var(--top-header-height, 64px) 0 0 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  opacity: 1 !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* The page and header never move when the dropdown opens. */
+html body #root .main-dashboard-with-sidebar,
+html body #root .main-dashboard-with-sidebar.sidebar-open,
+html body #root .admin-panel-shell,
+html body #root .admin-panel-shell.admin-sidebar-open,
+html body #root .main-workspace,
+html body #root .admin-panel-main,
+html body #root .main-compact-header,
+html body #root .admin-panel-topbar {
+  margin-left: 0 !important;
+  transform: none !important;
+  translate: none !important;
+}
+
+@media (max-width: 768px) {
+  html body #root .main-sidebar.app-sidebar,
+  html body #root .main-sidebar.authenticated-sidebar,
+  html body #root .admin-sidebar.app-sidebar,
+  html body #root .admin-subdomain-sidebar {
+    width: min(290px, calc(100vw - 12px)) !important;
+    max-width: min(290px, calc(100vw - 12px)) !important;
+    max-height: min(80vh, calc(100dvh - var(--top-header-height, 56px) - 8px)) !important;
+    border-radius: 0 0 16px 16px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html body #root .main-sidebar.app-sidebar,
+  html body #root .main-sidebar.authenticated-sidebar,
+  html body #root .admin-sidebar.app-sidebar,
+  html body #root .admin-subdomain-sidebar {
+    transition: none !important;
+  }
+}
