@@ -27233,3 +27233,125 @@ html body #root#root#root .admin-panel-shell.admin-sidebar-open .admin-panel-top
     transition: none !important;
   }
 }
+
+/* =========================================================
+   FINAL ADMIN SIDEBAR VISIBILITY + FULL OPACITY RANGE FIX
+   Normal roles keep the header dropdown. Admin Subdomain uses
+   a conventional, clearly visible left drawer below the header.
+   ========================================================= */
+
+/* The Admin Subdomain drawer must remain a real left-side panel. */
+html body #root#root#root .admin-panel-shell .admin-standard-overlay-sidebar.admin-sidebar.app-sidebar,
+html body #root#root#root .admin-panel-shell .admin-standard-overlay-sidebar.admin-subdomain-sidebar {
+  display: flex !important;
+  flex-direction: column !important;
+  position: fixed !important;
+  top: var(--top-header-height, 64px) !important;
+  left: 0 !important;
+  right: auto !important;
+  bottom: 0 !important;
+  width: min(300px, 88vw) !important;
+  min-width: min(300px, 88vw) !important;
+  max-width: 300px !important;
+  height: calc(100dvh - var(--top-header-height, 64px)) !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 12px 10px !important;
+  z-index: 2600 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain !important;
+  box-sizing: border-box !important;
+  transform: translate3d(-101%, 0, 0) !important;
+  translate: none !important;
+  scale: none !important;
+  clip-path: none !important;
+  visibility: hidden !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+  border: 0 !important;
+  border-right: 1px solid var(--sidebar-border, rgba(255, 255, 255, 0.12)) !important;
+  border-radius: 0 16px 16px 0 !important;
+  box-shadow: 8px 0 28px var(--sidebar-shadow, rgba(15, 23, 42, 0.18)) !important;
+  background-color: var(--sidebar-bg-rgba, rgba(41, 40, 41, 0.92)) !important;
+  background-image: none !important;
+  color: var(--sidebar-text, #ffffff) !important;
+  backdrop-filter: blur(var(--sidebar-backdrop-blur, 8px)) !important;
+  -webkit-backdrop-filter: blur(var(--sidebar-backdrop-blur, 8px)) !important;
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), visibility 260ms ease !important;
+}
+
+@supports (background: color-mix(in srgb, #000 50%, transparent)) {
+  html body #root#root#root .admin-panel-shell .admin-standard-overlay-sidebar.admin-sidebar.app-sidebar,
+  html body #root#root#root .admin-panel-shell .admin-standard-overlay-sidebar.admin-subdomain-sidebar {
+    background-color: transparent !important;
+    background-image: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--sidebar-bg, #292829) var(--sidebar-bg-opacity-percent, 92%), transparent),
+      color-mix(in srgb, var(--sidebar-secondary-bg, var(--sidebar-bg, #292829)) var(--sidebar-bg-opacity-percent, 92%), transparent)
+    ) !important;
+  }
+}
+
+html body #root#root#root .admin-panel-shell .admin-standard-overlay-sidebar.admin-sidebar.app-sidebar.open,
+html body #root#root#root .admin-panel-shell .admin-standard-overlay-sidebar.admin-sidebar.app-sidebar.is-open,
+html body #root#root#root .admin-panel-shell.admin-sidebar-open .admin-standard-overlay-sidebar.admin-sidebar {
+  display: flex !important;
+  transform: translate3d(0, 0, 0) !important;
+  translate: none !important;
+  scale: none !important;
+  clip-path: none !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* Keep the Admin navigation usable and visible inside the restored drawer. */
+html body #root#root#root .admin-standard-overlay-sidebar .admin-brand-block {
+  flex: 0 0 auto !important;
+}
+
+html body #root#root#root .admin-standard-overlay-sidebar .admin-side-nav {
+  display: flex !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+}
+
+html body #root#root#root .admin-standard-overlay-sidebar .admin-logout {
+  flex: 0 0 auto !important;
+  margin-top: 10px !important;
+}
+
+/* Outside-click remains invisible and below the actual Admin drawer. */
+html body #root#root#root .admin-sidebar-outside-layer {
+  z-index: 2500 !important;
+  background: transparent !important;
+  opacity: 1 !important;
+}
+
+/* Never move the Admin page when the drawer opens. */
+html body #root#root#root .admin-panel-shell,
+html body #root#root#root .admin-panel-shell.admin-sidebar-open,
+html body #root#root#root .admin-panel-shell .admin-panel-main,
+html body #root#root#root .admin-panel-shell.admin-sidebar-open .admin-panel-main,
+html body #root#root#root .admin-panel-shell .admin-panel-topbar,
+html body #root#root#root .admin-panel-shell.admin-sidebar-open .admin-panel-topbar {
+  width: 100% !important;
+  margin-left: 0 !important;
+  transform: none !important;
+  translate: none !important;
+}
+
+@media (max-width: 768px) {
+  html body #root#root#root .admin-panel-shell .admin-standard-overlay-sidebar.admin-sidebar.app-sidebar,
+  html body #root#root#root .admin-panel-shell .admin-standard-overlay-sidebar.admin-subdomain-sidebar {
+    top: var(--top-header-height, 56px) !important;
+    width: min(290px, 88vw) !important;
+    min-width: min(290px, 88vw) !important;
+    max-width: min(290px, 88vw) !important;
+    height: calc(100dvh - var(--top-header-height, 56px)) !important;
+    border-radius: 0 14px 14px 0 !important;
+  }
+}

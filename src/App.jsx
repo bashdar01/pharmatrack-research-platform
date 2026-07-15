@@ -1336,7 +1336,7 @@ function isValidThemeCssColor(value) {
 
 const INTERFACE_LENGTH_FIELDS = new Set(['iconContainerRadius'])
 const INTERFACE_NUMBER_FIELDS = {
-  backgroundOpacity: { min: 78, max: 100, fallback: 92 },
+  backgroundOpacity: { min: 0, max: 100, fallback: 92 },
   backdropBlur: { min: 0, max: 20, fallback: 8 },
 }
 
@@ -10790,8 +10790,8 @@ function InterfaceColorCustomizationPanel({
             <div className="sidebar-overlay-control-grid">
               <label className="sidebar-overlay-control">
                 <span><b>Sidebar Background Opacity</b><output>{normalizedPreview.sidebar.backgroundOpacity}%</output></span>
-                <input type="range" min="78" max="100" step="1" value={normalizedPreview.sidebar.backgroundOpacity} onChange={(event) => onChange('sidebar', 'backgroundOpacity', Number(event.target.value))} />
-                <input type="number" min="78" max="100" step="1" value={normalizedPreview.sidebar.backgroundOpacity} onChange={(event) => onChange('sidebar', 'backgroundOpacity', Number(event.target.value))} aria-label="Sidebar Background Opacity percentage" />
+                <input type="range" min="0" max="100" step="1" value={normalizedPreview.sidebar.backgroundOpacity} onChange={(event) => onChange('sidebar', 'backgroundOpacity', Number(event.target.value))} />
+                <input type="number" min="0" max="100" step="1" value={normalizedPreview.sidebar.backgroundOpacity} onChange={(event) => onChange('sidebar', 'backgroundOpacity', Number(event.target.value))} aria-label="Sidebar Background Opacity percentage" />
               </label>
               <label className="sidebar-overlay-control">
                 <span><b>Sidebar Backdrop Blur</b><output>{normalizedPreview.sidebar.backdropBlur}px</output></span>
