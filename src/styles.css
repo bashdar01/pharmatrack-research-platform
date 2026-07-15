@@ -27094,3 +27094,142 @@ html body #root .admin-panel-topbar {
     transition: none !important;
   }
 }
+
+/* =========================================================
+   FINAL SPLIT SIDEBAR BEHAVIOR
+   Normal authenticated domain: true dropdown below hamburger.
+   Admin Subdomain: conventional left overlay drawer.
+   ========================================================= */
+
+/* NORMAL DOMAIN — force a vertical dropdown, never a side drawer. */
+html body #root#root#root .role-header-dropdown-sidebar.main-sidebar.app-sidebar,
+html body #root#root#root .role-header-dropdown-sidebar.main-sidebar.authenticated-sidebar {
+  position: fixed !important;
+  top: var(--top-header-height, 64px) !important;
+  left: 0 !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: min(310px, calc(100vw - 16px)) !important;
+  max-width: 310px !important;
+  height: auto !important;
+  max-height: min(78vh, calc(100dvh - var(--top-header-height, 64px) - 12px)) !important;
+  margin: 0 !important;
+  transform: none !important;
+  translate: none !important;
+  transform-origin: top left !important;
+  clip-path: inset(0 0 100% 0 round 0 0 18px 18px) !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  border-radius: 0 0 18px 18px !important;
+  border-top: 0 !important;
+  box-shadow: 0 18px 34px var(--sidebar-shadow, rgba(15, 23, 42, 0.18)) !important;
+  transition:
+    clip-path 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 170ms ease,
+    visibility 260ms ease !important;
+  will-change: clip-path, opacity !important;
+}
+
+html body #root#root#root .role-header-dropdown-sidebar.main-sidebar.app-sidebar.open,
+html body #root#root#root .role-header-dropdown-sidebar.main-sidebar.app-sidebar.is-open,
+html body #root#root#root .main-dashboard-with-sidebar.sidebar-open .role-header-dropdown-sidebar.main-sidebar {
+  transform: none !important;
+  translate: none !important;
+  clip-path: inset(0 0 0 0 round 0 0 18px 18px) !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* ADMIN SUBDOMAIN — conventional left overlay drawer, not dropdown. */
+html body #root#root#root .admin-standard-overlay-sidebar.admin-sidebar.app-sidebar,
+html body #root#root#root .admin-standard-overlay-sidebar.admin-subdomain-sidebar {
+  position: fixed !important;
+  top: var(--top-header-height, 64px) !important;
+  left: 0 !important;
+  right: auto !important;
+  bottom: 0 !important;
+  width: min(300px, 88vw) !important;
+  max-width: 300px !important;
+  height: auto !important;
+  max-height: calc(100dvh - var(--top-header-height, 64px)) !important;
+  margin: 0 !important;
+  transform: translate3d(-102%, 0, 0) !important;
+  translate: none !important;
+  clip-path: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  border-radius: 0 18px 18px 0 !important;
+  border-top: 1px solid var(--sidebar-border, rgba(255, 255, 255, 0.12)) !important;
+  box-shadow: 8px 0 28px var(--sidebar-shadow, rgba(15, 23, 42, 0.18)) !important;
+  transition:
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms ease,
+    visibility 260ms ease !important;
+  will-change: transform, opacity !important;
+}
+
+html body #root#root#root .admin-standard-overlay-sidebar.admin-sidebar.app-sidebar.open,
+html body #root#root#root .admin-standard-overlay-sidebar.admin-sidebar.app-sidebar.is-open,
+html body #root#root#root .admin-panel-shell.admin-sidebar-open .admin-standard-overlay-sidebar.admin-sidebar {
+  transform: translate3d(0, 0, 0) !important;
+  clip-path: none !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* Both outside-click layers remain completely invisible. */
+html body #root#root#root .role-sidebar-outside-layer,
+html body #root#root#root .admin-sidebar-outside-layer {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  opacity: 1 !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Never shift either layout. */
+html body #root#root#root .main-dashboard-with-sidebar.sidebar-open .main-workspace,
+html body #root#root#root .admin-panel-shell.admin-sidebar-open .admin-panel-main,
+html body #root#root#root .admin-panel-shell.admin-sidebar-open .admin-panel-topbar {
+  margin-left: 0 !important;
+  width: 100% !important;
+  transform: none !important;
+  translate: none !important;
+}
+
+@media (max-width: 768px) {
+  html body #root#root#root .role-header-dropdown-sidebar.main-sidebar.app-sidebar,
+  html body #root#root#root .role-header-dropdown-sidebar.main-sidebar.authenticated-sidebar {
+    width: min(290px, calc(100vw - 12px)) !important;
+    max-width: min(290px, calc(100vw - 12px)) !important;
+    max-height: min(80vh, calc(100dvh - var(--top-header-height, 56px) - 8px)) !important;
+    border-radius: 0 0 16px 16px !important;
+    clip-path: inset(0 0 100% 0 round 0 0 16px 16px) !important;
+  }
+
+  html body #root#root#root .role-header-dropdown-sidebar.main-sidebar.app-sidebar.open,
+  html body #root#root#root .role-header-dropdown-sidebar.main-sidebar.app-sidebar.is-open,
+  html body #root#root#root .main-dashboard-with-sidebar.sidebar-open .role-header-dropdown-sidebar.main-sidebar {
+    clip-path: inset(0 0 0 0 round 0 0 16px 16px) !important;
+  }
+
+  html body #root#root#root .admin-standard-overlay-sidebar.admin-sidebar.app-sidebar,
+  html body #root#root#root .admin-standard-overlay-sidebar.admin-subdomain-sidebar {
+    width: min(290px, 88vw) !important;
+    max-width: min(290px, 88vw) !important;
+    border-radius: 0 16px 16px 0 !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html body #root#root#root .role-header-dropdown-sidebar.main-sidebar.app-sidebar,
+  html body #root#root#root .admin-standard-overlay-sidebar.admin-sidebar.app-sidebar {
+    transition: none !important;
+  }
+}

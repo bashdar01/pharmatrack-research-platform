@@ -9574,7 +9574,7 @@ export default function App() {
     <div className={`app app-main-shell main-dashboard-with-sidebar role-${allowedRole} ${sidebarOpen ? 'sidebar-open' : ''}`}>
       {sidebarOpen && (
         <div
-          className="sidebar-outside-layer no-print"
+          className="sidebar-outside-layer role-sidebar-outside-layer no-print"
           aria-hidden="true"
           onPointerDown={() => setSidebarOpen(false)}
         />
@@ -9582,7 +9582,7 @@ export default function App() {
       <aside
         id="authenticated-sidebar"
         ref={sidebarRef}
-        className={`main-sidebar app-sidebar authenticated-sidebar no-print ${sidebarOpen ? 'open is-open' : ''}`}
+        className={`main-sidebar app-sidebar authenticated-sidebar role-header-dropdown-sidebar no-print ${sidebarOpen ? 'open is-open' : ''}`}
         aria-label="Role navigation"
         aria-hidden={!sidebarOpen}
         inert={sidebarOpen ? undefined : true}
@@ -11574,7 +11574,7 @@ function AdminControlPanel({
       <aside
         id="admin-subdomain-sidebar"
         ref={adminSidebarRef}
-        className={`admin-sidebar admin-subdomain-sidebar app-sidebar no-print ${adminSidebarOpen ? 'open is-open' : ''}`}
+        className={`admin-sidebar admin-subdomain-sidebar app-sidebar admin-standard-overlay-sidebar no-print ${adminSidebarOpen ? 'open is-open' : ''}`}
         aria-label="Admin Subdomain navigation"
         aria-hidden={!adminSidebarOpen}
         inert={adminSidebarOpen ? undefined : true}
