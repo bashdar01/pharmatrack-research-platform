@@ -4638,7 +4638,6 @@ function PublicHomepage({ settings = defaultWebsiteSettings }) {
     { id: 'student-role', icon: GraduationCap, title: 'Student', text: 'Join an approved research group, monitor project progress, submit weekly reports, ask questions, request meetings, and follow deadlines and supervisor feedback.' },
     { id: 'supervisor-role', icon: ClipboardCheck, title: 'Supervisor', text: 'Submit and manage research projects, supervise group membership, review weekly reports, provide feedback, organize deadlines, and support student progress.' },
     { id: 'committee-role', icon: ShieldCheck, title: 'Research Committee', text: 'Review submitted projects, make documented decisions, oversee group requests, and monitor the academic progress of approved research.' },
-    { id: 'admin-role', icon: UserCog, title: 'Admin', text: 'Manage approved users, roles, assignments, platform settings, institutional content, reporting tools, and administrative oversight.' },
   ]
 
   const benefits = [
