@@ -26463,3 +26463,64 @@ html body #root#root#root .main-header-actions .header-inbox-button .inbox-butto
     font-size: 0.80rem !important;
   }
 }
+
+/* =========================================================
+   FINAL FULL-HEIGHT SQUARE TEXT-ONLY INBOX TRIGGER
+   Matches the authenticated hamburger dimensions exactly.
+   ========================================================= */
+html body #root#root#root .main-compact-header .notification-bell-menu:has(> button.header-inbox-button),
+html body #root#root#root .main-header-actions .notification-bell-menu:has(> button.header-inbox-button) {
+  align-self: stretch !important;
+  height: 64px !important;
+  min-height: 64px !important;
+  display: inline-flex !important;
+  align-items: stretch !important;
+}
+
+html body #root#root#root .main-compact-header .notification-bell-menu > button.main-notification-button.header-inbox-button,
+html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button,
+html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button {
+  align-self: stretch !important;
+  width: 64px !important;
+  min-width: 64px !important;
+  max-width: 64px !important;
+  height: 64px !important;
+  min-height: 64px !important;
+  max-height: 64px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html body #root#root#root .main-compact-header .header-inbox-button .inbox-button-label,
+html body #root#root#root .main-header-actions .header-inbox-button .inbox-button-label {
+  font-size: 0.9rem !important;
+  line-height: 1 !important;
+}
+
+@media (max-width: 768px) {
+  html body #root#root#root .main-compact-header .notification-bell-menu:has(> button.header-inbox-button),
+  html body #root#root#root .main-header-actions .notification-bell-menu:has(> button.header-inbox-button) {
+    height: 56px !important;
+    min-height: 56px !important;
+  }
+
+  html body #root#root#root .main-compact-header .notification-bell-menu > button.main-notification-button.header-inbox-button,
+  html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button,
+  html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button {
+    width: 56px !important;
+    min-width: 56px !important;
+    max-width: 56px !important;
+    height: 56px !important;
+    min-height: 56px !important;
+    max-height: 56px !important;
+    border-radius: 0 !important;
+  }
+
+  html body #root#root#root .main-compact-header .header-inbox-button .inbox-button-label,
+  html body #root#root#root .main-header-actions .header-inbox-button .inbox-button-label {
+    font-size: 0.82rem !important;
+  }
+}
