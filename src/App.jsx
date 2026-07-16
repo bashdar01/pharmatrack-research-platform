@@ -970,25 +970,20 @@ const DEFAULT_INTERFACE_COLORS = {
     border: 'rgba(255, 255, 255, 0.12)',
     shadow: 'rgba(15, 23, 42, 0.18)',
     text: '#ffffff',
+    sharedOpacity: 88,
+    backdropBlur: 8,
     inactiveBackground: '#ffffff',
     inactiveText: '#ffffff',
-    inactiveButtonOpacity: 12,
     hoverBackground: '#ffffff',
     hoverText: '#ffffff',
-    hoverButtonOpacity: 22,
     activeBackground: '#ffffff',
     activeText: '#4d4c4d',
-    activeButtonOpacity: 92,
     utilityBackground: '#ffffff',
     utilityText: '#ffffff',
-    utilityButtonOpacity: 10,
     scrollbarTrack: 'transparent',
     scrollbarThumb: 'rgba(255, 255, 255, 0.35)',
 
-    // Legacy fields are retained in saved JSON compatibility only.
-    // Sidebar icons and whole-panel transparency are no longer rendered.
-    backgroundOpacity: 100,
-    backdropBlur: 0,
+    // Legacy opacity keys are read through sharedOpacity aliases but are not saved again.
     secondaryBackground: '#292829',
     icon: '#ffffff',
     inactiveIcon: '#ffffff',
@@ -1068,7 +1063,7 @@ const INTERFACE_COLOR_SECTIONS = [
   {
     key: 'sidebar',
     title: 'Sidebar Colors',
-    description: 'One solid overlay sidebar with compact text-only navigation and independently adjustable button background opacity.',
+    description: 'One compact text-only dropdown sidebar. A single shared transparency value controls the panel and every navigation-button background while labels remain fully opaque.',
     fields: [
       ['background', 'Sidebar main background'],
       ['border', 'Sidebar border color'],
@@ -1146,7 +1141,7 @@ const INTERFACE_COLOR_CSS_VARIABLES = {
   },
   sidebar: {
     background: '--sidebar-bg',
-    backgroundOpacity: '--sidebar-bg-opacity',
+    sharedOpacity: '--sidebar-shared-opacity',
     backdropBlur: '--sidebar-backdrop-blur-value',
     secondaryBackground: '--sidebar-secondary-bg',
     border: '--sidebar-border',
@@ -1164,10 +1159,6 @@ const INTERFACE_COLOR_CSS_VARIABLES = {
     activeIcon: '--sidebar-active-icon',
     utilityBackground: '--sidebar-utility-bg',
     utilityText: '--sidebar-utility-text',
-    inactiveButtonOpacity: '--sidebar-inactive-button-opacity',
-    hoverButtonOpacity: '--sidebar-hover-button-opacity',
-    activeButtonOpacity: '--sidebar-active-button-opacity',
-    utilityButtonOpacity: '--sidebar-utility-button-opacity',
     closeButtonBackground: '--sidebar-close-bg',
     closeButtonIcon: '--sidebar-close-icon',
     scrollbarTrack: '--sidebar-scrollbar-track',
@@ -1221,7 +1212,7 @@ const INTERFACE_COLOR_SECTION_ALIASES = {
 const INTERFACE_COLOR_FIELD_ALIASES = {
   background: ['background', 'backgroundColor', 'bg'],
   secondaryBackground: ['secondaryBackground', 'secondaryBackgroundColor', 'gradientEnd', 'secondaryBg'],
-  backgroundOpacity: ['backgroundOpacity', 'sidebarBackgroundOpacity', 'background_opacity', 'opacity'],
+  sharedOpacity: ['sharedOpacity', 'sidebarAndButtonTransparency', 'sidebarTransparency', 'shared_opacity', 'backgroundOpacity', 'sidebarBackgroundOpacity', 'background_opacity', 'inactiveButtonOpacity', 'hoverButtonOpacity', 'activeButtonOpacity', 'utilityButtonOpacity', 'opacity'],
   backdropBlur: ['backdropBlur', 'sidebarBackdropBlur', 'backdrop_blur', 'blur'],
   text: ['text', 'textColor', 'color', 'foreground'],
   icon: ['icon', 'iconColor'],
@@ -1255,10 +1246,6 @@ const INTERFACE_COLOR_FIELD_ALIASES = {
   activeIcon: ['activeIcon', 'activeIconColor'],
   utilityBackground: ['utilityBackground', 'utilityBg'],
   utilityText: ['utilityText', 'utilityTextColor'],
-  inactiveButtonOpacity: ['inactiveButtonOpacity', 'inactive_button_opacity', 'inactiveOpacity'],
-  hoverButtonOpacity: ['hoverButtonOpacity', 'hover_button_opacity', 'hoverOpacity'],
-  activeButtonOpacity: ['activeButtonOpacity', 'active_button_opacity', 'activeOpacity'],
-  utilityButtonOpacity: ['utilityButtonOpacity', 'utility_button_opacity', 'utilityOpacity'],
   closeButtonBackground: ['closeButtonBackground', 'closeBackground', 'closeButtonBg'],
   closeButtonIcon: ['closeButtonIcon', 'closeIcon', 'closeButtonIconColor'],
   scrollbarTrack: ['scrollbarTrack', 'scrollTrack'],
@@ -1327,13 +1314,8 @@ function isValidThemeCssColor(value) {
 
 const INTERFACE_LENGTH_FIELDS = new Set(['iconContainerRadius'])
 const INTERFACE_NUMBER_FIELDS = {
-  // Legacy whole-panel controls are normalized for backward compatibility only.
-  backgroundOpacity: { min: 0, max: 100, fallback: 100 },
-  backdropBlur: { min: 0, max: 20, fallback: 0 },
-  inactiveButtonOpacity: { min: 0, max: 50, fallback: 12 },
-  hoverButtonOpacity: { min: 5, max: 70, fallback: 22 },
-  activeButtonOpacity: { min: 30, max: 100, fallback: 92 },
-  utilityButtonOpacity: { min: 0, max: 70, fallback: 10 },
+  sharedOpacity: { min: 0, max: 100, fallback: 88 },
+  backdropBlur: { min: 0, max: 20, fallback: 8 },
 }
 
 function normalizeInterfaceNumber(fieldKey, value, fallback) {
@@ -1390,6 +1372,16 @@ function normalizeInterfaceColors(colors = {}, legacySidebar = {}) {
     }
   }
 
+  // Keep old saved opacity keys synchronized for backward compatibility while
+  // sharedOpacity remains the only value used by the rendered interface.
+  const sharedOpacity = normalizeInterfaceNumber('sharedOpacity', normalized.sidebar?.sharedOpacity, 88)
+  normalized.sidebar.sharedOpacity = sharedOpacity
+  normalized.sidebar.backgroundOpacity = sharedOpacity
+  normalized.sidebar.inactiveButtonOpacity = sharedOpacity
+  normalized.sidebar.hoverButtonOpacity = sharedOpacity
+  normalized.sidebar.activeButtonOpacity = sharedOpacity
+  normalized.sidebar.utilityButtonOpacity = sharedOpacity
+
   return normalized
 }
 
@@ -1410,34 +1402,34 @@ function applyInterfaceTheme(colors = DEFAULT_INTERFACE_COLORS) {
   }
 
   const sidebar = normalized.sidebar
+  const sharedOpacity = normalizeInterfaceNumber('sharedOpacity', sidebar.sharedOpacity, 88)
+  const backdropBlur = normalizeInterfaceNumber('backdropBlur', sidebar.backdropBlur, 8)
+  // Blur is scaled with transparency so low opacity genuinely reveals the page behind.
+  const effectiveBackdropBlur = Math.round(backdropBlur * (sharedOpacity / 100))
+  const toSharedRgba = (value, fallback) => {
+    const parsed = parseThemeCssColor(value) || parseThemeCssColor(fallback) || { r: 41, g: 40, b: 41, a: 1 }
+    const alpha = Math.min(1, Math.max(0, sharedOpacity / 100)) * (parsed.a ?? 1)
+    return `rgba(${Math.round(parsed.r)}, ${Math.round(parsed.g)}, ${Math.round(parsed.b)}, ${Number(alpha.toFixed(3))})`
+  }
 
-  // The sidebar panel is always fully opaque. Transparency is applied only to
-  // navigation-button backgrounds so labels remain clear and the page never
-  // shows through the full panel.
   root.style.setProperty('--sidebar-bg', sidebar.background)
-  root.style.setProperty('--sidebar-bg-rgba', sidebar.background)
-  root.style.setProperty('--sidebar-secondary-bg-rgba', sidebar.background)
-  root.style.setProperty('--sidebar-bg-opacity', '100')
-  root.style.setProperty('--sidebar-bg-opacity-percent', '100%')
-  root.style.setProperty('--sidebar-backdrop-blur', '0px')
-  root.style.setProperty('--sidebar-effective-backdrop-blur', '0px')
+  root.style.setProperty('--sidebar-shared-opacity', String(sharedOpacity))
+  root.style.setProperty('--sidebar-bg-opacity', String(sharedOpacity))
+  root.style.setProperty('--sidebar-bg-opacity-percent', `${sharedOpacity}%`)
+  root.style.setProperty('--sidebar-backdrop-blur', `${backdropBlur}px`)
+  root.style.setProperty('--sidebar-effective-backdrop-blur', `${effectiveBackdropBlur}px`)
+  root.style.setProperty('--sidebar-bg-rgba', toSharedRgba(sidebar.background, DEFAULT_INTERFACE_COLORS.sidebar.background))
+  root.style.setProperty('--sidebar-secondary-bg-rgba', toSharedRgba(sidebar.secondaryBackground || sidebar.background, sidebar.background))
+  root.style.setProperty('--sidebar-inactive-bg-rgba', toSharedRgba(sidebar.inactiveBackground, sidebar.background))
+  root.style.setProperty('--sidebar-hover-bg-rgba', toSharedRgba(sidebar.hoverBackground, sidebar.background))
+  root.style.setProperty('--sidebar-active-bg-rgba', toSharedRgba(sidebar.activeBackground, sidebar.background))
+  root.style.setProperty('--sidebar-utility-bg-rgba', toSharedRgba(sidebar.utilityBackground, sidebar.background))
 
-  root.style.setProperty(
-    '--sidebar-inactive-button-opacity',
-    String(normalizeInterfaceNumber('inactiveButtonOpacity', sidebar.inactiveButtonOpacity, 12)),
-  )
-  root.style.setProperty(
-    '--sidebar-hover-button-opacity',
-    String(normalizeInterfaceNumber('hoverButtonOpacity', sidebar.hoverButtonOpacity, 22)),
-  )
-  root.style.setProperty(
-    '--sidebar-active-button-opacity',
-    String(normalizeInterfaceNumber('activeButtonOpacity', sidebar.activeButtonOpacity, 92)),
-  )
-  root.style.setProperty(
-    '--sidebar-utility-button-opacity',
-    String(normalizeInterfaceNumber('utilityButtonOpacity', sidebar.utilityButtonOpacity, 10)),
-  )
+  // Legacy opacity variables intentionally receive the same canonical value.
+  root.style.setProperty('--sidebar-inactive-button-opacity', String(sharedOpacity))
+  root.style.setProperty('--sidebar-hover-button-opacity', String(sharedOpacity))
+  root.style.setProperty('--sidebar-active-button-opacity', String(sharedOpacity))
+  root.style.setProperty('--sidebar-utility-button-opacity', String(sharedOpacity))
 
   // Legacy icon variables remain defined so old saved settings stay valid,
   // although sidebar icons are no longer rendered.
@@ -1458,10 +1450,11 @@ function applyInterfaceTheme(colors = DEFAULT_INTERFACE_COLORS) {
     '--sidebar-btn-border': sidebar.border,
     '--sidebar-inactive-border': sidebar.border,
     '--sidebar-active-border': sidebar.border,
-    '--sidebar-inactive-button-opacity': String(normalizeInterfaceNumber('inactiveButtonOpacity', sidebar.inactiveButtonOpacity, 12)),
-    '--sidebar-hover-button-opacity': String(normalizeInterfaceNumber('hoverButtonOpacity', sidebar.hoverButtonOpacity, 22)),
-    '--sidebar-active-button-opacity': String(normalizeInterfaceNumber('activeButtonOpacity', sidebar.activeButtonOpacity, 92)),
-    '--sidebar-utility-button-opacity': String(normalizeInterfaceNumber('utilityButtonOpacity', sidebar.utilityButtonOpacity, 10)),
+    '--sidebar-shared-opacity': String(sharedOpacity),
+    '--sidebar-inactive-button-opacity': String(sharedOpacity),
+    '--sidebar-hover-button-opacity': String(sharedOpacity),
+    '--sidebar-active-button-opacity': String(sharedOpacity),
+    '--sidebar-utility-button-opacity': String(sharedOpacity),
   }
   Object.entries(compatibilityVariables).forEach(([name, value]) => root.style.setProperty(name, value))
 
@@ -1656,10 +1649,7 @@ function validateInterfaceColorValues(colors = {}) {
   }
   const sidebar = normalizedSource?.sidebar || {}
   for (const [fieldKey, label] of [
-    ['inactiveButtonOpacity', 'Inactive Button Background Opacity'],
-    ['hoverButtonOpacity', 'Hover Button Background Opacity'],
-    ['activeButtonOpacity', 'Active Button Background Opacity'],
-    ['utilityButtonOpacity', 'Utility Button Background Opacity'],
+    ['sharedOpacity', 'Sidebar and Button Transparency'],
   ]) {
     const config = INTERFACE_NUMBER_FIELDS[fieldKey]
     const value = Number(sidebar[fieldKey])
@@ -1689,10 +1679,10 @@ function getInterfaceColorContrastWarnings(colors = {}) {
     ['Role dropdown text', normalized.topHeader.roleDropdownBackground, normalized.topHeader.roleDropdownText],
     ['Avatar text', normalized.topHeader.avatarBackground, normalized.topHeader.avatarText],
     ['Sidebar text', normalized.sidebar.background, normalized.sidebar.text],
-    ['Sidebar inactive text', compositeSidebarButtonBackground(normalized.sidebar.inactiveBackground, normalized.sidebar.inactiveButtonOpacity), normalized.sidebar.inactiveText],
-    ['Sidebar hover text', compositeSidebarButtonBackground(normalized.sidebar.hoverBackground, normalized.sidebar.hoverButtonOpacity), normalized.sidebar.hoverText],
-    ['Sidebar active text', compositeSidebarButtonBackground(normalized.sidebar.activeBackground, normalized.sidebar.activeButtonOpacity), normalized.sidebar.activeText],
-    ['Sidebar utility text', compositeSidebarButtonBackground(normalized.sidebar.utilityBackground, normalized.sidebar.utilityButtonOpacity), normalized.sidebar.utilityText],
+    ['Sidebar inactive text', compositeSidebarButtonBackground(normalized.sidebar.inactiveBackground, normalized.sidebar.sharedOpacity), normalized.sidebar.inactiveText],
+    ['Sidebar hover text', compositeSidebarButtonBackground(normalized.sidebar.hoverBackground, normalized.sidebar.sharedOpacity), normalized.sidebar.hoverText],
+    ['Sidebar active text', compositeSidebarButtonBackground(normalized.sidebar.activeBackground, normalized.sidebar.sharedOpacity), normalized.sidebar.activeText],
+    ['Sidebar utility text', compositeSidebarButtonBackground(normalized.sidebar.utilityBackground, normalized.sidebar.sharedOpacity), normalized.sidebar.utilityText],
     ['Inbox title', normalized.inbox.headerBackground, normalized.inbox.titleText],
     ['Inbox normal text', normalized.inbox.popupBackground, normalized.inbox.text],
     ['Inbox secondary text', normalized.inbox.popupBackground, normalized.inbox.secondaryText],
@@ -10798,22 +10788,16 @@ function InterfaceColorCustomizationPanel({
         <div className="button-color-sections">
           <details className="card button-color-section sidebar-overlay-controls" open>
             <summary>
-              <span><b>Sidebar Button Background Opacity</b><small>The sidebar panel stays solid. Only button backgrounds become more or less transparent; text remains fully opaque.</small></span>
-              <span className="button-color-section-count">4 controls</span>
+              <span><b>Sidebar and Button Transparency</b><small>This controls how see-through the dropdown panel and all navigation-button backgrounds are. Use 0% for fully transparent and 100% for fully solid. Text remains fully opaque.</small></span>
+              <span className="button-color-section-count">1 shared control</span>
             </summary>
-            <div className="sidebar-overlay-control-grid">
-              {[
-                ['inactiveButtonOpacity', 'Inactive Button Background Opacity', 0, 50],
-                ['hoverButtonOpacity', 'Hover Button Background Opacity', 5, 70],
-                ['activeButtonOpacity', 'Active Button Background Opacity', 30, 100],
-                ['utilityButtonOpacity', 'Utility Button Background Opacity', 0, 70],
-              ].map(([fieldKey, label, min, max]) => (
-                <label className="sidebar-overlay-control" key={fieldKey}>
-                  <span><b>{label}</b><output>{normalizedPreview.sidebar[fieldKey]}%</output></span>
-                  <input type="range" min={min} max={max} step="1" value={normalizedPreview.sidebar[fieldKey]} onChange={(event) => onChange('sidebar', fieldKey, Number(event.target.value))} />
-                  <input type="number" min={min} max={max} step="1" value={normalizedPreview.sidebar[fieldKey]} onChange={(event) => onChange('sidebar', fieldKey, Number(event.target.value))} aria-label={`${label} percentage`} />
-                </label>
-              ))}
+            <div className="sidebar-overlay-control-grid is-single">
+              <label className="sidebar-overlay-control">
+                <span><b>Sidebar and Button Transparency</b><output>{normalizedPreview.sidebar.sharedOpacity}%</output></span>
+                <input type="range" min="0" max="100" step="1" value={normalizedPreview.sidebar.sharedOpacity} onChange={(event) => onChange('sidebar', 'sharedOpacity', Number(event.target.value))} />
+                <input type="number" min="0" max="100" step="1" value={normalizedPreview.sidebar.sharedOpacity} onChange={(event) => onChange('sidebar', 'sharedOpacity', Number(event.target.value))} aria-label="Sidebar and Button Transparency percentage" />
+                <small>Use 0% for fully see-through and 100% for fully solid. The same value is applied to the panel and every navigation-button background; text stays fully opaque.</small>
+              </label>
             </div>
           </details>
           {INTERFACE_COLOR_SECTIONS.map((section) => (
@@ -11181,16 +11165,12 @@ function AdminControlPanel({
         [fieldKey]: value,
       }
 
-      if (sectionKey === 'sidebar') {
-        const iconFieldGroups = [
-          ['icon', 'inactiveIcon', 'iconContainerIcon'],
-          ['hoverIcon', 'iconContainerHoverIcon'],
-          ['activeIcon', 'iconContainerActiveIcon'],
-        ]
-        const relatedFields = iconFieldGroups.find((fields) => fields.includes(fieldKey))
-        relatedFields?.forEach((relatedField) => {
-          nextSection[relatedField] = value
-        })
+      if (sectionKey === 'sidebar' && fieldKey === 'sharedOpacity') {
+        nextSection.backgroundOpacity = value
+        nextSection.inactiveButtonOpacity = value
+        nextSection.hoverButtonOpacity = value
+        nextSection.activeButtonOpacity = value
+        nextSection.utilityButtonOpacity = value
       }
 
       return {
