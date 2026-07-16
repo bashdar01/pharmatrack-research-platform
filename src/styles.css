@@ -27926,3 +27926,150 @@ html body #root#root#root .main-header-actions .header-inbox-button .inbox-butto
     min-height: 24px !important;
   }
 }
+
+/* =========================================================
+   FINAL ULTRA-COMPACT AUTHENTICATED HEADER FIT
+   Keeps every control inside the thinner background strip.
+   ========================================================= */
+:root {
+  --top-header-height: 30px;
+}
+
+html body #root .main-compact-header,
+html body #root .admin-panel-topbar,
+html body #root .dashboard-topbar,
+html body #root .authenticated-header,
+html body #root .top-header {
+  min-height: var(--top-header-height, 30px) !important;
+  height: var(--top-header-height, 30px) !important;
+  max-height: var(--top-header-height, 30px) !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+}
+
+html body #root button.sidebar-menu-toggle,
+html body #root button.hamburger-button,
+html body #root button.admin-sidebar-menu-toggle,
+html body #root#root#root .main-compact-header .notification-bell-menu > button.main-notification-button.header-inbox-button,
+html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button,
+html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button {
+  width: var(--top-header-height, 30px) !important;
+  min-width: var(--top-header-height, 30px) !important;
+  max-width: var(--top-header-height, 30px) !important;
+  height: var(--top-header-height, 30px) !important;
+  min-height: var(--top-header-height, 30px) !important;
+  max-height: var(--top-header-height, 30px) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  align-self: stretch !important;
+}
+
+html body #root button.sidebar-menu-toggle svg,
+html body #root button.hamburger-button svg,
+html body #root button.admin-sidebar-menu-toggle svg {
+  width: 14px !important;
+  height: 14px !important;
+  stroke-width: 2.2 !important;
+}
+
+html body #root .main-compact-header .main-header-actions,
+html body #root .main-dashboard-with-sidebar .main-header-actions,
+html body #root .dashboard-topbar .main-header-actions,
+html body #root .admin-topbar-actions,
+html body #root#root#root .main-compact-header .notification-bell-menu:has(> button.header-inbox-button),
+html body #root#root#root .main-header-actions .notification-bell-menu:has(> button.header-inbox-button) {
+  min-height: var(--top-header-height, 30px) !important;
+  height: var(--top-header-height, 30px) !important;
+  max-height: var(--top-header-height, 30px) !important;
+  gap: 4px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+html body #root .main-compact-header .role-switch-dropdown,
+html body #root .main-header-actions .role-switch-dropdown,
+html body #root .role-switch-dropdown.role-switch-label-hidden,
+html body #root .admin-topbar-actions select,
+html body #root .admin-topbar-actions button:not(.admin-sidebar-menu-toggle) {
+  min-height: 21px !important;
+  height: 21px !important;
+  max-height: 21px !important;
+  padding: 0 6px !important;
+  font-size: 0.68rem !important;
+  line-height: 1 !important;
+  border-radius: 6px !important;
+}
+
+html body #root .main-compact-header .student-profile-trigger,
+html body #root .main-compact-header .student-profile-trigger.redesigned,
+html body #root .main-compact-header .user-profile-menu .student-profile-trigger.redesigned,
+html body #root .main-header-actions .student-profile-trigger,
+html body #root .main-header-actions .student-profile-trigger.redesigned,
+html body #root .main-header-actions .user-profile-menu .student-profile-trigger.redesigned,
+html body #root .profile-avatar,
+html body #root .avatar-circle,
+html body #root .user-avatar {
+  width: 22px !important;
+  min-width: 22px !important;
+  max-width: 22px !important;
+  height: 22px !important;
+  min-height: 22px !important;
+  max-height: 22px !important;
+  font-size: 0.66rem !important;
+}
+
+html body #root#root#root .main-compact-header .header-inbox-button .inbox-button-label,
+html body #root#root#root .main-header-actions .header-inbox-button .inbox-button-label {
+  font-size: 0.64rem !important;
+  line-height: 1 !important;
+  letter-spacing: -0.02em !important;
+}
+
+html body #root .main-compact-header .profile-name,
+html body #root .main-header-actions .profile-name,
+html body #root .main-compact-header .profile-role,
+html body #root .main-header-actions .profile-role {
+  font-size: 0.67rem !important;
+  line-height: 1 !important;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --top-header-height: 28px;
+  }
+
+  html body #root button.sidebar-menu-toggle,
+  html body #root button.hamburger-button,
+  html body #root button.admin-sidebar-menu-toggle,
+  html body #root#root#root .main-compact-header .notification-bell-menu > button.main-notification-button.header-inbox-button,
+  html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button,
+  html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button {
+    width: var(--top-header-height, 28px) !important;
+    min-width: var(--top-header-height, 28px) !important;
+    max-width: var(--top-header-height, 28px) !important;
+    height: var(--top-header-height, 28px) !important;
+    min-height: var(--top-header-height, 28px) !important;
+    max-height: var(--top-header-height, 28px) !important;
+  }
+
+  html body #root .main-compact-header .student-profile-trigger,
+  html body #root .main-compact-header .student-profile-trigger.redesigned,
+  html body #root .main-header-actions .student-profile-trigger,
+  html body #root .main-header-actions .student-profile-trigger.redesigned,
+  html body #root .profile-avatar,
+  html body #root .avatar-circle,
+  html body #root .user-avatar {
+    width: 20px !important;
+    min-width: 20px !important;
+    max-width: 20px !important;
+    height: 20px !important;
+    min-height: 20px !important;
+    max-height: 20px !important;
+  }
+
+  html body #root#root#root .main-compact-header .header-inbox-button .inbox-button-label,
+  html body #root#root#root .main-header-actions .header-inbox-button .inbox-button-label {
+    font-size: 0.59rem !important;
+  }
+}
