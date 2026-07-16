@@ -26759,13 +26759,13 @@ html body #root .admin-standard-overlay-sidebar {
   top: var(--top-header-height, 52px) !important;
   left: 0 !important;
   right: auto !important;
-  bottom: 0 !important;
-  width: min(280px, 86vw) !important;
+  bottom: auto !important;
+  width: min(300px, calc(100vw - 20px)) !important;
   min-width: 0 !important;
-  max-width: 280px !important;
+  max-width: 300px !important;
   height: auto !important;
   min-height: 0 !important;
-  max-height: calc(100dvh - var(--top-header-height, 52px)) !important;
+  max-height: calc(100dvh - var(--top-header-height, 52px) - 12px) !important;
   margin: 0 !important;
   padding: 10px !important;
   z-index: 1200 !important;
@@ -26776,13 +26776,15 @@ html body #root .admin-standard-overlay-sidebar {
   overflow-x: hidden !important;
   overscroll-behavior: contain !important;
   box-sizing: border-box !important;
-  transform: translate3d(-102%, 0, 0) !important;
+  transform: translate3d(0, -14px, 0) scaleY(0.94) !important;
+  transform-origin: top left !important;
   visibility: hidden !important;
   pointer-events: none !important;
-  opacity: 1 !important;
+  opacity: 0 !important;
   border: 0 !important;
   border-right: 1px solid var(--sidebar-border, rgba(255, 255, 255, 0.12)) !important;
-  border-radius: 0 16px 16px 0 !important;
+  border-bottom: 1px solid var(--sidebar-border, rgba(255, 255, 255, 0.12)) !important;
+  border-radius: 0 0 16px 0 !important;
   background: var(--sidebar-bg, #292829) !important;
   background-color: var(--sidebar-bg, #292829) !important;
   background-image: none !important;
@@ -26791,8 +26793,9 @@ html body #root .admin-standard-overlay-sidebar {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   transition:
-    transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
-    visibility 240ms ease !important;
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms ease,
+    visibility 220ms ease !important;
 }
 
 html body #root .main-sidebar.app-sidebar.open,
@@ -26803,9 +26806,10 @@ html body #root .main-dashboard-with-sidebar.sidebar-open .main-sidebar,
 html body #root .admin-sidebar.app-sidebar.open,
 html body #root .admin-sidebar.app-sidebar.is-open,
 html body #root .admin-panel-shell.admin-sidebar-open .admin-sidebar {
-  transform: translate3d(0, 0, 0) !important;
+  transform: translate3d(0, 0, 0) scaleY(1) !important;
   visibility: visible !important;
   pointer-events: auto !important;
+  opacity: 1 !important;
 }
 
 /* One invisible outside-click catcher; never a visible second sidebar. */
@@ -27190,9 +27194,9 @@ html body #root .role-feature-search__button {
   html body #root .admin-subdomain-sidebar,
   html body #root .admin-standard-overlay-sidebar {
     top: 48px !important;
-    width: min(270px, 88vw) !important;
-    max-width: 270px !important;
-    max-height: calc(100dvh - 48px) !important;
+    width: min(290px, calc(100vw - 12px)) !important;
+    max-width: 290px !important;
+    max-height: calc(100dvh - 60px) !important;
   }
 
   html body #root .sidebar-outside-layer,
