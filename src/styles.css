@@ -26527,16 +26527,18 @@ html body #root#root#root .main-header-actions .header-inbox-button .inbox-butto
 
 
 /* =========================================================
-   FINAL AUTHENTICATED HEADER + SINGLE TEXT-ONLY SIDEBAR
-   One compact 52px/48px header and one solid overlay sidebar.
-   Sidebar buttons, not the panel, use configurable transparency.
+   FINAL AUTHENTICATED HEADER + SHARED-TRANSPARENCY TEXT SIDEBAR
+   One compact 52px/48px header and one dropdown overlay sidebar.
+   The panel and all button states use one shared background alpha.
    ========================================================= */
 :root {
   --top-header-height: 52px;
-  --sidebar-inactive-button-opacity: 12;
-  --sidebar-hover-button-opacity: 22;
-  --sidebar-active-button-opacity: 92;
-  --sidebar-utility-button-opacity: 10;
+  --sidebar-shared-opacity: 88;
+  --sidebar-inactive-button-opacity: 88;
+  --sidebar-hover-button-opacity: 88;
+  --sidebar-active-button-opacity: 88;
+  --sidebar-utility-button-opacity: 88;
+  --sidebar-backdrop-blur: 8px;
 }
 
 html,
@@ -26785,17 +26787,33 @@ html body #root .admin-standard-overlay-sidebar {
   border-right: 1px solid var(--sidebar-border, rgba(255, 255, 255, 0.12)) !important;
   border-bottom: 1px solid var(--sidebar-border, rgba(255, 255, 255, 0.12)) !important;
   border-radius: 0 0 16px 0 !important;
-  background: var(--sidebar-bg, #292829) !important;
-  background-color: var(--sidebar-bg, #292829) !important;
+  background: var(--sidebar-bg-rgba, rgba(41, 40, 41, 0.88)) !important;
+  background-color: var(--sidebar-bg-rgba, rgba(41, 40, 41, 0.88)) !important;
   background-image: none !important;
   color: var(--sidebar-text, #ffffff) !important;
   box-shadow: 8px 0 28px var(--sidebar-shadow, rgba(15, 23, 42, 0.18)) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+  backdrop-filter: blur(var(--sidebar-backdrop-blur, 8px)) !important;
+  -webkit-backdrop-filter: blur(var(--sidebar-backdrop-blur, 8px)) !important;
   transition:
     transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
     opacity 180ms ease,
     visibility 220ms ease !important;
+}
+
+@supports (background: color-mix(in srgb, #fff 20%, transparent)) {
+  html body #root .main-sidebar.app-sidebar,
+  html body #root .main-sidebar.authenticated-sidebar,
+  html body #root .shared-authenticated-overlay-sidebar,
+  html body #root .admin-sidebar.app-sidebar,
+  html body #root .admin-subdomain-sidebar,
+  html body #root .admin-standard-overlay-sidebar {
+    background: color-mix(
+      in srgb,
+      var(--sidebar-bg, #292829)
+      calc(var(--sidebar-shared-opacity, 88) * 1%),
+      transparent
+    ) !important;
+  }
 }
 
 html body #root .main-sidebar.app-sidebar.open,
@@ -26924,7 +26942,7 @@ html body #root :is(
   box-sizing: border-box !important;
   border: 1px solid transparent !important;
   border-radius: 11px !important;
-  background: transparent !important;
+  background: var(--sidebar-inactive-bg-rgba, rgba(255, 255, 255, 0.88)) !important;
   color: var(--sidebar-inactive-text, #ffffff) !important;
   opacity: 1 !important;
   font-size: 0.91rem !important;
@@ -26936,6 +26954,14 @@ html body #root :is(
   overflow-wrap: anywhere !important;
 }
 
+html body #root :is(
+  .main-side-nav .sidebar-utility-link,
+  .admin-sidebar .admin-logout
+) {
+  background: var(--sidebar-utility-bg-rgba, rgba(255, 255, 255, 0.88)) !important;
+  color: var(--sidebar-utility-text, #ffffff) !important;
+}
+
 @supports (background: color-mix(in srgb, #fff 20%, transparent)) {
   html body #root :is(
     .main-side-nav .sidebar-nav-item,
@@ -26944,7 +26970,7 @@ html body #root :is(
     background: color-mix(
       in srgb,
       var(--sidebar-inactive-bg, #ffffff)
-      calc(var(--sidebar-inactive-button-opacity, 12) * 1%),
+      calc(var(--sidebar-shared-opacity, 88) * 1%),
       transparent
     ) !important;
   }
@@ -26956,7 +26982,7 @@ html body #root :is(
     background: color-mix(
       in srgb,
       var(--sidebar-utility-bg, #ffffff)
-      calc(var(--sidebar-utility-button-opacity, 10) * 1%),
+      calc(var(--sidebar-shared-opacity, 88) * 1%),
       transparent
     ) !important;
     color: var(--sidebar-utility-text, #ffffff) !important;
@@ -26969,6 +26995,7 @@ html body #root :is(
   .admin-side-nav .admin-sidebar-link:hover,
   .admin-sidebar .admin-logout:hover
 ) {
+  background: var(--sidebar-hover-bg-rgba, rgba(255, 255, 255, 0.88)) !important;
   color: var(--sidebar-hover-text, #ffffff) !important;
 }
 
@@ -26982,7 +27009,7 @@ html body #root :is(
     background: color-mix(
       in srgb,
       var(--sidebar-hover-bg, #ffffff)
-      calc(var(--sidebar-hover-button-opacity, 22) * 1%),
+      calc(var(--sidebar-shared-opacity, 88) * 1%),
       transparent
     ) !important;
   }
@@ -26994,6 +27021,7 @@ html body #root :is(
   .admin-side-nav .admin-sidebar-link.active,
   .admin-side-nav .admin-sidebar-link[aria-current="page"]
 ) {
+  background: var(--sidebar-active-bg-rgba, rgba(255, 255, 255, 0.88)) !important;
   color: var(--sidebar-active-text, #4d4c4d) !important;
   border-color: var(--sidebar-border, rgba(255,255,255,.12)) !important;
 }
@@ -27008,7 +27036,7 @@ html body #root :is(
     background: color-mix(
       in srgb,
       var(--sidebar-active-bg, #ffffff)
-      calc(var(--sidebar-active-button-opacity, 92) * 1%),
+      calc(var(--sidebar-shared-opacity, 88) * 1%),
       transparent
     ) !important;
   }
@@ -27021,6 +27049,7 @@ html body #root :is(.sidebar-item-label, .sidebar-link-label) {
   padding: 0 !important;
   display: block !important;
   color: inherit !important;
+  opacity: 1 !important;
   font-size: 0.91rem !important;
   font-weight: 700 !important;
   line-height: 1.2 !important;
@@ -27049,12 +27078,23 @@ html body #root :is(.main-sidebar, .admin-sidebar)::-webkit-scrollbar-thumb {
 
 /* ---------- Text-only interface preview ---------- */
 html body #root .interface-sidebar-preview {
-  background: var(--sidebar-bg, #292829) !important;
+  background: var(--sidebar-bg-rgba, rgba(41, 40, 41, 0.88)) !important;
   background-image: none !important;
   color: var(--sidebar-text, #ffffff) !important;
   opacity: 1 !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+  backdrop-filter: blur(var(--sidebar-backdrop-blur, 8px)) !important;
+  -webkit-backdrop-filter: blur(var(--sidebar-backdrop-blur, 8px)) !important;
+}
+
+@supports (background: color-mix(in srgb, #fff 20%, transparent)) {
+  html body #root .interface-sidebar-preview {
+    background: color-mix(
+      in srgb,
+      var(--sidebar-bg, #292829)
+      calc(var(--sidebar-shared-opacity, 88) * 1%),
+      transparent
+    ) !important;
+  }
 }
 
 html body #root :is(
@@ -27066,7 +27106,24 @@ html body #root :is(
   justify-content: flex-start !important;
   gap: 0 !important;
   border-radius: 11px !important;
+  background: var(--sidebar-inactive-bg-rgba, rgba(255, 255, 255, 0.88)) !important;
   color: var(--sidebar-inactive-text, #ffffff) !important;
+  opacity: 1 !important;
+}
+
+html body #root .interface-sidebar-preview-item.is-hovered {
+  background: var(--sidebar-hover-bg-rgba, rgba(255, 255, 255, 0.88)) !important;
+  color: var(--sidebar-hover-text, #ffffff) !important;
+}
+
+html body #root .interface-sidebar-preview-item.active {
+  background: var(--sidebar-active-bg-rgba, rgba(255, 255, 255, 0.88)) !important;
+  color: var(--sidebar-active-text, #4d4c4d) !important;
+}
+
+html body #root .interface-sidebar-preview-utility {
+  background: var(--sidebar-utility-bg-rgba, rgba(255, 255, 255, 0.88)) !important;
+  color: var(--sidebar-utility-text, #ffffff) !important;
 }
 
 @supports (background: color-mix(in srgb, #fff 20%, transparent)) {
@@ -27074,7 +27131,7 @@ html body #root :is(
     background: color-mix(
       in srgb,
       var(--sidebar-inactive-bg, #ffffff)
-      calc(var(--sidebar-inactive-button-opacity, 12) * 1%),
+      calc(var(--sidebar-shared-opacity, 88) * 1%),
       transparent
     ) !important;
   }
@@ -27083,7 +27140,7 @@ html body #root :is(
     background: color-mix(
       in srgb,
       var(--sidebar-hover-bg, #ffffff)
-      calc(var(--sidebar-hover-button-opacity, 22) * 1%),
+      calc(var(--sidebar-shared-opacity, 88) * 1%),
       transparent
     ) !important;
     color: var(--sidebar-hover-text, #ffffff) !important;
@@ -27093,7 +27150,7 @@ html body #root :is(
     background: color-mix(
       in srgb,
       var(--sidebar-active-bg, #ffffff)
-      calc(var(--sidebar-active-button-opacity, 92) * 1%),
+      calc(var(--sidebar-shared-opacity, 88) * 1%),
       transparent
     ) !important;
     color: var(--sidebar-active-text, #4d4c4d) !important;
@@ -27103,7 +27160,7 @@ html body #root :is(
     background: color-mix(
       in srgb,
       var(--sidebar-utility-bg, #ffffff)
-      calc(var(--sidebar-utility-button-opacity, 10) * 1%),
+      calc(var(--sidebar-shared-opacity, 88) * 1%),
       transparent
     ) !important;
     color: var(--sidebar-utility-text, #ffffff) !important;
@@ -27242,4 +27299,14 @@ html body #root .role-feature-search__button {
   html body #root .admin-panel-topbar {
     display: none !important;
   }
+}
+
+
+/* Shared sidebar transparency editor: one canonical percentage for panel and buttons. */
+html body #root .sidebar-overlay-control-grid.is-single {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+html body #root .sidebar-overlay-control-grid.is-single .sidebar-overlay-control {
+  max-width: 680px !important;
 }
