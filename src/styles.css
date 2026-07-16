@@ -27311,135 +27311,126 @@ html body #root .sidebar-overlay-control-grid.is-single .sidebar-overlay-control
   max-width: 680px !important;
 }
 
+/* ==========================================================================
+   CANONICAL HEADER DROPDOWN SIDEBAR
+   This final layer intentionally owns positioning and transparency.
+   ========================================================================== */
 
-/* ==========================================================================\n   FINAL AUTHENTICATED SIDEBAR FIX\n   - true 0–100% background transparency\n   - one dropdown below the top header\n   - no side-slide, no page movement, no gray veil\n   ========================================================================== */
-html body #root :is(
-  .main-sidebar.app-sidebar,
-  .main-sidebar.authenticated-sidebar,
-  .shared-authenticated-overlay-sidebar,
-  .admin-sidebar.app-sidebar,
-  .admin-subdomain-sidebar,
-  .admin-standard-overlay-sidebar
-) {
+html body #root .header-dropdown-sidebar {
   position: fixed !important;
   top: var(--top-header-height, 52px) !important;
   left: 0 !important;
   right: auto !important;
   bottom: auto !important;
-  width: min(300px, calc(100vw - 20px)) !important;
-  max-width: 300px !important;
+  width: min(310px, calc(100vw - 16px)) !important;
+  min-width: 0 !important;
+  max-width: 310px !important;
   height: auto !important;
-  max-height: calc(100dvh - var(--top-header-height, 52px) - 10px) !important;
+  min-height: 0 !important;
+  max-height: calc(100dvh - var(--top-header-height, 52px) - 8px) !important;
   margin: 0 !important;
   padding: 10px !important;
   display: flex !important;
   flex-direction: column !important;
-  overflow-y: auto !important;
   overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
   z-index: 1200 !important;
 
-  /* The JS-computed RGBA variables are the single source of truth. */
-  background: var(--sidebar-bg-rgba, rgba(41, 40, 41, 0.88)) !important;
-  background-color: var(--sidebar-bg-rgba, rgba(41, 40, 41, 0.88)) !important;
+  background: var(--sidebar-runtime-panel-bg, var(--sidebar-bg-rgba, rgba(41, 40, 41, .88))) !important;
+  background-color: var(--sidebar-runtime-panel-bg, var(--sidebar-bg-rgba, rgba(41, 40, 41, .88))) !important;
   background-image: none !important;
-  opacity: 0 !important;
-  color: var(--sidebar-text, #ffffff) !important;
+  color: var(--sidebar-text, #fff) !important;
   border: 1px solid var(--sidebar-border, rgba(255,255,255,.12)) !important;
   border-top: 0 !important;
   border-radius: 0 0 16px 0 !important;
-  box-shadow: 0 14px 32px var(--sidebar-shadow, rgba(15,23,42,.18)) !important;
-  backdrop-filter: blur(var(--sidebar-effective-backdrop-blur, 8px)) !important;
-  -webkit-backdrop-filter: blur(var(--sidebar-effective-backdrop-blur, 8px)) !important;
+  box-shadow: 0 16px 36px var(--sidebar-shadow, rgba(15,23,42,.18)) !important;
+  backdrop-filter: blur(var(--sidebar-runtime-blur, var(--sidebar-effective-backdrop-blur, 8px))) !important;
+  -webkit-backdrop-filter: blur(var(--sidebar-runtime-blur, var(--sidebar-effective-backdrop-blur, 8px))) !important;
 
-  transform: translate3d(0, -12px, 0) scaleY(.96) !important;
-  transform-origin: top left !important;
+  opacity: 0 !important;
   visibility: hidden !important;
   pointer-events: none !important;
-  transition: transform 210ms cubic-bezier(.22,1,.36,1), opacity 160ms ease, visibility 210ms ease !important;
+  transform: translateY(-10px) scaleY(.96) !important;
+  transform-origin: top left !important;
+  transition: transform 220ms cubic-bezier(.22,1,.36,1), opacity 150ms ease, visibility 220ms ease !important;
 }
 
-html body #root :is(
-  .main-sidebar.app-sidebar.open,
-  .main-sidebar.app-sidebar.is-open,
-  .main-sidebar.authenticated-sidebar.open,
-  .main-sidebar.authenticated-sidebar.is-open,
-  .shared-authenticated-overlay-sidebar.open,
-  .shared-authenticated-overlay-sidebar.is-open,
-  .admin-sidebar.app-sidebar.open,
-  .admin-sidebar.app-sidebar.is-open,
-  .admin-subdomain-sidebar.open,
-  .admin-subdomain-sidebar.is-open,
-  .admin-standard-overlay-sidebar.open,
-  .admin-standard-overlay-sidebar.is-open
-) {
-  transform: translate3d(0, 0, 0) scaleY(1) !important;
+html body #root .header-dropdown-sidebar.open,
+html body #root .header-dropdown-sidebar.is-open {
+  opacity: 1 !important;
   visibility: visible !important;
   pointer-events: auto !important;
+  transform: translateY(0) scaleY(1) !important;
+}
+
+/* Explicitly defeat every historical left-drawer transform. */
+html body #root .main-dashboard-with-sidebar.sidebar-open .header-dropdown-sidebar,
+html body #root .admin-panel-shell.admin-sidebar-open .header-dropdown-sidebar {
+  transform: translateY(0) scaleY(1) !important;
+  left: 0 !important;
+}
+
+html body #root .header-dropdown-sidebar::before,
+html body #root .header-dropdown-sidebar::after,
+html body #root .header-dropdown-sidebar :is(.main-side-nav, .admin-side-nav)::before,
+html body #root .header-dropdown-sidebar :is(.main-side-nav, .admin-side-nav)::after {
+  content: none !important;
+  display: none !important;
+}
+
+html body #root .header-dropdown-sidebar :is(.main-side-nav, .admin-side-nav, .admin-brand-block) {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+html body #root .header-dropdown-sidebar :is(
+  .sidebar-nav-item,
+  .admin-sidebar-link
+) {
+  background: var(--sidebar-runtime-inactive-bg, var(--sidebar-inactive-bg-rgba, rgba(255,255,255,.88))) !important;
+  background-color: var(--sidebar-runtime-inactive-bg, var(--sidebar-inactive-bg-rgba, rgba(255,255,255,.88))) !important;
+  color: var(--sidebar-inactive-text, #fff) !important;
   opacity: 1 !important;
 }
 
-/* Never allow an old drawer rule to slide the menu horizontally. */
-html body #root :is(
-  .main-dashboard-with-sidebar.sidebar-open .main-sidebar,
-  .admin-panel-shell.admin-sidebar-open .admin-sidebar
-) {
-  transform: translate3d(0, 0, 0) scaleY(1) !important;
-}
-
-/* Same real alpha value on every navigation background. */
-html body #root :is(
-  .main-side-nav .sidebar-nav-item,
-  .admin-side-nav .admin-sidebar-link
-) {
-  background: var(--sidebar-inactive-bg-rgba, rgba(255,255,255,.88)) !important;
-  background-color: var(--sidebar-inactive-bg-rgba, rgba(255,255,255,.88)) !important;
-  color: var(--sidebar-inactive-text, #ffffff) !important;
+html body #root .header-dropdown-sidebar :is(.sidebar-utility-link, .admin-logout) {
+  background: var(--sidebar-runtime-utility-bg, var(--sidebar-utility-bg-rgba, rgba(255,255,255,.88))) !important;
+  background-color: var(--sidebar-runtime-utility-bg, var(--sidebar-utility-bg-rgba, rgba(255,255,255,.88))) !important;
+  color: var(--sidebar-utility-text, #fff) !important;
   opacity: 1 !important;
 }
 
-html body #root :is(
-  .main-side-nav .sidebar-utility-link,
-  .admin-sidebar .admin-logout
+html body #root .header-dropdown-sidebar :is(
+  .sidebar-nav-item:hover,
+  .admin-sidebar-link:hover,
+  .sidebar-utility-link:hover,
+  .admin-logout:hover
 ) {
-  background: var(--sidebar-utility-bg-rgba, rgba(255,255,255,.88)) !important;
-  background-color: var(--sidebar-utility-bg-rgba, rgba(255,255,255,.88)) !important;
-  color: var(--sidebar-utility-text, #ffffff) !important;
-  opacity: 1 !important;
+  background: var(--sidebar-runtime-hover-bg, var(--sidebar-hover-bg-rgba, rgba(255,255,255,.88))) !important;
+  background-color: var(--sidebar-runtime-hover-bg, var(--sidebar-hover-bg-rgba, rgba(255,255,255,.88))) !important;
+  color: var(--sidebar-hover-text, #fff) !important;
 }
 
-html body #root :is(
-  .main-side-nav .sidebar-nav-item:hover,
-  .main-side-nav .sidebar-utility-link:hover,
-  .admin-side-nav .admin-sidebar-link:hover,
-  .admin-sidebar .admin-logout:hover
+html body #root .header-dropdown-sidebar :is(
+  .sidebar-nav-item.active,
+  .sidebar-nav-item[aria-current="page"],
+  .admin-sidebar-link.active,
+  .admin-sidebar-link[aria-current="page"]
 ) {
-  background: var(--sidebar-hover-bg-rgba, rgba(255,255,255,.88)) !important;
-  background-color: var(--sidebar-hover-bg-rgba, rgba(255,255,255,.88)) !important;
-  color: var(--sidebar-hover-text, #ffffff) !important;
-}
-
-html body #root :is(
-  .main-side-nav .sidebar-nav-item.active,
-  .main-side-nav .sidebar-nav-item[aria-current="page"],
-  .admin-side-nav .admin-sidebar-link.active,
-  .admin-side-nav .admin-sidebar-link[aria-current="page"]
-) {
-  background: var(--sidebar-active-bg-rgba, rgba(255,255,255,.88)) !important;
-  background-color: var(--sidebar-active-bg-rgba, rgba(255,255,255,.88)) !important;
+  background: var(--sidebar-runtime-active-bg, var(--sidebar-active-bg-rgba, rgba(255,255,255,.88))) !important;
+  background-color: var(--sidebar-runtime-active-bg, var(--sidebar-active-bg-rgba, rgba(255,255,255,.88))) !important;
   color: var(--sidebar-active-text, #4d4c4d) !important;
 }
 
-html body #root :is(.sidebar-item-label, .sidebar-link-label) {
-  opacity: 1 !important;
+html body #root .header-dropdown-sidebar :is(.sidebar-item-label, .sidebar-link-label) {
   color: inherit !important;
+  opacity: 1 !important;
 }
 
-/* The click-catcher closes the dropdown but never colors or blurs the page. */
-html body #root :is(
-  .sidebar-outside-layer,
-  .role-sidebar-outside-layer,
-  .admin-sidebar-outside-layer
-) {
+html body #root :is(.sidebar-outside-layer, .role-sidebar-outside-layer, .admin-sidebar-outside-layer) {
   position: fixed !important;
   inset: var(--top-header-height, 52px) 0 0 0 !important;
   z-index: 1190 !important;
@@ -27453,40 +27444,24 @@ html body #root :is(
   box-shadow: none !important;
 }
 
-/* Live preview uses the identical RGBA variables as the real dropdown. */
+/* The Admin preview uses the same runtime values while editing. */
 html body #root .interface-sidebar-preview {
   background: var(--sidebar-bg-rgba, rgba(41,40,41,.88)) !important;
   background-color: var(--sidebar-bg-rgba, rgba(41,40,41,.88)) !important;
-  background-image: none !important;
   opacity: 1 !important;
   backdrop-filter: blur(var(--sidebar-effective-backdrop-blur, 8px)) !important;
   -webkit-backdrop-filter: blur(var(--sidebar-effective-backdrop-blur, 8px)) !important;
 }
-
-html body #root .interface-sidebar-preview-item {
-  background: var(--sidebar-inactive-bg-rgba, rgba(255,255,255,.88)) !important;
-}
-html body #root .interface-sidebar-preview-item.is-hovered {
-  background: var(--sidebar-hover-bg-rgba, rgba(255,255,255,.88)) !important;
-}
-html body #root .interface-sidebar-preview-item.active {
-  background: var(--sidebar-active-bg-rgba, rgba(255,255,255,.88)) !important;
-}
-html body #root .interface-sidebar-preview-utility {
-  background: var(--sidebar-utility-bg-rgba, rgba(255,255,255,.88)) !important;
-}
+html body #root .interface-sidebar-preview-item { background: var(--sidebar-inactive-bg-rgba, rgba(255,255,255,.88)) !important; }
+html body #root .interface-sidebar-preview-item.is-hovered { background: var(--sidebar-hover-bg-rgba, rgba(255,255,255,.88)) !important; }
+html body #root .interface-sidebar-preview-item.active { background: var(--sidebar-active-bg-rgba, rgba(255,255,255,.88)) !important; }
+html body #root .interface-sidebar-preview-utility { background: var(--sidebar-utility-bg-rgba, rgba(255,255,255,.88)) !important; }
 
 @media (max-width: 768px) {
-  html body #root :is(
-    .main-sidebar.app-sidebar,
-    .main-sidebar.authenticated-sidebar,
-    .shared-authenticated-overlay-sidebar,
-    .admin-sidebar.app-sidebar,
-    .admin-subdomain-sidebar,
-    .admin-standard-overlay-sidebar
-  ) {
+  html body #root .header-dropdown-sidebar {
     top: var(--top-header-height, 48px) !important;
-    width: min(290px, calc(100vw - 12px)) !important;
-    max-height: calc(100dvh - var(--top-header-height, 48px) - 8px) !important;
+    width: min(292px, calc(100vw - 10px)) !important;
+    max-width: 292px !important;
+    max-height: calc(100dvh - var(--top-header-height, 48px) - 6px) !important;
   }
 }

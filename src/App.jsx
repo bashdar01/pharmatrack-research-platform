@@ -1462,6 +1462,30 @@ function applyInterfaceTheme(colors = DEFAULT_INTERFACE_COLORS) {
   return normalized
 }
 
+function getSidebarDropdownRuntimeStyle(interfaceColors = DEFAULT_INTERFACE_COLORS) {
+  const normalized = normalizeInterfaceColors(interfaceColors)
+  const sidebar = normalized.sidebar
+  const sharedOpacity = normalizeInterfaceNumber('sharedOpacity', sidebar.sharedOpacity, 88)
+  const backdropBlur = normalizeInterfaceNumber('backdropBlur', sidebar.backdropBlur, 8)
+  const effectiveBackdropBlur = Math.round(backdropBlur * (sharedOpacity / 100))
+
+  const toRgba = (value, fallback) => {
+    const parsed = parseThemeCssColor(value) || parseThemeCssColor(fallback) || { r: 41, g: 40, b: 41, a: 1 }
+    const alpha = Math.min(1, Math.max(0, sharedOpacity / 100)) * (parsed.a ?? 1)
+    return `rgba(${Math.round(parsed.r)}, ${Math.round(parsed.g)}, ${Math.round(parsed.b)}, ${Number(alpha.toFixed(3))})`
+  }
+
+  return {
+    '--sidebar-runtime-opacity': String(sharedOpacity),
+    '--sidebar-runtime-panel-bg': toRgba(sidebar.background, DEFAULT_INTERFACE_COLORS.sidebar.background),
+    '--sidebar-runtime-inactive-bg': toRgba(sidebar.inactiveBackground, sidebar.background),
+    '--sidebar-runtime-hover-bg': toRgba(sidebar.hoverBackground, sidebar.background),
+    '--sidebar-runtime-active-bg': toRgba(sidebar.activeBackground, sidebar.background),
+    '--sidebar-runtime-utility-bg': toRgba(sidebar.utilityBackground, sidebar.background),
+    '--sidebar-runtime-blur': `${effectiveBackdropBlur}px`,
+  }
+}
+
 function cloneDefaultButtonColors() {
   return JSON.parse(JSON.stringify(DEFAULT_BUTTON_COLORS))
 }
@@ -9578,6 +9602,8 @@ export default function App() {
     setTab('dashboard')
   }
 
+  const sidebarDropdownStyle = getSidebarDropdownRuntimeStyle(websiteSettings?.interface_colors)
+
   return (
     <div className={`app app-main-shell main-dashboard-with-sidebar role-${allowedRole} ${sidebarOpen ? 'sidebar-open' : ''}`}>
       {sidebarOpen && (
@@ -9590,7 +9616,9 @@ export default function App() {
       <aside
         id="authenticated-sidebar"
         ref={sidebarRef}
-        className={`main-sidebar app-sidebar authenticated-sidebar shared-authenticated-overlay-sidebar no-print ${sidebarOpen ? 'open is-open' : ''}`}
+        className={`main-sidebar app-sidebar authenticated-sidebar header-dropdown-sidebar shared-authenticated-overlay-sidebar no-print ${sidebarOpen ? 'open is-open' : ''}`}
+        style={sidebarDropdownStyle}
+        data-sidebar-opacity={sidebarDropdownStyle['--sidebar-runtime-opacity']}
         aria-label="Role navigation"
         aria-hidden={!sidebarOpen}
         inert={sidebarOpen ? undefined : true}
@@ -11547,6 +11575,9 @@ function AdminControlPanel({
     return updateSettings(draft)
   }
 
+  const adminSidebarThemeSource = adminPanelTab === 'button-colors' ? draft.interface_colors : settings.interface_colors
+  const adminSidebarDropdownStyle = getSidebarDropdownRuntimeStyle(adminSidebarThemeSource)
+
   return (
     <div className={`admin-panel-shell ${adminSidebarOpen ? 'admin-sidebar-open' : ''}`}>
       {adminSidebarOpen && (
@@ -11559,7 +11590,9 @@ function AdminControlPanel({
       <aside
         id="admin-subdomain-sidebar"
         ref={adminSidebarRef}
-        className={`admin-sidebar admin-subdomain-sidebar app-sidebar admin-standard-overlay-sidebar no-print ${adminSidebarOpen ? 'open is-open' : ''}`}
+        className={`admin-sidebar admin-subdomain-sidebar app-sidebar header-dropdown-sidebar admin-standard-overlay-sidebar no-print ${adminSidebarOpen ? 'open is-open' : ''}`}
+        style={adminSidebarDropdownStyle}
+        data-sidebar-opacity={adminSidebarDropdownStyle['--sidebar-runtime-opacity']}
         aria-label="Admin Subdomain navigation"
         aria-hidden={!adminSidebarOpen}
         inert={adminSidebarOpen ? undefined : true}
