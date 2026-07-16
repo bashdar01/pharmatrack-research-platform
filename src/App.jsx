@@ -9605,7 +9605,7 @@ export default function App() {
   const sidebarDropdownStyle = getSidebarDropdownRuntimeStyle(websiteSettings?.interface_colors)
 
   return (
-    <div className={`app app-main-shell main-dashboard-with-sidebar role-${allowedRole} ${sidebarOpen ? 'sidebar-open' : ''}`}>
+    <div className={`app app-main-shell main-dashboard-with-sidebar header-dropdown-shell role-${allowedRole} ${sidebarOpen ? 'sidebar-open' : ''}`}>
       {sidebarOpen && (
         <div
           className="sidebar-outside-layer role-sidebar-outside-layer no-print"
@@ -11579,7 +11579,7 @@ function AdminControlPanel({
   const adminSidebarDropdownStyle = getSidebarDropdownRuntimeStyle(adminSidebarThemeSource)
 
   return (
-    <div className={`admin-panel-shell ${adminSidebarOpen ? 'admin-sidebar-open' : ''}`}>
+    <div className={`admin-panel-shell header-dropdown-shell ${adminSidebarOpen ? 'admin-sidebar-open' : ''}`}>
       {adminSidebarOpen && (
         <div
           className="sidebar-outside-layer admin-sidebar-outside-layer no-print"

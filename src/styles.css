@@ -18507,7 +18507,7 @@ html body #root .admin-side-nav {
 
 html body #root .admin-sidebar .admin-side-nav button,
 html body #root .admin-sidebar .admin-logout {
-  background: var(--sidebar-inactive-bg) !important;
+  background: var(--sidebar-inactive-bg-rgba, var(--sidebar-inactive-bg)) !important;
   color: var(--sidebar-inactive-text) !important;
   border: 1px solid var(--sidebar-border) !important;
   box-shadow: none !important;
@@ -18520,7 +18520,8 @@ html body #root .admin-sidebar .admin-logout span:not(.side-nav-icon) {
 
 html body #root .admin-sidebar .admin-side-nav button:hover,
 html body #root .admin-sidebar .admin-side-nav button.active {
-  background: var(--sidebar-active-bg) !important;
+  background: var(--sidebar-runtime-active-bg, var(--sidebar-active-bg-rgba, var(--sidebar-active-bg))) !important;
+  background-color: var(--sidebar-runtime-active-bg, var(--sidebar-active-bg-rgba, var(--sidebar-active-bg))) !important;
   color: var(--sidebar-active-text) !important;
   border-color: var(--sidebar-border) !important;
   box-shadow: 0 8px 18px var(--sidebar-shadow) !important;
@@ -23538,8 +23539,9 @@ html body #root#root .main-compact-header :is(.student-profile-trigger, .student
 
 /* Full role and Admin Subdomain Sidebar appearance. */
 html body #root#root :is(.app-main-shell .main-sidebar, .main-sidebar, .admin-sidebar) {
-  background: linear-gradient(180deg, var(--sidebar-bg), var(--sidebar-secondary-bg)) !important;
-  background-color: var(--sidebar-bg) !important;
+  background: var(--sidebar-runtime-panel-bg, var(--sidebar-bg-rgba, var(--sidebar-bg))) !important;
+  background-color: var(--sidebar-runtime-panel-bg, var(--sidebar-bg-rgba, var(--sidebar-bg))) !important;
+  background-image: none !important;
   color: var(--sidebar-text) !important;
   border-color: var(--sidebar-border) !important;
   box-shadow: 6px 0 24px var(--sidebar-shadow) !important;
@@ -23555,8 +23557,8 @@ html body #root#root :is(.main-sidebar, .admin-sidebar) :is(.admin-logo-mark, .a
 }
 
 html body #root#root :is(.main-side-nav button, .main-side-nav .sidebar-utility-link, .admin-side-nav button) {
-  background: var(--sidebar-inactive-bg) !important;
-  background-color: var(--sidebar-inactive-bg) !important;
+  background: var(--sidebar-runtime-inactive-bg, var(--sidebar-inactive-bg-rgba, var(--sidebar-inactive-bg))) !important;
+  background-color: var(--sidebar-runtime-inactive-bg, var(--sidebar-inactive-bg-rgba, var(--sidebar-inactive-bg))) !important;
   background-image: none !important;
   color: var(--sidebar-inactive-text) !important;
   -webkit-text-fill-color: var(--sidebar-inactive-text) !important;
@@ -23574,8 +23576,8 @@ html body #root#root :is(.main-side-nav button, .main-side-nav .sidebar-utility-
 
 html body #root#root :is(.main-side-nav button, .main-side-nav .sidebar-utility-link, .admin-side-nav button):hover:not(:disabled),
 html body #root#root .interface-sidebar-preview-item.is-hovered {
-  background: var(--sidebar-hover-bg) !important;
-  background-color: var(--sidebar-hover-bg) !important;
+  background: var(--sidebar-runtime-hover-bg, var(--sidebar-hover-bg-rgba, var(--sidebar-hover-bg))) !important;
+  background-color: var(--sidebar-runtime-hover-bg, var(--sidebar-hover-bg-rgba, var(--sidebar-hover-bg))) !important;
   color: var(--sidebar-hover-text) !important;
   -webkit-text-fill-color: var(--sidebar-hover-text) !important;
   border-color: var(--sidebar-border) !important;
@@ -23588,8 +23590,8 @@ html body #root#root .interface-sidebar-preview-item.is-hovered svg {
 
 html body #root#root :is(.main-side-nav button.active, .main-side-nav button[aria-current="page"], .main-side-nav .sidebar-utility-link.active, .admin-side-nav button.active, .admin-side-nav button[aria-current="page"]),
 html body #root#root .interface-sidebar-preview-item.active {
-  background: var(--sidebar-active-bg) !important;
-  background-color: var(--sidebar-active-bg) !important;
+  background: var(--sidebar-runtime-active-bg, var(--sidebar-active-bg-rgba, var(--sidebar-active-bg))) !important;
+  background-color: var(--sidebar-runtime-active-bg, var(--sidebar-active-bg-rgba, var(--sidebar-active-bg))) !important;
   color: var(--sidebar-active-text) !important;
   -webkit-text-fill-color: var(--sidebar-active-text) !important;
   border-color: var(--sidebar-border) !important;
@@ -23601,8 +23603,8 @@ html body #root#root .interface-sidebar-preview-item.active svg {
 }
 
 html body #root#root :is(.sidebar-utility-nav button:not(.active):not(:hover), .sidebar-utility-nav .sidebar-utility-link:not(:hover), .admin-sidebar .admin-logout) {
-  background: var(--sidebar-utility-bg) !important;
-  background-color: var(--sidebar-utility-bg) !important;
+  background: var(--sidebar-runtime-utility-bg, var(--sidebar-utility-bg-rgba, var(--sidebar-utility-bg))) !important;
+  background-color: var(--sidebar-runtime-utility-bg, var(--sidebar-utility-bg-rgba, var(--sidebar-utility-bg))) !important;
   color: var(--sidebar-utility-text) !important;
   -webkit-text-fill-color: var(--sidebar-utility-text) !important;
   border-color: var(--sidebar-border) !important;
@@ -23898,11 +23900,11 @@ html body #root#root .interface-sidebar-preview :is(.interface-sidebar-preview-i
   gap: 8px;
   border: 1px solid var(--sidebar-border) !important;
   border-radius: 9px;
-  background: var(--sidebar-inactive-bg) !important;
+  background: var(--sidebar-inactive-bg-rgba, var(--sidebar-inactive-bg)) !important;
   color: var(--sidebar-inactive-text) !important;
 }
 html body #root#root .interface-sidebar-preview .interface-sidebar-preview-utility {
-  background: var(--sidebar-utility-bg) !important;
+  background: var(--sidebar-utility-bg-rgba, var(--sidebar-utility-bg)) !important;
   color: var(--sidebar-utility-text) !important;
 }
 
@@ -24027,12 +24029,12 @@ html body #root#root :is(
   .admin-subdomain-sidebar,
   .admin-portal-sidebar
 ) {
-  background: linear-gradient(180deg, var(--sidebar-bg), var(--sidebar-secondary-bg)) !important;
-  background-color: var(--sidebar-bg) !important;
-  background-image: linear-gradient(180deg, var(--sidebar-bg), var(--sidebar-secondary-bg)) !important;
+  background: var(--sidebar-runtime-panel-bg, var(--sidebar-bg-rgba, var(--sidebar-bg))) !important;
+  background-color: var(--sidebar-runtime-panel-bg, var(--sidebar-bg-rgba, var(--sidebar-bg))) !important;
+  background-image: none !important;
   color: var(--sidebar-text) !important;
   border-color: var(--sidebar-border) !important;
-  box-shadow: 6px 0 24px var(--sidebar-shadow) !important;
+  box-shadow: 0 16px 36px var(--sidebar-shadow) !important;
 }
 
 /* The navigation surface itself must never expose the old gray rail. */
@@ -24046,8 +24048,8 @@ html body #root#root :is(
   .admin-sidebar-list,
   .admin-sidebar-inner
 ) {
-  background: var(--sidebar-bg) !important;
-  background-color: var(--sidebar-bg) !important;
+  background: transparent !important;
+  background-color: transparent !important;
   background-image: none !important;
   border: 0 !important;
   box-shadow: none !important;
@@ -24395,8 +24397,8 @@ html body #root#root :is(
   gap: 8px !important;
   padding: 10px !important;
   margin: 0 !important;
-  background: var(--sidebar-bg) !important;
-  background-color: var(--sidebar-bg) !important;
+  background: transparent !important;
+  background-color: transparent !important;
   background-image: none !important;
 }
 
@@ -24432,7 +24434,8 @@ html body #root#root :is(
   .admin-side-nav button,
   .admin-sidebar .admin-logout
 ):not(.active):not(:hover) {
-  background: var(--sidebar-inactive-bg) !important;
+  background: var(--sidebar-runtime-inactive-bg, var(--sidebar-inactive-bg-rgba, var(--sidebar-inactive-bg))) !important;
+  background-color: var(--sidebar-runtime-inactive-bg, var(--sidebar-inactive-bg-rgba, var(--sidebar-inactive-bg))) !important;
   color: var(--sidebar-inactive-text) !important;
   border-color: var(--sidebar-border) !important;
 }
@@ -24443,7 +24446,8 @@ html body #root#root :is(
   .admin-side-nav button,
   .admin-sidebar .admin-logout
 ):hover:not(:disabled) {
-  background: var(--sidebar-hover-bg) !important;
+  background: var(--sidebar-runtime-hover-bg, var(--sidebar-hover-bg-rgba, var(--sidebar-hover-bg))) !important;
+  background-color: var(--sidebar-runtime-hover-bg, var(--sidebar-hover-bg-rgba, var(--sidebar-hover-bg))) !important;
   color: var(--sidebar-hover-text) !important;
   border-color: var(--sidebar-border) !important;
 }
@@ -24456,7 +24460,8 @@ html body #root#root :is(
   .admin-side-nav button.active,
   .admin-side-nav button[aria-current="page"]
 ) {
-  background: var(--sidebar-active-bg) !important;
+  background: var(--sidebar-runtime-active-bg, var(--sidebar-active-bg-rgba, var(--sidebar-active-bg))) !important;
+  background-color: var(--sidebar-runtime-active-bg, var(--sidebar-active-bg-rgba, var(--sidebar-active-bg))) !important;
   color: var(--sidebar-active-text) !important;
   border-color: var(--sidebar-border) !important;
 }
@@ -24577,37 +24582,43 @@ html body #root#root :is(.main-side-nav, .admin-side-nav) :is(.side-nav-icon, .s
   object-fit: contain !important;
 }
 
-/* Admin Subdomain spaces and wrappers use the selected background, never a gray rail. */
+/* Admin Subdomain panel uses the shared alpha; internal wrappers stay transparent. */
+html body #root#root .admin-sidebar {
+  background: var(--sidebar-runtime-panel-bg, var(--sidebar-bg-rgba, var(--sidebar-bg))) !important;
+  background-color: var(--sidebar-runtime-panel-bg, var(--sidebar-bg-rgba, var(--sidebar-bg))) !important;
+  background-image: none !important;
+}
+
 html body #root#root :is(
-  .admin-sidebar,
   .admin-sidebar .admin-side-nav,
   .admin-sidebar .admin-brand-block,
   .admin-sidebar .admin-sidebar-inner,
   .admin-sidebar .admin-sidebar-list
 ) {
-  background-color: var(--sidebar-bg) !important;
+  background: transparent !important;
+  background-color: transparent !important;
   background-image: none !important;
 }
 
 @media (max-width: 768px) {
   html body #root#root .main-compact-header {
-    min-height: 56px !important;
-    height: 56px !important;
-    padding-right: 10px !important;
+    min-height: 48px !important;
+    height: 48px !important;
+    padding-right: 8px !important;
   }
 
   html body #root#root .main-compact-header .main-compact-left {
-    min-width: 56px !important;
-    height: 56px !important;
+    min-width: 48px !important;
+    height: 48px !important;
   }
 
   html body #root#root .main-compact-header button.sidebar-menu-toggle {
-    width: 56px !important;
-    min-width: 56px !important;
-    max-width: 56px !important;
-    height: 56px !important;
-    min-height: 56px !important;
-    max-height: 56px !important;
+    width: 48px !important;
+    min-width: 48px !important;
+    max-width: 48px !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
   }
 
   html body #root#root .main-compact-header .main-header-actions {
@@ -27464,4 +27475,192 @@ html body #root .interface-sidebar-preview-utility { background: var(--sidebar-u
     max-width: 292px !important;
     max-height: calc(100dvh - var(--top-header-height, 48px) - 6px) !important;
   }
+}
+
+/* ========================================================================
+   VERIFIED FINAL SIDEBAR MODE — HEADER-ANCHORED VERTICAL DROPDOWN
+   This selector is intentionally more specific than every historical
+   left-drawer/grid rule. It uses clip-path instead of horizontal transform,
+   so the menu cannot animate in from the left.
+   ======================================================================== */
+html body #root .app.app-main-shell.main-dashboard-with-sidebar.header-dropdown-shell,
+html body #root .app.app-main-shell.main-dashboard-with-sidebar.header-dropdown-shell.sidebar-open,
+html body #root .admin-panel-shell.header-dropdown-shell,
+html body #root .admin-panel-shell.header-dropdown-shell.admin-sidebar-open {
+  display: block !important;
+  grid-template-columns: none !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  min-height: 100vh !important;
+  overflow-x: clip !important;
+  contain: none !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+html body #root .app.app-main-shell.main-dashboard-with-sidebar.header-dropdown-shell .main-workspace,
+html body #root .admin-panel-shell.header-dropdown-shell .admin-panel-main {
+  display: block !important;
+  grid-column: auto !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding-left: 0 !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+html body #root .app.app-main-shell.main-dashboard-with-sidebar.header-dropdown-shell
+  .main-sidebar.app-sidebar.authenticated-sidebar.header-dropdown-sidebar.shared-authenticated-overlay-sidebar,
+html body #root .admin-panel-shell.header-dropdown-shell
+  .admin-sidebar.admin-subdomain-sidebar.app-sidebar.header-dropdown-sidebar.admin-standard-overlay-sidebar {
+  position: fixed !important;
+  top: var(--top-header-height, 52px) !important;
+  left: 0 !important;
+  right: auto !important;
+  bottom: auto !important;
+  grid-column: auto !important;
+
+  width: min(310px, calc(100vw - 16px)) !important;
+  min-width: 0 !important;
+  max-width: 310px !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: calc(100dvh - var(--top-header-height, 52px) - 8px) !important;
+  margin: 0 !important;
+  padding: 10px !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  z-index: 1200 !important;
+
+  background: var(--sidebar-runtime-panel-bg, var(--sidebar-bg-rgba, rgba(41, 40, 41, .88))) !important;
+  background-color: var(--sidebar-runtime-panel-bg, var(--sidebar-bg-rgba, rgba(41, 40, 41, .88))) !important;
+  background-image: none !important;
+  color: var(--sidebar-text, #fff) !important;
+  border: 1px solid var(--sidebar-border, rgba(255,255,255,.12)) !important;
+  border-top: 0 !important;
+  border-radius: 0 0 16px 0 !important;
+  box-shadow: 0 16px 36px var(--sidebar-shadow, rgba(15,23,42,.18)) !important;
+  backdrop-filter: blur(var(--sidebar-runtime-blur, var(--sidebar-effective-backdrop-blur, 8px))) !important;
+  -webkit-backdrop-filter: blur(var(--sidebar-runtime-blur, var(--sidebar-effective-backdrop-blur, 8px))) !important;
+
+  /* No horizontal movement at any point. */
+  translate: none !important;
+  transform: none !important;
+  transform-origin: top left !important;
+  clip-path: inset(0 0 100% 0) !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  will-change: clip-path, opacity !important;
+  transition:
+    clip-path 230ms cubic-bezier(.22, 1, .36, 1),
+    opacity 150ms ease,
+    visibility 230ms step-end !important;
+}
+
+html body #root .app.app-main-shell.main-dashboard-with-sidebar.header-dropdown-shell.sidebar-open
+  .main-sidebar.app-sidebar.authenticated-sidebar.header-dropdown-sidebar.shared-authenticated-overlay-sidebar.open.is-open,
+html body #root .admin-panel-shell.header-dropdown-shell.admin-sidebar-open
+  .admin-sidebar.admin-subdomain-sidebar.app-sidebar.header-dropdown-sidebar.admin-standard-overlay-sidebar.open.is-open {
+  left: 0 !important;
+  translate: none !important;
+  transform: none !important;
+  clip-path: inset(0 0 0 0) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transition:
+    clip-path 230ms cubic-bezier(.22, 1, .36, 1),
+    opacity 150ms ease,
+    visibility 0s step-start !important;
+}
+
+/* The real panel and every button use the Admin-selected shared alpha.
+   Only backgrounds are translucent; labels remain fully opaque. */
+html body #root .app.app-main-shell.main-dashboard-with-sidebar.header-dropdown-shell
+  .main-sidebar.header-dropdown-sidebar :is(.sidebar-nav-item, .sidebar-utility-link),
+html body #root .admin-panel-shell.header-dropdown-shell
+  .admin-sidebar.header-dropdown-sidebar :is(.admin-sidebar-link, .admin-logout) {
+  opacity: 1 !important;
+}
+
+html body #root .app.app-main-shell.main-dashboard-with-sidebar.header-dropdown-shell
+  .main-sidebar.header-dropdown-sidebar .sidebar-nav-item,
+html body #root .admin-panel-shell.header-dropdown-shell
+  .admin-sidebar.header-dropdown-sidebar .admin-sidebar-link {
+  background: var(--sidebar-runtime-inactive-bg, var(--sidebar-inactive-bg-rgba, rgba(255,255,255,.88))) !important;
+  background-color: var(--sidebar-runtime-inactive-bg, var(--sidebar-inactive-bg-rgba, rgba(255,255,255,.88))) !important;
+  color: var(--sidebar-inactive-text, #fff) !important;
+}
+
+html body #root .app.app-main-shell.main-dashboard-with-sidebar.header-dropdown-shell
+  .main-sidebar.header-dropdown-sidebar .sidebar-utility-link,
+html body #root .admin-panel-shell.header-dropdown-shell
+  .admin-sidebar.header-dropdown-sidebar .admin-logout {
+  background: var(--sidebar-runtime-utility-bg, var(--sidebar-utility-bg-rgba, rgba(255,255,255,.88))) !important;
+  background-color: var(--sidebar-runtime-utility-bg, var(--sidebar-utility-bg-rgba, rgba(255,255,255,.88))) !important;
+  color: var(--sidebar-utility-text, #fff) !important;
+}
+
+html body #root .app.app-main-shell.main-dashboard-with-sidebar.header-dropdown-shell
+  .main-sidebar.header-dropdown-sidebar :is(.sidebar-nav-item, .sidebar-utility-link):hover,
+html body #root .admin-panel-shell.header-dropdown-shell
+  .admin-sidebar.header-dropdown-sidebar :is(.admin-sidebar-link, .admin-logout):hover {
+  background: var(--sidebar-runtime-hover-bg, var(--sidebar-hover-bg-rgba, rgba(255,255,255,.88))) !important;
+  background-color: var(--sidebar-runtime-hover-bg, var(--sidebar-hover-bg-rgba, rgba(255,255,255,.88))) !important;
+  color: var(--sidebar-hover-text, #fff) !important;
+}
+
+html body #root .app.app-main-shell.main-dashboard-with-sidebar.header-dropdown-shell
+  .main-sidebar.header-dropdown-sidebar .sidebar-nav-item:is(.active, [aria-current="page"]),
+html body #root .admin-panel-shell.header-dropdown-shell
+  .admin-sidebar.header-dropdown-sidebar .admin-sidebar-link:is(.active, [aria-current="page"]) {
+  background: var(--sidebar-runtime-active-bg, var(--sidebar-active-bg-rgba, rgba(255,255,255,.88))) !important;
+  background-color: var(--sidebar-runtime-active-bg, var(--sidebar-active-bg-rgba, rgba(255,255,255,.88))) !important;
+  color: var(--sidebar-active-text, #4d4c4d) !important;
+}
+
+html body #root .header-dropdown-shell .header-dropdown-sidebar :is(.sidebar-item-label, .sidebar-link-label) {
+  opacity: 1 !important;
+  color: inherit !important;
+}
+
+html body #root .header-dropdown-shell :is(.sidebar-outside-layer, .role-sidebar-outside-layer, .admin-sidebar-outside-layer) {
+  position: fixed !important;
+  inset: var(--top-header-height, 52px) 0 0 0 !important;
+  z-index: 1190 !important;
+  background: transparent !important;
+  opacity: 1 !important;
+  transform: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+@media (max-width: 768px) {
+  html body #root .app.app-main-shell.main-dashboard-with-sidebar.header-dropdown-shell
+    .main-sidebar.app-sidebar.authenticated-sidebar.header-dropdown-sidebar.shared-authenticated-overlay-sidebar,
+  html body #root .admin-panel-shell.header-dropdown-shell
+    .admin-sidebar.admin-subdomain-sidebar.app-sidebar.header-dropdown-sidebar.admin-standard-overlay-sidebar {
+    top: var(--top-header-height, 48px) !important;
+    width: min(292px, calc(100vw - 10px)) !important;
+    max-width: 292px !important;
+    max-height: calc(100dvh - var(--top-header-height, 48px) - 6px) !important;
+  }
+}
+
+/* Shared-alpha utility state at the same high specificity as the legacy theme layer. */
+html body #root#root .header-dropdown-shell .header-dropdown-sidebar :is(
+  .sidebar-utility-link,
+  .admin-logout
+) {
+  background: var(--sidebar-runtime-utility-bg, var(--sidebar-utility-bg-rgba, var(--sidebar-utility-bg))) !important;
+  background-color: var(--sidebar-runtime-utility-bg, var(--sidebar-utility-bg-rgba, var(--sidebar-utility-bg))) !important;
+  color: var(--sidebar-utility-text, #fff) !important;
+  opacity: 1 !important;
 }
