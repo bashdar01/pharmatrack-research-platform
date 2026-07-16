@@ -27806,3 +27806,123 @@ html body #root .profile-user-role {
     min-height: 30px !important;
   }
 }
+
+/* =========================================================
+   ULTRA-SLIM TOP-HEADER BACKGROUND STRIP
+   Reduces the visible authenticated header bar itself while
+   keeping Hamburger and Inbox as matching full-square controls.
+   ========================================================= */
+:root {
+  --top-header-height: 36px;
+}
+
+html body #root .main-compact-header,
+html body #root .admin-panel-topbar,
+html body #root .dashboard-topbar,
+html body #root .authenticated-header,
+html body #root .top-header {
+  min-height: var(--top-header-height, 36px) !important;
+  height: var(--top-header-height, 36px) !important;
+  max-height: var(--top-header-height, 36px) !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  border-bottom-width: 1px !important;
+}
+
+html body #root button.sidebar-menu-toggle,
+html body #root button.hamburger-button,
+html body #root button.admin-sidebar-menu-toggle,
+html body #root#root#root .main-compact-header .notification-bell-menu > button.main-notification-button.header-inbox-button,
+html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button,
+html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button {
+  width: var(--top-header-height, 36px) !important;
+  min-width: var(--top-header-height, 36px) !important;
+  max-width: var(--top-header-height, 36px) !important;
+  height: var(--top-header-height, 36px) !important;
+  min-height: var(--top-header-height, 36px) !important;
+  max-height: var(--top-header-height, 36px) !important;
+  padding: 0 !important;
+}
+
+html body #root button.sidebar-menu-toggle svg,
+html body #root button.hamburger-button svg,
+html body #root button.admin-sidebar-menu-toggle svg {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+html body #root#root#root .main-compact-header .notification-bell-menu:has(> button.header-inbox-button),
+html body #root#root#root .main-header-actions .notification-bell-menu:has(> button.header-inbox-button),
+html body #root .main-compact-header .main-header-actions,
+html body #root .main-dashboard-with-sidebar .main-header-actions,
+html body #root .dashboard-topbar .main-header-actions,
+html body #root .admin-topbar-actions {
+  min-height: var(--top-header-height, 36px) !important;
+  height: var(--top-header-height, 36px) !important;
+  max-height: var(--top-header-height, 36px) !important;
+}
+
+html body #root .main-compact-header .role-switch-dropdown,
+html body #root .main-header-actions .role-switch-dropdown,
+html body #root .role-switch-dropdown.role-switch-label-hidden,
+html body #root .admin-topbar-actions select,
+html body #root .admin-topbar-actions button:not(.admin-sidebar-menu-toggle) {
+  min-height: 25px !important;
+  height: 25px !important;
+  padding-top: 0.1rem !important;
+  padding-bottom: 0.1rem !important;
+}
+
+html body #root .main-compact-header .student-profile-trigger,
+html body #root .main-compact-header .student-profile-trigger.redesigned,
+html body #root .main-compact-header .user-profile-menu .student-profile-trigger.redesigned,
+html body #root .main-header-actions .student-profile-trigger,
+html body #root .main-header-actions .student-profile-trigger.redesigned,
+html body #root .main-header-actions .user-profile-menu .student-profile-trigger.redesigned,
+html body #root .profile-avatar,
+html body #root .avatar-circle,
+html body #root .user-avatar {
+  width: 26px !important;
+  min-width: 26px !important;
+  height: 26px !important;
+  min-height: 26px !important;
+  max-height: 26px !important;
+}
+
+html body #root#root#root .main-compact-header .header-inbox-button .inbox-button-label,
+html body #root#root#root .main-header-actions .header-inbox-button .inbox-button-label {
+  font-size: 0.67rem !important;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --top-header-height: 34px;
+  }
+
+  html body #root button.sidebar-menu-toggle,
+  html body #root button.hamburger-button,
+  html body #root button.admin-sidebar-menu-toggle,
+  html body #root#root#root .main-compact-header .notification-bell-menu > button.main-notification-button.header-inbox-button,
+  html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button,
+  html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button {
+    width: var(--top-header-height, 34px) !important;
+    min-width: var(--top-header-height, 34px) !important;
+    max-width: var(--top-header-height, 34px) !important;
+    height: var(--top-header-height, 34px) !important;
+    min-height: var(--top-header-height, 34px) !important;
+    max-height: var(--top-header-height, 34px) !important;
+  }
+
+  html body #root .main-compact-header .student-profile-trigger,
+  html body #root .main-compact-header .student-profile-trigger.redesigned,
+  html body #root .main-header-actions .student-profile-trigger,
+  html body #root .main-header-actions .student-profile-trigger.redesigned,
+  html body #root .profile-avatar,
+  html body #root .avatar-circle,
+  html body #root .user-avatar {
+    width: 24px !important;
+    min-width: 24px !important;
+    height: 24px !important;
+    min-height: 24px !important;
+  }
+}
