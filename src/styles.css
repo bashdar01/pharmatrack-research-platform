@@ -25073,14 +25073,14 @@ html body #root .admin-subdomain-role-hero {
 }
 
 /* =========================================================
-   SLIMMER HERO FEATURE SEARCH
-   Keeps the connected input/button design while reducing the
-   control's overall width and vertical height.
+   SLIM HERO FEATURE SEARCH
+   Keeps the connected input/button design slim while giving
+   the desktop search control a little more horizontal space.
    ========================================================= */
 html body #root .role-hero-actions-panel .role-feature-search,
 html body #root .role-feature-search {
-  width: min(740px, calc(100% - 32px)) !important;
-  max-width: 740px !important;
+  width: min(840px, calc(100% - 32px)) !important;
+  max-width: 840px !important;
 }
 
 html body #root .role-hero-actions-panel .role-feature-search__box,
