@@ -28073,3 +28073,206 @@ html body #root .main-header-actions .profile-role {
     font-size: 0.59rem !important;
   }
 }
+
+/* =========================================================
+   FINAL THIN BACKGROUND STRIP WITH NORMAL-SIZE HEADER CONTROLS
+   The header keeps enough layout height for accessible controls,
+   while only the colored background strip is visually thin.
+   ========================================================= */
+:root {
+  --top-header-height: 52px;
+  --top-header-strip-height: 24px;
+  --top-header-control-size: 52px;
+}
+
+html body #root .main-compact-header,
+html body #root .admin-panel-topbar,
+html body #root .dashboard-topbar,
+html body #root .authenticated-header,
+html body #root .top-header {
+  position: relative !important;
+  isolation: isolate !important;
+  min-height: var(--top-header-height, 52px) !important;
+  height: var(--top-header-height, 52px) !important;
+  max-height: var(--top-header-height, 52px) !important;
+  padding: 0 12px 0 0 !important;
+  overflow: visible !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+html body #root .main-compact-header::before,
+html body #root .admin-panel-topbar::before,
+html body #root .dashboard-topbar::before,
+html body #root .authenticated-header::before,
+html body #root .top-header::before {
+  content: "" !important;
+  position: absolute !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: 50% !important;
+  height: var(--top-header-strip-height, 24px) !important;
+  transform: translateY(-50%) !important;
+  background: var(--top-header-bg, #ffffff) !important;
+  background-color: var(--top-header-bg, #ffffff) !important;
+  background-image: none !important;
+  border-top: 1px solid var(--top-header-border, #e5e7eb) !important;
+  border-bottom: 1px solid var(--top-header-border, #e5e7eb) !important;
+  box-shadow: 0 3px 12px var(--top-header-shadow, rgba(15, 23, 42, 0.08)) !important;
+}
+
+html body #root .main-compact-header > *,
+html body #root .admin-panel-topbar > *,
+html body #root .dashboard-topbar > *,
+html body #root .authenticated-header > *,
+html body #root .top-header > * {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Restore normal, comfortable full-square hamburger and Inbox controls. */
+html body #root button.sidebar-menu-toggle,
+html body #root button.hamburger-button,
+html body #root button.admin-sidebar-menu-toggle,
+html body #root#root#root .main-compact-header .notification-bell-menu > button.main-notification-button.header-inbox-button,
+html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button,
+html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button {
+  width: var(--top-header-control-size, 52px) !important;
+  min-width: var(--top-header-control-size, 52px) !important;
+  max-width: var(--top-header-control-size, 52px) !important;
+  height: var(--top-header-control-size, 52px) !important;
+  min-height: var(--top-header-control-size, 52px) !important;
+  max-height: var(--top-header-control-size, 52px) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  align-self: center !important;
+}
+
+html body #root button.sidebar-menu-toggle svg,
+html body #root button.hamburger-button svg,
+html body #root button.admin-sidebar-menu-toggle svg {
+  width: 23px !important;
+  height: 23px !important;
+  stroke-width: 2.2 !important;
+}
+
+html body #root .main-compact-header .main-header-actions,
+html body #root .main-dashboard-with-sidebar .main-header-actions,
+html body #root .dashboard-topbar .main-header-actions,
+html body #root .admin-topbar-actions,
+html body #root#root#root .main-compact-header .notification-bell-menu:has(> button.header-inbox-button),
+html body #root#root#root .main-header-actions .notification-bell-menu:has(> button.header-inbox-button) {
+  min-height: var(--top-header-height, 52px) !important;
+  height: var(--top-header-height, 52px) !important;
+  max-height: var(--top-header-height, 52px) !important;
+  gap: 8px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  align-items: center !important;
+}
+
+html body #root .main-compact-header .role-switch-dropdown,
+html body #root .main-header-actions .role-switch-dropdown,
+html body #root .role-switch-dropdown.role-switch-label-hidden,
+html body #root .admin-topbar-actions select,
+html body #root .admin-topbar-actions button:not(.admin-sidebar-menu-toggle) {
+  min-height: 34px !important;
+  height: 34px !important;
+  max-height: 34px !important;
+  padding: 0 10px !important;
+  font-size: 0.82rem !important;
+  line-height: 1.1 !important;
+  border-radius: 8px !important;
+}
+
+html body #root .main-compact-header .student-profile-trigger,
+html body #root .main-compact-header .student-profile-trigger.redesigned,
+html body #root .main-compact-header .user-profile-menu .student-profile-trigger.redesigned,
+html body #root .main-header-actions .student-profile-trigger,
+html body #root .main-header-actions .student-profile-trigger.redesigned,
+html body #root .main-header-actions .user-profile-menu .student-profile-trigger.redesigned,
+html body #root .profile-avatar,
+html body #root .avatar-circle,
+html body #root .user-avatar {
+  width: 38px !important;
+  min-width: 38px !important;
+  max-width: 38px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  font-size: 0.86rem !important;
+}
+
+html body #root#root#root .main-compact-header .header-inbox-button .inbox-button-label,
+html body #root#root#root .main-header-actions .header-inbox-button .inbox-button-label {
+  font-size: 0.84rem !important;
+  line-height: 1 !important;
+  letter-spacing: -0.01em !important;
+}
+
+html body #root .main-compact-header .profile-name,
+html body #root .main-header-actions .profile-name,
+html body #root .main-compact-header .profile-role,
+html body #root .main-header-actions .profile-role {
+  font-size: 0.78rem !important;
+  line-height: 1.1 !important;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --top-header-height: 48px;
+    --top-header-strip-height: 20px;
+    --top-header-control-size: 48px;
+  }
+
+  html body #root .main-compact-header,
+  html body #root .admin-panel-topbar,
+  html body #root .dashboard-topbar,
+  html body #root .authenticated-header,
+  html body #root .top-header {
+    padding-right: 8px !important;
+  }
+
+  html body #root button.sidebar-menu-toggle svg,
+  html body #root button.hamburger-button svg,
+  html body #root button.admin-sidebar-menu-toggle svg {
+    width: 21px !important;
+    height: 21px !important;
+  }
+
+  html body #root .main-compact-header .student-profile-trigger,
+  html body #root .main-compact-header .student-profile-trigger.redesigned,
+  html body #root .main-header-actions .student-profile-trigger,
+  html body #root .main-header-actions .student-profile-trigger.redesigned,
+  html body #root .profile-avatar,
+  html body #root .avatar-circle,
+  html body #root .user-avatar {
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+  }
+
+  html body #root .main-compact-header .role-switch-dropdown,
+  html body #root .main-header-actions .role-switch-dropdown,
+  html body #root .role-switch-dropdown.role-switch-label-hidden {
+    min-height: 30px !important;
+    height: 30px !important;
+    max-height: 30px !important;
+    padding: 0 8px !important;
+    font-size: 0.74rem !important;
+  }
+
+  html body #root#root#root .main-compact-header .header-inbox-button .inbox-button-label,
+  html body #root#root#root .main-header-actions .header-inbox-button .inbox-button-label {
+    font-size: 0.76rem !important;
+  }
+}
