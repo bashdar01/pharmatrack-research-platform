@@ -967,28 +967,35 @@ const DEFAULT_INTERFACE_COLORS = {
   },
   sidebar: {
     background: '#292829',
-    backgroundOpacity: 92,
-    backdropBlur: 8,
-    secondaryBackground: '#292829',
     border: 'rgba(255, 255, 255, 0.12)',
     shadow: 'rgba(15, 23, 42, 0.18)',
     text: '#ffffff',
-    icon: '#ffffff',
-    inactiveBackground: 'rgba(255, 255, 255, 0.10)',
+    inactiveBackground: '#ffffff',
     inactiveText: '#ffffff',
-    inactiveIcon: '#ffffff',
+    inactiveButtonOpacity: 12,
     hoverBackground: '#ffffff',
-    hoverText: '#4d4c4d',
-    hoverIcon: '#4d4c4d',
+    hoverText: '#ffffff',
+    hoverButtonOpacity: 22,
     activeBackground: '#ffffff',
     activeText: '#4d4c4d',
-    activeIcon: '#4d4c4d',
-    utilityBackground: 'rgba(255, 255, 255, 0.10)',
+    activeButtonOpacity: 92,
+    utilityBackground: '#ffffff',
     utilityText: '#ffffff',
-    closeButtonBackground: 'rgba(255, 255, 255, 0.12)',
-    closeButtonIcon: '#ffffff',
+    utilityButtonOpacity: 10,
     scrollbarTrack: 'transparent',
     scrollbarThumb: 'rgba(255, 255, 255, 0.35)',
+
+    // Legacy fields are retained in saved JSON compatibility only.
+    // Sidebar icons and whole-panel transparency are no longer rendered.
+    backgroundOpacity: 100,
+    backdropBlur: 0,
+    secondaryBackground: '#292829',
+    icon: '#ffffff',
+    inactiveIcon: '#ffffff',
+    hoverIcon: '#ffffff',
+    activeIcon: '#4d4c4d',
+    closeButtonBackground: 'transparent',
+    closeButtonIcon: '#ffffff',
     iconContainerBackground: '#ffffff',
     iconContainerBorder: '#d1d5db',
     iconContainerIcon: '#2f8f86',
@@ -1061,46 +1068,22 @@ const INTERFACE_COLOR_SECTIONS = [
   {
     key: 'sidebar',
     title: 'Sidebar Colors',
-    description: 'Complete role and Admin Subdomain overlay sidebar appearance, navigation states, utility controls, background transparency, blur, and scrollbar.',
+    description: 'One solid overlay sidebar with compact text-only navigation and independently adjustable button background opacity.',
     fields: [
       ['background', 'Sidebar main background'],
-      ['secondaryBackground', 'Sidebar secondary background'],
       ['border', 'Sidebar border color'],
       ['shadow', 'Sidebar shadow color'],
       ['text', 'Sidebar text color'],
-      ['icon', 'Sidebar icon color'],
-      ['inactiveBackground', 'Sidebar inactive item background'],
-      ['inactiveText', 'Sidebar inactive item text'],
-      ['inactiveIcon', 'Sidebar inactive item icon'],
-      ['hoverBackground', 'Sidebar hover background'],
-      ['hoverText', 'Sidebar hover text'],
-      ['hoverIcon', 'Sidebar hover icon'],
-      ['activeBackground', 'Sidebar active background'],
-      ['activeText', 'Sidebar active text'],
-      ['activeIcon', 'Sidebar active icon'],
-      ['utilityBackground', 'Sidebar utility button background'],
-      ['utilityText', 'Sidebar utility button text'],
+      ['inactiveBackground', 'Inactive button background'],
+      ['inactiveText', 'Inactive button text'],
+      ['hoverBackground', 'Hover button background'],
+      ['hoverText', 'Hover button text'],
+      ['activeBackground', 'Active button background'],
+      ['activeText', 'Active button text'],
+      ['utilityBackground', 'Utility button background'],
+      ['utilityText', 'Utility button text'],
       ['scrollbarTrack', 'Sidebar scrollbar track'],
       ['scrollbarThumb', 'Sidebar scrollbar thumb'],
-    ],
-  },
-  {
-    id: 'sidebar-icon-container',
-    key: 'sidebar',
-    title: 'Sidebar Icon Container Colors',
-    description: 'Rounded icon tile background, border, icon, hover, active, disabled, shadow, and corner radius across role and Admin Subdomain sidebars.',
-    fields: [
-      ['iconContainerBackground', 'Icon container background'],
-      ['iconContainerBorder', 'Icon container border'],
-      ['iconContainerIcon', 'Icon color'],
-      ['iconContainerHoverBackground', 'Icon container hover background'],
-      ['iconContainerHoverIcon', 'Icon hover color'],
-      ['iconContainerActiveBackground', 'Icon container active background'],
-      ['iconContainerActiveIcon', 'Icon active color'],
-      ['iconContainerDisabledBackground', 'Icon container disabled background'],
-      ['iconContainerDisabledIcon', 'Icon disabled color'],
-      ['iconContainerShadow', 'Icon container shadow'],
-      ['iconContainerRadius', 'Icon container corner radius'],
     ],
   },
   {
@@ -1181,6 +1164,10 @@ const INTERFACE_COLOR_CSS_VARIABLES = {
     activeIcon: '--sidebar-active-icon',
     utilityBackground: '--sidebar-utility-bg',
     utilityText: '--sidebar-utility-text',
+    inactiveButtonOpacity: '--sidebar-inactive-button-opacity',
+    hoverButtonOpacity: '--sidebar-hover-button-opacity',
+    activeButtonOpacity: '--sidebar-active-button-opacity',
+    utilityButtonOpacity: '--sidebar-utility-button-opacity',
     closeButtonBackground: '--sidebar-close-bg',
     closeButtonIcon: '--sidebar-close-icon',
     scrollbarTrack: '--sidebar-scrollbar-track',
@@ -1268,6 +1255,10 @@ const INTERFACE_COLOR_FIELD_ALIASES = {
   activeIcon: ['activeIcon', 'activeIconColor'],
   utilityBackground: ['utilityBackground', 'utilityBg'],
   utilityText: ['utilityText', 'utilityTextColor'],
+  inactiveButtonOpacity: ['inactiveButtonOpacity', 'inactive_button_opacity', 'inactiveOpacity'],
+  hoverButtonOpacity: ['hoverButtonOpacity', 'hover_button_opacity', 'hoverOpacity'],
+  activeButtonOpacity: ['activeButtonOpacity', 'active_button_opacity', 'activeOpacity'],
+  utilityButtonOpacity: ['utilityButtonOpacity', 'utility_button_opacity', 'utilityOpacity'],
   closeButtonBackground: ['closeButtonBackground', 'closeBackground', 'closeButtonBg'],
   closeButtonIcon: ['closeButtonIcon', 'closeIcon', 'closeButtonIconColor'],
   scrollbarTrack: ['scrollbarTrack', 'scrollTrack'],
@@ -1336,8 +1327,13 @@ function isValidThemeCssColor(value) {
 
 const INTERFACE_LENGTH_FIELDS = new Set(['iconContainerRadius'])
 const INTERFACE_NUMBER_FIELDS = {
-  backgroundOpacity: { min: 0, max: 100, fallback: 92 },
-  backdropBlur: { min: 0, max: 20, fallback: 8 },
+  // Legacy whole-panel controls are normalized for backward compatibility only.
+  backgroundOpacity: { min: 0, max: 100, fallback: 100 },
+  backdropBlur: { min: 0, max: 20, fallback: 0 },
+  inactiveButtonOpacity: { min: 0, max: 50, fallback: 12 },
+  hoverButtonOpacity: { min: 5, max: 70, fallback: 22 },
+  activeButtonOpacity: { min: 30, max: 100, fallback: 92 },
+  utilityButtonOpacity: { min: 0, max: 70, fallback: 10 },
 }
 
 function normalizeInterfaceNumber(fieldKey, value, fallback) {
@@ -1414,40 +1410,41 @@ function applyInterfaceTheme(colors = DEFAULT_INTERFACE_COLORS) {
   }
 
   const sidebar = normalized.sidebar
-  const sidebarOpacity = normalizeInterfaceNumber('backgroundOpacity', sidebar.backgroundOpacity, 92)
-  const sidebarBlur = normalizeInterfaceNumber('backdropBlur', sidebar.backdropBlur, 8)
-  root.style.setProperty('--sidebar-bg-opacity', String(sidebarOpacity))
-  root.style.setProperty('--sidebar-bg-opacity-percent', `${sidebarOpacity}%`)
-  root.style.setProperty('--sidebar-backdrop-blur', `${sidebarBlur}px`)
-  const toSidebarRgba = (value, fallbackRgb = [41, 40, 41]) => {
-    const parsed = parseThemeCssColor(value)
-    const red = parsed ? Math.round(parsed.r) : fallbackRgb[0]
-    const green = parsed ? Math.round(parsed.g) : fallbackRgb[1]
-    const blue = parsed ? Math.round(parsed.b) : fallbackRgb[2]
-    const sourceAlpha = parsed ? (parsed.a ?? 1) : 1
-    const alpha = Math.min(1, Math.max(0, sourceAlpha * (sidebarOpacity / 100)))
-    return `rgba(${red}, ${green}, ${blue}, ${alpha.toFixed(3)})`
-  }
 
-  // Keep the panel element itself fully opaque so labels and icons remain clear.
-  // Only these two background colors receive the selected 0–100% opacity.
-  root.style.setProperty('--sidebar-bg-rgba', toSidebarRgba(sidebar.background))
-  root.style.setProperty('--sidebar-secondary-bg-rgba', toSidebarRgba(sidebar.secondaryBackground, [41, 40, 41]))
-  root.style.setProperty('--sidebar-effective-backdrop-blur', `${sidebarOpacity === 0 ? 0 : sidebarBlur}px`)
+  // The sidebar panel is always fully opaque. Transparency is applied only to
+  // navigation-button backgrounds so labels remain clear and the page never
+  // shows through the full panel.
+  root.style.setProperty('--sidebar-bg', sidebar.background)
+  root.style.setProperty('--sidebar-bg-rgba', sidebar.background)
+  root.style.setProperty('--sidebar-secondary-bg-rgba', sidebar.background)
+  root.style.setProperty('--sidebar-bg-opacity', '100')
+  root.style.setProperty('--sidebar-bg-opacity-percent', '100%')
+  root.style.setProperty('--sidebar-backdrop-blur', '0px')
+  root.style.setProperty('--sidebar-effective-backdrop-blur', '0px')
 
-  // Keep sidebar item-icon colors and rounded icon-container colors independent.
-  // The previous compatibility mapping replaced the icon-container color with the
-  // inactive item color. With the common white inactive icon and white container
-  // background, real role-sidebar icons became invisible even though the preview
-  // could still appear correct. The canonical interface_colors.sidebar values now
-  // map directly to their matching CSS variables.
+  root.style.setProperty(
+    '--sidebar-inactive-button-opacity',
+    String(normalizeInterfaceNumber('inactiveButtonOpacity', sidebar.inactiveButtonOpacity, 12)),
+  )
+  root.style.setProperty(
+    '--sidebar-hover-button-opacity',
+    String(normalizeInterfaceNumber('hoverButtonOpacity', sidebar.hoverButtonOpacity, 22)),
+  )
+  root.style.setProperty(
+    '--sidebar-active-button-opacity',
+    String(normalizeInterfaceNumber('activeButtonOpacity', sidebar.activeButtonOpacity, 92)),
+  )
+  root.style.setProperty(
+    '--sidebar-utility-button-opacity',
+    String(normalizeInterfaceNumber('utilityButtonOpacity', sidebar.utilityButtonOpacity, 10)),
+  )
+
+  // Legacy icon variables remain defined so old saved settings stay valid,
+  // although sidebar icons are no longer rendered.
   root.style.setProperty('--sidebar-icon', sidebar.icon)
   root.style.setProperty('--sidebar-inactive-icon', sidebar.inactiveIcon)
   root.style.setProperty('--sidebar-hover-icon', sidebar.hoverIcon)
   root.style.setProperty('--sidebar-active-icon', sidebar.activeIcon)
-  root.style.setProperty('--sidebar-icon-inactive', sidebar.iconContainerIcon)
-  root.style.setProperty('--sidebar-icon-hover', sidebar.iconContainerHoverIcon)
-  root.style.setProperty('--sidebar-icon-active', sidebar.iconContainerActiveIcon)
 
   const compatibilityVariables = {
     '--sidebar-btn-inactive-bg': sidebar.inactiveBackground,
@@ -1461,6 +1458,10 @@ function applyInterfaceTheme(colors = DEFAULT_INTERFACE_COLORS) {
     '--sidebar-btn-border': sidebar.border,
     '--sidebar-inactive-border': sidebar.border,
     '--sidebar-active-border': sidebar.border,
+    '--sidebar-inactive-button-opacity': String(normalizeInterfaceNumber('inactiveButtonOpacity', sidebar.inactiveButtonOpacity, 12)),
+    '--sidebar-hover-button-opacity': String(normalizeInterfaceNumber('hoverButtonOpacity', sidebar.hoverButtonOpacity, 22)),
+    '--sidebar-active-button-opacity': String(normalizeInterfaceNumber('activeButtonOpacity', sidebar.activeButtonOpacity, 92)),
+    '--sidebar-utility-button-opacity': String(normalizeInterfaceNumber('utilityButtonOpacity', sidebar.utilityButtonOpacity, 10)),
   }
   Object.entries(compatibilityVariables).forEach(([name, value]) => root.style.setProperty(name, value))
 
@@ -1654,7 +1655,12 @@ function validateInterfaceColorValues(colors = {}) {
     }
   }
   const sidebar = normalizedSource?.sidebar || {}
-  for (const [fieldKey, label] of [['backgroundOpacity', 'Sidebar Background Opacity'], ['backdropBlur', 'Sidebar Backdrop Blur']]) {
+  for (const [fieldKey, label] of [
+    ['inactiveButtonOpacity', 'Inactive Button Background Opacity'],
+    ['hoverButtonOpacity', 'Hover Button Background Opacity'],
+    ['activeButtonOpacity', 'Active Button Background Opacity'],
+    ['utilityButtonOpacity', 'Utility Button Background Opacity'],
+  ]) {
     const config = INTERFACE_NUMBER_FIELDS[fieldKey]
     const value = Number(sidebar[fieldKey])
     if (!Number.isFinite(value) || value < config.min || value > config.max) invalid.push(label)
@@ -1665,6 +1671,15 @@ function validateInterfaceColorValues(colors = {}) {
 function getInterfaceColorContrastWarnings(colors = {}) {
   const normalized = normalizeInterfaceColors(colors)
   const warnings = []
+  const compositeSidebarButtonBackground = (buttonColor, opacityPercent) => {
+    const base = parseThemeCssColor(normalized.sidebar.background) || { r: 41, g: 40, b: 41, a: 1 }
+    const overlay = parseThemeCssColor(buttonColor) || { r: 255, g: 255, b: 255, a: 1 }
+    const alpha = Math.min(1, Math.max(0, (Number(opacityPercent) || 0) / 100)) * (overlay.a ?? 1)
+    const red = Math.round(overlay.r * alpha + base.r * (1 - alpha))
+    const green = Math.round(overlay.g * alpha + base.g * (1 - alpha))
+    const blue = Math.round(overlay.b * alpha + base.b * (1 - alpha))
+    return `rgb(${red}, ${green}, ${blue})`
+  }
   const pairs = [
     ['Top header text', normalized.topHeader.background, normalized.topHeader.text],
     ['Top header icon', normalized.topHeader.background, normalized.topHeader.icon],
@@ -1674,15 +1689,10 @@ function getInterfaceColorContrastWarnings(colors = {}) {
     ['Role dropdown text', normalized.topHeader.roleDropdownBackground, normalized.topHeader.roleDropdownText],
     ['Avatar text', normalized.topHeader.avatarBackground, normalized.topHeader.avatarText],
     ['Sidebar text', normalized.sidebar.background, normalized.sidebar.text],
-    ['Sidebar icon', normalized.sidebar.background, normalized.sidebar.icon],
-    ['Sidebar inactive text', normalized.sidebar.inactiveBackground === 'transparent' ? normalized.sidebar.background : normalized.sidebar.inactiveBackground, normalized.sidebar.inactiveText],
-    ['Sidebar inactive icon', normalized.sidebar.inactiveBackground === 'transparent' ? normalized.sidebar.background : normalized.sidebar.inactiveBackground, normalized.sidebar.inactiveIcon],
-    ['Sidebar hover text', normalized.sidebar.hoverBackground, normalized.sidebar.hoverText],
-    ['Sidebar active text', normalized.sidebar.activeBackground, normalized.sidebar.activeText],
-    ['Sidebar icon container icon', normalized.sidebar.iconContainerBackground, normalized.sidebar.iconContainerIcon],
-    ['Sidebar icon container hover icon', normalized.sidebar.iconContainerHoverBackground, normalized.sidebar.iconContainerHoverIcon],
-    ['Sidebar icon container active icon', normalized.sidebar.iconContainerActiveBackground, normalized.sidebar.iconContainerActiveIcon],
-    ['Sidebar icon container disabled icon', normalized.sidebar.iconContainerDisabledBackground, normalized.sidebar.iconContainerDisabledIcon],
+    ['Sidebar inactive text', compositeSidebarButtonBackground(normalized.sidebar.inactiveBackground, normalized.sidebar.inactiveButtonOpacity), normalized.sidebar.inactiveText],
+    ['Sidebar hover text', compositeSidebarButtonBackground(normalized.sidebar.hoverBackground, normalized.sidebar.hoverButtonOpacity), normalized.sidebar.hoverText],
+    ['Sidebar active text', compositeSidebarButtonBackground(normalized.sidebar.activeBackground, normalized.sidebar.activeButtonOpacity), normalized.sidebar.activeText],
+    ['Sidebar utility text', compositeSidebarButtonBackground(normalized.sidebar.utilityBackground, normalized.sidebar.utilityButtonOpacity), normalized.sidebar.utilityText],
     ['Inbox title', normalized.inbox.headerBackground, normalized.inbox.titleText],
     ['Inbox normal text', normalized.inbox.popupBackground, normalized.inbox.text],
     ['Inbox secondary text', normalized.inbox.popupBackground, normalized.inbox.secondaryText],
@@ -9590,18 +9600,16 @@ export default function App() {
       <aside
         id="authenticated-sidebar"
         ref={sidebarRef}
-        className={`main-sidebar app-sidebar authenticated-sidebar role-header-dropdown-sidebar no-print ${sidebarOpen ? 'open is-open' : ''}`}
+        className={`main-sidebar app-sidebar authenticated-sidebar shared-authenticated-overlay-sidebar no-print ${sidebarOpen ? 'open is-open' : ''}`}
         aria-label="Role navigation"
         aria-hidden={!sidebarOpen}
         inert={sidebarOpen ? undefined : true}
       >
         <nav className="main-side-nav sidebar-utility-nav" aria-label="Sidebar utilities">
           {utilityNavItems.map((item) => {
-            const Icon = item.icon
             if (item.type === 'download') {
               return (
                 <a key={item.id} href={RESEARCH_GUIDELINES_PDF_URL} download={RESEARCH_GUIDELINES_DOWNLOAD_NAME} className="sidebar-utility-link sidebar-nav-item" onClick={() => setSidebarOpen(false)}>
-                  <span className="side-nav-icon sidebar-icon-container"><Icon size={18} /></span>
                   <span className="sidebar-item-label">{item.label}</span>
                 </a>
               )
@@ -9609,14 +9617,12 @@ export default function App() {
             if (item.type === 'external') {
               return (
                 <a key={item.id} href="https://scholar.google.com/citations?hl=en&view_op=search_authors&mauthors=hawler+medical+universty&btnG=" target="_blank" rel="noopener noreferrer" className="sidebar-utility-link sidebar-nav-item" onClick={() => setSidebarOpen(false)}>
-                  <span className="side-nav-icon sidebar-icon-container"><Icon size={18} /></span>
                   <span className="sidebar-item-label">{item.label}</span>
                 </a>
               )
             }
             return (
               <button key={item.id} type="button" onClick={() => handleMainNavClick(item.id)} className={`sidebar-nav-item ${tab === item.id ? 'active' : ''}`} aria-current={tab === item.id ? 'page' : undefined}>
-                <span className="side-nav-icon sidebar-icon-container">{item.id === 'about-us' ? <img src={aboutUsHmuLogo} alt="HMU logo" className="about-us-hmu-logo" /> : Icon ? <Icon size={18} /> : null}</span>
                 <span className="sidebar-item-label">{item.label}</span>
               </button>
             )
@@ -10792,20 +10798,22 @@ function InterfaceColorCustomizationPanel({
         <div className="button-color-sections">
           <details className="card button-color-section sidebar-overlay-controls" open>
             <summary>
-              <span><b>Sidebar Transparency & Blur</b><small>Set 0% for a fully see-through panel or 100% for a solid panel. Sidebar text, icons, and buttons remain fully opaque.</small></span>
-              <span className="button-color-section-count">2 controls</span>
+              <span><b>Sidebar Button Background Opacity</b><small>The sidebar panel stays solid. Only button backgrounds become more or less transparent; text remains fully opaque.</small></span>
+              <span className="button-color-section-count">4 controls</span>
             </summary>
             <div className="sidebar-overlay-control-grid">
-              <label className="sidebar-overlay-control">
-                <span><b>Sidebar Background Opacity</b><output>{normalizedPreview.sidebar.backgroundOpacity}%</output></span>
-                <input type="range" min="0" max="100" step="1" value={normalizedPreview.sidebar.backgroundOpacity} onChange={(event) => onChange('sidebar', 'backgroundOpacity', Number(event.target.value))} />
-                <input type="number" min="0" max="100" step="1" value={normalizedPreview.sidebar.backgroundOpacity} onChange={(event) => onChange('sidebar', 'backgroundOpacity', Number(event.target.value))} aria-label="Sidebar Background Opacity percentage" />
-              </label>
-              <label className="sidebar-overlay-control">
-                <span><b>Sidebar Backdrop Blur</b><output>{normalizedPreview.sidebar.backdropBlur}px</output></span>
-                <input type="range" min="0" max="20" step="1" value={normalizedPreview.sidebar.backdropBlur} onChange={(event) => onChange('sidebar', 'backdropBlur', Number(event.target.value))} />
-                <input type="number" min="0" max="20" step="1" value={normalizedPreview.sidebar.backdropBlur} onChange={(event) => onChange('sidebar', 'backdropBlur', Number(event.target.value))} aria-label="Sidebar Backdrop Blur pixels" />
-              </label>
+              {[
+                ['inactiveButtonOpacity', 'Inactive Button Background Opacity', 0, 50],
+                ['hoverButtonOpacity', 'Hover Button Background Opacity', 5, 70],
+                ['activeButtonOpacity', 'Active Button Background Opacity', 30, 100],
+                ['utilityButtonOpacity', 'Utility Button Background Opacity', 0, 70],
+              ].map(([fieldKey, label, min, max]) => (
+                <label className="sidebar-overlay-control" key={fieldKey}>
+                  <span><b>{label}</b><output>{normalizedPreview.sidebar[fieldKey]}%</output></span>
+                  <input type="range" min={min} max={max} step="1" value={normalizedPreview.sidebar[fieldKey]} onChange={(event) => onChange('sidebar', fieldKey, Number(event.target.value))} />
+                  <input type="number" min={min} max={max} step="1" value={normalizedPreview.sidebar[fieldKey]} onChange={(event) => onChange('sidebar', fieldKey, Number(event.target.value))} aria-label={`${label} percentage`} />
+                </label>
+              ))}
             </div>
           </details>
           {INTERFACE_COLOR_SECTIONS.map((section) => (
@@ -10844,7 +10852,6 @@ function InterfaceColorCustomizationPanel({
             <span className="interface-preview-label">Top Header Preview</span>
             <div className="interface-header-preview">
               <button type="button" className="interface-preview-hamburger" aria-label="Hamburger preview"><span /><span /><span /></button>
-              <div className="interface-preview-header-copy"><b>Research Dashboard</b><small>Student role</small></div>
               <div className="interface-preview-header-actions">
                 <button type="button" className="interface-preview-inbox" aria-label="Inbox button preview">Inbox<span>2</span></button>
                 <select defaultValue="student" aria-label="Role preview"><option value="student">Student</option></select>
@@ -10860,21 +10867,11 @@ function InterfaceColorCustomizationPanel({
                 <b>Navigation</b>
                 <small>Click outside to close</small>
               </div>
-              <button type="button" className="interface-sidebar-preview-item">
-                <span className="interface-sidebar-preview-icon"><LayoutDashboard size={16} /></span><span>Inactive item</span>
-              </button>
-              <button type="button" className="interface-sidebar-preview-item is-hovered">
-                <span className="interface-sidebar-preview-icon"><BookOpen size={16} /></span><span>Hovered item</span>
-              </button>
-              <button type="button" className="interface-sidebar-preview-item active">
-                <span className="interface-sidebar-preview-icon"><Settings size={16} /></span><span>Active item</span>
-              </button>
-              <button type="button" className="interface-sidebar-preview-utility">
-                <span className="interface-sidebar-preview-icon"><Printer size={16} /></span><span>Print/PDF Reports</span>
-              </button>
-              <button type="button" className="interface-sidebar-preview-item admin-example">
-                <span className="interface-sidebar-preview-icon"><SlidersHorizontal size={16} /></span><span>Admin Subdomain</span>
-              </button>
+              <button type="button" className="interface-sidebar-preview-item"><span>Inactive item</span></button>
+              <button type="button" className="interface-sidebar-preview-item is-hovered"><span>Hovered item</span></button>
+              <button type="button" className="interface-sidebar-preview-item active"><span>Active item</span></button>
+              <button type="button" className="interface-sidebar-preview-utility"><span>Print/PDF Reports</span></button>
+              <button type="button" className="interface-sidebar-preview-item admin-example"><span>Admin Subdomain</span></button>
             </div>
           </div>
 
@@ -11588,7 +11585,6 @@ function AdminControlPanel({
         inert={adminSidebarOpen ? undefined : true}
       >
         <div className="admin-brand-block">
-          <div className="admin-logo-mark"><Settings size={22} /></div>
           <div>
             <h2>{settings.adminPanelName || 'Pharmacy Research Platform Control Center'}</h2>
             <p>Website management panel</p>
@@ -11596,17 +11592,14 @@ function AdminControlPanel({
         </div>
         <nav className="admin-side-nav">
           {navItems.map((item) => {
-            const Icon = item.icon
             return (
               <button key={item.id} type="button" className={`admin-sidebar-link sidebar-nav-item ${adminPanelTab === item.id ? 'active' : ''}`} aria-current={adminPanelTab === item.id ? 'page' : undefined} onClick={() => changeAdminPanelTab(item.id)}>
-                <span className="side-nav-icon sidebar-icon-container"><Icon size={17} /></span>
                 <span className="sidebar-item-label">{item.label}</span>
               </button>
             )
           })}
         </nav>
         <button type="button" className="admin-logout sidebar-nav-item" onClick={() => { setAdminSidebarOpen(false); onLogout() }}>
-          <span className="side-nav-icon sidebar-icon-container"><LogOut size={16} /></span>
           <span className="sidebar-item-label">Logout</span>
         </button>
       </aside>

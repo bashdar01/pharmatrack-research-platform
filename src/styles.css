@@ -26525,17 +26525,18 @@ html body #root#root#root .main-header-actions .header-inbox-button .inbox-butto
   }
 }
 
+
 /* =========================================================
-   FINAL AUTHENTICATED SIDEBAR OVERLAY SYSTEM
-   The role and Admin Subdomain sidebars float over the page.
-   Opening them never shifts, compresses, resizes, or translates content.
+   FINAL AUTHENTICATED HEADER + SINGLE TEXT-ONLY SIDEBAR
+   One compact 52px/48px header and one solid overlay sidebar.
+   Sidebar buttons, not the panel, use configurable transparency.
    ========================================================= */
 :root {
-  --top-header-height: 64px;
-  --sidebar-bg-opacity: 92;
-  --sidebar-bg-opacity-percent: 92%;
-  --sidebar-backdrop-blur: 8px;
-  --sidebar-bg-rgba: rgba(41, 40, 41, 0.92);
+  --top-header-height: 52px;
+  --sidebar-inactive-button-opacity: 12;
+  --sidebar-hover-button-opacity: 22;
+  --sidebar-active-button-opacity: 92;
+  --sidebar-utility-button-opacity: 10;
 }
 
 html,
@@ -26545,6 +26546,167 @@ body,
   overflow-x: clip;
 }
 
+/* ---------- Compact authenticated top header ---------- */
+html body #root .main-compact-header,
+html body #root .admin-panel-topbar,
+html body #root .dashboard-topbar,
+html body #root .authenticated-header,
+html body #root .top-header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 1220 !important;
+  width: 100% !important;
+  min-height: var(--top-header-height, 52px) !important;
+  height: var(--top-header-height, 52px) !important;
+  max-height: var(--top-header-height, 52px) !important;
+  margin: 0 !important;
+  padding: 0 10px 0 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--top-header-border, #e5e7eb) !important;
+  border-radius: 0 !important;
+  background: var(--top-header-bg, #ffffff) !important;
+  background-color: var(--top-header-bg, #ffffff) !important;
+  background-image: none !important;
+  color: var(--top-header-text, #1f2937) !important;
+  box-shadow: 0 4px 16px var(--top-header-shadow, rgba(15, 23, 42, 0.08)) !important;
+}
+
+html body #root .main-compact-header::before,
+html body #root .main-compact-header::after,
+html body #root .admin-panel-topbar::before,
+html body #root .admin-panel-topbar::after,
+html body #root .dashboard-topbar::before,
+html body #root .dashboard-topbar::after,
+html body #root .authenticated-header::before,
+html body #root .authenticated-header::after,
+html body #root .top-header::before,
+html body #root .top-header::after {
+  content: none !important;
+  display: none !important;
+}
+
+html body #root .main-compact-left,
+html body #root .main-header-actions,
+html body #root .admin-topbar-actions {
+  min-height: var(--top-header-height, 52px) !important;
+  height: var(--top-header-height, 52px) !important;
+  max-height: var(--top-header-height, 52px) !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+}
+
+html body #root .main-header-actions,
+html body #root .admin-topbar-actions {
+  margin-left: auto !important;
+}
+
+/* Full-square hamburger and text-only Inbox remain matched to the header. */
+html body #root button.sidebar-menu-toggle,
+html body #root button.hamburger-button,
+html body #root button.admin-sidebar-menu-toggle,
+html body #root#root#root .main-compact-header .notification-bell-menu > button.main-notification-button.header-inbox-button,
+html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button,
+html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button {
+  width: var(--top-header-height, 52px) !important;
+  min-width: var(--top-header-height, 52px) !important;
+  max-width: var(--top-header-height, 52px) !important;
+  height: var(--top-header-height, 52px) !important;
+  min-height: var(--top-header-height, 52px) !important;
+  max-height: var(--top-header-height, 52px) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  align-self: stretch !important;
+  box-sizing: border-box !important;
+}
+
+html body #root button.sidebar-menu-toggle,
+html body #root button.hamburger-button,
+html body #root button.admin-sidebar-menu-toggle {
+  position: relative !important;
+  z-index: 1230 !important;
+  background: var(--top-header-hamburger-bg, #2563eb) !important;
+  color: var(--top-header-hamburger-icon, #ffffff) !important;
+}
+
+html body #root button.sidebar-menu-toggle span,
+html body #root button.hamburger-button span,
+html body #root button.admin-sidebar-menu-toggle span {
+  width: 22px !important;
+  height: 2px !important;
+  margin: 2px auto !important;
+  border-radius: 999px !important;
+  background: currentColor !important;
+}
+
+html body #root#root#root .main-compact-header .notification-bell-menu:has(> button.header-inbox-button),
+html body #root#root#root .main-header-actions .notification-bell-menu:has(> button.header-inbox-button) {
+  width: var(--top-header-height, 52px) !important;
+  min-width: var(--top-header-height, 52px) !important;
+  height: var(--top-header-height, 52px) !important;
+  min-height: var(--top-header-height, 52px) !important;
+  margin: 0 !important;
+}
+
+html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button {
+  background: var(--top-header-inbox-trigger-bg, #ffffff) !important;
+  color: var(--top-header-inbox-trigger-text, #2563eb) !important;
+  border: 1px solid var(--top-header-inbox-trigger-border, #e5e7eb) !important;
+}
+
+html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button:hover,
+html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button:focus-visible,
+html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button.active {
+  background: var(--top-header-inbox-trigger-hover-bg, #f3f4f6) !important;
+  color: var(--top-header-inbox-trigger-hover-text, #111827) !important;
+}
+
+html body #root#root#root .header-inbox-button .inbox-button-label {
+  font-size: 0.86rem !important;
+  line-height: 1 !important;
+  font-weight: 800 !important;
+}
+
+html body #root .main-compact-header .role-switch-dropdown,
+html body #root .main-header-actions .role-switch-dropdown,
+html body #root .role-switch-dropdown.role-switch-label-hidden {
+  min-height: 36px !important;
+  height: 36px !important;
+  max-height: 36px !important;
+  margin: 0 !important;
+  padding: 0 10px !important;
+  border-radius: 8px !important;
+  font-size: 0.82rem !important;
+  background: var(--top-header-role-dropdown-bg, #ffffff) !important;
+  color: var(--top-header-role-dropdown-text, #1f2937) !important;
+}
+
+html body #root .main-compact-header .student-profile-trigger,
+html body #root .main-compact-header .student-profile-trigger.redesigned,
+html body #root .main-header-actions .student-profile-trigger,
+html body #root .main-header-actions .student-profile-trigger.redesigned,
+html body #root .profile-avatar,
+html body #root .avatar-circle,
+html body #root .user-avatar {
+  width: 36px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  margin: 0 !important;
+  font-size: 0.82rem !important;
+}
+
+/* ---------- One overlay sidebar; page never shifts ---------- */
 html body #root .app.app-main-shell.main-dashboard-with-sidebar,
 html body #root .app.app-main-shell.main-dashboard-with-sidebar.sidebar-open,
 html body #root .admin-panel-shell,
@@ -26553,96 +26715,121 @@ html body #root .admin-panel-shell.admin-sidebar-open {
   grid-template-columns: minmax(0, 1fr) !important;
   width: 100% !important;
   max-width: 100% !important;
+  min-height: 100vh !important;
   margin: 0 !important;
   padding: 0 !important;
   transform: none !important;
 }
 
 html body #root .main-workspace,
-html body #root .admin-panel-main,
 html body #root .main-dashboard-with-sidebar.sidebar-open .main-workspace,
+html body #root .admin-panel-main,
 html body #root .admin-panel-shell.admin-sidebar-open .admin-panel-main {
-  width: 100% !important;
-  max-width: 100% !important;
   min-width: 0 !important;
   margin-left: 0 !important;
+  padding-left: 0 !important;
   transform: none !important;
   translate: none !important;
 }
 
+/* Remove any accidental collapsed/mini rail or duplicate visual strip. */
+html body #root :is(
+  .mini-sidebar,
+  .sidebar-rail,
+  .collapsed-sidebar,
+  .secondary-sidebar,
+  .compact-nav,
+  .side-dock,
+  .sidebar-strip,
+  .navigation-rail,
+  .icon-rail
+) {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 html body #root .main-sidebar.app-sidebar,
 html body #root .main-sidebar.authenticated-sidebar,
+html body #root .shared-authenticated-overlay-sidebar,
 html body #root .admin-sidebar.app-sidebar,
-html body #root .admin-subdomain-sidebar {
+html body #root .admin-subdomain-sidebar,
+html body #root .admin-standard-overlay-sidebar {
   position: fixed !important;
-  top: var(--top-header-height, 64px) !important;
+  top: var(--top-header-height, 52px) !important;
   left: 0 !important;
   right: auto !important;
   bottom: 0 !important;
-  width: min(300px, 88vw) !important;
+  width: min(280px, 86vw) !important;
   min-width: 0 !important;
-  max-width: 300px !important;
+  max-width: 280px !important;
   height: auto !important;
   min-height: 0 !important;
-  max-height: calc(100dvh - var(--top-header-height, 64px)) !important;
+  max-height: calc(100dvh - var(--top-header-height, 52px)) !important;
   margin: 0 !important;
   padding: 10px !important;
   z-index: 1200 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
   overscroll-behavior: contain !important;
   box-sizing: border-box !important;
   transform: translate3d(-102%, 0, 0) !important;
   visibility: hidden !important;
-  opacity: 0 !important;
   pointer-events: none !important;
+  opacity: 1 !important;
+  border: 0 !important;
   border-right: 1px solid var(--sidebar-border, rgba(255, 255, 255, 0.12)) !important;
-  border-radius: 0 18px 18px 0 !important;
-  box-shadow: 8px 0 28px var(--sidebar-shadow, rgba(15, 23, 42, 0.18)) !important;
-  background-color: var(--sidebar-bg-rgba, rgba(41, 40, 41, 0.92)) !important;
+  border-radius: 0 16px 16px 0 !important;
+  background: var(--sidebar-bg, #292829) !important;
+  background-color: var(--sidebar-bg, #292829) !important;
   background-image: none !important;
   color: var(--sidebar-text, #ffffff) !important;
-  backdrop-filter: blur(var(--sidebar-backdrop-blur, 8px)) !important;
-  -webkit-backdrop-filter: blur(var(--sidebar-backdrop-blur, 8px)) !important;
+  box-shadow: 8px 0 28px var(--sidebar-shadow, rgba(15, 23, 42, 0.18)) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
   transition:
-    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 180ms ease,
-    visibility 260ms ease !important;
-}
-
-@supports (background: color-mix(in srgb, #000 50%, transparent)) {
-  html body #root .main-sidebar.app-sidebar,
-  html body #root .main-sidebar.authenticated-sidebar,
-  html body #root .admin-sidebar.app-sidebar,
-  html body #root .admin-subdomain-sidebar {
-    background-color: transparent !important;
-    background-image: linear-gradient(
-      color-mix(
-        in srgb,
-        var(--sidebar-bg, #292829) var(--sidebar-bg-opacity-percent, 92%),
-        transparent
-      ),
-      color-mix(
-        in srgb,
-        var(--sidebar-secondary-bg, var(--sidebar-bg, #292829)) var(--sidebar-bg-opacity-percent, 92%),
-        transparent
-      )
-    ) !important;
-  }
+    transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 240ms ease !important;
 }
 
 html body #root .main-sidebar.app-sidebar.open,
 html body #root .main-sidebar.app-sidebar.is-open,
+html body #root .shared-authenticated-overlay-sidebar.open,
+html body #root .shared-authenticated-overlay-sidebar.is-open,
 html body #root .main-dashboard-with-sidebar.sidebar-open .main-sidebar,
 html body #root .admin-sidebar.app-sidebar.open,
 html body #root .admin-sidebar.app-sidebar.is-open,
 html body #root .admin-panel-shell.admin-sidebar-open .admin-sidebar {
   transform: translate3d(0, 0, 0) !important;
   visibility: visible !important;
-  opacity: 1 !important;
   pointer-events: auto !important;
 }
 
+/* One invisible outside-click catcher; never a visible second sidebar. */
+html body #root .sidebar-outside-layer,
+html body #root .role-sidebar-outside-layer,
+html body #root .admin-sidebar-outside-layer {
+  position: fixed !important;
+  inset: var(--top-header-height, 52px) 0 0 0 !important;
+  z-index: 1190 !important;
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Remove rails, pseudo-panels and icon spaces from the single sidebar. */
 html body #root .main-sidebar::before,
 html body #root .main-sidebar::after,
 html body #root .admin-sidebar::before,
@@ -26655,1580 +26842,300 @@ html body #root .admin-side-nav::after {
   display: none !important;
 }
 
-html body #root .main-sidebar .main-side-nav,
-html body #root .admin-sidebar .admin-side-nav,
-html body #root .main-sidebar .sidebar-utility-nav {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 7px !important;
+html body #root :is(
+  .side-nav-icon,
+  .sidebar-icon,
+  .sidebar-icon-container,
+  .sidebar-icon-wrap,
+  .sidebar-icon-box,
+  .sidebar-item-icon,
+  .sidebar-link-icon,
+  .admin-sidebar-icon,
+  .interface-sidebar-preview-icon,
+  .admin-logo-mark
+) {
+  display: none !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+
+/* ---------- Compact text-only navigation ---------- */
+html body #root .main-sidebar :is(.main-side-nav, .sidebar-utility-nav),
+html body #root .admin-sidebar .admin-side-nav {
   width: 100% !important;
   margin: 0 !important;
   padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
   background: transparent !important;
-  background-color: transparent !important;
   background-image: none !important;
   box-shadow: none !important;
 }
 
 html body #root .admin-sidebar .admin-brand-block {
-  margin: 0 0 10px !important;
-  padding: 8px 7px 10px !important;
+  margin: 0 !important;
+  padding: 8px 8px 10px !important;
+  display: block !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--sidebar-border, rgba(255,255,255,.12)) !important;
   background: transparent !important;
 }
 
-html body #root .main-side-nav .sidebar-nav-item,
-html body #root .main-side-nav .sidebar-utility-link,
-html body #root .admin-side-nav .admin-sidebar-link,
-html body #root .admin-sidebar .admin-logout {
-  width: 100% !important;
-  min-height: 48px !important;
-  height: auto !important;
+html body #root .admin-sidebar .admin-brand-block h2 {
   margin: 0 !important;
-  padding: 7px 11px !important;
-  gap: 9px !important;
-  border-radius: 13px !important;
-  box-sizing: border-box !important;
   font-size: 0.92rem !important;
   line-height: 1.2 !important;
+  color: var(--sidebar-text, #ffffff) !important;
 }
 
-html body #root .main-side-nav .side-nav-icon,
-html body #root .main-side-nav .sidebar-icon-container,
-html body #root .admin-side-nav .side-nav-icon,
-html body #root .admin-side-nav .sidebar-icon-container,
-html body #root .admin-sidebar .admin-logout .side-nav-icon {
-  width: 33px !important;
-  min-width: 33px !important;
-  max-width: 33px !important;
-  height: 33px !important;
-  min-height: 33px !important;
-  max-height: 33px !important;
-  flex: 0 0 33px !important;
-  border-radius: min(10px, var(--sidebar-icon-container-radius, 10px)) !important;
+html body #root .admin-sidebar .admin-brand-block p {
+  margin: 3px 0 0 !important;
+  font-size: 0.72rem !important;
+  line-height: 1.2 !important;
+  color: var(--sidebar-text, #ffffff) !important;
+  opacity: 0.72 !important;
 }
 
-html body #root .main-side-nav .side-nav-icon svg,
-html body #root .admin-side-nav .side-nav-icon svg,
-html body #root .admin-sidebar .admin-logout .side-nav-icon svg {
-  width: 18px !important;
-  height: 18px !important;
-}
-
-html body #root .sidebar-item-label {
-  min-width: 0 !important;
+html body #root :is(
+  .main-side-nav .sidebar-nav-item,
+  .main-side-nav .sidebar-utility-link,
+  .admin-side-nav .admin-sidebar-link,
+  .admin-sidebar .admin-logout
+) {
+  width: 100% !important;
+  min-height: 40px !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 8px 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 0 !important;
+  box-sizing: border-box !important;
+  border: 1px solid transparent !important;
+  border-radius: 11px !important;
+  background: transparent !important;
+  color: var(--sidebar-inactive-text, #ffffff) !important;
+  opacity: 1 !important;
+  font-size: 0.91rem !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  text-align: left !important;
+  text-decoration: none !important;
   white-space: normal !important;
   overflow-wrap: anywhere !important;
-  font-size: 0.92rem !important;
-  line-height: 1.18 !important;
 }
 
-html body #root .sidebar-outside-layer,
-html body #root button.sidebar-outside-layer {
-  position: fixed !important;
-  inset: var(--top-header-height, 64px) 0 0 0 !important;
-  z-index: 1190 !important;
-  display: block !important;
-  width: auto !important;
-  min-width: 0 !important;
-  height: auto !important;
-  min-height: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: rgba(15, 23, 42, 0.02) !important;
-  box-shadow: none !important;
-  cursor: default !important;
-  -webkit-appearance: none !important;
-  appearance: none !important;
+@supports (background: color-mix(in srgb, #fff 20%, transparent)) {
+  html body #root :is(
+    .main-side-nav .sidebar-nav-item,
+    .admin-side-nav .admin-sidebar-link
+  ) {
+    background: color-mix(
+      in srgb,
+      var(--sidebar-inactive-bg, #ffffff)
+      calc(var(--sidebar-inactive-button-opacity, 12) * 1%),
+      transparent
+    ) !important;
+  }
+
+  html body #root :is(
+    .main-side-nav .sidebar-utility-link,
+    .admin-sidebar .admin-logout
+  ) {
+    background: color-mix(
+      in srgb,
+      var(--sidebar-utility-bg, #ffffff)
+      calc(var(--sidebar-utility-button-opacity, 10) * 1%),
+      transparent
+    ) !important;
+    color: var(--sidebar-utility-text, #ffffff) !important;
+  }
 }
 
-html body #root .sidebar-close-button,
-html body #root .sidebar-fixed-head,
-html body #root .admin-sidebar-fixed-head,
-html body #root .interface-sidebar-preview-close {
-  display: none !important;
+html body #root :is(
+  .main-side-nav .sidebar-nav-item:hover,
+  .main-side-nav .sidebar-utility-link:hover,
+  .admin-side-nav .admin-sidebar-link:hover,
+  .admin-sidebar .admin-logout:hover
+) {
+  color: var(--sidebar-hover-text, #ffffff) !important;
 }
 
-html body #root .app-main-shell.main-dashboard-with-sidebar,
-html body #root .app-main-shell.main-dashboard-with-sidebar.sidebar-open {
-  --fixed-auth-header-left: 0px !important;
-}
-
-html body #root .main-compact-header {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  width: auto !important;
-  z-index: 1210 !important;
-  display: flex !important;
-  align-items: center !important;
-  min-height: var(--top-header-height, 64px) !important;
-  height: var(--top-header-height, 64px) !important;
-  margin: 0 !important;
-  padding: 0 16px 0 0 !important;
-  transform: none !important;
-}
-
-html body #root .admin-panel-topbar {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 1210 !important;
-  display: flex !important;
-  align-items: center !important;
-  min-height: var(--top-header-height, 64px) !important;
-  height: var(--top-header-height, 64px) !important;
-  margin: 0 !important;
-  padding: 0 16px 0 0 !important;
-  border-radius: 0 !important;
-  transform: none !important;
-}
-
-html body #root .main-compact-left {
-  align-self: stretch !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-html body #root .admin-topbar-actions,
-html body #root .main-header-actions {
-  margin-left: auto !important;
-}
-
-html body #root button.sidebar-menu-toggle,
-html body #root button.hamburger-button,
-html body #root button.admin-sidebar-menu-toggle {
-  position: relative !important;
-  z-index: 1220 !important;
-  align-self: stretch !important;
-  width: var(--top-header-height, 64px) !important;
-  min-width: var(--top-header-height, 64px) !important;
-  max-width: var(--top-header-height, 64px) !important;
-  height: var(--top-header-height, 64px) !important;
-  min-height: var(--top-header-height, 64px) !important;
-  max-height: var(--top-header-height, 64px) !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border-radius: 0 !important;
-}
-
-/* The hamburger remains a hamburger in both states; there is no separate X control. */
-html body #root .sidebar-open .sidebar-menu-toggle span,
-html body #root .admin-sidebar-open .sidebar-menu-toggle span,
-html body #root .sidebar-menu-toggle span {
-  opacity: 1 !important;
-  transform: none !important;
-}
-
-html body #root .interface-sidebar-preview {
-  background-color: var(--sidebar-bg-rgba, rgba(41, 40, 41, 0.92)) !important;
-  background-image: none !important;
-  backdrop-filter: blur(var(--sidebar-backdrop-blur, 8px)) !important;
-  -webkit-backdrop-filter: blur(var(--sidebar-backdrop-blur, 8px)) !important;
-}
-
-@supports (background: color-mix(in srgb, #000 50%, transparent)) {
-  html body #root .interface-sidebar-preview {
-    background-color: transparent !important;
-    background-image: linear-gradient(
-      color-mix(in srgb, var(--sidebar-bg, #292829) var(--sidebar-bg-opacity-percent, 92%), transparent),
-      color-mix(in srgb, var(--sidebar-secondary-bg, var(--sidebar-bg, #292829)) var(--sidebar-bg-opacity-percent, 92%), transparent)
+@supports (background: color-mix(in srgb, #fff 20%, transparent)) {
+  html body #root :is(
+    .main-side-nav .sidebar-nav-item:hover,
+    .main-side-nav .sidebar-utility-link:hover,
+    .admin-side-nav .admin-sidebar-link:hover,
+    .admin-sidebar .admin-logout:hover
+  ) {
+    background: color-mix(
+      in srgb,
+      var(--sidebar-hover-bg, #ffffff)
+      calc(var(--sidebar-hover-button-opacity, 22) * 1%),
+      transparent
     ) !important;
   }
 }
 
-html body #root .sidebar-overlay-control-grid {
-  display: grid !important;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  gap: 14px !important;
-  padding-top: 14px !important;
+html body #root :is(
+  .main-side-nav .sidebar-nav-item.active,
+  .main-side-nav .sidebar-nav-item[aria-current="page"],
+  .admin-side-nav .admin-sidebar-link.active,
+  .admin-side-nav .admin-sidebar-link[aria-current="page"]
+) {
+  color: var(--sidebar-active-text, #4d4c4d) !important;
+  border-color: var(--sidebar-border, rgba(255,255,255,.12)) !important;
 }
 
-html body #root .sidebar-overlay-control {
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) 88px !important;
-  gap: 10px 12px !important;
-  align-items: center !important;
-  padding: 14px !important;
-  border: 1px solid #dbe4ea !important;
-  border-radius: 14px !important;
-  background: #f8fafc !important;
+@supports (background: color-mix(in srgb, #fff 20%, transparent)) {
+  html body #root :is(
+    .main-side-nav .sidebar-nav-item.active,
+    .main-side-nav .sidebar-nav-item[aria-current="page"],
+    .admin-side-nav .admin-sidebar-link.active,
+    .admin-side-nav .admin-sidebar-link[aria-current="page"]
+  ) {
+    background: color-mix(
+      in srgb,
+      var(--sidebar-active-bg, #ffffff)
+      calc(var(--sidebar-active-button-opacity, 92) * 1%),
+      transparent
+    ) !important;
+  }
 }
 
-html body #root .sidebar-overlay-control > span {
-  grid-column: 1 / -1 !important;
-  display: flex !important;
-  justify-content: space-between !important;
-  gap: 12px !important;
-  color: #1f2937 !important;
-}
-
-html body #root .sidebar-overlay-control output {
-  color: #0f766e !important;
-  font-weight: 800 !important;
-}
-
-html body #root .sidebar-overlay-control input[type='range'] {
+html body #root :is(.sidebar-item-label, .sidebar-link-label) {
   width: 100% !important;
-  margin: 0 !important;
-}
-
-html body #root .sidebar-overlay-control input[type='number'] {
-  width: 88px !important;
-  min-height: 40px !important;
-  padding: 7px 9px !important;
-  border: 1px solid #cbd5e1 !important;
-  border-radius: 10px !important;
-  background: #ffffff !important;
-  color: #111827 !important;
-}
-
-@media (max-width: 768px) {
-  :root {
-    --top-header-height: 56px;
-  }
-
-  html body.sidebar-overlay-open {
-    overflow: hidden !important;
-  }
-
-  html body #root .main-sidebar.app-sidebar,
-  html body #root .main-sidebar.authenticated-sidebar,
-  html body #root .admin-sidebar.app-sidebar,
-  html body #root .admin-subdomain-sidebar {
-    width: min(290px, 88vw) !important;
-    max-width: min(290px, 88vw) !important;
-    border-radius: 0 16px 16px 0 !important;
-  }
-
-  html body #root .main-side-nav .sidebar-nav-item,
-  html body #root .main-side-nav .sidebar-utility-link,
-  html body #root .admin-side-nav .admin-sidebar-link,
-  html body #root .admin-sidebar .admin-logout {
-    min-height: 46px !important;
-    padding: 7px 10px !important;
-    gap: 9px !important;
-    font-size: 0.9rem !important;
-  }
-
-  html body #root .main-side-nav .side-nav-icon,
-  html body #root .main-side-nav .sidebar-icon-container,
-  html body #root .admin-side-nav .side-nav-icon,
-  html body #root .admin-side-nav .sidebar-icon-container,
-  html body #root .admin-sidebar .admin-logout .side-nav-icon {
-    width: 32px !important;
-    min-width: 32px !important;
-    max-width: 32px !important;
-    height: 32px !important;
-    min-height: 32px !important;
-    max-height: 32px !important;
-    flex-basis: 32px !important;
-  }
-
-  html body #root .sidebar-overlay-control-grid {
-    grid-template-columns: 1fr !important;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html body #root .main-sidebar.app-sidebar,
-  html body #root .main-sidebar.authenticated-sidebar,
-  html body #root .admin-sidebar.app-sidebar,
-  html body #root .admin-subdomain-sidebar {
-    transition: none !important;
-  }
-}
-
-
-/* =========================================================
-   FINAL FIX: sidebar click-catcher must never tint the page.
-   It remains present only to detect outside clicks.
-   ========================================================= */
-html body #root .sidebar-outside-layer,
-html body #root .admin-sidebar-outside-layer,
-html body #root div.sidebar-outside-layer {
-  position: fixed !important;
-  inset: var(--top-header-height, 64px) 0 0 0 !important;
-  z-index: 1190 !important;
-  display: block !important;
+  min-width: 0 !important;
   margin: 0 !important;
   padding: 0 !important;
-  border: 0 !important;
-  outline: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  box-shadow: none !important;
-  opacity: 1 !important;
-  filter: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  mix-blend-mode: normal !important;
-  isolation: auto !important;
-  cursor: default !important;
+  display: block !important;
+  color: inherit !important;
+  font-size: 0.91rem !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
 }
 
-html body #root .sidebar-outside-layer::before,
-html body #root .sidebar-outside-layer::after,
-html body #root .admin-sidebar-outside-layer::before,
-html body #root .admin-sidebar-outside-layer::after {
-  content: none !important;
-  display: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  filter: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+/* Sidebar scrollbar follows existing customization. */
+html body #root :is(.main-sidebar, .admin-sidebar) {
+  scrollbar-color: var(--sidebar-scrollbar-thumb, rgba(255,255,255,.35))
+    var(--sidebar-scrollbar-track, transparent) !important;
 }
 
-/* Opening a sidebar must not dim, desaturate, fade, or blur any page layer. */
-html body.sidebar-overlay-open #root,
-html body #root .main-dashboard-with-sidebar.sidebar-open .main-workspace,
-html body #root .admin-panel-shell.admin-sidebar-open .admin-panel-main,
-html body #root .main-dashboard-with-sidebar.sidebar-open .main-compact-header,
-html body #root .admin-panel-shell.admin-sidebar-open .admin-panel-topbar {
-  opacity: 1 !important;
-  filter: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+html body #root :is(.main-sidebar, .admin-sidebar)::-webkit-scrollbar {
+  width: 8px !important;
 }
 
-/* =========================================================
-   FINAL SIDEBAR BEHAVIOR: header-anchored dropdown panel
-   Opens directly below the hamburger without shifting or dimming the page.
-   ========================================================= */
-html body #root .main-sidebar.app-sidebar,
-html body #root .main-sidebar.authenticated-sidebar,
-html body #root .admin-sidebar.app-sidebar,
-html body #root .admin-subdomain-sidebar {
-  position: fixed !important;
-  top: var(--top-header-height, 64px) !important;
-  left: 0 !important;
-  right: auto !important;
-  bottom: auto !important;
-  width: min(310px, calc(100vw - 16px)) !important;
-  min-width: 0 !important;
-  max-width: 310px !important;
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: min(78vh, calc(100dvh - var(--top-header-height, 64px) - 12px)) !important;
-  margin: 0 !important;
-  padding: 10px !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  overscroll-behavior: contain !important;
-  transform-origin: top left !important;
-  transform: translate3d(0, -14px, 0) scaleY(0.96) !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-  border: 1px solid var(--sidebar-border, rgba(255, 255, 255, 0.12)) !important;
-  border-top: 0 !important;
-  border-radius: 0 0 18px 18px !important;
-  box-shadow: 0 18px 34px var(--sidebar-shadow, rgba(15, 23, 42, 0.18)) !important;
-  transition:
-    transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 170ms ease,
-    visibility 240ms ease !important;
+html body #root :is(.main-sidebar, .admin-sidebar)::-webkit-scrollbar-track {
+  background: var(--sidebar-scrollbar-track, transparent) !important;
 }
 
-html body #root .main-sidebar.app-sidebar.open,
-html body #root .main-sidebar.app-sidebar.is-open,
-html body #root .main-dashboard-with-sidebar.sidebar-open .main-sidebar,
-html body #root .admin-sidebar.app-sidebar.open,
-html body #root .admin-sidebar.app-sidebar.is-open,
-html body #root .admin-panel-shell.admin-sidebar-open .admin-sidebar {
-  transform: translate3d(0, 0, 0) scaleY(1) !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  pointer-events: auto !important;
+html body #root :is(.main-sidebar, .admin-sidebar)::-webkit-scrollbar-thumb {
+  background: var(--sidebar-scrollbar-thumb, rgba(255,255,255,.35)) !important;
+  border-radius: 999px !important;
 }
 
-/* Keep the click-catcher invisible while allowing outside-click closing. */
-html body #root .sidebar-outside-layer,
-html body #root .admin-sidebar-outside-layer,
-html body #root div.sidebar-outside-layer {
-  inset: var(--top-header-height, 64px) 0 0 0 !important;
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  opacity: 1 !important;
-  filter: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-/* The page and header never move when the dropdown opens. */
-html body #root .main-dashboard-with-sidebar,
-html body #root .main-dashboard-with-sidebar.sidebar-open,
-html body #root .admin-panel-shell,
-html body #root .admin-panel-shell.admin-sidebar-open,
-html body #root .main-workspace,
-html body #root .admin-panel-main,
-html body #root .main-compact-header,
-html body #root .admin-panel-topbar {
-  margin-left: 0 !important;
-  transform: none !important;
-  translate: none !important;
-}
-
-@media (max-width: 768px) {
-  html body #root .main-sidebar.app-sidebar,
-  html body #root .main-sidebar.authenticated-sidebar,
-  html body #root .admin-sidebar.app-sidebar,
-  html body #root .admin-subdomain-sidebar {
-    width: min(290px, calc(100vw - 12px)) !important;
-    max-width: min(290px, calc(100vw - 12px)) !important;
-    max-height: min(80vh, calc(100dvh - var(--top-header-height, 56px) - 8px)) !important;
-    border-radius: 0 0 16px 16px !important;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html body #root .main-sidebar.app-sidebar,
-  html body #root .main-sidebar.authenticated-sidebar,
-  html body #root .admin-sidebar.app-sidebar,
-  html body #root .admin-subdomain-sidebar {
-    transition: none !important;
-  }
-}
-
-/* =========================================================
-   FINAL SPLIT SIDEBAR BEHAVIOR
-   Normal authenticated domain: true dropdown below hamburger.
-   Admin Subdomain: conventional left overlay drawer.
-   ========================================================= */
-
-/* NORMAL DOMAIN — force a vertical dropdown, never a side drawer. */
-html body #root#root#root .role-header-dropdown-sidebar.main-sidebar.app-sidebar,
-html body #root#root#root .role-header-dropdown-sidebar.main-sidebar.authenticated-sidebar {
-  position: fixed !important;
-  top: var(--top-header-height, 64px) !important;
-  left: 0 !important;
-  right: auto !important;
-  bottom: auto !important;
-  width: min(310px, calc(100vw - 16px)) !important;
-  max-width: 310px !important;
-  height: auto !important;
-  max-height: min(78vh, calc(100dvh - var(--top-header-height, 64px) - 12px)) !important;
-  margin: 0 !important;
-  transform: none !important;
-  translate: none !important;
-  transform-origin: top left !important;
-  clip-path: inset(0 0 100% 0 round 0 0 18px 18px) !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-  border-radius: 0 0 18px 18px !important;
-  border-top: 0 !important;
-  box-shadow: 0 18px 34px var(--sidebar-shadow, rgba(15, 23, 42, 0.18)) !important;
-  transition:
-    clip-path 260ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 170ms ease,
-    visibility 260ms ease !important;
-  will-change: clip-path, opacity !important;
-}
-
-html body #root#root#root .role-header-dropdown-sidebar.main-sidebar.app-sidebar.open,
-html body #root#root#root .role-header-dropdown-sidebar.main-sidebar.app-sidebar.is-open,
-html body #root#root#root .main-dashboard-with-sidebar.sidebar-open .role-header-dropdown-sidebar.main-sidebar {
-  transform: none !important;
-  translate: none !important;
-  clip-path: inset(0 0 0 0 round 0 0 18px 18px) !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  pointer-events: auto !important;
-}
-
-/* ADMIN SUBDOMAIN — conventional left overlay drawer, not dropdown. */
-html body #root#root#root .admin-standard-overlay-sidebar.admin-sidebar.app-sidebar,
-html body #root#root#root .admin-standard-overlay-sidebar.admin-subdomain-sidebar {
-  position: fixed !important;
-  top: var(--top-header-height, 64px) !important;
-  left: 0 !important;
-  right: auto !important;
-  bottom: 0 !important;
-  width: min(300px, 88vw) !important;
-  max-width: 300px !important;
-  height: auto !important;
-  max-height: calc(100dvh - var(--top-header-height, 64px)) !important;
-  margin: 0 !important;
-  transform: translate3d(-102%, 0, 0) !important;
-  translate: none !important;
-  clip-path: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-  border-radius: 0 18px 18px 0 !important;
-  border-top: 1px solid var(--sidebar-border, rgba(255, 255, 255, 0.12)) !important;
-  box-shadow: 8px 0 28px var(--sidebar-shadow, rgba(15, 23, 42, 0.18)) !important;
-  transition:
-    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 180ms ease,
-    visibility 260ms ease !important;
-  will-change: transform, opacity !important;
-}
-
-html body #root#root#root .admin-standard-overlay-sidebar.admin-sidebar.app-sidebar.open,
-html body #root#root#root .admin-standard-overlay-sidebar.admin-sidebar.app-sidebar.is-open,
-html body #root#root#root .admin-panel-shell.admin-sidebar-open .admin-standard-overlay-sidebar.admin-sidebar {
-  transform: translate3d(0, 0, 0) !important;
-  clip-path: none !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  pointer-events: auto !important;
-}
-
-/* Both outside-click layers remain completely invisible. */
-html body #root#root#root .role-sidebar-outside-layer,
-html body #root#root#root .admin-sidebar-outside-layer {
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  opacity: 1 !important;
-  filter: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-/* Never shift either layout. */
-html body #root#root#root .main-dashboard-with-sidebar.sidebar-open .main-workspace,
-html body #root#root#root .admin-panel-shell.admin-sidebar-open .admin-panel-main,
-html body #root#root#root .admin-panel-shell.admin-sidebar-open .admin-panel-topbar {
-  margin-left: 0 !important;
-  width: 100% !important;
-  transform: none !important;
-  translate: none !important;
-}
-
-@media (max-width: 768px) {
-  html body #root#root#root .role-header-dropdown-sidebar.main-sidebar.app-sidebar,
-  html body #root#root#root .role-header-dropdown-sidebar.main-sidebar.authenticated-sidebar {
-    width: min(290px, calc(100vw - 12px)) !important;
-    max-width: min(290px, calc(100vw - 12px)) !important;
-    max-height: min(80vh, calc(100dvh - var(--top-header-height, 56px) - 8px)) !important;
-    border-radius: 0 0 16px 16px !important;
-    clip-path: inset(0 0 100% 0 round 0 0 16px 16px) !important;
-  }
-
-  html body #root#root#root .role-header-dropdown-sidebar.main-sidebar.app-sidebar.open,
-  html body #root#root#root .role-header-dropdown-sidebar.main-sidebar.app-sidebar.is-open,
-  html body #root#root#root .main-dashboard-with-sidebar.sidebar-open .role-header-dropdown-sidebar.main-sidebar {
-    clip-path: inset(0 0 0 0 round 0 0 16px 16px) !important;
-  }
-
-  html body #root#root#root .admin-standard-overlay-sidebar.admin-sidebar.app-sidebar,
-  html body #root#root#root .admin-standard-overlay-sidebar.admin-subdomain-sidebar {
-    width: min(290px, 88vw) !important;
-    max-width: min(290px, 88vw) !important;
-    border-radius: 0 16px 16px 0 !important;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html body #root#root#root .role-header-dropdown-sidebar.main-sidebar.app-sidebar,
-  html body #root#root#root .admin-standard-overlay-sidebar.admin-sidebar.app-sidebar {
-    transition: none !important;
-  }
-}
-
-/* =========================================================
-   FINAL ADMIN SIDEBAR VISIBILITY + FULL OPACITY RANGE FIX
-   Normal roles keep the header dropdown. Admin Subdomain uses
-   a conventional, clearly visible left drawer below the header.
-   ========================================================= */
-
-/* The Admin Subdomain drawer must remain a real left-side panel. */
-html body #root#root#root .admin-panel-shell .admin-standard-overlay-sidebar.admin-sidebar.app-sidebar,
-html body #root#root#root .admin-panel-shell .admin-standard-overlay-sidebar.admin-subdomain-sidebar {
-  display: flex !important;
-  flex-direction: column !important;
-  position: fixed !important;
-  top: var(--top-header-height, 64px) !important;
-  left: 0 !important;
-  right: auto !important;
-  bottom: 0 !important;
-  width: min(300px, 88vw) !important;
-  min-width: min(300px, 88vw) !important;
-  max-width: 300px !important;
-  height: calc(100dvh - var(--top-header-height, 64px)) !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  margin: 0 !important;
-  padding: 12px 10px !important;
-  z-index: 2600 !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  overscroll-behavior: contain !important;
-  box-sizing: border-box !important;
-  transform: translate3d(-101%, 0, 0) !important;
-  translate: none !important;
-  scale: none !important;
-  clip-path: none !important;
-  visibility: hidden !important;
-  opacity: 1 !important;
-  pointer-events: none !important;
-  border: 0 !important;
-  border-right: 1px solid var(--sidebar-border, rgba(255, 255, 255, 0.12)) !important;
-  border-radius: 0 16px 16px 0 !important;
-  box-shadow: 8px 0 28px var(--sidebar-shadow, rgba(15, 23, 42, 0.18)) !important;
-  background-color: var(--sidebar-bg-rgba, rgba(41, 40, 41, 0.92)) !important;
+/* ---------- Text-only interface preview ---------- */
+html body #root .interface-sidebar-preview {
+  background: var(--sidebar-bg, #292829) !important;
   background-image: none !important;
   color: var(--sidebar-text, #ffffff) !important;
-  backdrop-filter: blur(var(--sidebar-backdrop-blur, 8px)) !important;
-  -webkit-backdrop-filter: blur(var(--sidebar-backdrop-blur, 8px)) !important;
-  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), visibility 260ms ease !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
-@supports (background: color-mix(in srgb, #000 50%, transparent)) {
-  html body #root#root#root .admin-panel-shell .admin-standard-overlay-sidebar.admin-sidebar.app-sidebar,
-  html body #root#root#root .admin-panel-shell .admin-standard-overlay-sidebar.admin-subdomain-sidebar {
-    background-color: transparent !important;
-    background-image: linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--sidebar-bg, #292829) var(--sidebar-bg-opacity-percent, 92%), transparent),
-      color-mix(in srgb, var(--sidebar-secondary-bg, var(--sidebar-bg, #292829)) var(--sidebar-bg-opacity-percent, 92%), transparent)
+html body #root :is(
+  .interface-sidebar-preview-item,
+  .interface-sidebar-preview-utility
+) {
+  min-height: 40px !important;
+  padding: 8px 12px !important;
+  justify-content: flex-start !important;
+  gap: 0 !important;
+  border-radius: 11px !important;
+  color: var(--sidebar-inactive-text, #ffffff) !important;
+}
+
+@supports (background: color-mix(in srgb, #fff 20%, transparent)) {
+  html body #root .interface-sidebar-preview-item {
+    background: color-mix(
+      in srgb,
+      var(--sidebar-inactive-bg, #ffffff)
+      calc(var(--sidebar-inactive-button-opacity, 12) * 1%),
+      transparent
     ) !important;
   }
-}
 
-html body #root#root#root .admin-panel-shell .admin-standard-overlay-sidebar.admin-sidebar.app-sidebar.open,
-html body #root#root#root .admin-panel-shell .admin-standard-overlay-sidebar.admin-sidebar.app-sidebar.is-open,
-html body #root#root#root .admin-panel-shell.admin-sidebar-open .admin-standard-overlay-sidebar.admin-sidebar {
-  display: flex !important;
-  transform: translate3d(0, 0, 0) !important;
-  translate: none !important;
-  scale: none !important;
-  clip-path: none !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  pointer-events: auto !important;
-}
+  html body #root .interface-sidebar-preview-item.is-hovered {
+    background: color-mix(
+      in srgb,
+      var(--sidebar-hover-bg, #ffffff)
+      calc(var(--sidebar-hover-button-opacity, 22) * 1%),
+      transparent
+    ) !important;
+    color: var(--sidebar-hover-text, #ffffff) !important;
+  }
 
-/* Keep the Admin navigation usable and visible inside the restored drawer. */
-html body #root#root#root .admin-standard-overlay-sidebar .admin-brand-block {
-  flex: 0 0 auto !important;
-}
+  html body #root .interface-sidebar-preview-item.active {
+    background: color-mix(
+      in srgb,
+      var(--sidebar-active-bg, #ffffff)
+      calc(var(--sidebar-active-button-opacity, 92) * 1%),
+      transparent
+    ) !important;
+    color: var(--sidebar-active-text, #4d4c4d) !important;
+  }
 
-html body #root#root#root .admin-standard-overlay-sidebar .admin-side-nav {
-  display: flex !important;
-  flex: 1 1 auto !important;
-  min-height: 0 !important;
-  overflow: visible !important;
-}
-
-html body #root#root#root .admin-standard-overlay-sidebar .admin-logout {
-  flex: 0 0 auto !important;
-  margin-top: 10px !important;
-}
-
-/* Outside-click remains invisible and below the actual Admin drawer. */
-html body #root#root#root .admin-sidebar-outside-layer {
-  z-index: 2500 !important;
-  background: transparent !important;
-  opacity: 1 !important;
-}
-
-/* Never move the Admin page when the drawer opens. */
-html body #root#root#root .admin-panel-shell,
-html body #root#root#root .admin-panel-shell.admin-sidebar-open,
-html body #root#root#root .admin-panel-shell .admin-panel-main,
-html body #root#root#root .admin-panel-shell.admin-sidebar-open .admin-panel-main,
-html body #root#root#root .admin-panel-shell .admin-panel-topbar,
-html body #root#root#root .admin-panel-shell.admin-sidebar-open .admin-panel-topbar {
-  width: 100% !important;
-  margin-left: 0 !important;
-  transform: none !important;
-  translate: none !important;
-}
-
-@media (max-width: 768px) {
-  html body #root#root#root .admin-panel-shell .admin-standard-overlay-sidebar.admin-sidebar.app-sidebar,
-  html body #root#root#root .admin-panel-shell .admin-standard-overlay-sidebar.admin-subdomain-sidebar {
-    top: var(--top-header-height, 56px) !important;
-    width: min(290px, 88vw) !important;
-    min-width: min(290px, 88vw) !important;
-    max-width: min(290px, 88vw) !important;
-    height: calc(100dvh - var(--top-header-height, 56px)) !important;
-    border-radius: 0 14px 14px 0 !important;
+  html body #root .interface-sidebar-preview-utility {
+    background: color-mix(
+      in srgb,
+      var(--sidebar-utility-bg, #ffffff)
+      calc(var(--sidebar-utility-button-opacity, 10) * 1%),
+      transparent
+    ) !important;
+    color: var(--sidebar-utility-text, #ffffff) !important;
   }
 }
 
-/* =========================================================
-   TRUE USER-CONTROLLED SIDEBAR TRANSPARENCY
-   The opacity setting changes only the dropdown/drawer background.
-   At 0% the page beneath is completely visible; at 100% it is solid.
-   Text, icons, navigation items, and the panel element stay fully opaque.
-   ========================================================= */
-:root {
-  --sidebar-secondary-bg-rgba: rgba(41, 40, 41, 0.92);
-  --sidebar-effective-backdrop-blur: 8px;
-}
-
-html body #root#root#root .role-header-dropdown-sidebar.main-sidebar.app-sidebar,
-html body #root#root#root .role-header-dropdown-sidebar.main-sidebar.authenticated-sidebar,
-html body #root#root#root .admin-panel-shell .admin-standard-overlay-sidebar.admin-sidebar.app-sidebar,
-html body #root#root#root .admin-panel-shell .admin-standard-overlay-sidebar.admin-subdomain-sidebar {
-  background-color: transparent !important;
-  background-image: linear-gradient(
-    180deg,
-    var(--sidebar-bg-rgba, rgba(41, 40, 41, 0.92)),
-    var(--sidebar-secondary-bg-rgba, var(--sidebar-bg-rgba, rgba(41, 40, 41, 0.92)))
-  ) !important;
-  opacity: 1 !important;
-  backdrop-filter: blur(var(--sidebar-effective-backdrop-blur, var(--sidebar-backdrop-blur, 8px))) !important;
-  -webkit-backdrop-filter: blur(var(--sidebar-effective-backdrop-blur, var(--sidebar-backdrop-blur, 8px))) !important;
-}
-
-/* Hidden panels remain hidden by visibility/clip/transform, not by reducing the
-   element opacity. This prevents the saved background opacity from fading icons. */
-html body #root#root#root .role-header-dropdown-sidebar.main-sidebar.app-sidebar:not(.open):not(.is-open),
-html body #root#root#root .admin-panel-shell:not(.admin-sidebar-open) .admin-standard-overlay-sidebar.admin-sidebar.app-sidebar:not(.open):not(.is-open) {
-  pointer-events: none !important;
-}
-
-/* Every empty area inside the panel must stay transparent so the selected
-   see-through background remains visible rather than being covered by old fills. */
-html body #root#root#root .role-header-dropdown-sidebar :is(.main-side-nav, .sidebar-utility-nav),
-html body #root#root#root .admin-standard-overlay-sidebar :is(.admin-side-nav, .admin-brand-block) {
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-}
-
-/* The live preview uses the exact same RGBA variables as the real panels. */
-html body #root#root#root .interface-sidebar-preview {
-  position: relative !important;
-  isolation: isolate !important;
-  background-color: transparent !important;
-  background-image: linear-gradient(
-    180deg,
-    var(--sidebar-bg-rgba, rgba(41, 40, 41, 0.92)),
-    var(--sidebar-secondary-bg-rgba, var(--sidebar-bg-rgba, rgba(41, 40, 41, 0.92)))
-  ) !important;
-  backdrop-filter: blur(var(--sidebar-effective-backdrop-blur, var(--sidebar-backdrop-blur, 8px))) !important;
-  -webkit-backdrop-filter: blur(var(--sidebar-effective-backdrop-blur, var(--sidebar-backdrop-blur, 8px))) !important;
-}
-
-/* =========================================================
-   FINAL SLIM AUTHENTICATED HEADER + HERO SEARCH
-   Keeps the full-square hamburger and Inbox controls aligned
-   to a thinner header while preserving the wider search width.
-   ========================================================= */
-:root {
-  --top-header-height: 52px;
-}
-
-html body #root .main-compact-header,
-html body #root .admin-panel-topbar {
-  min-height: var(--top-header-height, 52px) !important;
-  height: var(--top-header-height, 52px) !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-}
-
-html body #root button.sidebar-menu-toggle,
-html body #root button.hamburger-button,
-html body #root button.admin-sidebar-menu-toggle {
-  width: var(--top-header-height, 52px) !important;
-  min-width: var(--top-header-height, 52px) !important;
-  max-width: var(--top-header-height, 52px) !important;
-  height: var(--top-header-height, 52px) !important;
-  min-height: var(--top-header-height, 52px) !important;
-  max-height: var(--top-header-height, 52px) !important;
-}
-
-html body #root button.sidebar-menu-toggle svg,
-html body #root button.hamburger-button svg,
-html body #root button.admin-sidebar-menu-toggle svg {
-  width: 21px !important;
-  height: 21px !important;
-}
-
-html body #root#root#root .main-compact-header .notification-bell-menu:has(> button.header-inbox-button),
-html body #root#root#root .main-header-actions .notification-bell-menu:has(> button.header-inbox-button) {
-  height: var(--top-header-height, 52px) !important;
-  min-height: var(--top-header-height, 52px) !important;
-  max-height: var(--top-header-height, 52px) !important;
-}
-
-html body #root#root#root .main-compact-header .notification-bell-menu > button.main-notification-button.header-inbox-button,
-html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button,
-html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button {
-  width: var(--top-header-height, 52px) !important;
-  min-width: var(--top-header-height, 52px) !important;
-  max-width: var(--top-header-height, 52px) !important;
-  height: var(--top-header-height, 52px) !important;
-  min-height: var(--top-header-height, 52px) !important;
-  max-height: var(--top-header-height, 52px) !important;
-}
-
-html body #root#root#root .main-compact-header .header-inbox-button .inbox-button-label,
-html body #root#root#root .main-header-actions .header-inbox-button .inbox-button-label {
-  font-size: 0.82rem !important;
-}
-
-html body #root .main-compact-header .main-header-actions,
-html body #root .main-dashboard-with-sidebar .main-header-actions,
-html body #root .dashboard-topbar .main-header-actions,
-html body #root .admin-topbar-actions {
-  gap: 0.36rem !important;
-  column-gap: 0.36rem !important;
-}
-
-html body #root .main-compact-header .role-switch-dropdown,
-html body #root .main-header-actions .role-switch-dropdown,
-html body #root .role-switch-dropdown.role-switch-label-hidden {
-  padding: 0.38rem 0.56rem !important;
-}
-
-html body #root .main-compact-header .student-profile-trigger,
-html body #root .main-compact-header .student-profile-trigger.redesigned,
-html body #root .main-compact-header .user-profile-menu .student-profile-trigger.redesigned,
-html body #root .main-header-actions .student-profile-trigger,
-html body #root .main-header-actions .student-profile-trigger.redesigned,
-html body #root .main-header-actions .user-profile-menu .student-profile-trigger.redesigned,
-html body #root .profile-avatar,
-html body #root .avatar-circle,
-html body #root .user-avatar {
-  width: 38px !important;
-  min-width: 38px !important;
-  height: 38px !important;
-  min-height: 38px !important;
-}
-
-html body #root .main-compact-header .main-profile-summary b,
-html body #root .main-header-actions .main-profile-summary b,
-html body #root .dashboard-topbar .main-profile-summary b,
-html body #root .header-user-name,
-html body #root .profile-user-name {
-  font-size: 0.84rem !important;
-}
-
-html body #root .main-compact-header .main-profile-summary small,
-html body #root .main-header-actions .main-profile-summary small,
-html body #root .dashboard-topbar .main-profile-summary small,
-html body #root .header-user-role,
-html body #root .profile-user-role {
-  font-size: 0.7rem !important;
-}
-
-/* Keep the search wide, but make the connected control thinner. */
+/* Preserve the wider, slim hero search from the latest build. */
 html body #root .role-hero-actions-panel .role-feature-search,
 html body #root .role-feature-search {
   width: min(840px, calc(100% - 32px)) !important;
   max-width: 840px !important;
 }
 
-html body #root .role-hero-actions-panel .role-feature-search__box,
 html body #root .role-feature-search__box {
   min-height: 38px !important;
   grid-template-columns: minmax(0, 1fr) 50px !important;
   border-radius: 8px !important;
 }
 
-html body #root .role-feature-search__box input.role-feature-search__input,
-html body #root .role-feature-search__box input[type="search"].role-feature-search__input,
 html body #root input.role-feature-search__input {
   min-height: 38px !important;
   height: 38px !important;
   padding: 6px 38px 6px 13px !important;
   font-size: 0.9rem !important;
-  line-height: 1.2 !important;
 }
 
-html body #root .role-feature-search__button,
-html body #root .role-feature-search__button:hover,
-html body #root .role-feature-search__button:focus,
-html body #root .role-feature-search__button:focus-visible,
-html body #root .role-feature-search__button:active,
-html body #root .role-hero-actions-panel button.role-feature-search__button,
-html body #root .role-hero-actions-panel button.role-feature-search__button:hover,
-html body #root .role-hero-actions-panel button.role-feature-search__button:focus,
-html body #root .role-hero-actions-panel button.role-feature-search__button:focus-visible,
-html body #root .role-hero-actions-panel button.role-feature-search__button:active {
+html body #root .role-feature-search__button {
   width: 50px !important;
   min-width: 50px !important;
-  max-width: 50px !important;
-  min-height: 38px !important;
   height: 38px !important;
-}
-
-html body #root .role-feature-search__button svg,
-html body #root .role-hero-actions-panel button.role-feature-search__button svg {
-  width: 18px !important;
-  height: 18px !important;
-}
-
-html body #root .role-feature-search__clear,
-html body #root .role-feature-search__clear:hover,
-html body #root .role-feature-search__clear:focus,
-html body #root .role-feature-search__clear:focus-visible {
-  width: 24px !important;
-  min-width: 24px !important;
-  height: 24px !important;
-  min-height: 24px !important;
-  right: 6px !important;
+  min-height: 38px !important;
 }
 
 @media (max-width: 768px) {
   :root {
     --top-header-height: 48px;
-  }
-
-  html body #root button.sidebar-menu-toggle,
-  html body #root button.hamburger-button,
-  html body #root button.admin-sidebar-menu-toggle,
-  html body #root#root#root .main-compact-header .notification-bell-menu > button.main-notification-button.header-inbox-button,
-  html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button,
-  html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button {
-    width: var(--top-header-height, 48px) !important;
-    min-width: var(--top-header-height, 48px) !important;
-    max-width: var(--top-header-height, 48px) !important;
-    height: var(--top-header-height, 48px) !important;
-    min-height: var(--top-header-height, 48px) !important;
-    max-height: var(--top-header-height, 48px) !important;
-  }
-
-  html body #root#root#root .main-compact-header .notification-bell-menu:has(> button.header-inbox-button),
-  html body #root#root#root .main-header-actions .notification-bell-menu:has(> button.header-inbox-button) {
-    height: var(--top-header-height, 48px) !important;
-    min-height: var(--top-header-height, 48px) !important;
-    max-height: var(--top-header-height, 48px) !important;
-  }
-
-  html body #root#root#root .main-compact-header .header-inbox-button .inbox-button-label,
-  html body #root#root#root .main-header-actions .header-inbox-button .inbox-button-label {
-    font-size: 0.76rem !important;
-  }
-
-  html body #root .main-compact-header .student-profile-trigger,
-  html body #root .main-compact-header .student-profile-trigger.redesigned,
-  html body #root .main-header-actions .student-profile-trigger,
-  html body #root .main-header-actions .student-profile-trigger.redesigned,
-  html body #root .profile-avatar,
-  html body #root .avatar-circle,
-  html body #root .user-avatar {
-    width: 34px !important;
-    min-width: 34px !important;
-    height: 34px !important;
-    min-height: 34px !important;
-  }
-
-  html body #root .role-hero-actions-panel .role-feature-search__box,
-  html body #root .role-feature-search__box {
-    min-height: 36px !important;
-    grid-template-columns: minmax(0, 1fr) 46px !important;
-    border-radius: 7px !important;
-  }
-
-  html body #root .role-feature-search__box input.role-feature-search__input,
-  html body #root .role-feature-search__box input[type="search"].role-feature-search__input,
-  html body #root input.role-feature-search__input {
-    min-height: 36px !important;
-    height: 36px !important;
-    padding: 5px 34px 5px 11px !important;
-    font-size: 0.86rem !important;
-  }
-
-  html body #root .role-feature-search__button,
-  html body #root .role-feature-search__button:hover,
-  html body #root .role-feature-search__button:focus,
-  html body #root .role-feature-search__button:focus-visible,
-  html body #root .role-feature-search__button:active,
-  html body #root .role-hero-actions-panel button.role-feature-search__button,
-  html body #root .role-hero-actions-panel button.role-feature-search__button:hover,
-  html body #root .role-hero-actions-panel button.role-feature-search__button:focus,
-  html body #root .role-hero-actions-panel button.role-feature-search__button:focus-visible,
-  html body #root .role-hero-actions-panel button.role-feature-search__button:active {
-    width: 46px !important;
-    min-width: 46px !important;
-    max-width: 46px !important;
-    min-height: 36px !important;
-    height: 36px !important;
-  }
-
-  html body #root .role-feature-search__button svg,
-  html body #root .role-hero-actions-panel button.role-feature-search__button svg {
-    width: 17px !important;
-    height: 17px !important;
-  }
-}
-
-/* =========================================================
-   EXTRA-THIN AUTHENTICATED TOP HEADER
-   Final authoritative sizing for all authenticated roles and
-   the Admin Subdomain. Hamburger and Inbox stay full squares.
-   ========================================================= */
-:root {
-  --top-header-height: 44px;
-}
-
-html body #root .main-compact-header,
-html body #root .admin-panel-topbar,
-html body #root .dashboard-topbar,
-html body #root .authenticated-header,
-html body #root .top-header {
-  min-height: var(--top-header-height, 44px) !important;
-  height: var(--top-header-height, 44px) !important;
-  max-height: var(--top-header-height, 44px) !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-}
-
-html body #root button.sidebar-menu-toggle,
-html body #root button.hamburger-button,
-html body #root button.admin-sidebar-menu-toggle,
-html body #root#root#root .main-compact-header .notification-bell-menu > button.main-notification-button.header-inbox-button,
-html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button,
-html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button {
-  width: var(--top-header-height, 44px) !important;
-  min-width: var(--top-header-height, 44px) !important;
-  max-width: var(--top-header-height, 44px) !important;
-  height: var(--top-header-height, 44px) !important;
-  min-height: var(--top-header-height, 44px) !important;
-  max-height: var(--top-header-height, 44px) !important;
-  padding: 0 !important;
-}
-
-html body #root button.sidebar-menu-toggle svg,
-html body #root button.hamburger-button svg,
-html body #root button.admin-sidebar-menu-toggle svg {
-  width: 18px !important;
-  height: 18px !important;
-}
-
-html body #root#root#root .main-compact-header .notification-bell-menu:has(> button.header-inbox-button),
-html body #root#root#root .main-header-actions .notification-bell-menu:has(> button.header-inbox-button) {
-  height: var(--top-header-height, 44px) !important;
-  min-height: var(--top-header-height, 44px) !important;
-  max-height: var(--top-header-height, 44px) !important;
-}
-
-html body #root#root#root .main-compact-header .header-inbox-button .inbox-button-label,
-html body #root#root#root .main-header-actions .header-inbox-button .inbox-button-label {
-  font-size: 0.72rem !important;
-  line-height: 1 !important;
-}
-
-html body #root .main-compact-header .main-header-actions,
-html body #root .main-dashboard-with-sidebar .main-header-actions,
-html body #root .dashboard-topbar .main-header-actions,
-html body #root .admin-topbar-actions {
-  min-height: var(--top-header-height, 44px) !important;
-  height: var(--top-header-height, 44px) !important;
-  max-height: var(--top-header-height, 44px) !important;
-  gap: 0.28rem !important;
-  column-gap: 0.28rem !important;
-}
-
-html body #root .main-compact-header .role-switch-dropdown,
-html body #root .main-header-actions .role-switch-dropdown,
-html body #root .role-switch-dropdown.role-switch-label-hidden,
-html body #root .admin-topbar-actions select,
-html body #root .admin-topbar-actions button:not(.admin-sidebar-menu-toggle) {
-  min-height: 30px !important;
-  height: 30px !important;
-  padding-top: 0.22rem !important;
-  padding-bottom: 0.22rem !important;
-}
-
-html body #root .main-compact-header .student-profile-trigger,
-html body #root .main-compact-header .student-profile-trigger.redesigned,
-html body #root .main-compact-header .user-profile-menu .student-profile-trigger.redesigned,
-html body #root .main-header-actions .student-profile-trigger,
-html body #root .main-header-actions .student-profile-trigger.redesigned,
-html body #root .main-header-actions .user-profile-menu .student-profile-trigger.redesigned,
-html body #root .profile-avatar,
-html body #root .avatar-circle,
-html body #root .user-avatar {
-  width: 32px !important;
-  min-width: 32px !important;
-  height: 32px !important;
-  min-height: 32px !important;
-  max-height: 32px !important;
-}
-
-html body #root .main-compact-header .main-profile-summary b,
-html body #root .main-header-actions .main-profile-summary b,
-html body #root .dashboard-topbar .main-profile-summary b,
-html body #root .header-user-name,
-html body #root .profile-user-name {
-  font-size: 0.77rem !important;
-  line-height: 1.05 !important;
-}
-
-html body #root .main-compact-header .main-profile-summary small,
-html body #root .main-header-actions .main-profile-summary small,
-html body #root .dashboard-topbar .main-profile-summary small,
-html body #root .header-user-role,
-html body #root .profile-user-role {
-  font-size: 0.64rem !important;
-  line-height: 1.05 !important;
-}
-
-@media (max-width: 768px) {
-  :root {
-    --top-header-height: 42px;
-  }
-
-  html body #root button.sidebar-menu-toggle,
-  html body #root button.hamburger-button,
-  html body #root button.admin-sidebar-menu-toggle,
-  html body #root#root#root .main-compact-header .notification-bell-menu > button.main-notification-button.header-inbox-button,
-  html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button,
-  html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button {
-    width: var(--top-header-height, 42px) !important;
-    min-width: var(--top-header-height, 42px) !important;
-    max-width: var(--top-header-height, 42px) !important;
-    height: var(--top-header-height, 42px) !important;
-    min-height: var(--top-header-height, 42px) !important;
-    max-height: var(--top-header-height, 42px) !important;
-  }
-
-  html body #root#root#root .main-compact-header .header-inbox-button .inbox-button-label,
-  html body #root#root#root .main-header-actions .header-inbox-button .inbox-button-label {
-    font-size: 0.69rem !important;
-  }
-
-  html body #root .main-compact-header .student-profile-trigger,
-  html body #root .main-compact-header .student-profile-trigger.redesigned,
-  html body #root .main-header-actions .student-profile-trigger,
-  html body #root .main-header-actions .student-profile-trigger.redesigned,
-  html body #root .profile-avatar,
-  html body #root .avatar-circle,
-  html body #root .user-avatar {
-    width: 30px !important;
-    min-width: 30px !important;
-    height: 30px !important;
-    min-height: 30px !important;
-  }
-}
-
-/* =========================================================
-   ULTRA-SLIM TOP-HEADER BACKGROUND STRIP
-   Reduces the visible authenticated header bar itself while
-   keeping Hamburger and Inbox as matching full-square controls.
-   ========================================================= */
-:root {
-  --top-header-height: 36px;
-}
-
-html body #root .main-compact-header,
-html body #root .admin-panel-topbar,
-html body #root .dashboard-topbar,
-html body #root .authenticated-header,
-html body #root .top-header {
-  min-height: var(--top-header-height, 36px) !important;
-  height: var(--top-header-height, 36px) !important;
-  max-height: var(--top-header-height, 36px) !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-  border-bottom-width: 1px !important;
-}
-
-html body #root button.sidebar-menu-toggle,
-html body #root button.hamburger-button,
-html body #root button.admin-sidebar-menu-toggle,
-html body #root#root#root .main-compact-header .notification-bell-menu > button.main-notification-button.header-inbox-button,
-html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button,
-html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button {
-  width: var(--top-header-height, 36px) !important;
-  min-width: var(--top-header-height, 36px) !important;
-  max-width: var(--top-header-height, 36px) !important;
-  height: var(--top-header-height, 36px) !important;
-  min-height: var(--top-header-height, 36px) !important;
-  max-height: var(--top-header-height, 36px) !important;
-  padding: 0 !important;
-}
-
-html body #root button.sidebar-menu-toggle svg,
-html body #root button.hamburger-button svg,
-html body #root button.admin-sidebar-menu-toggle svg {
-  width: 16px !important;
-  height: 16px !important;
-}
-
-html body #root#root#root .main-compact-header .notification-bell-menu:has(> button.header-inbox-button),
-html body #root#root#root .main-header-actions .notification-bell-menu:has(> button.header-inbox-button),
-html body #root .main-compact-header .main-header-actions,
-html body #root .main-dashboard-with-sidebar .main-header-actions,
-html body #root .dashboard-topbar .main-header-actions,
-html body #root .admin-topbar-actions {
-  min-height: var(--top-header-height, 36px) !important;
-  height: var(--top-header-height, 36px) !important;
-  max-height: var(--top-header-height, 36px) !important;
-}
-
-html body #root .main-compact-header .role-switch-dropdown,
-html body #root .main-header-actions .role-switch-dropdown,
-html body #root .role-switch-dropdown.role-switch-label-hidden,
-html body #root .admin-topbar-actions select,
-html body #root .admin-topbar-actions button:not(.admin-sidebar-menu-toggle) {
-  min-height: 25px !important;
-  height: 25px !important;
-  padding-top: 0.1rem !important;
-  padding-bottom: 0.1rem !important;
-}
-
-html body #root .main-compact-header .student-profile-trigger,
-html body #root .main-compact-header .student-profile-trigger.redesigned,
-html body #root .main-compact-header .user-profile-menu .student-profile-trigger.redesigned,
-html body #root .main-header-actions .student-profile-trigger,
-html body #root .main-header-actions .student-profile-trigger.redesigned,
-html body #root .main-header-actions .user-profile-menu .student-profile-trigger.redesigned,
-html body #root .profile-avatar,
-html body #root .avatar-circle,
-html body #root .user-avatar {
-  width: 26px !important;
-  min-width: 26px !important;
-  height: 26px !important;
-  min-height: 26px !important;
-  max-height: 26px !important;
-}
-
-html body #root#root#root .main-compact-header .header-inbox-button .inbox-button-label,
-html body #root#root#root .main-header-actions .header-inbox-button .inbox-button-label {
-  font-size: 0.67rem !important;
-}
-
-@media (max-width: 768px) {
-  :root {
-    --top-header-height: 34px;
-  }
-
-  html body #root button.sidebar-menu-toggle,
-  html body #root button.hamburger-button,
-  html body #root button.admin-sidebar-menu-toggle,
-  html body #root#root#root .main-compact-header .notification-bell-menu > button.main-notification-button.header-inbox-button,
-  html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button,
-  html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button {
-    width: var(--top-header-height, 34px) !important;
-    min-width: var(--top-header-height, 34px) !important;
-    max-width: var(--top-header-height, 34px) !important;
-    height: var(--top-header-height, 34px) !important;
-    min-height: var(--top-header-height, 34px) !important;
-    max-height: var(--top-header-height, 34px) !important;
-  }
-
-  html body #root .main-compact-header .student-profile-trigger,
-  html body #root .main-compact-header .student-profile-trigger.redesigned,
-  html body #root .main-header-actions .student-profile-trigger,
-  html body #root .main-header-actions .student-profile-trigger.redesigned,
-  html body #root .profile-avatar,
-  html body #root .avatar-circle,
-  html body #root .user-avatar {
-    width: 24px !important;
-    min-width: 24px !important;
-    height: 24px !important;
-    min-height: 24px !important;
-  }
-}
-
-/* =========================================================
-   FINAL ULTRA-COMPACT AUTHENTICATED HEADER FIT
-   Keeps every control inside the thinner background strip.
-   ========================================================= */
-:root {
-  --top-header-height: 30px;
-}
-
-html body #root .main-compact-header,
-html body #root .admin-panel-topbar,
-html body #root .dashboard-topbar,
-html body #root .authenticated-header,
-html body #root .top-header {
-  min-height: var(--top-header-height, 30px) !important;
-  height: var(--top-header-height, 30px) !important;
-  max-height: var(--top-header-height, 30px) !important;
-  padding: 0 !important;
-  line-height: 1 !important;
-}
-
-html body #root button.sidebar-menu-toggle,
-html body #root button.hamburger-button,
-html body #root button.admin-sidebar-menu-toggle,
-html body #root#root#root .main-compact-header .notification-bell-menu > button.main-notification-button.header-inbox-button,
-html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button,
-html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button {
-  width: var(--top-header-height, 30px) !important;
-  min-width: var(--top-header-height, 30px) !important;
-  max-width: var(--top-header-height, 30px) !important;
-  height: var(--top-header-height, 30px) !important;
-  min-height: var(--top-header-height, 30px) !important;
-  max-height: var(--top-header-height, 30px) !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border-radius: 0 !important;
-  align-self: stretch !important;
-}
-
-html body #root button.sidebar-menu-toggle svg,
-html body #root button.hamburger-button svg,
-html body #root button.admin-sidebar-menu-toggle svg {
-  width: 14px !important;
-  height: 14px !important;
-  stroke-width: 2.2 !important;
-}
-
-html body #root .main-compact-header .main-header-actions,
-html body #root .main-dashboard-with-sidebar .main-header-actions,
-html body #root .dashboard-topbar .main-header-actions,
-html body #root .admin-topbar-actions,
-html body #root#root#root .main-compact-header .notification-bell-menu:has(> button.header-inbox-button),
-html body #root#root#root .main-header-actions .notification-bell-menu:has(> button.header-inbox-button) {
-  min-height: var(--top-header-height, 30px) !important;
-  height: var(--top-header-height, 30px) !important;
-  max-height: var(--top-header-height, 30px) !important;
-  gap: 4px !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-}
-
-html body #root .main-compact-header .role-switch-dropdown,
-html body #root .main-header-actions .role-switch-dropdown,
-html body #root .role-switch-dropdown.role-switch-label-hidden,
-html body #root .admin-topbar-actions select,
-html body #root .admin-topbar-actions button:not(.admin-sidebar-menu-toggle) {
-  min-height: 21px !important;
-  height: 21px !important;
-  max-height: 21px !important;
-  padding: 0 6px !important;
-  font-size: 0.68rem !important;
-  line-height: 1 !important;
-  border-radius: 6px !important;
-}
-
-html body #root .main-compact-header .student-profile-trigger,
-html body #root .main-compact-header .student-profile-trigger.redesigned,
-html body #root .main-compact-header .user-profile-menu .student-profile-trigger.redesigned,
-html body #root .main-header-actions .student-profile-trigger,
-html body #root .main-header-actions .student-profile-trigger.redesigned,
-html body #root .main-header-actions .user-profile-menu .student-profile-trigger.redesigned,
-html body #root .profile-avatar,
-html body #root .avatar-circle,
-html body #root .user-avatar {
-  width: 22px !important;
-  min-width: 22px !important;
-  max-width: 22px !important;
-  height: 22px !important;
-  min-height: 22px !important;
-  max-height: 22px !important;
-  font-size: 0.66rem !important;
-}
-
-html body #root#root#root .main-compact-header .header-inbox-button .inbox-button-label,
-html body #root#root#root .main-header-actions .header-inbox-button .inbox-button-label {
-  font-size: 0.64rem !important;
-  line-height: 1 !important;
-  letter-spacing: -0.02em !important;
-}
-
-html body #root .main-compact-header .profile-name,
-html body #root .main-header-actions .profile-name,
-html body #root .main-compact-header .profile-role,
-html body #root .main-header-actions .profile-role {
-  font-size: 0.67rem !important;
-  line-height: 1 !important;
-}
-
-@media (max-width: 768px) {
-  :root {
-    --top-header-height: 28px;
-  }
-
-  html body #root button.sidebar-menu-toggle,
-  html body #root button.hamburger-button,
-  html body #root button.admin-sidebar-menu-toggle,
-  html body #root#root#root .main-compact-header .notification-bell-menu > button.main-notification-button.header-inbox-button,
-  html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button,
-  html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button {
-    width: var(--top-header-height, 28px) !important;
-    min-width: var(--top-header-height, 28px) !important;
-    max-width: var(--top-header-height, 28px) !important;
-    height: var(--top-header-height, 28px) !important;
-    min-height: var(--top-header-height, 28px) !important;
-    max-height: var(--top-header-height, 28px) !important;
-  }
-
-  html body #root .main-compact-header .student-profile-trigger,
-  html body #root .main-compact-header .student-profile-trigger.redesigned,
-  html body #root .main-header-actions .student-profile-trigger,
-  html body #root .main-header-actions .student-profile-trigger.redesigned,
-  html body #root .profile-avatar,
-  html body #root .avatar-circle,
-  html body #root .user-avatar {
-    width: 20px !important;
-    min-width: 20px !important;
-    max-width: 20px !important;
-    height: 20px !important;
-    min-height: 20px !important;
-    max-height: 20px !important;
-  }
-
-  html body #root#root#root .main-compact-header .header-inbox-button .inbox-button-label,
-  html body #root#root#root .main-header-actions .header-inbox-button .inbox-button-label {
-    font-size: 0.59rem !important;
-  }
-}
-
-/* =========================================================
-   FINAL THIN BACKGROUND STRIP WITH NORMAL-SIZE HEADER CONTROLS
-   The header keeps enough layout height for accessible controls,
-   while only the colored background strip is visually thin.
-   ========================================================= */
-:root {
-  --top-header-height: 52px;
-  --top-header-strip-height: 24px;
-  --top-header-control-size: 52px;
-}
-
-html body #root .main-compact-header,
-html body #root .admin-panel-topbar,
-html body #root .dashboard-topbar,
-html body #root .authenticated-header,
-html body #root .top-header {
-  position: relative !important;
-  isolation: isolate !important;
-  min-height: var(--top-header-height, 52px) !important;
-  height: var(--top-header-height, 52px) !important;
-  max-height: var(--top-header-height, 52px) !important;
-  padding: 0 12px 0 0 !important;
-  overflow: visible !important;
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  border: 0 !important;
-  box-shadow: none !important;
-}
-
-html body #root .main-compact-header::before,
-html body #root .admin-panel-topbar::before,
-html body #root .dashboard-topbar::before,
-html body #root .authenticated-header::before,
-html body #root .top-header::before {
-  content: "" !important;
-  position: absolute !important;
-  z-index: 0 !important;
-  pointer-events: none !important;
-  left: 0 !important;
-  right: 0 !important;
-  top: 50% !important;
-  height: var(--top-header-strip-height, 24px) !important;
-  transform: translateY(-50%) !important;
-  background: var(--top-header-bg, #ffffff) !important;
-  background-color: var(--top-header-bg, #ffffff) !important;
-  background-image: none !important;
-  border-top: 1px solid var(--top-header-border, #e5e7eb) !important;
-  border-bottom: 1px solid var(--top-header-border, #e5e7eb) !important;
-  box-shadow: 0 3px 12px var(--top-header-shadow, rgba(15, 23, 42, 0.08)) !important;
-}
-
-html body #root .main-compact-header > *,
-html body #root .admin-panel-topbar > *,
-html body #root .dashboard-topbar > *,
-html body #root .authenticated-header > *,
-html body #root .top-header > * {
-  position: relative !important;
-  z-index: 1 !important;
-}
-
-/* Restore normal, comfortable full-square hamburger and Inbox controls. */
-html body #root button.sidebar-menu-toggle,
-html body #root button.hamburger-button,
-html body #root button.admin-sidebar-menu-toggle,
-html body #root#root#root .main-compact-header .notification-bell-menu > button.main-notification-button.header-inbox-button,
-html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button,
-html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button {
-  width: var(--top-header-control-size, 52px) !important;
-  min-width: var(--top-header-control-size, 52px) !important;
-  max-width: var(--top-header-control-size, 52px) !important;
-  height: var(--top-header-control-size, 52px) !important;
-  min-height: var(--top-header-control-size, 52px) !important;
-  max-height: var(--top-header-control-size, 52px) !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border-radius: 0 !important;
-  align-self: center !important;
-}
-
-html body #root button.sidebar-menu-toggle svg,
-html body #root button.hamburger-button svg,
-html body #root button.admin-sidebar-menu-toggle svg {
-  width: 23px !important;
-  height: 23px !important;
-  stroke-width: 2.2 !important;
-}
-
-html body #root .main-compact-header .main-header-actions,
-html body #root .main-dashboard-with-sidebar .main-header-actions,
-html body #root .dashboard-topbar .main-header-actions,
-html body #root .admin-topbar-actions,
-html body #root#root#root .main-compact-header .notification-bell-menu:has(> button.header-inbox-button),
-html body #root#root#root .main-header-actions .notification-bell-menu:has(> button.header-inbox-button) {
-  min-height: var(--top-header-height, 52px) !important;
-  height: var(--top-header-height, 52px) !important;
-  max-height: var(--top-header-height, 52px) !important;
-  gap: 8px !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-  align-items: center !important;
-}
-
-html body #root .main-compact-header .role-switch-dropdown,
-html body #root .main-header-actions .role-switch-dropdown,
-html body #root .role-switch-dropdown.role-switch-label-hidden,
-html body #root .admin-topbar-actions select,
-html body #root .admin-topbar-actions button:not(.admin-sidebar-menu-toggle) {
-  min-height: 34px !important;
-  height: 34px !important;
-  max-height: 34px !important;
-  padding: 0 10px !important;
-  font-size: 0.82rem !important;
-  line-height: 1.1 !important;
-  border-radius: 8px !important;
-}
-
-html body #root .main-compact-header .student-profile-trigger,
-html body #root .main-compact-header .student-profile-trigger.redesigned,
-html body #root .main-compact-header .user-profile-menu .student-profile-trigger.redesigned,
-html body #root .main-header-actions .student-profile-trigger,
-html body #root .main-header-actions .student-profile-trigger.redesigned,
-html body #root .main-header-actions .user-profile-menu .student-profile-trigger.redesigned,
-html body #root .profile-avatar,
-html body #root .avatar-circle,
-html body #root .user-avatar {
-  width: 38px !important;
-  min-width: 38px !important;
-  max-width: 38px !important;
-  height: 38px !important;
-  min-height: 38px !important;
-  max-height: 38px !important;
-  font-size: 0.86rem !important;
-}
-
-html body #root#root#root .main-compact-header .header-inbox-button .inbox-button-label,
-html body #root#root#root .main-header-actions .header-inbox-button .inbox-button-label {
-  font-size: 0.84rem !important;
-  line-height: 1 !important;
-  letter-spacing: -0.01em !important;
-}
-
-html body #root .main-compact-header .profile-name,
-html body #root .main-header-actions .profile-name,
-html body #root .main-compact-header .profile-role,
-html body #root .main-header-actions .profile-role {
-  font-size: 0.78rem !important;
-  line-height: 1.1 !important;
-}
-
-@media (max-width: 768px) {
-  :root {
-    --top-header-height: 48px;
-    --top-header-strip-height: 20px;
-    --top-header-control-size: 48px;
   }
 
   html body #root .main-compact-header,
@@ -28236,14 +27143,19 @@ html body #root .main-header-actions .profile-role {
   html body #root .dashboard-topbar,
   html body #root .authenticated-header,
   html body #root .top-header {
+    min-height: 48px !important;
+    height: 48px !important;
+    max-height: 48px !important;
     padding-right: 8px !important;
   }
 
-  html body #root button.sidebar-menu-toggle svg,
-  html body #root button.hamburger-button svg,
-  html body #root button.admin-sidebar-menu-toggle svg {
-    width: 21px !important;
-    height: 21px !important;
+  html body #root .main-compact-left,
+  html body #root .main-header-actions,
+  html body #root .admin-topbar-actions {
+    min-height: 48px !important;
+    height: 48px !important;
+    max-height: 48px !important;
+    gap: 5px !important;
   }
 
   html body #root .main-compact-header .student-profile-trigger,
@@ -28264,15 +27176,66 @@ html body #root .main-header-actions .profile-role {
   html body #root .main-compact-header .role-switch-dropdown,
   html body #root .main-header-actions .role-switch-dropdown,
   html body #root .role-switch-dropdown.role-switch-label-hidden {
-    min-height: 30px !important;
-    height: 30px !important;
-    max-height: 30px !important;
+    min-height: 32px !important;
+    height: 32px !important;
+    max-height: 32px !important;
     padding: 0 8px !important;
-    font-size: 0.74rem !important;
+    font-size: 0.76rem !important;
   }
 
-  html body #root#root#root .main-compact-header .header-inbox-button .inbox-button-label,
-  html body #root#root#root .main-header-actions .header-inbox-button .inbox-button-label {
-    font-size: 0.76rem !important;
+  html body #root .main-sidebar.app-sidebar,
+  html body #root .main-sidebar.authenticated-sidebar,
+  html body #root .shared-authenticated-overlay-sidebar,
+  html body #root .admin-sidebar.app-sidebar,
+  html body #root .admin-subdomain-sidebar,
+  html body #root .admin-standard-overlay-sidebar {
+    top: 48px !important;
+    width: min(270px, 88vw) !important;
+    max-width: 270px !important;
+    max-height: calc(100dvh - 48px) !important;
+  }
+
+  html body #root .sidebar-outside-layer,
+  html body #root .role-sidebar-outside-layer,
+  html body #root .admin-sidebar-outside-layer {
+    inset: 48px 0 0 0 !important;
+  }
+
+  html body #root :is(
+    .main-side-nav .sidebar-nav-item,
+    .main-side-nav .sidebar-utility-link,
+    .admin-side-nav .admin-sidebar-link,
+    .admin-sidebar .admin-logout
+  ) {
+    min-height: 39px !important;
+    padding: 7px 11px !important;
+    font-size: 0.89rem !important;
+  }
+
+  html body #root :is(.sidebar-item-label, .sidebar-link-label) {
+    font-size: 0.89rem !important;
+  }
+
+  html body #root .role-feature-search__box,
+  html body #root input.role-feature-search__input,
+  html body #root .role-feature-search__button {
+    min-height: 36px !important;
+    height: 36px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  body.sidebar-overlay-open {
+    overflow: hidden;
+  }
+}
+
+@media print {
+  html body #root .main-sidebar,
+  html body #root .admin-sidebar,
+  html body #root .sidebar-outside-layer,
+  html body #root .main-compact-header,
+  html body #root .admin-panel-topbar {
+    display: none !important;
   }
 }
