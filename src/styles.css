@@ -6499,7 +6499,7 @@ button .button-spinner {
 
 .notification-popover {
   position: absolute;
-  top: calc(100% + 12px);
+  top: 100%;
   right: 0;
   width: min(390px, calc(100vw - 28px));
   max-height: min(520px, calc(100vh - 96px));
@@ -6700,11 +6700,11 @@ button .button-spinner {
 
   .notification-popover {
     position: fixed;
-    top: 74px;
+    top: var(--auth-header-height, 32px);
     left: 12px;
     right: 12px;
     width: auto;
-    max-height: calc(100vh - 94px);
+    max-height: calc(100vh - var(--auth-header-height, 32px) - 12px);
   }
 
   .notification-popover-item {
@@ -24811,7 +24811,7 @@ html body #root .notification-bell-menu--triggerless {
 
 html body #root .notification-bell-menu--triggerless > .notification-popover {
   position: fixed;
-  top: 76px;
+  top: var(--auth-header-height, 34px);
   right: 16px;
   left: auto;
   z-index: 1200;
@@ -24819,7 +24819,7 @@ html body #root .notification-bell-menu--triggerless > .notification-popover {
 
 @media (max-width: 640px) {
   html body #root .notification-bell-menu--triggerless > .notification-popover {
-    top: 66px;
+    top: var(--auth-header-height, 32px);
     right: 12px;
     left: 12px;
     width: auto;
