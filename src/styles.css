@@ -28557,3 +28557,108 @@ html body #root div.ai-assistant-widget[data-ai-color-override="authoritative"] 
   background-image: none !important;
   color: var(--ai-assistant-question-hover-text, #ffffff) !important;
 }
+
+/* ========================================================================
+   FINAL SKINNY HEADER-DROPDOWN SIDEBAR
+   Keeps the existing dropdown/transparency behavior but reduces the panel
+   width and navigation bulk to match the slim reference treatment.
+   ======================================================================== */
+:root {
+  --skinny-sidebar-width: 214px;
+}
+
+html body #root .app.app-main-shell.main-dashboard-with-sidebar.header-dropdown-shell
+  .main-sidebar.app-sidebar.authenticated-sidebar.header-dropdown-sidebar.shared-authenticated-overlay-sidebar,
+html body #root .admin-panel-shell.header-dropdown-shell
+  .admin-sidebar.admin-subdomain-sidebar.app-sidebar.header-dropdown-sidebar.admin-standard-overlay-sidebar,
+html body #root .header-dropdown-sidebar {
+  width: min(var(--skinny-sidebar-width), calc(100vw - 8px)) !important;
+  min-width: 0 !important;
+  max-width: var(--skinny-sidebar-width) !important;
+  padding: 6px !important;
+  gap: 5px !important;
+  border-radius: 0 0 10px 0 !important;
+  box-shadow: 0 12px 26px var(--sidebar-shadow, rgba(15, 23, 42, 0.16)) !important;
+}
+
+html body #root .header-dropdown-sidebar :is(
+  .main-side-nav,
+  .sidebar-utility-nav,
+  .admin-side-nav,
+  .admin-sidebar-list
+) {
+  gap: 4px !important;
+  padding: 0 !important;
+}
+
+html body #root .header-dropdown-sidebar :is(
+  .sidebar-nav-item,
+  .sidebar-utility-link,
+  .admin-sidebar-link,
+  .admin-logout
+) {
+  min-height: 33px !important;
+  height: auto !important;
+  padding: 6px 8px !important;
+  border-radius: 7px !important;
+  font-size: 0.8rem !important;
+  line-height: 1.15 !important;
+}
+
+html body #root .header-dropdown-sidebar :is(
+  .sidebar-item-label,
+  .sidebar-link-label
+) {
+  font-size: 0.8rem !important;
+  font-weight: 650 !important;
+  line-height: 1.15 !important;
+}
+
+html body #root .header-dropdown-sidebar .admin-brand-block {
+  padding: 5px 6px 7px !important;
+}
+
+html body #root .header-dropdown-sidebar .admin-brand-block h2 {
+  font-size: 0.78rem !important;
+  line-height: 1.1 !important;
+}
+
+html body #root .header-dropdown-sidebar .admin-brand-block p {
+  margin-top: 2px !important;
+  font-size: 0.64rem !important;
+  line-height: 1.1 !important;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --skinny-sidebar-width: 208px;
+  }
+
+  html body #root .app.app-main-shell.main-dashboard-with-sidebar.header-dropdown-shell
+    .main-sidebar.app-sidebar.authenticated-sidebar.header-dropdown-sidebar.shared-authenticated-overlay-sidebar,
+  html body #root .admin-panel-shell.header-dropdown-shell
+    .admin-sidebar.admin-subdomain-sidebar.app-sidebar.header-dropdown-sidebar.admin-standard-overlay-sidebar,
+  html body #root .header-dropdown-sidebar {
+    width: min(var(--skinny-sidebar-width), calc(100vw - 8px)) !important;
+    max-width: var(--skinny-sidebar-width) !important;
+    padding: 5px !important;
+  }
+
+  html body #root .header-dropdown-sidebar :is(
+    .sidebar-nav-item,
+    .sidebar-utility-link,
+    .admin-sidebar-link,
+    .admin-logout
+  ) {
+    min-height: 32px !important;
+    padding: 5px 7px !important;
+    font-size: 0.77rem !important;
+  }
+
+  html body #root .header-dropdown-sidebar :is(
+    .sidebar-item-label,
+    .sidebar-link-label
+  ) {
+    font-size: 0.77rem !important;
+  }
+}
