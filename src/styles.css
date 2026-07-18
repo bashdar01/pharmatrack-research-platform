@@ -28160,7 +28160,7 @@ html body #root .ai-assistant-widget {
 
 html body #root .ai-assistant-launcher,
 html body #root button.ai-assistant-launcher {
-  background: linear-gradient(135deg, var(--ai-assistant-bg, #0d9488) 0%, var(--ai-assistant-accent, #0f766e) 100%) !important;
+  background: var(--ai-assistant-bg, #0d9488) !important;
   background-color: var(--ai-assistant-bg, #0d9488) !important;
   border-color: var(--ai-assistant-border, #99f6e4) !important;
   color: var(--ai-assistant-text, #ffffff) !important;
@@ -28174,7 +28174,7 @@ html body #root .ai-assistant-launcher:focus-visible,
 html body #root button.ai-assistant-launcher:hover,
 html body #root button.ai-assistant-launcher:focus,
 html body #root button.ai-assistant-launcher:focus-visible {
-  background: linear-gradient(135deg, var(--ai-assistant-hover-bg, #087f78) 0%, var(--ai-assistant-accent, #0f766e) 100%) !important;
+  background: var(--ai-assistant-hover-bg, #087f78) !important;
   background-color: var(--ai-assistant-hover-bg, #087f78) !important;
   border-color: var(--ai-assistant-hover-bg, #087f78) !important;
   color: var(--ai-assistant-hover-text, #ffffff) !important;
@@ -28185,6 +28185,13 @@ html body #root .ai-assistant-launcher svg,
 html body #root .ai-assistant-launcher::before {
   color: var(--ai-assistant-icon, #ffffff) !important;
   stroke: var(--ai-assistant-icon, #ffffff) !important;
+}
+
+html body #root .ai-assistant-launcher::before {
+  background: var(--ai-assistant-icon, #ffffff) !important;
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--ai-assistant-icon, #ffffff) 18%, transparent),
+    0 0 14px color-mix(in srgb, var(--ai-assistant-icon, #ffffff) 75%, transparent) !important;
 }
 
 html body #root .ai-assistant-launcher span {
@@ -28354,7 +28361,7 @@ html body #root .question-attachment-box .compact-link svg {
 
 /* Admin Subdomain live-preview examples for the two new color groups. */
 html body #root .button-theme-preview--ai {
-  background: linear-gradient(135deg, var(--ai-assistant-bg, #0d9488), var(--ai-assistant-accent, #0f766e)) !important;
+  background: var(--ai-assistant-bg, #0d9488) !important;
   border-color: var(--ai-assistant-border, #99f6e4) !important;
   color: var(--ai-assistant-text, #ffffff) !important;
 }

@@ -891,18 +891,18 @@ const BUTTON_COLOR_SECTIONS = [
   },
   {
     key: 'aiAssistant',
-    title: 'AI Assistant colors',
-    description: 'Launcher, panel accents, category buttons, premade questions, selected questions, and answer panel.',
+    title: 'AI Assistant — Main Button and Panel',
+    description: 'Change the real floating AI button background and hover colors, plus every AI panel, category, question, and answer color.',
     fields: [
-      ['background', 'AI launcher background'],
-      ['text', 'AI launcher text'],
-      ['icon', 'AI launcher icon'],
-      ['hoverBackground', 'AI launcher hover background'],
-      ['hoverText', 'AI launcher hover text'],
-      ['accent', 'AI accent and heading color'],
-      ['softBackground', 'AI soft panel background'],
-      ['strongBackground', 'AI hover/category background'],
-      ['border', 'AI panel and button border'],
+      ['background', 'Main AI button background'],
+      ['text', 'Main AI button text'],
+      ['icon', 'Main AI button icon and status dot'],
+      ['hoverBackground', 'Main AI button hover background'],
+      ['hoverText', 'Main AI button hover text'],
+      ['accent', 'AI headings and category text'],
+      ['softBackground', 'AI category and panel background'],
+      ['strongBackground', 'AI category hover/open background'],
+      ['border', 'Main AI button and panel border'],
       ['questionBackground', 'AI premade question background'],
       ['questionText', 'AI premade question text'],
       ['questionHoverBackground', 'AI selected question background'],
@@ -1693,6 +1693,24 @@ function applyButtonTheme(colors = DEFAULT_BUTTON_COLORS) {
 
 function applyButtonColorCssVariables(colors = DEFAULT_BUTTON_COLORS) {
   return applyButtonTheme(colors)
+}
+
+function getButtonThemeRuntimeStyle(colors = DEFAULT_BUTTON_COLORS, sectionKeys = null) {
+  const normalized = normalizeButtonColors(colors)
+  const allowedSections = Array.isArray(sectionKeys) && sectionKeys.length
+    ? new Set(sectionKeys)
+    : null
+  const style = {}
+
+  for (const [sectionKey, fields] of Object.entries(BUTTON_COLOR_CSS_VARIABLES)) {
+    if (allowedSections && !allowedSections.has(sectionKey)) continue
+    for (const [fieldKey, cssVariable] of Object.entries(fields)) {
+      const value = normalized?.[sectionKey]?.[fieldKey] ?? DEFAULT_BUTTON_COLORS?.[sectionKey]?.[fieldKey]
+      if (value) style[cssVariable] = value
+    }
+  }
+
+  return style
 }
 
 function colorPickerValue(value) {
@@ -9815,7 +9833,7 @@ export default function App() {
         {tab === 'audit' && allowedRole === 'admin' && <AuditTab logs={visibleData.auditLogs} dataLoading={dataLoading} />}
         </main>
       </div>
-      {(allowedRole === 'student' || allowedRole === 'supervisor') && <AIAssistantWidget role={allowedRole} />}
+      {(allowedRole === 'student' || allowedRole === 'supervisor') && <AIAssistantWidget role={allowedRole} buttonColors={websiteSettings?.button_colors} />}
       <AppDialog dialog={appDialog} onClose={closeAppDialog} />
     </div>
   )
@@ -9975,7 +9993,7 @@ const AI_ASSISTANT_LIBRARY = {
   ],
 }
 
-function AIAssistantWidget({ role }) {
+function AIAssistantWidget({ role, buttonColors = DEFAULT_BUTTON_COLORS }) {
   const normalizedRole = role === 'supervisor' ? 'supervisor' : role === 'student' ? 'student' : null
   const sections = normalizedRole ? AI_ASSISTANT_LIBRARY[normalizedRole] : []
   const [isOpen, setIsOpen] = useState(false)
@@ -9995,7 +10013,10 @@ function AIAssistantWidget({ role }) {
     : 'Choose a task to draft feedback, deadlines, or guidance.'
 
   return (
-    <div className={`ai-assistant-widget ${isOpen ? 'open' : ''} no-print`}>
+    <div
+      className={`ai-assistant-widget ${isOpen ? 'open' : ''} no-print`}
+      style={getButtonThemeRuntimeStyle(buttonColors, ['aiAssistant'])}
+    >
       {isOpen && (
         <section className="ai-assistant-panel" aria-label={roleLabel}>
           <div className="ai-assistant-panel-header">
@@ -10809,7 +10830,7 @@ function ButtonColorCustomizationPanel({
       <div className="button-color-editor-layout">
         <div className="button-color-sections">
           {BUTTON_COLOR_SECTIONS.map((section, sectionIndex) => (
-            <details className="card button-color-section" key={section.key} open={sectionIndex < 2 ? true : undefined}>
+            <details className="card button-color-section" key={section.key} open={sectionIndex < 2 || section.key === 'aiAssistant' || section.key === 'questions' ? true : undefined}>
               <summary>
                 <span><b>{section.title}</b><small>{section.description}</small></span>
                 <span className="button-color-section-count">{section.fields.length} colors</span>
@@ -10833,6 +10854,7 @@ function ButtonColorCustomizationPanel({
         <aside className="card button-color-live-preview">
           <SectionHeader icon={Eye} title="Live Preview" subtitle="Preview updates immediately. These buttons do not perform actions." />
           <div className="button-color-preview-stack" style={{
+            ...getButtonThemeRuntimeStyle(normalizedPreview),
             '--preview-primary-bg': normalizedPreview.primary.background,
             '--preview-primary-text': normalizedPreview.primary.text,
             '--preview-primary-border': normalizedPreview.primary.border,
