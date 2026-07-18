@@ -27666,12 +27666,12 @@ html body #root#root .header-dropdown-shell .header-dropdown-sidebar :is(
 }
 
 /* ========================================================================
-   AUTHENTICATED TOP HEADER — COMPACT 44PX / 42PX
+   AUTHENTICATED TOP HEADER — COMPACT 34PX / 32PX
    Header-only correction. The existing sidebar markup, navigation, opacity,
    animation, state, and controls are intentionally not changed here.
    ======================================================================== */
 :root {
-  --auth-header-height: 44px;
+  --auth-header-height: 34px;
   --top-header-height: var(--auth-header-height);
 }
 
@@ -27933,7 +27933,7 @@ html body #root .admin-panel-topbar .admin-guidelines-link {
 
 @media (max-width: 768px) {
   :root {
-    --auth-header-height: 42px;
+    --auth-header-height: 32px;
     --top-header-height: var(--auth-header-height);
   }
 
@@ -28038,9 +28038,9 @@ html body #root#root#root .main-compact-header .main-header-actions .student-pro
 html body #root#root#root .main-compact-header .student-profile-menu.user-profile-menu {
   position: relative !important;
   inset: auto !important;
-  width: var(--auth-header-height, 44px) !important;
-  min-width: var(--auth-header-height, 44px) !important;
-  max-width: var(--auth-header-height, 44px) !important;
+  width: var(--auth-header-height, 34px) !important;
+  min-width: var(--auth-header-height, 34px) !important;
+  max-width: var(--auth-header-height, 34px) !important;
   height: 100% !important;
   min-height: 100% !important;
   max-height: 100% !important;
@@ -28059,9 +28059,9 @@ html body #root#root#root .main-compact-header .student-profile-trigger,
 html body #root#root#root .main-compact-header .student-profile-trigger.redesigned {
   position: relative !important;
   inset: auto !important;
-  width: var(--auth-header-height, 44px) !important;
-  min-width: var(--auth-header-height, 44px) !important;
-  max-width: var(--auth-header-height, 44px) !important;
+  width: var(--auth-header-height, 34px) !important;
+  min-width: var(--auth-header-height, 34px) !important;
+  max-width: var(--auth-header-height, 34px) !important;
   height: 100% !important;
   min-height: 100% !important;
   max-height: 100% !important;
