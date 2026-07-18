@@ -28404,3 +28404,17 @@ html body #root .button-theme-preview--questions:hover {
   background: var(--questions-btn-hover-bg, #087f78) !important;
   color: var(--questions-btn-hover-text, #ffffff) !important;
 }
+
+/* AI Assistant: customizable inactive/closed category background */
+html body #root .ai-assistant-widget .ai-assistant-category-header:not(.active),
+html body #root .ai-assistant-widget button.ai-assistant-category-header:not(.active) {
+  background: var(--ai-assistant-inactive-bg, #f8fafc) !important;
+  background-color: var(--ai-assistant-inactive-bg, #f8fafc) !important;
+}
+
+html body #root .button-theme-preview--ai-inactive {
+  background: var(--ai-assistant-inactive-bg, #f8fafc) !important;
+  background-color: var(--ai-assistant-inactive-bg, #f8fafc) !important;
+  border-color: var(--ai-assistant-border, #99f6e4) !important;
+  color: var(--ai-assistant-accent, #0f766e) !important;
+}

@@ -759,6 +759,7 @@ const DEFAULT_BUTTON_COLORS = {
     hoverBackground: '#087f78',
     hoverText: '#ffffff',
     accent: '#0f766e',
+    inactiveBackground: '#f8fafc',
     softBackground: '#ecfdf5',
     strongBackground: '#ccfbf1',
     border: '#99f6e4',
@@ -900,7 +901,8 @@ const BUTTON_COLOR_SECTIONS = [
       ['hoverBackground', 'Main AI button hover background'],
       ['hoverText', 'Main AI button hover text'],
       ['accent', 'AI headings and category text'],
-      ['softBackground', 'AI category and panel background'],
+      ['inactiveBackground', 'Inactive AI category background'],
+      ['softBackground', 'AI panel and open-category background'],
       ['strongBackground', 'AI category hover/open background'],
       ['border', 'Main AI button and panel border'],
       ['questionBackground', 'AI premade question background'],
@@ -1003,6 +1005,7 @@ const BUTTON_COLOR_CSS_VARIABLES = {
     hoverBackground: '--ai-assistant-hover-bg',
     hoverText: '--ai-assistant-hover-text',
     accent: '--ai-assistant-accent',
+    inactiveBackground: '--ai-assistant-inactive-bg',
     softBackground: '--ai-assistant-soft-bg',
     strongBackground: '--ai-assistant-strong-bg',
     border: '--ai-assistant-border',
@@ -10043,7 +10046,7 @@ function AIAssistantWidget({ role, buttonColors = DEFAULT_BUTTON_COLORS }) {
                     <button
                       type="button"
                       className={`ai-assistant-category-header ${expanded ? 'active' : ''}`}
-                      style={{ background: expanded ? aiColors.strongBackground : aiColors.softBackground, color: aiColors.accent, borderColor: aiColors.border }}
+                      style={{ background: expanded ? aiColors.strongBackground : aiColors.inactiveBackground, color: aiColors.accent, borderColor: aiColors.border }}
                       onClick={() => setOpenSection(expanded ? '' : section.title)}
                     >
                       <span><Icon size={16} /> {section.title}</span>
@@ -10901,6 +10904,7 @@ function ButtonColorCustomizationPanel({
             <div className="button-theme-preview-group">
               <span>AI Assistant</span>
               <button type="button" className="button-theme-preview button-theme-preview--ai"><MessageSquareText size={16} /> AI Assistant</button>
+              <button type="button" className="button-theme-preview button-theme-preview--ai-inactive">Inactive category</button>
               <button type="button" className="button-theme-preview button-theme-preview--ai-question">Premade question</button>
               <button type="button" className="button-theme-preview button-theme-preview--ai-question is-selected">Selected question</button>
             </div>
