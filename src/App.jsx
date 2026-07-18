@@ -10011,6 +10011,8 @@ function AIAssistantWidget({ role, buttonColors = DEFAULT_BUTTON_COLORS }) {
   const sections = normalizedRole ? AI_ASSISTANT_LIBRARY[normalizedRole] : []
   const [runtimeButtonColors, setRuntimeButtonColors] = useState(() => normalizeButtonColors(buttonColors))
   const aiColors = runtimeButtonColors.aiAssistant
+  const widgetRef = useRef(null)
+  const launcherRef = useRef(null)
   const [isOpen, setIsOpen] = useState(false)
   const [launcherHovered, setLauncherHovered] = useState(false)
   const [openSection, setOpenSection] = useState(sections[0]?.title || '')
@@ -10040,6 +10042,95 @@ function AIAssistantWidget({ role, buttonColors = DEFAULT_BUTTON_COLORS }) {
     setSelectedPrompt(null)
   }, [normalizedRole])
 
+  // Authoritative runtime color binding. These declarations are written as
+  // inline !important values so legacy gray gradients or broad button rules
+  // cannot override the Admin Subdomain color choices.
+  useLayoutEffect(() => {
+    const widget = widgetRef.current
+    const launcher = launcherRef.current
+    if (!widget || !launcher) return
+
+    const setImportant = (element, property, value) => {
+      if (element && value) element.style.setProperty(property, value, 'important')
+    }
+
+    const launcherBackground = launcherHovered ? aiColors.hoverBackground : aiColors.background
+    const launcherText = launcherHovered ? aiColors.hoverText : aiColors.text
+    const launcherBorder = launcherHovered ? aiColors.hoverBackground : aiColors.border
+
+    setImportant(launcher, 'background', launcherBackground)
+    setImportant(launcher, 'background-color', launcherBackground)
+    setImportant(launcher, 'background-image', 'none')
+    setImportant(launcher, 'color', launcherText)
+    setImportant(launcher, '-webkit-text-fill-color', launcherText)
+    setImportant(launcher, 'border-color', launcherBorder)
+
+    launcher.querySelectorAll('svg').forEach((icon) => {
+      setImportant(icon, 'color', aiColors.icon)
+      setImportant(icon, 'stroke', aiColors.icon)
+    })
+
+    widget.querySelectorAll('.ai-assistant-panel').forEach((panel) => {
+      setImportant(panel, 'border-color', aiColors.border)
+    })
+    widget.querySelectorAll('.ai-assistant-panel-header').forEach((header) => {
+      setImportant(header, 'background', aiColors.softBackground)
+      setImportant(header, 'background-color', aiColors.softBackground)
+      setImportant(header, 'background-image', 'none')
+      setImportant(header, 'border-bottom-color', aiColors.border)
+    })
+    widget.querySelectorAll('.ai-assistant-category-header').forEach((button) => {
+      const active = button.classList.contains('active')
+      const background = active ? aiColors.strongBackground : aiColors.inactiveBackground
+      setImportant(button, 'background', background)
+      setImportant(button, 'background-color', background)
+      setImportant(button, 'background-image', 'none')
+      setImportant(button, 'color', aiColors.accent)
+      setImportant(button, 'border-color', aiColors.border)
+      button.querySelectorAll('span, strong, svg').forEach((child) => {
+        setImportant(child, 'color', aiColors.accent)
+        if (child.tagName.toLowerCase() === 'svg') setImportant(child, 'stroke', aiColors.accent)
+      })
+    })
+    widget.querySelectorAll('.ai-assistant-question').forEach((button) => {
+      const selected = button.classList.contains('selected')
+      const background = selected ? aiColors.questionHoverBackground : aiColors.questionBackground
+      const text = selected ? aiColors.questionHoverText : aiColors.questionText
+      setImportant(button, 'background', background)
+      setImportant(button, 'background-color', background)
+      setImportant(button, 'background-image', 'none')
+      setImportant(button, 'color', text)
+      setImportant(button, '-webkit-text-fill-color', text)
+      setImportant(button, 'border-color', aiColors.border)
+    })
+    widget.querySelectorAll('.ai-assistant-answer-card').forEach((card) => {
+      setImportant(card, 'background', aiColors.answerBackground)
+      setImportant(card, 'background-color', aiColors.answerBackground)
+      setImportant(card, 'background-image', 'none')
+      setImportant(card, 'border-color', aiColors.border)
+    })
+  }, [
+    aiColors.background,
+    aiColors.text,
+    aiColors.icon,
+    aiColors.hoverBackground,
+    aiColors.hoverText,
+    aiColors.accent,
+    aiColors.inactiveBackground,
+    aiColors.softBackground,
+    aiColors.strongBackground,
+    aiColors.border,
+    aiColors.questionBackground,
+    aiColors.questionText,
+    aiColors.questionHoverBackground,
+    aiColors.questionHoverText,
+    aiColors.answerBackground,
+    launcherHovered,
+    isOpen,
+    openSection,
+    selectedPrompt,
+  ])
+
   if (!normalizedRole) return null
 
   const roleLabel = normalizedRole === 'student' ? 'Student AI Assistant' : 'Supervisor AI Assistant'
@@ -10049,6 +10140,8 @@ function AIAssistantWidget({ role, buttonColors = DEFAULT_BUTTON_COLORS }) {
 
   return (
     <div
+      ref={widgetRef}
+      data-ai-color-override="authoritative"
       className={`ai-assistant-widget ${isOpen ? 'open' : ''} no-print`}
       style={getButtonThemeRuntimeStyle(runtimeButtonColors, ['aiAssistant'])}
     >
@@ -10124,6 +10217,7 @@ function AIAssistantWidget({ role, buttonColors = DEFAULT_BUTTON_COLORS }) {
       )}
 
       <button
+        ref={launcherRef}
         type="button"
         className="ai-assistant-launcher"
         onClick={() => setIsOpen((value) => !value)}

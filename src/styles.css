@@ -28500,3 +28500,60 @@ html body #root .button-theme-preview.button-theme-preview--ai {
   background-color: var(--ai-preview-main-bg, var(--ai-assistant-bg, #0d9488)) !important;
   background-image: none !important;
 }
+
+/* ============================================================
+   FINAL AUTHORITATIVE AI COLOR OVERRIDE
+   This block intentionally has maximum author specificity. The component
+   also writes matching inline !important declarations at runtime.
+   ============================================================ */
+html body #root div.ai-assistant-widget[data-ai-color-override="authoritative"] > button.ai-assistant-launcher,
+html body #root div.ai-assistant-widget[data-ai-color-override="authoritative"] > button.ai-assistant-launcher:hover,
+html body #root div.ai-assistant-widget[data-ai-color-override="authoritative"] > button.ai-assistant-launcher:focus,
+html body #root div.ai-assistant-widget[data-ai-color-override="authoritative"] > button.ai-assistant-launcher:focus-visible,
+html body #root div.ai-assistant-widget[data-ai-color-override="authoritative"] > button.ai-assistant-launcher:active,
+html body #root div.ai-assistant-widget[data-ai-color-override="authoritative"].open > button.ai-assistant-launcher {
+  background: var(--ai-launcher-current-bg, var(--ai-assistant-bg, #0d9488)) !important;
+  background-color: var(--ai-launcher-current-bg, var(--ai-assistant-bg, #0d9488)) !important;
+  background-image: none !important;
+  color: var(--ai-launcher-current-text, var(--ai-assistant-text, #ffffff)) !important;
+  -webkit-text-fill-color: var(--ai-launcher-current-text, var(--ai-assistant-text, #ffffff)) !important;
+  border-color: var(--ai-launcher-current-border, var(--ai-assistant-border, #99f6e4)) !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+html body #root div.ai-assistant-widget[data-ai-color-override="authoritative"] > button.ai-assistant-launcher svg {
+  color: var(--ai-launcher-current-icon, var(--ai-assistant-icon, #ffffff)) !important;
+  stroke: var(--ai-launcher-current-icon, var(--ai-assistant-icon, #ffffff)) !important;
+}
+
+html body #root div.ai-assistant-widget[data-ai-color-override="authoritative"] > button.ai-assistant-launcher::before {
+  background: var(--ai-launcher-current-icon, var(--ai-assistant-icon, #ffffff)) !important;
+}
+
+html body #root div.ai-assistant-widget[data-ai-color-override="authoritative"] .ai-assistant-category-header:not(.active) {
+  background: var(--ai-assistant-inactive-bg, #f8fafc) !important;
+  background-color: var(--ai-assistant-inactive-bg, #f8fafc) !important;
+  background-image: none !important;
+}
+
+html body #root div.ai-assistant-widget[data-ai-color-override="authoritative"] .ai-assistant-category-header.active {
+  background: var(--ai-assistant-strong-bg, #ccfbf1) !important;
+  background-color: var(--ai-assistant-strong-bg, #ccfbf1) !important;
+  background-image: none !important;
+}
+
+html body #root div.ai-assistant-widget[data-ai-color-override="authoritative"] .ai-assistant-question:not(.selected) {
+  background: var(--ai-assistant-question-bg, #ffffff) !important;
+  background-color: var(--ai-assistant-question-bg, #ffffff) !important;
+  background-image: none !important;
+  color: var(--ai-assistant-question-text, #0f766e) !important;
+}
+
+html body #root div.ai-assistant-widget[data-ai-color-override="authoritative"] .ai-assistant-question.selected,
+html body #root div.ai-assistant-widget[data-ai-color-override="authoritative"] .ai-assistant-question:hover {
+  background: var(--ai-assistant-question-hover-bg, #0d9488) !important;
+  background-color: var(--ai-assistant-question-hover-bg, #0d9488) !important;
+  background-image: none !important;
+  color: var(--ai-assistant-question-hover-text, #ffffff) !important;
+}
