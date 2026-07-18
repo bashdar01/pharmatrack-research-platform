@@ -28100,15 +28100,15 @@ html body #root#root#root .main-compact-header .student-profile-trigger > img,
 html body #root#root#root .main-compact-header .student-profile-trigger > span:not(.profile-online-dot) {
   position: relative !important;
   inset: auto !important;
-  width: 31px !important;
-  min-width: 31px !important;
-  max-width: 31px !important;
-  height: 31px !important;
-  min-height: 31px !important;
-  max-height: 31px !important;
+  width: 33px !important;
+  min-width: 33px !important;
+  max-width: 33px !important;
+  height: 33px !important;
+  min-height: 33px !important;
+  max-height: 33px !important;
   margin: 0 !important;
   padding: 0 !important;
-  flex: 0 0 31px !important;
+  flex: 0 0 33px !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -28134,12 +28134,12 @@ html body #root#root#root .main-compact-header .student-profile-trigger > .profi
 @media (max-width: 768px) {
   html body #root#root#root .main-compact-header .student-profile-trigger > img,
   html body #root#root#root .main-compact-header .student-profile-trigger > span:not(.profile-online-dot) {
-    width: 29px !important;
-    min-width: 29px !important;
-    max-width: 29px !important;
-    height: 29px !important;
-    min-height: 29px !important;
-    max-height: 29px !important;
-    flex-basis: 29px !important;
+    width: 31px !important;
+    min-width: 31px !important;
+    max-width: 31px !important;
+    height: 31px !important;
+    min-height: 31px !important;
+    max-height: 31px !important;
+    flex-basis: 31px !important;
   }
 }
