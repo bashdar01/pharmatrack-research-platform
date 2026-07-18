@@ -28028,3 +28028,118 @@ html body #root .admin-panel-topbar .admin-guidelines-link {
     font-size: 0.73rem !important;
   }
 }
+
+/* ========================================================================== 
+   Authenticated header profile alignment correction
+   Keeps one centered avatar circle and removes the accidental inner/status dot.
+   Sidebar styles and behavior are intentionally untouched.
+   ========================================================================== */
+html body #root#root#root .main-compact-header .main-header-actions .student-profile-menu.user-profile-menu,
+html body #root#root#root .main-compact-header .student-profile-menu.user-profile-menu {
+  position: relative !important;
+  inset: auto !important;
+  width: var(--auth-header-height, 44px) !important;
+  min-width: var(--auth-header-height, 44px) !important;
+  max-width: var(--auth-header-height, 44px) !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  align-self: stretch !important;
+  box-sizing: border-box !important;
+}
+
+html body #root#root#root .main-compact-header .main-header-actions .student-profile-trigger,
+html body #root#root#root .main-compact-header .main-header-actions .student-profile-trigger.redesigned,
+html body #root#root#root .main-compact-header .student-profile-trigger,
+html body #root#root#root .main-compact-header .student-profile-trigger.redesigned {
+  position: relative !important;
+  inset: auto !important;
+  width: var(--auth-header-height, 44px) !important;
+  min-width: var(--auth-header-height, 44px) !important;
+  max-width: var(--auth-header-height, 44px) !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  align-self: stretch !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+  overflow: visible !important;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
+}
+
+html body #root#root#root .main-compact-header .student-profile-trigger:hover,
+html body #root#root#root .main-compact-header .student-profile-trigger:focus-visible,
+html body #root#root#root .main-compact-header .student-profile-menu.open .student-profile-trigger {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+html body #root#root#root .main-compact-header .student-profile-trigger::before,
+html body #root#root#root .main-compact-header .student-profile-trigger::after {
+  display: none !important;
+  content: none !important;
+}
+
+html body #root#root#root .main-compact-header .student-profile-trigger > img,
+html body #root#root#root .main-compact-header .student-profile-trigger > span:not(.profile-online-dot) {
+  position: relative !important;
+  inset: auto !important;
+  width: 31px !important;
+  min-width: 31px !important;
+  max-width: 31px !important;
+  height: 31px !important;
+  min-height: 31px !important;
+  max-height: 31px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex: 0 0 31px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
+  background: var(--top-header-avatar-bg, #ffffff) !important;
+  background-color: var(--top-header-avatar-bg, #ffffff) !important;
+  background-image: none !important;
+  color: var(--top-header-avatar-text, #1f2937) !important;
+  -webkit-text-fill-color: var(--top-header-avatar-text, #1f2937) !important;
+  border: 1px solid color-mix(in srgb, var(--top-header-avatar-text, #1f2937) 18%, transparent) !important;
+  box-shadow: none !important;
+  object-fit: cover !important;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
+  transform: none !important;
+}
+
+/* Remove the small status circle that was appearing inside/on the avatar. */
+html body #root#root#root .main-compact-header .student-profile-trigger > .profile-online-dot {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  html body #root#root#root .main-compact-header .student-profile-trigger > img,
+  html body #root#root#root .main-compact-header .student-profile-trigger > span:not(.profile-online-dot) {
+    width: 29px !important;
+    min-width: 29px !important;
+    max-width: 29px !important;
+    height: 29px !important;
+    min-height: 29px !important;
+    max-height: 29px !important;
+    flex-basis: 29px !important;
+  }
+}
