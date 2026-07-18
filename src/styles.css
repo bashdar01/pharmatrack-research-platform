@@ -27666,12 +27666,12 @@ html body #root#root .header-dropdown-shell .header-dropdown-sidebar :is(
 }
 
 /* ========================================================================
-   AUTHENTICATED TOP HEADER — COMPACT 36PX / 34PX
+   AUTHENTICATED TOP HEADER — COMPACT 32PX / 30PX
    Header-only correction. The existing sidebar markup, navigation, opacity,
    animation, state, and controls are intentionally not changed here.
    ======================================================================== */
 :root {
-  --auth-header-height: 36px;
+  --auth-header-height: 32px;
   --top-header-height: var(--auth-header-height);
 }
 
@@ -27746,7 +27746,7 @@ html body #root button.admin-sidebar-menu-toggle {
 html body #root button.sidebar-menu-toggle span,
 html body #root button.hamburger-button span,
 html body #root button.admin-sidebar-menu-toggle span {
-  width: 18px !important;
+  width: 16px !important;
   height: 2px !important;
   margin: 2px auto !important;
   flex: 0 0 auto !important;
@@ -27774,13 +27774,13 @@ html body #root#root#root .main-compact-header .notification-bell-menu > button.
 html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button,
 html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button {
   width: auto !important;
-  min-width: 58px !important;
+  min-width: 54px !important;
   max-width: none !important;
   min-height: 100% !important;
   height: 100% !important;
   max-height: 100% !important;
   margin-block: 0 !important;
-  padding: 0 11px !important;
+  padding: 0 9px !important;
   align-self: stretch !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -27793,7 +27793,7 @@ html body #root#root#root button.main-notification-button.header-inbox-button.in
 }
 
 html body #root#root#root .header-inbox-button .inbox-button-label {
-  font-size: 0.8rem !important;
+  font-size: 0.75rem !important;
   line-height: 1 !important;
 }
 
@@ -27830,9 +27830,9 @@ html body #root .role-switch-dropdown.role-switch-label-hidden {
 html body #root .main-compact-header .role-switch-dropdown select,
 html body #root .main-header-actions .role-switch-dropdown select,
 html body #root .role-switch-dropdown.role-switch-label-hidden select {
-  min-height: 28px !important;
-  height: 28px !important;
-  max-height: 28px !important;
+  min-height: 25px !important;
+  height: 25px !important;
+  max-height: 25px !important;
   margin: 0 !important;
   padding-block: 0 !important;
   font-size: 0.78rem !important;
@@ -27884,18 +27884,18 @@ html body #root .main-compact-header .student-profile-trigger > img,
 html body #root .main-header-actions .student-profile-trigger > img,
 html body #root .main-compact-header .student-profile-trigger > span:not(.profile-online-dot),
 html body #root .main-header-actions .student-profile-trigger > span:not(.profile-online-dot) {
-  width: 31px !important;
-  min-width: 31px !important;
-  max-width: 31px !important;
-  height: 31px !important;
-  min-height: 31px !important;
-  max-height: 31px !important;
+  width: 24px !important;
+  min-width: 24px !important;
+  max-width: 24px !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  max-height: 24px !important;
   margin: 0 !important;
   padding: 0 !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  flex: 0 0 31px !important;
+  flex: 0 0 24px !important;
   border-radius: 999px !important;
   background: var(--top-header-avatar-bg, #ffffff) !important;
   color: var(--top-header-avatar-text, #1f2937) !important;
@@ -27933,7 +27933,7 @@ html body #root .admin-panel-topbar .admin-guidelines-link {
 
 @media (max-width: 768px) {
   :root {
-    --auth-header-height: 34px;
+    --auth-header-height: 30px;
     --top-header-height: var(--auth-header-height);
   }
 
@@ -27964,18 +27964,18 @@ html body #root .admin-panel-topbar .admin-guidelines-link {
   html body #root button.sidebar-menu-toggle span,
   html body #root button.hamburger-button span,
   html body #root button.admin-sidebar-menu-toggle span {
-    width: 17px !important;
+    width: 15px !important;
   }
 
   html body #root#root#root .main-compact-header .notification-bell-menu > button.main-notification-button.header-inbox-button,
   html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button,
   html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button {
-    min-width: 52px !important;
-    padding-inline: 8px !important;
+    min-width: 48px !important;
+    padding-inline: 7px !important;
   }
 
   html body #root#root#root .header-inbox-button .inbox-button-label {
-    font-size: 0.75rem !important;
+    font-size: 0.7rem !important;
   }
 
   html body #root .main-compact-header .role-switch-dropdown,
@@ -27987,9 +27987,9 @@ html body #root .admin-panel-topbar .admin-guidelines-link {
   html body #root .main-compact-header .role-switch-dropdown select,
   html body #root .main-header-actions .role-switch-dropdown select,
   html body #root .role-switch-dropdown.role-switch-label-hidden select {
-    min-height: 26px !important;
-    height: 26px !important;
-    max-height: 26px !important;
+    min-height: 23px !important;
+    height: 23px !important;
+    max-height: 23px !important;
     max-width: 112px !important;
     font-size: 0.72rem !important;
   }
@@ -28007,13 +28007,13 @@ html body #root .admin-panel-topbar .admin-guidelines-link {
   html body #root .main-header-actions .student-profile-trigger > img,
   html body #root .main-compact-header .student-profile-trigger > span:not(.profile-online-dot),
   html body #root .main-header-actions .student-profile-trigger > span:not(.profile-online-dot) {
-    width: 29px !important;
-    min-width: 29px !important;
-    max-width: 29px !important;
-    height: 29px !important;
-    min-height: 29px !important;
-    max-height: 29px !important;
-    flex-basis: 29px !important;
+    width: 22px !important;
+    min-width: 22px !important;
+    max-width: 22px !important;
+    height: 22px !important;
+    min-height: 22px !important;
+    max-height: 22px !important;
+    flex-basis: 22px !important;
   }
 
   html body #root .main-compact-header .student-profile-trigger .profile-online-dot,
@@ -28038,9 +28038,9 @@ html body #root#root#root .main-compact-header .main-header-actions .student-pro
 html body #root#root#root .main-compact-header .student-profile-menu.user-profile-menu {
   position: relative !important;
   inset: auto !important;
-  width: var(--auth-header-height, 34px) !important;
-  min-width: var(--auth-header-height, 34px) !important;
-  max-width: var(--auth-header-height, 34px) !important;
+  width: var(--auth-header-height, 30px) !important;
+  min-width: var(--auth-header-height, 30px) !important;
+  max-width: var(--auth-header-height, 30px) !important;
   height: 100% !important;
   min-height: 100% !important;
   max-height: 100% !important;
@@ -28059,9 +28059,9 @@ html body #root#root#root .main-compact-header .student-profile-trigger,
 html body #root#root#root .main-compact-header .student-profile-trigger.redesigned {
   position: relative !important;
   inset: auto !important;
-  width: var(--auth-header-height, 34px) !important;
-  min-width: var(--auth-header-height, 34px) !important;
-  max-width: var(--auth-header-height, 34px) !important;
+  width: var(--auth-header-height, 30px) !important;
+  min-width: var(--auth-header-height, 30px) !important;
+  max-width: var(--auth-header-height, 30px) !important;
   height: 100% !important;
   min-height: 100% !important;
   max-height: 100% !important;
@@ -28100,15 +28100,15 @@ html body #root#root#root .main-compact-header .student-profile-trigger > img,
 html body #root#root#root .main-compact-header .student-profile-trigger > span:not(.profile-online-dot) {
   position: relative !important;
   inset: auto !important;
-  width: 26px !important;
-  min-width: 26px !important;
-  max-width: 26px !important;
-  height: 26px !important;
-  min-height: 26px !important;
-  max-height: 26px !important;
+  width: 24px !important;
+  min-width: 24px !important;
+  max-width: 24px !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  max-height: 24px !important;
   margin: 0 !important;
   padding: 0 !important;
-  flex: 0 0 26px !important;
+  flex: 0 0 24px !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -28134,13 +28134,13 @@ html body #root#root#root .main-compact-header .student-profile-trigger > .profi
 @media (max-width: 768px) {
   html body #root#root#root .main-compact-header .student-profile-trigger > img,
   html body #root#root#root .main-compact-header .student-profile-trigger > span:not(.profile-online-dot) {
-    width: 24px !important;
-    min-width: 24px !important;
-    max-width: 24px !important;
-    height: 24px !important;
-    min-height: 24px !important;
-    max-height: 24px !important;
-    flex-basis: 24px !important;
+    width: 22px !important;
+    min-width: 22px !important;
+    max-width: 22px !important;
+    height: 22px !important;
+    min-height: 22px !important;
+    max-height: 22px !important;
+    flex-basis: 22px !important;
   }
 }
 
