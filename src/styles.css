@@ -28145,27 +28145,27 @@ html body #root#root#root .main-compact-header .student-profile-trigger > .profi
 }
 
 /* ============================================================
-   FINAL GREEN PALETTE: AI Assistant and Questions
-   Keep existing behavior; update colors only.
+   ADMIN-CUSTOMIZABLE AI ASSISTANT AND QUESTIONS COLORS
+   Values come from the existing button_colors settings object.
    ============================================================ */
 html body #root .ai-assistant-widget {
-  --ai-green: #0d9488;
-  --ai-green-hover: #087f78;
-  --ai-green-deep: #0f766e;
-  --ai-green-soft: #ecfdf5;
-  --ai-green-soft-strong: #ccfbf1;
-  --ai-green-border: #5eead4;
-  --ai-green-border-soft: #99f6e4;
+  --ai-green: var(--ai-assistant-bg, #0d9488);
+  --ai-green-hover: var(--ai-assistant-hover-bg, #087f78);
+  --ai-green-deep: var(--ai-assistant-accent, #0f766e);
+  --ai-green-soft: var(--ai-assistant-soft-bg, #ecfdf5);
+  --ai-green-soft-strong: var(--ai-assistant-strong-bg, #ccfbf1);
+  --ai-green-border: var(--ai-assistant-border, #99f6e4);
+  --ai-green-border-soft: var(--ai-assistant-border, #99f6e4);
 }
 
 html body #root .ai-assistant-launcher,
 html body #root button.ai-assistant-launcher {
-  background: linear-gradient(135deg, var(--ai-green) 0%, var(--ai-green-deep) 100%) !important;
-  background-color: var(--ai-green) !important;
-  border-color: var(--ai-green-deep) !important;
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-  box-shadow: 0 12px 30px rgba(13, 148, 136, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  background: linear-gradient(135deg, var(--ai-assistant-bg, #0d9488) 0%, var(--ai-assistant-accent, #0f766e) 100%) !important;
+  background-color: var(--ai-assistant-bg, #0d9488) !important;
+  border-color: var(--ai-assistant-border, #99f6e4) !important;
+  color: var(--ai-assistant-text, #ffffff) !important;
+  -webkit-text-fill-color: var(--ai-assistant-text, #ffffff) !important;
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--ai-assistant-bg, #0d9488) 28%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
 }
 
 html body #root .ai-assistant-launcher:hover,
@@ -28174,56 +28174,56 @@ html body #root .ai-assistant-launcher:focus-visible,
 html body #root button.ai-assistant-launcher:hover,
 html body #root button.ai-assistant-launcher:focus,
 html body #root button.ai-assistant-launcher:focus-visible {
-  background: linear-gradient(135deg, var(--ai-green-hover) 0%, #066a64 100%) !important;
-  background-color: var(--ai-green-hover) !important;
-  border-color: var(--ai-green-hover) !important;
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
+  background: linear-gradient(135deg, var(--ai-assistant-hover-bg, #087f78) 0%, var(--ai-assistant-accent, #0f766e) 100%) !important;
+  background-color: var(--ai-assistant-hover-bg, #087f78) !important;
+  border-color: var(--ai-assistant-hover-bg, #087f78) !important;
+  color: var(--ai-assistant-hover-text, #ffffff) !important;
+  -webkit-text-fill-color: var(--ai-assistant-hover-text, #ffffff) !important;
 }
 
 html body #root .ai-assistant-launcher svg,
-html body #root .ai-assistant-launcher span,
 html body #root .ai-assistant-launcher::before {
-  color: #ffffff !important;
-  stroke: #ffffff !important;
+  color: var(--ai-assistant-icon, #ffffff) !important;
+  stroke: var(--ai-assistant-icon, #ffffff) !important;
+}
+
+html body #root .ai-assistant-launcher span {
+  color: inherit !important;
+  -webkit-text-fill-color: inherit !important;
 }
 
 html body #root .ai-assistant-panel {
-  border-color: var(--ai-green-border-soft) !important;
+  border-color: var(--ai-assistant-border, #99f6e4) !important;
 }
 
 html body #root .ai-assistant-panel-header {
   background:
-    radial-gradient(circle at 12% 18%, rgba(13, 148, 136, 0.18), transparent 36%),
-    linear-gradient(180deg, #ffffff 0%, var(--ai-green-soft) 100%) !important;
-  border-bottom-color: var(--ai-green-border-soft) !important;
+    radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--ai-assistant-bg, #0d9488) 18%, transparent), transparent 36%),
+    linear-gradient(180deg, #ffffff 0%, var(--ai-assistant-soft-bg, #ecfdf5) 100%) !important;
+  border-bottom-color: var(--ai-assistant-border, #99f6e4) !important;
 }
 
 html body #root .ai-assistant-eyebrow,
 html body #root .ai-assistant-panel-header h3,
 html body #root .ai-assistant-panel-header .ai-assistant-eyebrow svg,
 html body #root .ai-assistant-empty svg,
-html body #root .ai-assistant-answer-label {
-  color: var(--ai-green-deep) !important;
-  stroke: var(--ai-green-deep) !important;
-}
-
+html body #root .ai-assistant-answer-label,
 html body #root .ai-assistant-close,
 html body #root .ai-assistant-close svg {
-  color: var(--ai-green-deep) !important;
-  stroke: var(--ai-green-deep) !important;
+  color: var(--ai-assistant-accent, #0f766e) !important;
+  stroke: var(--ai-assistant-accent, #0f766e) !important;
 }
 
 html body #root .ai-assistant-close:hover,
 html body #root .ai-assistant-close:focus-visible {
-  background: var(--ai-green-soft-strong) !important;
+  background: var(--ai-assistant-strong-bg, #ccfbf1) !important;
 }
 
 html body #root .ai-assistant-widget .ai-assistant-category-header,
 html body #root .ai-assistant-widget button.ai-assistant-category-header {
-  background: var(--ai-green-soft) !important;
-  background-color: var(--ai-green-soft) !important;
-  color: var(--ai-green-deep) !important;
+  background: var(--ai-assistant-soft-bg, #ecfdf5) !important;
+  background-color: var(--ai-assistant-soft-bg, #ecfdf5) !important;
+  color: var(--ai-assistant-accent, #0f766e) !important;
   border-color: transparent !important;
 }
 
@@ -28233,9 +28233,9 @@ html body #root .ai-assistant-widget .ai-assistant-category-header:focus-visible
 html body #root .ai-assistant-widget button.ai-assistant-category-header:focus-visible,
 html body #root .ai-assistant-widget .ai-assistant-category-header.active,
 html body #root .ai-assistant-widget button.ai-assistant-category-header.active {
-  background: var(--ai-green-soft-strong) !important;
-  background-color: var(--ai-green-soft-strong) !important;
-  color: var(--ai-green-deep) !important;
+  background: var(--ai-assistant-strong-bg, #ccfbf1) !important;
+  background-color: var(--ai-assistant-strong-bg, #ccfbf1) !important;
+  color: var(--ai-assistant-accent, #0f766e) !important;
 }
 
 html body #root .ai-assistant-widget .ai-assistant-category-header span,
@@ -28244,22 +28244,22 @@ html body #root .ai-assistant-widget .ai-assistant-category-header strong,
 html body #root .ai-assistant-widget button.ai-assistant-category-header strong,
 html body #root .ai-assistant-widget .ai-assistant-category-header svg,
 html body #root .ai-assistant-widget button.ai-assistant-category-header svg {
-  color: var(--ai-green-deep) !important;
-  stroke: var(--ai-green-deep) !important;
+  color: var(--ai-assistant-accent, #0f766e) !important;
+  stroke: var(--ai-assistant-accent, #0f766e) !important;
 }
 
 html body #root .ai-assistant-widget .ai-assistant-category-header strong,
 html body #root .ai-assistant-widget button.ai-assistant-category-header strong {
-  background: #ffffff !important;
-  border-color: var(--ai-green-border-soft) !important;
+  background: var(--ai-assistant-question-bg, #ffffff) !important;
+  border-color: var(--ai-assistant-border, #99f6e4) !important;
 }
 
 html body #root .ai-assistant-widget .ai-assistant-category-header.active + .ai-assistant-question-list,
 html body #root .ai-assistant-widget button.ai-assistant-category-header.active + .ai-assistant-question-list,
 html body #root .ai-assistant-widget .ai-assistant-question-list {
-  background: color-mix(in srgb, var(--ai-green) 10%, white) !important;
-  background-color: #e6fffb !important;
-  border-color: var(--ai-green-border-soft) !important;
+  background: color-mix(in srgb, var(--ai-assistant-soft-bg, #ecfdf5) 88%, white) !important;
+  background-color: var(--ai-assistant-soft-bg, #ecfdf5) !important;
+  border-color: var(--ai-assistant-border, #99f6e4) !important;
 }
 
 html body #root .ai-assistant-widget .ai-assistant-question,
@@ -28268,11 +28268,11 @@ html body #root .ai-assistant-widget .ai-assistant-category-header.active + .ai-
 html body #root .ai-assistant-widget .ai-assistant-category-header.active + .ai-assistant-question-list button.ai-assistant-question,
 html body #root .ai-assistant-widget button.ai-assistant-category-header.active + .ai-assistant-question-list .ai-assistant-question,
 html body #root .ai-assistant-widget button.ai-assistant-category-header.active + .ai-assistant-question-list button.ai-assistant-question {
-  background: #ffffff !important;
-  background-color: #ffffff !important;
-  color: var(--ai-green-deep) !important;
-  -webkit-text-fill-color: var(--ai-green-deep) !important;
-  border-color: var(--ai-green-border-soft) !important;
+  background: var(--ai-assistant-question-bg, #ffffff) !important;
+  background-color: var(--ai-assistant-question-bg, #ffffff) !important;
+  color: var(--ai-assistant-question-text, #0f766e) !important;
+  -webkit-text-fill-color: var(--ai-assistant-question-text, #0f766e) !important;
+  border-color: var(--ai-assistant-border, #99f6e4) !important;
 }
 
 html body #root .ai-assistant-widget .ai-assistant-question:hover,
@@ -28289,31 +28289,31 @@ html body #root .ai-assistant-widget button.ai-assistant-category-header.active 
 html body #root .ai-assistant-widget button.ai-assistant-category-header.active + .ai-assistant-question-list button.ai-assistant-question:hover,
 html body #root .ai-assistant-widget button.ai-assistant-category-header.active + .ai-assistant-question-list .ai-assistant-question.selected,
 html body #root .ai-assistant-widget button.ai-assistant-category-header.active + .ai-assistant-question-list button.ai-assistant-question.selected {
-  background: var(--ai-green) !important;
-  background-color: var(--ai-green) !important;
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-  border-color: var(--ai-green-deep) !important;
+  background: var(--ai-assistant-question-hover-bg, #0d9488) !important;
+  background-color: var(--ai-assistant-question-hover-bg, #0d9488) !important;
+  color: var(--ai-assistant-question-hover-text, #ffffff) !important;
+  -webkit-text-fill-color: var(--ai-assistant-question-hover-text, #ffffff) !important;
+  border-color: var(--ai-assistant-accent, #0f766e) !important;
 }
 
 html body #root .ai-assistant-answer-card {
-  background: var(--ai-green-soft) !important;
-  border-color: var(--ai-green-border-soft) !important;
+  background: var(--ai-assistant-answer-bg, #ecfdf5) !important;
+  border-color: var(--ai-assistant-border, #99f6e4) !important;
 }
 
-/* Student/Supervisor Questions action buttons use the same green palette. */
+/* Student/Supervisor Questions action buttons use the saved Questions palette. */
 html body #root .question-form-card button.primary,
 html body #root .question-answer-form button.primary,
 html body #root .questions-grid button.primary,
 html body #root .question-card .download-attachment-btn,
 html body #root .question-card .attachment-download-btn,
 html body #root .question-attachment-box .compact-link {
-  background: #0d9488 !important;
-  background-color: #0d9488 !important;
-  border-color: #0d9488 !important;
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-  box-shadow: 0 8px 18px rgba(13, 148, 136, 0.2) !important;
+  background: var(--questions-btn-bg, #0d9488) !important;
+  background-color: var(--questions-btn-bg, #0d9488) !important;
+  border-color: var(--questions-btn-border, #0d9488) !important;
+  color: var(--questions-btn-text, #ffffff) !important;
+  -webkit-text-fill-color: var(--questions-btn-text, #ffffff) !important;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--questions-btn-bg, #0d9488) 20%, transparent) !important;
 }
 
 html body #root .question-form-card button.primary:hover,
@@ -28325,11 +28325,21 @@ html body #root .questions-grid button.primary:focus-visible,
 html body #root .question-card .download-attachment-btn:hover,
 html body #root .question-card .attachment-download-btn:hover,
 html body #root .question-attachment-box .compact-link:hover {
-  background: #087f78 !important;
-  background-color: #087f78 !important;
-  border-color: #087f78 !important;
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
+  background: var(--questions-btn-hover-bg, #087f78) !important;
+  background-color: var(--questions-btn-hover-bg, #087f78) !important;
+  border-color: var(--questions-btn-hover-bg, #087f78) !important;
+  color: var(--questions-btn-hover-text, #ffffff) !important;
+  -webkit-text-fill-color: var(--questions-btn-hover-text, #ffffff) !important;
+}
+
+html body #root .question-form-card button.primary:focus-visible,
+html body #root .question-answer-form button.primary:focus-visible,
+html body #root .questions-grid button.primary:focus-visible,
+html body #root .question-card .download-attachment-btn:focus-visible,
+html body #root .question-card .attachment-download-btn:focus-visible,
+html body #root .question-attachment-box .compact-link:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--questions-btn-focus-ring, #5eead4) 55%, transparent) !important;
+  outline-offset: 2px;
 }
 
 html body #root .question-form-card button.primary svg,
@@ -28338,6 +28348,52 @@ html body #root .questions-grid button.primary svg,
 html body #root .question-card .download-attachment-btn svg,
 html body #root .question-card .attachment-download-btn svg,
 html body #root .question-attachment-box .compact-link svg {
-  color: #ffffff !important;
-  stroke: #ffffff !important;
+  color: var(--questions-btn-icon, #ffffff) !important;
+  stroke: var(--questions-btn-icon, #ffffff) !important;
+}
+
+/* Admin Subdomain live-preview examples for the two new color groups. */
+html body #root .button-theme-preview--ai {
+  background: linear-gradient(135deg, var(--ai-assistant-bg, #0d9488), var(--ai-assistant-accent, #0f766e)) !important;
+  border-color: var(--ai-assistant-border, #99f6e4) !important;
+  color: var(--ai-assistant-text, #ffffff) !important;
+}
+
+html body #root .button-theme-preview--ai svg {
+  color: var(--ai-assistant-icon, #ffffff) !important;
+  stroke: var(--ai-assistant-icon, #ffffff) !important;
+}
+
+html body #root .button-theme-preview--ai:hover {
+  background: var(--ai-assistant-hover-bg, #087f78) !important;
+  color: var(--ai-assistant-hover-text, #ffffff) !important;
+}
+
+html body #root .button-theme-preview--ai-question {
+  background: var(--ai-assistant-question-bg, #ffffff) !important;
+  border-color: var(--ai-assistant-border, #99f6e4) !important;
+  color: var(--ai-assistant-question-text, #0f766e) !important;
+}
+
+html body #root .button-theme-preview--ai-question:hover,
+html body #root .button-theme-preview--ai-question.is-selected {
+  background: var(--ai-assistant-question-hover-bg, #0d9488) !important;
+  border-color: var(--ai-assistant-accent, #0f766e) !important;
+  color: var(--ai-assistant-question-hover-text, #ffffff) !important;
+}
+
+html body #root .button-theme-preview--questions {
+  background: var(--questions-btn-bg, #0d9488) !important;
+  border-color: var(--questions-btn-border, #0d9488) !important;
+  color: var(--questions-btn-text, #ffffff) !important;
+}
+
+html body #root .button-theme-preview--questions svg {
+  color: var(--questions-btn-icon, #ffffff) !important;
+  stroke: var(--questions-btn-icon, #ffffff) !important;
+}
+
+html body #root .button-theme-preview--questions:hover {
+  background: var(--questions-btn-hover-bg, #087f78) !important;
+  color: var(--questions-btn-hover-text, #ffffff) !important;
 }

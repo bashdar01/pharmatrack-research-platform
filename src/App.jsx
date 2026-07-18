@@ -752,6 +752,31 @@ const DEFAULT_BUTTON_COLORS = {
     hoverBackground: '#0b7480',
     border: '#0b7480',
   },
+  aiAssistant: {
+    background: '#0d9488',
+    text: '#ffffff',
+    icon: '#ffffff',
+    hoverBackground: '#087f78',
+    hoverText: '#ffffff',
+    accent: '#0f766e',
+    softBackground: '#ecfdf5',
+    strongBackground: '#ccfbf1',
+    border: '#99f6e4',
+    questionBackground: '#ffffff',
+    questionText: '#0f766e',
+    questionHoverBackground: '#0d9488',
+    questionHoverText: '#ffffff',
+    answerBackground: '#ecfdf5',
+  },
+  questions: {
+    background: '#0d9488',
+    text: '#ffffff',
+    icon: '#ffffff',
+    hoverBackground: '#087f78',
+    hoverText: '#ffffff',
+    border: '#0d9488',
+    focusRing: '#5eead4',
+  },
 }
 
 const BUTTON_COLOR_SECTIONS = [
@@ -864,6 +889,41 @@ const BUTTON_COLOR_SECTIONS = [
       ['border', 'Search button border'],
     ],
   },
+  {
+    key: 'aiAssistant',
+    title: 'AI Assistant colors',
+    description: 'Launcher, panel accents, category buttons, premade questions, selected questions, and answer panel.',
+    fields: [
+      ['background', 'AI launcher background'],
+      ['text', 'AI launcher text'],
+      ['icon', 'AI launcher icon'],
+      ['hoverBackground', 'AI launcher hover background'],
+      ['hoverText', 'AI launcher hover text'],
+      ['accent', 'AI accent and heading color'],
+      ['softBackground', 'AI soft panel background'],
+      ['strongBackground', 'AI hover/category background'],
+      ['border', 'AI panel and button border'],
+      ['questionBackground', 'AI premade question background'],
+      ['questionText', 'AI premade question text'],
+      ['questionHoverBackground', 'AI selected question background'],
+      ['questionHoverText', 'AI selected question text'],
+      ['answerBackground', 'AI answer panel background'],
+    ],
+  },
+  {
+    key: 'questions',
+    title: 'Questions buttons',
+    description: 'Submit Question, Send Answer, attachment, and question download actions.',
+    fields: [
+      ['background', 'Questions button background'],
+      ['text', 'Questions button text'],
+      ['icon', 'Questions button icon'],
+      ['hoverBackground', 'Questions hover background'],
+      ['hoverText', 'Questions hover text'],
+      ['border', 'Questions button border'],
+      ['focusRing', 'Questions focus-ring color'],
+    ],
+  },
 ]
 
 const BUTTON_COLOR_CSS_VARIABLES = {
@@ -935,6 +995,31 @@ const BUTTON_COLOR_CSS_VARIABLES = {
     icon: '--search-btn-icon',
     hoverBackground: '--search-btn-hover-bg',
     border: '--search-btn-border',
+  },
+  aiAssistant: {
+    background: '--ai-assistant-bg',
+    text: '--ai-assistant-text',
+    icon: '--ai-assistant-icon',
+    hoverBackground: '--ai-assistant-hover-bg',
+    hoverText: '--ai-assistant-hover-text',
+    accent: '--ai-assistant-accent',
+    softBackground: '--ai-assistant-soft-bg',
+    strongBackground: '--ai-assistant-strong-bg',
+    border: '--ai-assistant-border',
+    questionBackground: '--ai-assistant-question-bg',
+    questionText: '--ai-assistant-question-text',
+    questionHoverBackground: '--ai-assistant-question-hover-bg',
+    questionHoverText: '--ai-assistant-question-hover-text',
+    answerBackground: '--ai-assistant-answer-bg',
+  },
+  questions: {
+    background: '--questions-btn-bg',
+    text: '--questions-btn-text',
+    icon: '--questions-btn-icon',
+    hoverBackground: '--questions-btn-hover-bg',
+    hoverText: '--questions-btn-hover-text',
+    border: '--questions-btn-border',
+    focusRing: '--questions-btn-focus-ring',
   },
 }
 
@@ -1508,6 +1593,8 @@ const BUTTON_COLOR_SECTION_ALIASES = {
   disabled: ['disabled', 'disabledButtons'],
   heroNavigation: ['heroNavigation', 'hero_navigation', 'heroNav', 'hero_nav'],
   search: ['search', 'searchButton', 'search_button'],
+  aiAssistant: ['aiAssistant', 'ai_assistant', 'assistant', 'aiAssistantButtons'],
+  questions: ['questions', 'questionButtons', 'question_buttons', 'studentQuestions'],
   sidebar: ['sidebar', 'sidebarButtons', 'sidebar_buttons'],
 }
 
@@ -1528,6 +1615,14 @@ const BUTTON_COLOR_FIELD_ALIASES = {
   activeBorder: ['activeBorder', 'activeBorderColor'],
   shadow: ['shadow', 'shadowColor'],
   activeIcon: ['activeIcon', 'activeIconColor'],
+  accent: ['accent', 'accentColor', 'headingColor'],
+  softBackground: ['softBackground', 'softBg', 'panelBackground'],
+  strongBackground: ['strongBackground', 'strongBg', 'categoryHoverBackground'],
+  questionBackground: ['questionBackground', 'questionBg', 'promptBackground'],
+  questionText: ['questionText', 'questionTextColor', 'promptText'],
+  questionHoverBackground: ['questionHoverBackground', 'questionHoverBg', 'selectedQuestionBackground'],
+  questionHoverText: ['questionHoverText', 'questionHoverTextColor', 'selectedQuestionText'],
+  answerBackground: ['answerBackground', 'answerBg', 'answerPanelBackground'],
 }
 
 function parseJsonObject(value) {
@@ -1786,6 +1881,14 @@ function getButtonColorContrastWarnings(colors = {}) {
     ['Hero inactive icon', normalized.heroNavigation.inactiveBackground, normalized.heroNavigation.inactiveIcon],
     ['Hero active text', normalized.heroNavigation.activeBackground, normalized.heroNavigation.activeText],
     ['Search icon', normalized.search.background, normalized.search.icon],
+    ['AI launcher text', normalized.aiAssistant.background, normalized.aiAssistant.text],
+    ['AI launcher icon', normalized.aiAssistant.background, normalized.aiAssistant.icon],
+    ['AI launcher hover text', normalized.aiAssistant.hoverBackground, normalized.aiAssistant.hoverText],
+    ['AI premade question text', normalized.aiAssistant.questionBackground, normalized.aiAssistant.questionText],
+    ['AI selected question text', normalized.aiAssistant.questionHoverBackground, normalized.aiAssistant.questionHoverText],
+    ['Questions button text', normalized.questions.background, normalized.questions.text],
+    ['Questions button icon', normalized.questions.background, normalized.questions.icon],
+    ['Questions hover text', normalized.questions.hoverBackground, normalized.questions.hoverText],
   ]
   for (const [label, background, foreground] of pairs) {
     if (themeContrastRatio(background, foreground) < 3) warnings.push(`${label} may have insufficient contrast.`)
@@ -10683,7 +10786,7 @@ function ButtonColorCustomizationPanel({
   return (
     <div className="button-color-customization-page admin-panel-stack">
       <div className="card button-color-customization-intro">
-        <SectionHeader icon={Palette} title="Button Color Customization" subtitle="Control button backgrounds, text, icons, borders, hover states, active states, hero navigation, and search colors across the entire platform" />
+        <SectionHeader icon={Palette} title="Button Color Customization" subtitle="Control global buttons, hero navigation, search, AI Assistant, and Questions colors across the entire platform" />
         <div className="soft-box settings-note">
           <b>Connected to the existing Website Settings system</b>
           <p>These values are saved inside the existing <code>app_settings</code> website record through the current <code>save_website_settings</code> flow. No duplicate table, route, or permissions system is created.</p>
@@ -10748,6 +10851,16 @@ function ButtonColorCustomizationPanel({
             <div className="button-theme-preview-group">
               <span>Search</span>
               <button type="button" className="role-feature-search__button button-theme-preview-search" aria-label="Search preview"><Search size={21} /></button>
+            </div>
+            <div className="button-theme-preview-group">
+              <span>AI Assistant</span>
+              <button type="button" className="button-theme-preview button-theme-preview--ai"><MessageSquareText size={16} /> AI Assistant</button>
+              <button type="button" className="button-theme-preview button-theme-preview--ai-question">Premade question</button>
+              <button type="button" className="button-theme-preview button-theme-preview--ai-question is-selected">Selected question</button>
+            </div>
+            <div className="button-theme-preview-group">
+              <span>Questions</span>
+              <button type="button" className="button-theme-preview button-theme-preview--questions"><Send size={16} /> Submit Question</button>
             </div>
           </div>
           <div className="button-color-saved-indicator">
