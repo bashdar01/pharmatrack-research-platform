@@ -10555,17 +10555,23 @@ function UserProfileMenu({ currentUser, onLogout, onOpenProfile }) {
     setOpen(true)
   }
 
-  function scheduleProfileClose() {
+  function closeProfileMenu() {
     if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current)
     if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current)
+    closeTimerRef.current = null
+    setOpen(false)
+    hideTimerRef.current = window.setTimeout(() => {
+      setMenuVisible(false)
+      hideTimerRef.current = null
+    }, 260)
+  }
+
+  function scheduleProfileClose() {
+    if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current)
     closeTimerRef.current = window.setTimeout(() => {
-      setOpen(false)
-      hideTimerRef.current = window.setTimeout(() => {
-        setMenuVisible(false)
-        hideTimerRef.current = null
-      }, 260)
       closeTimerRef.current = null
-    }, 420)
+      closeProfileMenu()
+    }, 100)
   }
 
   useEffect(() => () => {
@@ -10574,8 +10580,8 @@ function UserProfileMenu({ currentUser, onLogout, onOpenProfile }) {
   }, [])
 
   return (
-    <div className={`student-profile-menu user-profile-menu ${open ? 'open' : menuVisible ? 'closing' : ''}`} onMouseEnter={keepProfileOpen} onMouseLeave={scheduleProfileClose}>
-      <button className="student-profile-trigger redesigned" type="button" onClick={() => (open ? scheduleProfileClose() : keepProfileOpen())} aria-label="Open profile menu">
+    <div className={`student-profile-menu user-profile-menu ${open ? 'open' : menuVisible ? 'closing' : ''}`} onMouseLeave={scheduleProfileClose}>
+      <button className="student-profile-trigger redesigned" type="button" onClick={() => (open ? closeProfileMenu() : keepProfileOpen())} aria-label="Open profile menu" aria-expanded={open} aria-haspopup="menu">
         {photo ? <img src={photo} alt="Profile" /> : <span>{initial}</span>}
         <span className="profile-online-dot" aria-hidden="true" />
       </button>
