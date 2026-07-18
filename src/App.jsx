@@ -9996,7 +9996,10 @@ const AI_ASSISTANT_LIBRARY = {
 function AIAssistantWidget({ role, buttonColors = DEFAULT_BUTTON_COLORS }) {
   const normalizedRole = role === 'supervisor' ? 'supervisor' : role === 'student' ? 'student' : null
   const sections = normalizedRole ? AI_ASSISTANT_LIBRARY[normalizedRole] : []
+  const normalizedButtonColors = normalizeButtonColors(buttonColors)
+  const aiColors = normalizedButtonColors.aiAssistant
   const [isOpen, setIsOpen] = useState(false)
+  const [launcherHovered, setLauncherHovered] = useState(false)
   const [openSection, setOpenSection] = useState(sections[0]?.title || '')
   const [selectedPrompt, setSelectedPrompt] = useState(null)
 
@@ -10015,11 +10018,11 @@ function AIAssistantWidget({ role, buttonColors = DEFAULT_BUTTON_COLORS }) {
   return (
     <div
       className={`ai-assistant-widget ${isOpen ? 'open' : ''} no-print`}
-      style={getButtonThemeRuntimeStyle(buttonColors, ['aiAssistant'])}
+      style={getButtonThemeRuntimeStyle(normalizedButtonColors, ['aiAssistant'])}
     >
       {isOpen && (
-        <section className="ai-assistant-panel" aria-label={roleLabel}>
-          <div className="ai-assistant-panel-header">
+        <section className="ai-assistant-panel" aria-label={roleLabel} style={{ borderColor: aiColors.border }}>
+          <div className="ai-assistant-panel-header" style={{ background: aiColors.softBackground, borderBottomColor: aiColors.border }}>
             <div>
               <p className="ai-assistant-eyebrow"><MessageSquareText size={14} /> Academic Support</p>
               <h3>{roleLabel}</h3>
@@ -10040,6 +10043,7 @@ function AIAssistantWidget({ role, buttonColors = DEFAULT_BUTTON_COLORS }) {
                     <button
                       type="button"
                       className={`ai-assistant-category-header ${expanded ? 'active' : ''}`}
+                      style={{ background: expanded ? aiColors.strongBackground : aiColors.softBackground, color: aiColors.accent, borderColor: aiColors.border }}
                       onClick={() => setOpenSection(expanded ? '' : section.title)}
                     >
                       <span><Icon size={16} /> {section.title}</span>
@@ -10052,6 +10056,11 @@ function AIAssistantWidget({ role, buttonColors = DEFAULT_BUTTON_COLORS }) {
                             type="button"
                             key={item.question}
                             className={`ai-assistant-question ${selectedPrompt?.question === item.question ? 'selected' : ''}`}
+                            style={{
+                              background: selectedPrompt?.question === item.question ? aiColors.questionHoverBackground : aiColors.questionBackground,
+                              color: selectedPrompt?.question === item.question ? aiColors.questionHoverText : aiColors.questionText,
+                              borderColor: aiColors.border,
+                            }}
                             onClick={() => setSelectedPrompt(item)}
                           >
                             {item.question}
@@ -10064,7 +10073,7 @@ function AIAssistantWidget({ role, buttonColors = DEFAULT_BUTTON_COLORS }) {
               })}
             </div>
 
-            <div className="ai-assistant-answer-card">
+            <div className="ai-assistant-answer-card" style={{ background: aiColors.answerBackground, borderColor: aiColors.border }}>
               {selectedPrompt ? (
                 <>
                   <p className="ai-assistant-answer-label">Suggested answer</p>
@@ -10082,8 +10091,23 @@ function AIAssistantWidget({ role, buttonColors = DEFAULT_BUTTON_COLORS }) {
         </section>
       )}
 
-      <button type="button" className="ai-assistant-launcher" onClick={() => setIsOpen((value) => !value)} aria-expanded={isOpen}>
-        <MessageSquareText size={18} />
+      <button
+        type="button"
+        className="ai-assistant-launcher"
+        onClick={() => setIsOpen((value) => !value)}
+        onMouseEnter={() => setLauncherHovered(true)}
+        onMouseLeave={() => setLauncherHovered(false)}
+        onFocus={() => setLauncherHovered(true)}
+        onBlur={() => setLauncherHovered(false)}
+        aria-expanded={isOpen}
+        style={{
+          background: launcherHovered ? aiColors.hoverBackground : aiColors.background,
+          backgroundColor: launcherHovered ? aiColors.hoverBackground : aiColors.background,
+          color: launcherHovered ? aiColors.hoverText : aiColors.text,
+          borderColor: launcherHovered ? aiColors.hoverBackground : aiColors.border,
+        }}
+      >
+        <MessageSquareText size={18} style={{ color: aiColors.icon, stroke: aiColors.icon }} />
         <span>AI Assistant</span>
       </button>
     </div>
@@ -11217,19 +11241,21 @@ function AdminControlPanel({
 
   function updateButtonColorDraft(sectionKey, fieldKey, value) {
     setButtonColorError('')
-    setButtonColorStatus('Preview updated. Save when you are satisfied with the colors.')
+    setButtonColorStatus('Preview updated immediately. Save when you are satisfied with the colors.')
     setDraft((current) => {
       const currentColors = current.button_colors && typeof current.button_colors === 'object' ? current.button_colors : cloneDefaultButtonColors()
+      const nextColors = normalizeButtonColors({
+        ...currentColors,
+        [sectionKey]: {
+          ...DEFAULT_BUTTON_COLORS[sectionKey],
+          ...(currentColors[sectionKey] || {}),
+          [fieldKey]: value,
+        },
+      })
+      applyButtonTheme(nextColors)
       return {
         ...current,
-        button_colors: {
-          ...currentColors,
-          [sectionKey]: {
-            ...DEFAULT_BUTTON_COLORS[sectionKey],
-            ...(currentColors[sectionKey] || {}),
-            [fieldKey]: value,
-          },
-        },
+        button_colors: nextColors,
       }
     })
   }
