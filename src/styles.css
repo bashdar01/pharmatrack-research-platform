@@ -6700,11 +6700,11 @@ button .button-spinner {
 
   .notification-popover {
     position: fixed;
-    top: var(--auth-header-height, 32px);
+    top: var(--auth-header-height, 34px);
     left: 12px;
     right: 12px;
     width: auto;
-    max-height: calc(100vh - var(--auth-header-height, 32px) - 12px);
+    max-height: calc(100vh - var(--auth-header-height, 34px) - 12px);
   }
 
   .notification-popover-item {
@@ -24811,7 +24811,7 @@ html body #root .notification-bell-menu--triggerless {
 
 html body #root .notification-bell-menu--triggerless > .notification-popover {
   position: fixed;
-  top: var(--auth-header-height, 34px);
+  top: var(--auth-header-height, 36px);
   right: 16px;
   left: auto;
   z-index: 1200;
@@ -24819,7 +24819,7 @@ html body #root .notification-bell-menu--triggerless > .notification-popover {
 
 @media (max-width: 640px) {
   html body #root .notification-bell-menu--triggerless > .notification-popover {
-    top: var(--auth-header-height, 32px);
+    top: var(--auth-header-height, 34px);
     right: 12px;
     left: 12px;
     width: auto;
@@ -27666,12 +27666,12 @@ html body #root#root .header-dropdown-shell .header-dropdown-sidebar :is(
 }
 
 /* ========================================================================
-   AUTHENTICATED TOP HEADER — COMPACT 34PX / 32PX
+   AUTHENTICATED TOP HEADER — COMPACT 36PX / 34PX
    Header-only correction. The existing sidebar markup, navigation, opacity,
    animation, state, and controls are intentionally not changed here.
    ======================================================================== */
 :root {
-  --auth-header-height: 34px;
+  --auth-header-height: 36px;
   --top-header-height: var(--auth-header-height);
 }
 
@@ -27746,7 +27746,7 @@ html body #root button.admin-sidebar-menu-toggle {
 html body #root button.sidebar-menu-toggle span,
 html body #root button.hamburger-button span,
 html body #root button.admin-sidebar-menu-toggle span {
-  width: 19px !important;
+  width: 18px !important;
   height: 2px !important;
   margin: 2px auto !important;
   flex: 0 0 auto !important;
@@ -27830,9 +27830,9 @@ html body #root .role-switch-dropdown.role-switch-label-hidden {
 html body #root .main-compact-header .role-switch-dropdown select,
 html body #root .main-header-actions .role-switch-dropdown select,
 html body #root .role-switch-dropdown.role-switch-label-hidden select {
-  min-height: 30px !important;
-  height: 30px !important;
-  max-height: 30px !important;
+  min-height: 28px !important;
+  height: 28px !important;
+  max-height: 28px !important;
   margin: 0 !important;
   padding-block: 0 !important;
   font-size: 0.78rem !important;
@@ -27933,7 +27933,7 @@ html body #root .admin-panel-topbar .admin-guidelines-link {
 
 @media (max-width: 768px) {
   :root {
-    --auth-header-height: 32px;
+    --auth-header-height: 34px;
     --top-header-height: var(--auth-header-height);
   }
 
@@ -27964,7 +27964,7 @@ html body #root .admin-panel-topbar .admin-guidelines-link {
   html body #root button.sidebar-menu-toggle span,
   html body #root button.hamburger-button span,
   html body #root button.admin-sidebar-menu-toggle span {
-    width: 18px !important;
+    width: 17px !important;
   }
 
   html body #root#root#root .main-compact-header .notification-bell-menu > button.main-notification-button.header-inbox-button,
@@ -27987,9 +27987,9 @@ html body #root .admin-panel-topbar .admin-guidelines-link {
   html body #root .main-compact-header .role-switch-dropdown select,
   html body #root .main-header-actions .role-switch-dropdown select,
   html body #root .role-switch-dropdown.role-switch-label-hidden select {
-    min-height: 28px !important;
-    height: 28px !important;
-    max-height: 28px !important;
+    min-height: 26px !important;
+    height: 26px !important;
+    max-height: 26px !important;
     max-width: 112px !important;
     font-size: 0.72rem !important;
   }
@@ -28100,15 +28100,15 @@ html body #root#root#root .main-compact-header .student-profile-trigger > img,
 html body #root#root#root .main-compact-header .student-profile-trigger > span:not(.profile-online-dot) {
   position: relative !important;
   inset: auto !important;
-  width: 33px !important;
-  min-width: 33px !important;
-  max-width: 33px !important;
-  height: 33px !important;
-  min-height: 33px !important;
-  max-height: 33px !important;
+  width: 26px !important;
+  min-width: 26px !important;
+  max-width: 26px !important;
+  height: 26px !important;
+  min-height: 26px !important;
+  max-height: 26px !important;
   margin: 0 !important;
   padding: 0 !important;
-  flex: 0 0 33px !important;
+  flex: 0 0 26px !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -28134,13 +28134,13 @@ html body #root#root#root .main-compact-header .student-profile-trigger > .profi
 @media (max-width: 768px) {
   html body #root#root#root .main-compact-header .student-profile-trigger > img,
   html body #root#root#root .main-compact-header .student-profile-trigger > span:not(.profile-online-dot) {
-    width: 31px !important;
-    min-width: 31px !important;
-    max-width: 31px !important;
-    height: 31px !important;
-    min-height: 31px !important;
-    max-height: 31px !important;
-    flex-basis: 31px !important;
+    width: 24px !important;
+    min-width: 24px !important;
+    max-width: 24px !important;
+    height: 24px !important;
+    min-height: 24px !important;
+    max-height: 24px !important;
+    flex-basis: 24px !important;
   }
 }
 
