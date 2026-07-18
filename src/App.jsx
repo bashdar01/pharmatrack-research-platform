@@ -1678,9 +1678,11 @@ function buttonColorSettingsMatch(left, right) {
   return JSON.stringify(normalizeButtonColors(left)) === JSON.stringify(normalizeButtonColors(right))
 }
 
+const BUTTON_THEME_CHANGE_EVENT = 'pharmatrack:button-theme-change'
+
 function applyButtonTheme(colors = DEFAULT_BUTTON_COLORS) {
-  if (typeof document === 'undefined') return normalizeButtonColors(colors)
   const normalized = normalizeButtonColors(colors)
+  if (typeof document === 'undefined') return normalized
   const root = document.documentElement
 
   for (const [sectionKey, fields] of Object.entries(BUTTON_COLOR_CSS_VARIABLES)) {
@@ -1691,6 +1693,14 @@ function applyButtonTheme(colors = DEFAULT_BUTTON_COLORS) {
   }
 
   root.dataset.buttonThemeReady = 'true'
+
+  // Keep mounted UI components synchronized with draft previews and saved settings.
+  // This avoids stale component props overriding the root CSS variables.
+  if (typeof window !== 'undefined') {
+    window.__PHARMATRACK_BUTTON_COLORS__ = normalized
+    window.dispatchEvent(new CustomEvent(BUTTON_THEME_CHANGE_EVENT, { detail: normalized }))
+  }
+
   return normalized
 }
 
@@ -9999,12 +10009,31 @@ const AI_ASSISTANT_LIBRARY = {
 function AIAssistantWidget({ role, buttonColors = DEFAULT_BUTTON_COLORS }) {
   const normalizedRole = role === 'supervisor' ? 'supervisor' : role === 'student' ? 'student' : null
   const sections = normalizedRole ? AI_ASSISTANT_LIBRARY[normalizedRole] : []
-  const normalizedButtonColors = normalizeButtonColors(buttonColors)
-  const aiColors = normalizedButtonColors.aiAssistant
+  const [runtimeButtonColors, setRuntimeButtonColors] = useState(() => normalizeButtonColors(buttonColors))
+  const aiColors = runtimeButtonColors.aiAssistant
   const [isOpen, setIsOpen] = useState(false)
   const [launcherHovered, setLauncherHovered] = useState(false)
   const [openSection, setOpenSection] = useState(sections[0]?.title || '')
   const [selectedPrompt, setSelectedPrompt] = useState(null)
+
+  useEffect(() => {
+    setRuntimeButtonColors(normalizeButtonColors(buttonColors))
+  }, [buttonColors])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+
+    const applyRuntimeColors = (value) => {
+      setRuntimeButtonColors(normalizeButtonColors(value || DEFAULT_BUTTON_COLORS))
+    }
+    const handleThemeChange = (event) => applyRuntimeColors(event?.detail)
+
+    if (window.__PHARMATRACK_BUTTON_COLORS__) {
+      applyRuntimeColors(window.__PHARMATRACK_BUTTON_COLORS__)
+    }
+    window.addEventListener(BUTTON_THEME_CHANGE_EVENT, handleThemeChange)
+    return () => window.removeEventListener(BUTTON_THEME_CHANGE_EVENT, handleThemeChange)
+  }, [])
 
   useEffect(() => {
     setOpenSection(sections[0]?.title || '')
@@ -10021,7 +10050,7 @@ function AIAssistantWidget({ role, buttonColors = DEFAULT_BUTTON_COLORS }) {
   return (
     <div
       className={`ai-assistant-widget ${isOpen ? 'open' : ''} no-print`}
-      style={getButtonThemeRuntimeStyle(normalizedButtonColors, ['aiAssistant'])}
+      style={getButtonThemeRuntimeStyle(runtimeButtonColors, ['aiAssistant'])}
     >
       {isOpen && (
         <section className="ai-assistant-panel" aria-label={roleLabel} style={{ borderColor: aiColors.border }}>
@@ -10106,10 +10135,7 @@ function AIAssistantWidget({ role, buttonColors = DEFAULT_BUTTON_COLORS }) {
           '--ai-launcher-current-text': launcherHovered ? aiColors.hoverText : aiColors.text,
           '--ai-launcher-current-border': launcherHovered ? aiColors.hoverBackground : aiColors.border,
           '--ai-launcher-current-icon': aiColors.icon,
-          background: launcherHovered ? aiColors.hoverBackground : aiColors.background,
-          backgroundColor: launcherHovered ? aiColors.hoverBackground : aiColors.background,
-          color: launcherHovered ? aiColors.hoverText : aiColors.text,
-          borderColor: launcherHovered ? aiColors.hoverBackground : aiColors.border,
+          backgroundImage: 'none',
         }}
       >
         <MessageSquareText size={18} style={{ color: aiColors.icon, stroke: aiColors.icon }} />

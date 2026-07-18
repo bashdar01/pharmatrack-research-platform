@@ -28466,3 +28466,37 @@ html body #root .button-theme-preview--ai svg {
   color: var(--ai-preview-main-icon, var(--ai-assistant-icon, #ffffff)) !important;
   stroke: var(--ai-preview-main-icon, var(--ai-assistant-icon, #ffffff)) !important;
 }
+
+/* ============================================================
+   AUTHORITATIVE AI ASSISTANT COLOR BINDING
+   One runtime source of truth: saved/draft button-color CSS variables.
+   This intentionally removes every legacy gray gradient/image layer.
+   ============================================================ */
+html body #root button.ai-assistant-launcher,
+html body #root .ai-assistant-widget button.ai-assistant-launcher {
+  background-color: var(--ai-launcher-current-bg, var(--ai-assistant-bg, #0d9488)) !important;
+  background-image: none !important;
+  background-repeat: no-repeat !important;
+  color: var(--ai-launcher-current-text, var(--ai-assistant-text, #ffffff)) !important;
+  -webkit-text-fill-color: var(--ai-launcher-current-text, var(--ai-assistant-text, #ffffff)) !important;
+  border-color: var(--ai-launcher-current-border, var(--ai-assistant-border, #99f6e4)) !important;
+}
+
+html body #root button.ai-assistant-launcher:hover,
+html body #root .ai-assistant-widget button.ai-assistant-launcher:hover {
+  background-color: var(--ai-launcher-current-bg, var(--ai-assistant-hover-bg, #087f78)) !important;
+  background-image: none !important;
+}
+
+html body #root button.ai-assistant-launcher:focus,
+html body #root button.ai-assistant-launcher:focus-visible,
+html body #root .ai-assistant-widget button.ai-assistant-launcher:focus,
+html body #root .ai-assistant-widget button.ai-assistant-launcher:focus-visible {
+  background-color: var(--ai-launcher-current-bg, var(--ai-assistant-bg, #0d9488)) !important;
+  background-image: none !important;
+}
+
+html body #root .button-theme-preview.button-theme-preview--ai {
+  background-color: var(--ai-preview-main-bg, var(--ai-assistant-bg, #0d9488)) !important;
+  background-image: none !important;
+}
