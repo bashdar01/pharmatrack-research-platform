@@ -10100,10 +10100,12 @@ function AIAssistantWidget({ role, buttonColors = DEFAULT_BUTTON_COLORS }) {
         onClick={() => setIsOpen((value) => !value)}
         onMouseEnter={() => setLauncherHovered(true)}
         onMouseLeave={() => setLauncherHovered(false)}
-        onFocus={() => setLauncherHovered(true)}
-        onBlur={() => setLauncherHovered(false)}
         aria-expanded={isOpen}
         style={{
+          '--ai-launcher-current-bg': launcherHovered ? aiColors.hoverBackground : aiColors.background,
+          '--ai-launcher-current-text': launcherHovered ? aiColors.hoverText : aiColors.text,
+          '--ai-launcher-current-border': launcherHovered ? aiColors.hoverBackground : aiColors.border,
+          '--ai-launcher-current-icon': aiColors.icon,
           background: launcherHovered ? aiColors.hoverBackground : aiColors.background,
           backgroundColor: launcherHovered ? aiColors.hoverBackground : aiColors.background,
           color: launcherHovered ? aiColors.hoverText : aiColors.text,
@@ -10903,7 +10905,16 @@ function ButtonColorCustomizationPanel({
             </div>
             <div className="button-theme-preview-group">
               <span>AI Assistant</span>
-              <button type="button" className="button-theme-preview button-theme-preview--ai"><MessageSquareText size={16} /> AI Assistant</button>
+              <button
+                type="button"
+                className="button-theme-preview button-theme-preview--ai"
+                style={{
+                  '--ai-preview-main-bg': normalizedPreview.aiAssistant.background,
+                  '--ai-preview-main-text': normalizedPreview.aiAssistant.text,
+                  '--ai-preview-main-border': normalizedPreview.aiAssistant.border,
+                  '--ai-preview-main-icon': normalizedPreview.aiAssistant.icon,
+                }}
+              ><MessageSquareText size={16} /> AI Assistant</button>
               <button type="button" className="button-theme-preview button-theme-preview--ai-inactive">Inactive category</button>
               <button type="button" className="button-theme-preview button-theme-preview--ai-question">Premade question</button>
               <button type="button" className="button-theme-preview button-theme-preview--ai-question is-selected">Selected question</button>

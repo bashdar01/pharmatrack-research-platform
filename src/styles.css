@@ -28418,3 +28418,51 @@ html body #root .button-theme-preview--ai-inactive {
   border-color: var(--ai-assistant-border, #99f6e4) !important;
   color: var(--ai-assistant-accent, #0f766e) !important;
 }
+
+/* ============================================================
+   AI MAIN BUTTON COLOR FIX
+   The launcher must use the selected main background while focused.
+   Hover color applies only during actual pointer hover, not persistent focus.
+   ============================================================ */
+html body #root .ai-assistant-launcher,
+html body #root button.ai-assistant-launcher {
+  background: var(--ai-launcher-current-bg, var(--ai-assistant-bg, #0d9488)) !important;
+  background-color: var(--ai-launcher-current-bg, var(--ai-assistant-bg, #0d9488)) !important;
+  color: var(--ai-launcher-current-text, var(--ai-assistant-text, #ffffff)) !important;
+  -webkit-text-fill-color: var(--ai-launcher-current-text, var(--ai-assistant-text, #ffffff)) !important;
+  border-color: var(--ai-launcher-current-border, var(--ai-assistant-border, #99f6e4)) !important;
+}
+
+html body #root .ai-assistant-launcher:focus,
+html body #root button.ai-assistant-launcher:focus,
+html body #root .ai-assistant-launcher:focus-visible,
+html body #root button.ai-assistant-launcher:focus-visible {
+  background: var(--ai-launcher-current-bg, var(--ai-assistant-bg, #0d9488)) !important;
+  background-color: var(--ai-launcher-current-bg, var(--ai-assistant-bg, #0d9488)) !important;
+  color: var(--ai-launcher-current-text, var(--ai-assistant-text, #ffffff)) !important;
+  border-color: var(--ai-launcher-current-border, var(--ai-assistant-border, #99f6e4)) !important;
+  outline: 2px solid color-mix(in srgb, var(--ai-assistant-border, #99f6e4) 75%, transparent) !important;
+  outline-offset: 2px !important;
+}
+
+html body #root .ai-assistant-launcher svg,
+html body #root .ai-assistant-launcher::before {
+  color: var(--ai-launcher-current-icon, var(--ai-assistant-icon, #ffffff)) !important;
+  stroke: var(--ai-launcher-current-icon, var(--ai-assistant-icon, #ffffff)) !important;
+}
+
+html body #root .ai-assistant-launcher::before {
+  background: var(--ai-launcher-current-icon, var(--ai-assistant-icon, #ffffff)) !important;
+}
+
+html body #root .button-theme-preview--ai {
+  background: var(--ai-preview-main-bg, var(--ai-assistant-bg, #0d9488)) !important;
+  background-color: var(--ai-preview-main-bg, var(--ai-assistant-bg, #0d9488)) !important;
+  color: var(--ai-preview-main-text, var(--ai-assistant-text, #ffffff)) !important;
+  border-color: var(--ai-preview-main-border, var(--ai-assistant-border, #99f6e4)) !important;
+}
+
+html body #root .button-theme-preview--ai svg {
+  color: var(--ai-preview-main-icon, var(--ai-assistant-icon, #ffffff)) !important;
+  stroke: var(--ai-preview-main-icon, var(--ai-assistant-icon, #ffffff)) !important;
+}
