@@ -27666,13 +27666,18 @@ html body #root#root .header-dropdown-shell .header-dropdown-sidebar :is(
 }
 
 /* ========================================================================
-   AUTHENTICATED TOP HEADER — ULTRA-COMPACT 10PX
-   Header-only correction. The existing sidebar markup, navigation, opacity,
-   animation, state, and controls are intentionally not changed here.
+   AUTHENTICATED TOP HEADER — SLIM STRIP WITH NORMAL-SIZE CONTROLS
+   The header is compact like the supplied reference, while the hamburger,
+   Inbox, role switcher, and profile remain normally sized and readable.
+   Existing sidebar markup, navigation, transparency, and behavior are not
+   redesigned here.
    ======================================================================== */
 :root {
-  --auth-header-height: 10px;
+  --auth-header-height: 36px;
   --top-header-height: var(--auth-header-height);
+  --auth-hamburger-width: 40px;
+  --auth-profile-hit-width: 42px;
+  --auth-profile-circle-size: 30px;
 }
 
 html body #root .main-compact-header,
@@ -27682,7 +27687,7 @@ html body #root .admin-panel-topbar {
   height: var(--auth-header-height) !important;
   max-height: var(--auth-header-height) !important;
   margin: 0 !important;
-  padding: 0 2px 0 0 !important;
+  padding: 0 6px 0 0 !important;
   display: flex !important;
   flex-wrap: nowrap !important;
   align-items: stretch !important;
@@ -27708,7 +27713,7 @@ html body #root .admin-topbar-actions {
   display: flex !important;
   flex-wrap: nowrap !important;
   align-items: stretch !important;
-  gap: 1px !important;
+  gap: 4px !important;
   box-sizing: border-box !important;
 }
 
@@ -27722,16 +27727,16 @@ html body #root .admin-topbar-actions {
   margin-left: auto !important;
 }
 
-/* Full-height, flush-left hamburger. */
+/* Normal hamburger button and icon inside the slim header. */
 html body #root button.sidebar-menu-toggle,
 html body #root button.hamburger-button,
 html body #root button.admin-sidebar-menu-toggle {
-  width: var(--auth-header-height) !important;
-  min-width: var(--auth-header-height) !important;
-  max-width: var(--auth-header-height) !important;
-  height: var(--auth-header-height) !important;
-  min-height: var(--auth-header-height) !important;
-  max-height: var(--auth-header-height) !important;
+  width: var(--auth-hamburger-width) !important;
+  min-width: var(--auth-hamburger-width) !important;
+  max-width: var(--auth-hamburger-width) !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: 100% !important;
   margin: 0 !important;
   padding: 0 !important;
   align-self: stretch !important;
@@ -27746,14 +27751,13 @@ html body #root button.admin-sidebar-menu-toggle {
 html body #root button.sidebar-menu-toggle span,
 html body #root button.hamburger-button span,
 html body #root button.admin-sidebar-menu-toggle span {
-  width: 6px !important;
-  height: 1px !important;
-  margin: 0.5px auto !important;
+  width: 18px !important;
+  height: 2px !important;
+  margin: 2px auto !important;
   flex: 0 0 auto !important;
 }
 
-/* Inbox wrapper and clickable area fill the header without becoming a
-   floating square. Existing colors, badge, and popup behavior are preserved. */
+/* Inbox retains a normal readable hit area; only the surrounding header is slim. */
 html body #root#root#root .main-compact-header .notification-bell-menu:has(> button.header-inbox-button),
 html body #root#root#root .main-header-actions .notification-bell-menu:has(> button.header-inbox-button) {
   width: auto !important;
@@ -27774,18 +27778,18 @@ html body #root#root#root .main-compact-header .notification-bell-menu > button.
 html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button,
 html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button {
   width: auto !important;
-  min-width: 20px !important;
+  min-width: 56px !important;
   max-width: none !important;
   min-height: 100% !important;
   height: 100% !important;
   max-height: 100% !important;
-  margin-block: 0 !important;
-  padding: 0 2px !important;
+  margin: 0 !important;
+  padding: 0 10px !important;
   align-self: stretch !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 1px !important;
+  gap: 5px !important;
   border-radius: 0 !important;
   box-sizing: border-box !important;
   line-height: 1 !important;
@@ -27793,22 +27797,35 @@ html body #root#root#root button.main-notification-button.header-inbox-button.in
 }
 
 html body #root#root#root .header-inbox-button .inbox-button-label {
-  font-size: 0.4rem !important;
+  font-size: 0.76rem !important;
   line-height: 1 !important;
+}
+
+html body #root#root#root .header-inbox-button svg {
+  width: 16px !important;
+  height: 16px !important;
+  flex: 0 0 16px !important;
 }
 
 html body #root#root#root .header-inbox-button .inbox-unread-count,
 html body #root#root#root .header-inbox-button .notification-badge {
   position: absolute !important;
-  top: 0 !important;
-  right: 0 !important;
+  top: 2px !important;
+  right: 3px !important;
+  width: auto !important;
+  min-width: 13px !important;
+  height: 13px !important;
+  min-height: 13px !important;
   margin: 0 !important;
-  line-height: 1 !important;
+  padding: 0 3px !important;
+  border-width: 1px !important;
+  font-size: 0.58rem !important;
+  line-height: 11px !important;
   pointer-events: none !important;
+  box-sizing: border-box !important;
 }
 
-/* Role-switch clickable area fills the header; the native select remains
-   compact and centered so it cannot increase the row height. */
+/* Compact role switcher with normal text size. */
 html body #root .main-compact-header .role-switch-dropdown,
 html body #root .main-header-actions .role-switch-dropdown,
 html body #root .role-switch-dropdown.role-switch-label-hidden {
@@ -27816,7 +27833,7 @@ html body #root .role-switch-dropdown.role-switch-label-hidden {
   height: 100% !important;
   max-height: 100% !important;
   margin: 0 !important;
-  padding: 0 1px !important;
+  padding: 0 4px !important;
   align-self: stretch !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -27830,247 +27847,56 @@ html body #root .role-switch-dropdown.role-switch-label-hidden {
 html body #root .main-compact-header .role-switch-dropdown select,
 html body #root .main-header-actions .role-switch-dropdown select,
 html body #root .role-switch-dropdown.role-switch-label-hidden select {
-  min-height: 9px !important;
-  height: 9px !important;
-  max-height: 9px !important;
+  min-height: 27px !important;
+  height: 27px !important;
+  max-height: 27px !important;
   margin: 0 !important;
-  padding-block: 0 !important;
-  font-size: 0.4rem !important;
+  padding: 0 24px 0 8px !important;
+  font-size: 0.72rem !important;
   line-height: 1 !important;
   box-sizing: border-box !important;
 }
 
-/* Full-height profile hit area with a compact centered visible circle. */
-html body #root .main-compact-header .student-profile-menu.user-profile-menu,
-html body #root .main-header-actions .student-profile-menu.user-profile-menu,
-html body #root .main-compact-header .user-profile-menu,
-html body #root .main-header-actions .user-profile-menu {
-  min-height: 100% !important;
-  height: 100% !important;
-  max-height: 100% !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  align-self: stretch !important;
-  display: inline-flex !important;
-  align-items: stretch !important;
-  box-sizing: border-box !important;
-}
-
-html body #root .main-compact-header .student-profile-trigger,
-html body #root .main-compact-header .student-profile-trigger.redesigned,
-html body #root .main-header-actions .student-profile-trigger,
-html body #root .main-header-actions .student-profile-trigger.redesigned {
-  width: var(--auth-header-height) !important;
-  min-width: var(--auth-header-height) !important;
-  max-width: var(--auth-header-height) !important;
-  min-height: 100% !important;
-  height: 100% !important;
-  max-height: 100% !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  align-self: stretch !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  overflow: visible !important;
-  box-sizing: border-box !important;
-}
-
-html body #root .main-compact-header .student-profile-trigger > img,
-html body #root .main-header-actions .student-profile-trigger > img,
-html body #root .main-compact-header .student-profile-trigger > span:not(.profile-online-dot),
-html body #root .main-header-actions .student-profile-trigger > span:not(.profile-online-dot) {
-  width: 8px !important;
-  min-width: 8px !important;
-  max-width: 8px !important;
-  height: 8px !important;
-  min-height: 8px !important;
-  max-height: 8px !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  flex: 0 0 8px !important;
-  border-radius: 999px !important;
-  background: var(--top-header-avatar-bg, #ffffff) !important;
-  color: var(--top-header-avatar-text, #1f2937) !important;
-  border: 1px solid color-mix(in srgb, var(--top-header-avatar-text, #1f2937) 16%, transparent) !important;
-  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.12) !important;
-  object-fit: cover !important;
-  box-sizing: border-box !important;
-  line-height: 1 !important;
-}
-
-html body #root .main-compact-header .student-profile-trigger .profile-online-dot,
-html body #root .main-header-actions .student-profile-trigger .profile-online-dot {
-  right: 1px !important;
-  bottom: 1px !important;
-  margin: 0 !important;
-}
-
-/* Existing Admin Subdomain utilities remain the same controls, but their
-   clickable areas now align with the reduced header height. */
-html body #root .admin-panel-topbar .admin-preview-link,
-html body #root .admin-panel-topbar .admin-guidelines-link {
-  min-height: 100% !important;
-  height: 100% !important;
-  max-height: 100% !important;
-  margin-block: 0 !important;
-  padding-block: 0 !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  border-radius: 0 !important;
-  box-sizing: border-box !important;
-  line-height: 1 !important;
-  white-space: nowrap !important;
-}
-
-@media (max-width: 768px) {
-  :root {
-    --auth-header-height: 10px;
-    --top-header-height: var(--auth-header-height);
-  }
-
-  html body #root .main-compact-header,
-  html body #root .admin-panel-topbar {
-    min-height: var(--auth-header-height) !important;
-    height: var(--auth-header-height) !important;
-    max-height: var(--auth-header-height) !important;
-    padding-right: 1px !important;
-  }
-
-  html body #root .main-header-actions,
-  html body #root .admin-topbar-actions {
-    gap: 0 !important;
-  }
-
-  html body #root button.sidebar-menu-toggle,
-  html body #root button.hamburger-button,
-  html body #root button.admin-sidebar-menu-toggle {
-    width: var(--auth-header-height) !important;
-    min-width: var(--auth-header-height) !important;
-    max-width: var(--auth-header-height) !important;
-    height: var(--auth-header-height) !important;
-    min-height: var(--auth-header-height) !important;
-    max-height: var(--auth-header-height) !important;
-  }
-
-  html body #root button.sidebar-menu-toggle span,
-  html body #root button.hamburger-button span,
-  html body #root button.admin-sidebar-menu-toggle span {
-    width: 6px !important;
-  }
-
-  html body #root#root#root .main-compact-header .notification-bell-menu > button.main-notification-button.header-inbox-button,
-  html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button,
-  html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button {
-    min-width: 18px !important;
-    padding-inline: 1px !important;
-  }
-
-  html body #root#root#root .header-inbox-button .inbox-button-label {
-    font-size: 0.38rem !important;
-  }
-
-  html body #root .main-compact-header .role-switch-dropdown,
-  html body #root .main-header-actions .role-switch-dropdown,
-  html body #root .role-switch-dropdown.role-switch-label-hidden {
-    padding-inline: 1px !important;
-  }
-
-  html body #root .main-compact-header .role-switch-dropdown select,
-  html body #root .main-header-actions .role-switch-dropdown select,
-  html body #root .role-switch-dropdown.role-switch-label-hidden select {
-    min-height: 9px !important;
-    height: 9px !important;
-    max-height: 9px !important;
-    max-width: 50px !important;
-    font-size: 0.38rem !important;
-  }
-
-  html body #root .main-compact-header .student-profile-trigger,
-  html body #root .main-compact-header .student-profile-trigger.redesigned,
-  html body #root .main-header-actions .student-profile-trigger,
-  html body #root .main-header-actions .student-profile-trigger.redesigned {
-    width: var(--auth-header-height) !important;
-    min-width: var(--auth-header-height) !important;
-    max-width: var(--auth-header-height) !important;
-  }
-
-  html body #root .main-compact-header .student-profile-trigger > img,
-  html body #root .main-header-actions .student-profile-trigger > img,
-  html body #root .main-compact-header .student-profile-trigger > span:not(.profile-online-dot),
-  html body #root .main-header-actions .student-profile-trigger > span:not(.profile-online-dot) {
-    width: 8px !important;
-    min-width: 8px !important;
-    max-width: 8px !important;
-    height: 8px !important;
-    min-height: 8px !important;
-    max-height: 8px !important;
-    flex-basis: 8px !important;
-  }
-
-  html body #root .main-compact-header .student-profile-trigger .profile-online-dot,
-  html body #root .main-header-actions .student-profile-trigger .profile-online-dot {
-    right: 1px !important;
-    bottom: 1px !important;
-  }
-
-  html body #root .admin-panel-topbar .admin-preview-link,
-  html body #root .admin-panel-topbar .admin-guidelines-link {
-    padding-inline: 1px !important;
-    font-size: 0.38rem !important;
-  }
-}
-
-/* ========================================================================== 
-   Authenticated header profile alignment correction
-   Keeps one centered avatar circle and removes the accidental inner/status dot.
-   Sidebar styles and behavior are intentionally untouched.
-   ========================================================================== */
-html body #root#root#root .main-compact-header .main-header-actions .student-profile-menu.user-profile-menu,
-html body #root#root#root .main-compact-header .student-profile-menu.user-profile-menu {
+/* Normal profile circle centered inside the slim strip. */
+html body #root#root#root .main-compact-header .student-profile-menu.user-profile-menu,
+html body #root#root#root .main-header-actions .student-profile-menu.user-profile-menu,
+html body #root#root#root .main-compact-header .user-profile-menu,
+html body #root#root#root .main-header-actions .user-profile-menu {
   position: relative !important;
   inset: auto !important;
-  width: var(--auth-header-height, 10px) !important;
-  min-width: var(--auth-header-height, 10px) !important;
-  max-width: var(--auth-header-height, 10px) !important;
-  height: 100% !important;
+  width: var(--auth-profile-hit-width) !important;
+  min-width: var(--auth-profile-hit-width) !important;
+  max-width: var(--auth-profile-hit-width) !important;
   min-height: 100% !important;
+  height: 100% !important;
   max-height: 100% !important;
   margin: 0 !important;
   padding: 0 !important;
+  align-self: stretch !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  align-self: stretch !important;
   box-sizing: border-box !important;
 }
 
-html body #root#root#root .main-compact-header .main-header-actions .student-profile-trigger,
-html body #root#root#root .main-compact-header .main-header-actions .student-profile-trigger.redesigned,
 html body #root#root#root .main-compact-header .student-profile-trigger,
-html body #root#root#root .main-compact-header .student-profile-trigger.redesigned {
+html body #root#root#root .main-compact-header .student-profile-trigger.redesigned,
+html body #root#root#root .main-header-actions .student-profile-trigger,
+html body #root#root#root .main-header-actions .student-profile-trigger.redesigned {
   position: relative !important;
   inset: auto !important;
-  width: var(--auth-header-height, 10px) !important;
-  min-width: var(--auth-header-height, 10px) !important;
-  max-width: var(--auth-header-height, 10px) !important;
-  height: 100% !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
   min-height: 100% !important;
+  height: 100% !important;
   max-height: 100% !important;
   margin: 0 !important;
   padding: 0 !important;
+  align-self: stretch !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  align-self: stretch !important;
   border: 0 !important;
   border-radius: 0 !important;
   background: transparent !important;
@@ -28083,13 +27909,6 @@ html body #root#root#root .main-compact-header .student-profile-trigger.redesign
   box-sizing: border-box !important;
 }
 
-html body #root#root#root .main-compact-header .student-profile-trigger:hover,
-html body #root#root#root .main-compact-header .student-profile-trigger:focus-visible,
-html body #root#root#root .main-compact-header .student-profile-menu.open .student-profile-trigger {
-  transform: none !important;
-  box-shadow: none !important;
-}
-
 html body #root#root#root .main-compact-header .student-profile-trigger::before,
 html body #root#root#root .main-compact-header .student-profile-trigger::after {
   display: none !important;
@@ -28097,18 +27916,20 @@ html body #root#root#root .main-compact-header .student-profile-trigger::after {
 }
 
 html body #root#root#root .main-compact-header .student-profile-trigger > img,
-html body #root#root#root .main-compact-header .student-profile-trigger > span:not(.profile-online-dot) {
+html body #root#root#root .main-compact-header .student-profile-trigger > span:not(.profile-online-dot),
+html body #root#root#root .main-header-actions .student-profile-trigger > img,
+html body #root#root#root .main-header-actions .student-profile-trigger > span:not(.profile-online-dot) {
   position: relative !important;
   inset: auto !important;
-  width: 8px !important;
-  min-width: 8px !important;
-  max-width: 8px !important;
-  height: 8px !important;
-  min-height: 8px !important;
-  max-height: 8px !important;
+  width: var(--auth-profile-circle-size) !important;
+  min-width: var(--auth-profile-circle-size) !important;
+  max-width: var(--auth-profile-circle-size) !important;
+  height: var(--auth-profile-circle-size) !important;
+  min-height: var(--auth-profile-circle-size) !important;
+  max-height: var(--auth-profile-circle-size) !important;
   margin: 0 !important;
   padding: 0 !important;
-  flex: 0 0 8px !important;
+  flex: 0 0 var(--auth-profile-circle-size) !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -28126,51 +27947,101 @@ html body #root#root#root .main-compact-header .student-profile-trigger > span:n
   transform: none !important;
 }
 
-/* Remove the small status circle that was appearing inside/on the avatar. */
-html body #root#root#root .main-compact-header .student-profile-trigger > .profile-online-dot {
+html body #root#root#root .main-compact-header .student-profile-trigger > .profile-online-dot,
+html body #root#root#root .main-header-actions .student-profile-trigger > .profile-online-dot {
   display: none !important;
 }
 
+/* Existing Admin Subdomain utilities remain readable and centered. */
+html body #root .admin-panel-topbar .admin-preview-link,
+html body #root .admin-panel-topbar .admin-guidelines-link {
+  min-height: 100% !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  margin: 0 !important;
+  padding: 0 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 0 !important;
+  box-sizing: border-box !important;
+  font-size: 0.72rem !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
 @media (max-width: 768px) {
-  html body #root#root#root .main-compact-header .student-profile-trigger > img,
-  html body #root#root#root .main-compact-header .student-profile-trigger > span:not(.profile-online-dot) {
-    width: 8px !important;
-    min-width: 8px !important;
-    max-width: 8px !important;
-    height: 8px !important;
-    min-height: 8px !important;
-    max-height: 8px !important;
-    flex-basis: 8px !important;
+  :root {
+    --auth-header-height: 34px;
+    --top-header-height: var(--auth-header-height);
+    --auth-hamburger-width: 38px;
+    --auth-profile-hit-width: 40px;
+    --auth-profile-circle-size: 28px;
+  }
+
+  html body #root .main-compact-header,
+  html body #root .admin-panel-topbar {
+    min-height: var(--auth-header-height) !important;
+    height: var(--auth-header-height) !important;
+    max-height: var(--auth-header-height) !important;
+    padding-right: 3px !important;
+  }
+
+  html body #root .main-header-actions,
+  html body #root .admin-topbar-actions {
+    gap: 2px !important;
+  }
+
+  html body #root button.sidebar-menu-toggle span,
+  html body #root button.hamburger-button span,
+  html body #root button.admin-sidebar-menu-toggle span {
+    width: 17px !important;
+    height: 2px !important;
+    margin-block: 1.5px !important;
+  }
+
+  html body #root#root#root .main-compact-header .notification-bell-menu > button.main-notification-button.header-inbox-button,
+  html body #root#root#root .main-header-actions .notification-bell-menu > button.main-notification-button.header-inbox-button,
+  html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button {
+    min-width: 48px !important;
+    padding-inline: 7px !important;
+    gap: 4px !important;
+  }
+
+  html body #root#root#root .header-inbox-button .inbox-button-label {
+    font-size: 0.7rem !important;
+  }
+
+  html body #root#root#root .header-inbox-button svg {
+    width: 15px !important;
+    height: 15px !important;
+    flex-basis: 15px !important;
+  }
+
+  html body #root .main-compact-header .role-switch-dropdown,
+  html body #root .main-header-actions .role-switch-dropdown,
+  html body #root .role-switch-dropdown.role-switch-label-hidden {
+    padding-inline: 2px !important;
+  }
+
+  html body #root .main-compact-header .role-switch-dropdown select,
+  html body #root .main-header-actions .role-switch-dropdown select,
+  html body #root .role-switch-dropdown.role-switch-label-hidden select {
+    min-height: 25px !important;
+    height: 25px !important;
+    max-height: 25px !important;
+    max-width: 96px !important;
+    padding: 0 20px 0 6px !important;
+    font-size: 0.66rem !important;
+  }
+
+  html body #root .admin-panel-topbar .admin-preview-link,
+  html body #root .admin-panel-topbar .admin-guidelines-link {
+    padding-inline: 5px !important;
+    font-size: 0.66rem !important;
   }
 }
 
-
-/* Ten-pixel header safeguards: keep badges and native controls from expanding the row. */
-html body #root#root#root .header-inbox-button .inbox-unread-count,
-html body #root#root#root .header-inbox-button .notification-badge {
-  width: 5px !important;
-  min-width: 5px !important;
-  height: 5px !important;
-  min-height: 5px !important;
-  padding: 0 !important;
-  border-width: 0 !important;
-  font-size: 4px !important;
-  line-height: 5px !important;
-}
-
-html body #root .main-compact-header .role-switch-dropdown select,
-html body #root .main-header-actions .role-switch-dropdown select,
-html body #root .role-switch-dropdown.role-switch-label-hidden select {
-  padding: 0 1px !important;
-  border-width: 1px !important;
-  line-height: 7px !important;
-}
-
-html body #root .admin-panel-topbar .admin-preview-link,
-html body #root .admin-panel-topbar .admin-guidelines-link {
-  padding-inline: 1px !important;
-  font-size: 0.38rem !important;
-}
 /* ============================================================
    ADMIN-CUSTOMIZABLE AI ASSISTANT AND QUESTIONS COLORS
    Values come from the existing button_colors settings object.
