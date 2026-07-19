@@ -4420,7 +4420,7 @@ function RoleFeatureSearch({ role = 'student', items = [], availableTabs = [], o
   )
 }
 
-function getRoleHeroObjectPosition(position = 'center') {
+function getRoleHeroObjectPosition(position = 'top') {
   const positions = {
     center: 'center center',
     top: 'center top',
@@ -4428,7 +4428,7 @@ function getRoleHeroObjectPosition(position = 'center') {
     left: 'left center',
     right: 'right center',
   }
-  return positions[position] || positions.center
+  return positions[position] || positions.top
 }
 
 function RoleHeroBanner({ role = 'student', settings = defaultWebsiteSettings, onNavigate, navigationItems = [], activeTab = '', pageKey = '', className = '' }) {
