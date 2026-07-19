@@ -520,11 +520,9 @@ function normalizeRoleHeroImage(role, image = {}, index = 0) {
   const id = rawId || `${normalizedRole}-hero-${safeIndex + 1}`
   const imageUrl = sanitizeSettingImageUrl(image?.imageUrl || image?.image_url || image?.url || image?.src || '')
   const storagePath = String(image?.storagePath || image?.storage_path || image?.imagePath || image?.image_path || '').trim()
-  const allowedPositions = ['center', 'top', 'bottom', 'left', 'right', 'top-left', 'top-right', 'bottom-left', 'bottom-right']
-  const rawPosition = String(image?.position || image?.objectPosition || '').toLowerCase()
-  const position = allowedPositions.includes(rawPosition) ? rawPosition : 'center'
-  const rawFitMode = String(image?.fitMode || image?.fit_mode || image?.objectFit || image?.object_fit || '').toLowerCase()
-  const fitMode = ['cover', 'contain'].includes(rawFitMode) ? rawFitMode : 'contain'
+  const position = ['center', 'top', 'bottom', 'left', 'right'].includes(String(image?.position || image?.objectPosition || '').toLowerCase())
+    ? String(image.position || image.objectPosition).toLowerCase()
+    : 'center'
   return {
     id,
     imageUrl,
@@ -534,7 +532,6 @@ function normalizeRoleHeroImage(role, image = {}, index = 0) {
     enabled: image?.enabled !== false,
     order: Math.max(1, Number(image?.order) || safeIndex + 1),
     position,
-    fitMode,
   }
 }
 
@@ -4430,16 +4427,8 @@ function getRoleHeroObjectPosition(position = 'center') {
     bottom: 'center bottom',
     left: 'left center',
     right: 'right center',
-    'top-left': 'left top',
-    'top-right': 'right top',
-    'bottom-left': 'left bottom',
-    'bottom-right': 'right bottom',
   }
   return positions[position] || positions.center
-}
-
-function getRoleHeroFitMode(value = 'contain') {
-  return String(value || '').toLowerCase() === 'cover' ? 'cover' : 'contain'
 }
 
 function RoleHeroBanner({ role = 'student', settings = defaultWebsiteSettings, onNavigate, navigationItems = [], activeTab = '', pageKey = '', className = '' }) {
@@ -4515,14 +4504,7 @@ function RoleHeroBanner({ role = 'student', settings = defaultWebsiteSettings, o
 
   return (
     <section className={`role-hero-banner role-hero-picture-card role-hero-navigation-shell role-hero-${roleClass} role-hero-align-${alignClass} ${shouldShowImage ? 'role-hero-has-image' : 'role-hero-no-image'} ${hasFeatureSearch ? 'role-hero-has-feature-search' : 'role-hero-no-feature-search'} ${className}`.trim()} style={heroStyle} data-hero-page={resolvedPageKey}>
-      <div
-        className={`role-hero-picture-card__media role-hero-picture-card__media--${getRoleHeroFitMode(activeImage?.fitMode)}`}
-        data-image-fit={getRoleHeroFitMode(activeImage?.fitMode)}
-        style={{
-          '--role-hero-backdrop-image': cssImageUrl(activeImage?.src || ''),
-          '--role-hero-backdrop-position': getRoleHeroObjectPosition(activeImage?.position),
-        }}
-      >
+      <div className="role-hero-picture-card__media">
         {outgoingImage?.src && (
           <img
             key={`outgoing-${outgoingImage.id || outgoingImage.src}`}
@@ -4530,10 +4512,7 @@ function RoleHeroBanner({ role = 'student', settings = defaultWebsiteSettings, o
             src={outgoingImage.src}
             alt=""
             aria-hidden="true"
-            style={{
-              '--role-hero-object-position': getRoleHeroObjectPosition(outgoingImage.position),
-              '--role-hero-object-fit': getRoleHeroFitMode(outgoingImage.fitMode),
-            }}
+            style={{ '--role-hero-object-position': getRoleHeroObjectPosition(outgoingImage.position) }}
           />
         )}
         {activeImage?.src && (
@@ -4544,10 +4523,7 @@ function RoleHeroBanner({ role = 'student', settings = defaultWebsiteSettings, o
             alt={activeImage.altText || ''}
             loading="eager"
             decoding="async"
-            style={{
-              '--role-hero-object-position': getRoleHeroObjectPosition(activeImage.position),
-              '--role-hero-object-fit': getRoleHeroFitMode(activeImage.fitMode),
-            }}
+            style={{ '--role-hero-object-position': getRoleHeroObjectPosition(activeImage.position) }}
             onError={() => handleImageError(activeImage)}
           />
         )}
@@ -12077,7 +12053,7 @@ function AdminControlPanel({
                           return (
                             <article key={image.id} className={`role-hero-gallery-card ${isWithinSelectedCount ? '' : 'is-preserved-extra'}`.trim()}>
                               <div className="role-hero-gallery-card__preview">
-                                {image.imageUrl ? <img src={versionedAssetUrl(image.imageUrl, draft.assetUpdatedAt)} alt={image.altText || `Hero picture ${index + 1}`} style={{ objectPosition: getRoleHeroObjectPosition(image.position), objectFit: getRoleHeroFitMode(image.fitMode) }} /> : <div className="role-hero-gallery-card__empty"><ImageIcon size={28} /><span>Upload picture {index + 1}</span></div>}
+                                {image.imageUrl ? <img src={versionedAssetUrl(image.imageUrl, draft.assetUpdatedAt)} alt={image.altText || `Hero picture ${index + 1}`} style={{ objectPosition: getRoleHeroObjectPosition(image.position) }} /> : <div className="role-hero-gallery-card__empty"><ImageIcon size={28} /><span>Upload picture {index + 1}</span></div>}
                                 <span className="role-hero-gallery-card__number">{index + 1}</span>
                                 {!isWithinSelectedCount && <span className="role-hero-gallery-card__preserved">Preserved extra</span>}
                               </div>
@@ -12086,8 +12062,7 @@ function AdminControlPanel({
                                 <label className="field wide-field"><span>Picture URL</span><input value={image.imageUrl || ''} onChange={(e) => updateRoleHeroImageDraft(selectedRoleHero, image.id, { imageUrl: e.target.value, storagePath: '', imagePath: '' })} placeholder="Paste a hosted JPG, PNG, or WEBP URL" /></label>
                                 <label className="field wide-field"><span>{image.imageUrl ? 'Replace picture' : 'Upload picture'}</span><input type="file" accept="image/jpeg,image/png,image/webp" disabled={Boolean(panelActionLoading)} onChange={(e) => handleRoleHeroImageUpload(selectedRoleHero, image.id, e.target.files?.[0])} /><small>{panelActionLoading === uploadKey ? 'Uploading…' : 'Maximum 7 MB. Existing picture remains until replacement succeeds.'}</small></label>
                                 <label className="field wide-field"><span>Alternative text</span><input value={image.altText || ''} onChange={(e) => updateRoleHeroImageDraft(selectedRoleHero, image.id, { altText: e.target.value })} placeholder="Describe this picture for accessibility" /></label>
-                                <label className="field"><span>Image fit</span><select value={image.fitMode || 'contain'} onChange={(e) => updateRoleHeroImageDraft(selectedRoleHero, image.id, { fitMode: e.target.value })}><option value="contain">Show Full Picture</option><option value="cover">Fill Hero (Crop Edges)</option></select><small>Show Full Picture keeps the complete image visible. Fill Hero covers the entire hero area and may crop edges.</small></label>
-                                <label className="field"><span>Image position</span><select value={image.position || 'center'} onChange={(e) => updateRoleHeroImageDraft(selectedRoleHero, image.id, { position: e.target.value })}><option value="center">Center</option><option value="top">Top</option><option value="bottom">Bottom</option><option value="left">Left</option><option value="right">Right</option><option value="top-left">Top Left</option><option value="top-right">Top Right</option><option value="bottom-left">Bottom Left</option><option value="bottom-right">Bottom Right</option></select></label>
+                                <label className="field"><span>Image position</span><select value={image.position || 'center'} onChange={(e) => updateRoleHeroImageDraft(selectedRoleHero, image.id, { position: e.target.value })}><option value="center">Center</option><option value="top">Top</option><option value="bottom">Bottom</option><option value="left">Left</option><option value="right">Right</option></select></label>
                                 <label className="settings-toggle compact-toggle"><input type="checkbox" checked={image.enabled !== false} onChange={(e) => updateRoleHeroImageDraft(selectedRoleHero, image.id, { enabled: e.target.checked })} /><span><b>Enabled</b><small>Disabled pictures are not loaded or used.</small></span></label>
                               </div>
 
