@@ -10533,7 +10533,6 @@ function NotificationBellMenu({ data, role, currentUser, dataLoading = false, un
           aria-expanded={open}
         >
           <strong className="inbox-button-label">Inbox</strong>
-          {unreadCount > 0 && <span className="inbox-unread-count notification-badge">{unreadCount}</span>}
         </button>
       )}
 
