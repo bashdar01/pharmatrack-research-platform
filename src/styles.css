@@ -18902,7 +18902,7 @@ html body #root .role-hero-picture-card__image {
   height: 100%;
   max-width: none;
   object-fit: cover;
-  object-position: center top;
+  object-position: center center;
   transform: scale(1.001);
 }
 
@@ -19286,7 +19286,7 @@ html body #root .role-hero-navigation-shell .role-hero-picture-card__image {
   max-height: none !important;
   max-width: none !important;
   object-fit: cover !important;
-  object-position: center top !important;
+  object-position: center center !important;
   display: block !important;
   margin: 0 !important;
   background: transparent !important;
@@ -21045,7 +21045,7 @@ html body #root .role-hero-actions-panel.role-hero-actions-panel--with-search {
 
 html body #root .app-main-shell.main-dashboard-with-sidebar,
 html body #root .app.app-main-shell.main-dashboard-with-sidebar {
-  --fixed-auth-header-height: 48px;
+  --fixed-auth-header-height: 64px;
   --fixed-auth-header-left: 0px;
 }
 
@@ -21108,7 +21108,7 @@ html body #root [id] {
 @media (max-width: 768px) {
   html body #root .app-main-shell.main-dashboard-with-sidebar,
   html body #root .app.app-main-shell.main-dashboard-with-sidebar {
-    --fixed-auth-header-height: 40px;
+    --fixed-auth-header-height: 62px;
     --fixed-auth-header-left: 0px;
   }
 
@@ -24258,9 +24258,9 @@ html body #root#root .interface-sidebar-preview .interface-sidebar-preview-utili
 
 /* Authenticated headers contain global controls only; no page/role title space. */
 html body #root#root .main-compact-header {
-  min-height: 48px !important;
-  height: 48px !important;
-  padding: 0 14px 0 0 !important;
+  min-height: 64px !important;
+  height: 64px !important;
+  padding: 0 16px 0 0 !important;
   margin: 0 !important;
   display: flex !important;
   align-items: center !important;
@@ -24272,8 +24272,8 @@ html body #root#root .main-compact-header {
 
 html body #root#root .main-compact-header .main-compact-left {
   align-self: stretch !important;
-  min-width: 48px !important;
-  height: 48px !important;
+  min-width: 64px !important;
+  height: 64px !important;
   margin: 0 !important;
   padding: 0 !important;
   display: flex !important;
@@ -24305,12 +24305,12 @@ html body #root#root .main-compact-header .main-header-actions {
 /* Full square hamburger, flush with the far-left edge. */
 html body #root#root .main-compact-header button.sidebar-menu-toggle {
   align-self: stretch !important;
-  width: 48px !important;
-  min-width: 48px !important;
-  max-width: 48px !important;
-  height: 48px !important;
-  min-height: 48px !important;
-  max-height: 48px !important;
+  width: 64px !important;
+  min-width: 64px !important;
+  max-width: 64px !important;
+  height: 64px !important;
+  min-height: 64px !important;
+  max-height: 64px !important;
   margin: 0 !important;
   padding: 0 !important;
   border: 0 !important;
@@ -24355,8 +24355,8 @@ html body #root#root .main-compact-header button.sidebar-menu-toggle span {
 
 /* Admin Subdomain topbar also has no page title or reserved title column. */
 html body #root#root .admin-panel-topbar {
-  min-height: 48px !important;
-  padding: 0 14px !important;
+  min-height: 64px !important;
+  padding: 0 16px !important;
   margin: 0 !important;
   display: flex !important;
   align-items: center !important;
@@ -24602,23 +24602,23 @@ html body #root#root :is(
 
 @media (max-width: 768px) {
   html body #root#root .main-compact-header {
-    min-height: 40px !important;
-    height: 40px !important;
+    min-height: 48px !important;
+    height: 48px !important;
     padding-right: 8px !important;
   }
 
   html body #root#root .main-compact-header .main-compact-left {
-    min-width: 40px !important;
-    height: 40px !important;
+    min-width: 48px !important;
+    height: 48px !important;
   }
 
   html body #root#root .main-compact-header button.sidebar-menu-toggle {
-    width: 40px !important;
-    min-width: 40px !important;
-    max-width: 40px !important;
-    height: 40px !important;
-    min-height: 40px !important;
-    max-height: 40px !important;
+    width: 48px !important;
+    min-width: 48px !important;
+    max-width: 48px !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
   }
 
   html body #root#root .main-compact-header .main-header-actions {
@@ -24627,7 +24627,7 @@ html body #root#root :is(
   }
 
   html body #root#root .admin-panel-topbar {
-    min-height: 40px !important;
+    min-height: 56px !important;
     padding: 0 10px !important;
   }
 
@@ -24837,7 +24837,7 @@ html body #root .role-hero-picture-card__media {
 html body #root .role-hero-picture-card__media .role-hero-picture-card__image {
   position: absolute !important;
   inset: 0 !important;
-  object-position: var(--role-hero-object-position, center top) !important;
+  object-position: var(--role-hero-object-position, center center) !important;
   will-change: opacity, transform !important;
   backface-visibility: hidden !important;
 }
@@ -27829,16 +27829,16 @@ html body #root#root#root .header-inbox-button .notification-badge {
 html body #root .main-compact-header .role-switch-dropdown,
 html body #root .main-header-actions .role-switch-dropdown,
 html body #root .role-switch-dropdown.role-switch-label-hidden {
-  min-height: 30px !important;
-  height: 30px !important;
-  max-height: 30px !important;
+  min-height: 100% !important;
+  height: 100% !important;
+  max-height: 100% !important;
   margin: 0 !important;
-  padding: 0 10px 0 8px !important;
-  align-self: center !important;
+  padding: 0 4px !important;
+  align-self: stretch !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  border-radius: 999px !important;
+  border-radius: 0 !important;
   box-sizing: border-box !important;
   line-height: 1 !important;
   white-space: nowrap !important;
@@ -27847,11 +27847,11 @@ html body #root .role-switch-dropdown.role-switch-label-hidden {
 html body #root .main-compact-header .role-switch-dropdown select,
 html body #root .main-header-actions .role-switch-dropdown select,
 html body #root .role-switch-dropdown.role-switch-label-hidden select {
-  min-height: 20px !important;
-  height: 20px !important;
-  max-height: 20px !important;
+  min-height: 27px !important;
+  height: 27px !important;
+  max-height: 27px !important;
   margin: 0 !important;
-  padding: 0 18px 0 0 !important;
+  padding: 0 24px 0 8px !important;
   font-size: 0.72rem !important;
   line-height: 1 !important;
   box-sizing: border-box !important;
@@ -28021,20 +28021,17 @@ html body #root .admin-panel-topbar .admin-guidelines-link {
   html body #root .main-compact-header .role-switch-dropdown,
   html body #root .main-header-actions .role-switch-dropdown,
   html body #root .role-switch-dropdown.role-switch-label-hidden {
-    min-height: 26px !important;
-    height: 26px !important;
-    max-height: 26px !important;
-    padding: 0 8px 0 6px !important;
+    padding-inline: 2px !important;
   }
 
   html body #root .main-compact-header .role-switch-dropdown select,
   html body #root .main-header-actions .role-switch-dropdown select,
   html body #root .role-switch-dropdown.role-switch-label-hidden select {
-    min-height: 18px !important;
-    height: 18px !important;
-    max-height: 18px !important;
+    min-height: 25px !important;
+    height: 25px !important;
+    max-height: 25px !important;
     max-width: 96px !important;
-    padding: 0 16px 0 0 !important;
+    padding: 0 20px 0 6px !important;
     font-size: 0.66rem !important;
   }
 
@@ -28595,4 +28592,80 @@ html body #root#root#root button.main-notification-button.header-inbox-button.in
     bottom: 1px !important;
     transform: translate(18%, 18%) !important;
   }
+}
+
+/* =========================================================
+   AUTHORITATIVE ROLE HERO IMAGE FIT
+   Full-picture mode prevents unwanted cropping and uses a soft
+   blurred copy behind the image so every aspect ratio looks intentional.
+   ========================================================= */
+html body #root#root#root .role-hero-navigation-shell .role-hero-picture-card__media,
+html body #root#root#root .authenticated-role-hero .role-hero-picture-card__media {
+  isolation: isolate !important;
+  background-color: #0f172a !important;
+}
+
+html body #root#root#root .role-hero-navigation-shell .role-hero-picture-card__media::before,
+html body #root#root#root .authenticated-role-hero .role-hero-picture-card__media::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: -24px !important;
+  z-index: 0 !important;
+  display: block !important;
+  background-image: var(--role-hero-backdrop-image, none) !important;
+  background-repeat: no-repeat !important;
+  background-size: cover !important;
+  background-position: var(--role-hero-backdrop-position, center center) !important;
+  filter: blur(18px) saturate(1.05) !important;
+  transform: scale(1.08) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+html body #root#root#root .role-hero-navigation-shell .role-hero-picture-card__media[data-image-fit="contain"]::before,
+html body #root#root#root .authenticated-role-hero .role-hero-picture-card__media[data-image-fit="contain"]::before {
+  opacity: 0.72 !important;
+}
+
+html body #root#root#root .role-hero-navigation-shell .role-hero-picture-card__media[data-image-fit="contain"]::after,
+html body #root#root#root .authenticated-role-hero .role-hero-picture-card__media[data-image-fit="contain"]::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 1 !important;
+  display: block !important;
+  background: rgba(15, 23, 42, 0.16) !important;
+  pointer-events: none !important;
+}
+
+html body #root#root#root .role-hero-navigation-shell .role-hero-picture-card__image,
+html body #root#root#root .authenticated-role-hero .role-hero-picture-card__image {
+  z-index: 2 !important;
+  object-fit: var(--role-hero-object-fit, contain) !important;
+  object-position: var(--role-hero-object-position, center center) !important;
+  background: transparent !important;
+}
+
+html body #root#root#root .role-hero-navigation-shell .role-hero-picture-card__media[data-image-fit="contain"] .role-hero-picture-card__image,
+html body #root#root#root .authenticated-role-hero .role-hero-picture-card__media[data-image-fit="contain"] .role-hero-picture-card__image {
+  width: 100% !important;
+  height: 100% !important;
+  padding: clamp(0px, 0.8vw, 10px) !important;
+  box-sizing: border-box !important;
+}
+
+html body #root#root#root .role-hero-navigation-shell .role-hero-picture-card__media[data-image-fit="cover"]::before,
+html body #root#root#root .role-hero-navigation-shell .role-hero-picture-card__media[data-image-fit="cover"]::after,
+html body #root#root#root .authenticated-role-hero .role-hero-picture-card__media[data-image-fit="cover"]::before,
+html body #root#root#root .authenticated-role-hero .role-hero-picture-card__media[data-image-fit="cover"]::after {
+  display: none !important;
+}
+
+/* Admin gallery preview must show the same fit choice as the live hero. */
+html body #root .role-hero-gallery-card__preview {
+  background: #0f172a !important;
+}
+
+html body #root .role-hero-gallery-card__preview img {
+  object-position: inherit;
 }
