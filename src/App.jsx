@@ -4540,24 +4540,20 @@ function RoleHeroBanner({ role = 'student', settings = defaultWebsiteSettings, o
         <div className={`role-hero-actions-panel ${hasFeatureSearch ? 'role-hero-actions-panel--with-search' : 'role-hero-actions-panel--nav-only'}`}>
           {navigationItems.length > 0 && (
             <nav className="hero-role-navigation" aria-label="Role page navigation">
-              {navigationItems.map((item) => {
-                const Icon = item.icon
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={`hero-nav-button${activeTab === item.id ? ' active is-active' : ''}`}
-                    onClick={() => onNavigate?.(item.id)}
-                    aria-current={activeTab === item.id ? 'page' : undefined}
-                    aria-selected={activeTab === item.id ? 'true' : 'false'}
-                    data-active={activeTab === item.id ? 'true' : 'false'}
-                  >
-                    {Icon && <Icon size={16} />}
-                    <span>{item.label}</span>
-                    {item.badge > 0 && <span className="tab-badge">{item.badge}</span>}
-                  </button>
-                )
-              })}
+              {navigationItems.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`hero-nav-button${activeTab === item.id ? ' active is-active' : ''}`}
+                  onClick={() => onNavigate?.(item.id)}
+                  aria-current={activeTab === item.id ? 'page' : undefined}
+                  aria-selected={activeTab === item.id ? 'true' : 'false'}
+                  data-active={activeTab === item.id ? 'true' : 'false'}
+                >
+                  <span>{item.label}</span>
+                  {item.badge > 0 && <span className="tab-badge">{item.badge}</span>}
+                </button>
+              ))}
             </nav>
           )}
           {hasFeatureSearch && (
