@@ -27673,7 +27673,7 @@ html body #root#root .header-dropdown-shell .header-dropdown-sidebar :is(
    redesigned here.
    ======================================================================== */
 :root {
-  --auth-header-height: 36px;
+  --auth-header-height: 32px;
   --top-header-height: var(--auth-header-height);
   --auth-hamburger-width: 40px;
   --auth-profile-hit-width: 42px;
@@ -27972,7 +27972,7 @@ html body #root .admin-panel-topbar .admin-guidelines-link {
 
 @media (max-width: 768px) {
   :root {
-    --auth-header-height: 34px;
+    --auth-header-height: 30px;
     --top-header-height: var(--auth-header-height);
     --auth-hamburger-width: 38px;
     --auth-profile-hit-width: 40px;
@@ -28558,5 +28558,38 @@ html body #root .header-dropdown-sidebar .admin-brand-block p {
     .sidebar-link-label
   ) {
     font-size: 0.77rem !important;
+  }
+}
+
+/* FINAL: Position the Inbox unread badge at the bottom-right corner. */
+html body #root#root#root .main-compact-header .notification-bell-menu > button.header-inbox-button,
+html body #root#root#root .main-header-actions .notification-bell-menu > button.header-inbox-button,
+html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+html body #root#root#root .main-compact-header .header-inbox-button > .inbox-unread-count.notification-badge,
+html body #root#root#root .main-header-actions .header-inbox-button > .inbox-unread-count.notification-badge,
+html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button > .inbox-unread-count.notification-badge {
+  position: absolute !important;
+  top: auto !important;
+  right: 2px !important;
+  bottom: 1px !important;
+  left: auto !important;
+  transform: translate(22%, 22%) !important;
+  transform-origin: center !important;
+  margin: 0 !important;
+  z-index: 5 !important;
+  pointer-events: none !important;
+}
+
+@media (max-width: 768px) {
+  html body #root#root#root .main-compact-header .header-inbox-button > .inbox-unread-count.notification-badge,
+  html body #root#root#root .main-header-actions .header-inbox-button > .inbox-unread-count.notification-badge,
+  html body #root#root#root button.main-notification-button.header-inbox-button.inbox-button > .inbox-unread-count.notification-badge {
+    right: 1px !important;
+    bottom: 1px !important;
+    transform: translate(18%, 18%) !important;
   }
 }
