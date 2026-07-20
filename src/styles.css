@@ -29089,9 +29089,24 @@ html body #root .shared-platform-footer__account {
 }
 
 html body #root .shared-platform-footer__grid h3 {
-  margin: 0 0 8px !important;
+  position: relative !important;
+  width: 100% !important;
+  margin: 0 0 6px !important;
+  padding: 0 0 13px !important;
   font-size: 0.92rem !important;
   line-height: 1.25 !important;
+}
+
+html body #root .shared-platform-footer__grid h3::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  bottom: 0 !important;
+  width: 48px !important;
+  height: 2px !important;
+  border-radius: 999px !important;
+  background: rgba(220, 229, 230, 0.72) !important;
+  pointer-events: none !important;
 }
 
 html body #root .shared-platform-footer a {
