@@ -28993,3 +28993,122 @@ html body #root#root#root button.main-notification-button.header-inbox-button.in
     padding: 25px 21px;
   }
 }
+
+/* ========================================================================
+   FINAL SHARED FOOTER — BRAND ONLY, FULL-WIDTH PAGE END
+   Keeps one reusable footer while removing every navigation/account link.
+   ======================================================================== */
+html body #root .shared-platform-footer {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin: 28px 0 0 !important;
+  padding: clamp(30px, 4vw, 48px) clamp(18px, 5vw, 64px) clamp(28px, 4vw, 42px) !important;
+  align-self: stretch !important;
+  box-sizing: border-box !important;
+  border: 0 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.18) !important;
+  border-radius: 0 !important;
+  background: linear-gradient(135deg, #087f78 0%, #0b9188 55%, #086b66 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 -10px 34px rgba(7, 94, 89, 0.14) !important;
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
+}
+
+html body #root .shared-platform-footer__brand {
+  width: min(720px, 100%) !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 14px !important;
+  text-align: center !important;
+}
+
+html body #root .shared-platform-footer__brand img {
+  width: 72px !important;
+  height: 72px !important;
+  min-width: 72px !important;
+  flex: 0 0 72px !important;
+  margin: 0 !important;
+  padding: 8px !important;
+  border-radius: 18px !important;
+  background: #ffffff !important;
+  object-fit: contain !important;
+  box-sizing: border-box !important;
+}
+
+html body #root .shared-platform-footer__brand > div {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+html body #root .shared-platform-footer__brand h2 {
+  margin: 0 !important;
+  color: #ffffff !important;
+  font-size: clamp(1.05rem, 2vw, 1.28rem) !important;
+  line-height: 1.25 !important;
+}
+
+html body #root .shared-platform-footer__brand p {
+  max-width: 680px !important;
+  margin: 9px auto 0 !important;
+  color: #ffffff !important;
+  font-size: 0.9rem !important;
+  line-height: 1.7 !important;
+}
+
+/* The footer is the actual final edge of each page—no card gaps beneath it. */
+html body #root .public-site-shell.public-page-shell > .shared-platform-footer,
+html body #root .main-dashboard-with-sidebar .main-workspace > .shared-platform-footer,
+html body #root .admin-panel-main > .shared-platform-footer {
+  width: 100% !important;
+  max-width: none !important;
+  margin-right: 0 !important;
+  margin-bottom: 0 !important;
+  margin-left: 0 !important;
+}
+
+html body #root .shared-footer-page-shell {
+  --shared-footer-shell-bleed: 24px;
+  padding-bottom: 0 !important;
+  gap: 0 !important;
+}
+
+html body #root .admin-denied-page.shared-footer-page-shell {
+  --shared-footer-shell-bleed: 28px;
+}
+
+html body #root .shared-footer-page-shell > .shared-platform-footer {
+  width: calc(100% + (var(--shared-footer-shell-bleed) * 2)) !important;
+  max-width: none !important;
+  margin: 28px calc(var(--shared-footer-shell-bleed) * -1) 0 !important;
+}
+
+@media (max-width: 700px) {
+  html body #root .shared-platform-footer {
+    width: 100% !important;
+    margin: 22px 0 0 !important;
+    padding: 28px 18px 26px !important;
+    border-radius: 0 !important;
+  }
+
+  html body #root .shared-platform-footer__brand {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  html body #root .shared-platform-footer__brand img {
+    width: 62px !important;
+    height: 62px !important;
+    min-width: 62px !important;
+    flex-basis: 62px !important;
+  }
+
+  html body #root .shared-footer-page-shell {
+    --shared-footer-shell-bleed: 14px;
+    padding-bottom: 0 !important;
+  }
+}

@@ -4743,7 +4743,38 @@ function PublicRouteScrollReset() {
   return null
 }
 
-function PublicHeader({ settings = defaultWebsiteSettings }) {
+function PublicRouteLink({ to, onNavigate, children, ...props }) {
+  function handleClick(event) {
+    onNavigate?.()
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) return
+
+    event.preventDefault()
+    if (typeof window === 'undefined') return
+
+    const targetPath = normalizePublicPath(to)
+    const currentPath = normalizePublicPath(window.location.pathname)
+    const targetSearch = String(to).includes('?') ? String(to).slice(String(to).indexOf('?')) : ''
+    const currentSearch = window.location.search || ''
+
+    if (targetPath === currentPath && targetSearch === currentSearch) {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+      return
+    }
+
+    window.location.assign(to)
+  }
+
+  return <a href={to} onClick={handleClick} {...props}>{children}</a>
+}
+
+function PublicHeader({ settings = defaultWebsiteSettings, authenticated = false }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const siteName = settings.siteName || defaultWebsiteSettings.siteName
   const closeMenu = () => setMenuOpen(false)
@@ -4753,10 +4784,10 @@ function PublicHeader({ settings = defaultWebsiteSettings }) {
       <PublicRouteScrollReset />
       <header className="public-site-header">
         <div className="public-header-inner">
-          <a className="public-brand" href="/" aria-label={`${siteName} home`} onClick={closeMenu}>
+          <PublicRouteLink className="public-brand" to={authenticated ? "/?public=1" : "/"} aria-label={`${siteName} home`} onNavigate={closeMenu}>
             <img src={aboutUsHmuLogo} alt="Hawler Medical University logo" />
             <span><strong>Hawler Medical University</strong><small>{siteName}</small></span>
-          </a>
+          </PublicRouteLink>
 
           <button
             type="button"
@@ -4769,15 +4800,19 @@ function PublicHeader({ settings = defaultWebsiteSettings }) {
           </button>
 
           <nav className={`public-navigation ${menuOpen ? 'open' : ''}`} aria-label="Public navigation">
-            <a href="/" onClick={closeMenu}>Home</a>
-            <a href="/features" onClick={closeMenu}>Features</a>
-            <a href="/how-it-works" onClick={closeMenu}>How It Works</a>
-            <a href="/roles" onClick={closeMenu}>Roles</a>
-            <a href="/about" onClick={closeMenu}>About Us</a>
-            <a href="/research-guidelines" onClick={closeMenu}>Research Guidelines</a>
-            <a href="/contact" onClick={closeMenu}>Contact</a>
-            <a className="public-nav-signin" href="/login" onClick={closeMenu}>Sign In</a>
-            <a className="public-nav-start" href="/register" onClick={closeMenu}>Get Started</a>
+            <PublicRouteLink to={authenticated ? "/?public=1" : "/"} onNavigate={closeMenu}>Home</PublicRouteLink>
+            <PublicRouteLink to="/features" onNavigate={closeMenu}>Features</PublicRouteLink>
+            <PublicRouteLink to="/how-it-works" onNavigate={closeMenu}>How It Works</PublicRouteLink>
+            <PublicRouteLink to="/roles" onNavigate={closeMenu}>Roles</PublicRouteLink>
+            <PublicRouteLink to="/about" onNavigate={closeMenu}>About Us</PublicRouteLink>
+            <PublicRouteLink to="/research-guidelines" onNavigate={closeMenu}>Research Guidelines</PublicRouteLink>
+            <PublicRouteLink to="/contact" onNavigate={closeMenu}>Contact</PublicRouteLink>
+            {!authenticated && (
+              <>
+                <a className="public-nav-signin" href="/login" onClick={closeMenu}>Sign In</a>
+                <a className="public-nav-start" href="/register" onClick={closeMenu}>Get Started</a>
+              </>
+            )}
           </nav>
         </div>
       </header>
@@ -4789,71 +4824,31 @@ function SharedPlatformFooter({ settings = defaultWebsiteSettings, authenticated
   const siteName = settings.siteName || defaultWebsiteSettings.siteName
   return (
     <footer className={`shared-platform-footer ${authenticated ? 'shared-platform-footer--authenticated' : ''}`}>
-      <div className="shared-platform-footer__grid">
-        <section className="shared-platform-footer__brand">
-          <img src={aboutUsHmuLogo} alt="Hawler Medical University logo" />
-          <div>
-            <h2>{siteName}</h2>
-            <p>A secure academic platform supporting the complete research journey at Hawler Medical University, College of Pharmacy.</p>
-          </div>
-        </section>
-
-        <section className="shared-platform-footer__links">
-          <h3>Quick Links</h3>
-          <a href="/">Home</a>
-          <a href="/features">Features</a>
-          <a href="/how-it-works">How It Works</a>
-          <a href="/roles">Roles</a>
-          <a href="/about">About Us</a>
-        </section>
-
-        <section className="shared-platform-footer__resources">
-          <h3>Resources</h3>
-          <a href="/research-guidelines">Research Guidelines</a>
-          <a href="/contact">Contact</a>
-          <a href="/privacy">Privacy Policy</a>
-          <a href="/terms">Terms of Use</a>
-        </section>
-
-        <section className="shared-platform-footer__contact">
-          <h3>{authenticated ? 'Institution' : 'Access'}</h3>
-          {authenticated ? (
-            <>
-              <p>Hawler Medical University</p>
-              <p>College of Pharmacy</p>
-              <a href="/contact">Platform information and support</a>
-            </>
-          ) : (
-            <>
-              <a href="/login">Sign In</a>
-              <a href="/register">Get Started</a>
-              <p>Hawler Medical University · College of Pharmacy</p>
-            </>
-          )}
-        </section>
-      </div>
-      <div className="shared-platform-footer__bottom">
-        <span>© {new Date().getFullYear()} Hawler Medical University – College of Pharmacy. All rights reserved.</span>
-        <span>Research Management Platform</span>
-      </div>
+      <section className="shared-platform-footer__brand">
+        <img src={aboutUsHmuLogo} alt="Hawler Medical University logo" />
+        <div>
+          <h2>{siteName}</h2>
+          <p>A secure academic platform supporting the complete research journey at Hawler Medical University, College of Pharmacy.</p>
+        </div>
+      </section>
     </footer>
   )
 }
 
-function PublicPageLayout({ settings = defaultWebsiteSettings, children }) {
+function PublicPageLayout({ settings = defaultWebsiteSettings, authenticated = false, children }) {
   return (
     <div className="public-site-shell public-page-shell">
-      <PublicHeader settings={settings} />
+      <PublicHeader settings={settings} authenticated={authenticated} />
       <main className="public-information-main">{children}</main>
-      <SharedPlatformFooter settings={settings} />
+      <SharedPlatformFooter settings={settings} authenticated={authenticated} />
     </div>
   )
 }
 
-function PublicLegalPage({ type, settings }) {
+function PublicLegalPage({ type, settings, authenticated = false }) {
   const isPrivacy = type === 'privacy'
   return (
-    <PublicPageLayout settings={settings}>
+    <PublicPageLayout settings={settings} authenticated={authenticated}>
       <section className="public-legal-card">
         <p className="public-section-kicker"><ShieldCheck size={17} /> Platform information</p>
         <h1>{isPrivacy ? 'Privacy Policy' : 'Terms of Use'}</h1>
@@ -4878,12 +4873,12 @@ function PublicLegalPage({ type, settings }) {
   )
 }
 
-function PublicInformationPage({ path, settings = defaultWebsiteSettings, aboutUsPage = defaultAboutUsPage }) {
+function PublicInformationPage({ path, settings = defaultWebsiteSettings, aboutUsPage = defaultAboutUsPage, authenticated = false }) {
   const normalizedPath = normalizePublicPath(path)
 
   if (normalizedPath === '/features') {
     return (
-      <PublicPageLayout settings={settings}>
+      <PublicPageLayout settings={settings} authenticated={authenticated}>
         <section className="public-information-page">
           <header className="public-information-page__heading">
             <p className="public-section-kicker"><Target size={17} /> Platform capabilities</p>
@@ -4906,7 +4901,7 @@ function PublicInformationPage({ path, settings = defaultWebsiteSettings, aboutU
 
   if (normalizedPath === '/how-it-works') {
     return (
-      <PublicPageLayout settings={settings}>
+      <PublicPageLayout settings={settings} authenticated={authenticated}>
         <section className="public-information-page">
           <header className="public-information-page__heading">
             <p className="public-section-kicker"><Workflow size={17} /> Research workflow</p>
@@ -4928,7 +4923,7 @@ function PublicInformationPage({ path, settings = defaultWebsiteSettings, aboutU
 
   if (normalizedPath === '/roles') {
     return (
-      <PublicPageLayout settings={settings}>
+      <PublicPageLayout settings={settings} authenticated={authenticated}>
         <section className="public-information-page">
           <header className="public-information-page__heading">
             <p className="public-section-kicker"><Users size={17} /> Platform roles</p>
@@ -4951,7 +4946,7 @@ function PublicInformationPage({ path, settings = defaultWebsiteSettings, aboutU
 
   if (normalizedPath === '/about') {
     return (
-      <PublicPageLayout settings={settings}>
+      <PublicPageLayout settings={settings} authenticated={authenticated}>
         <section className="public-information-page about-public-page">
           <AboutUsPage page={aboutUsPage} />
         </section>
@@ -4961,7 +4956,7 @@ function PublicInformationPage({ path, settings = defaultWebsiteSettings, aboutU
 
   if (normalizedPath === '/research-guidelines') {
     return (
-      <PublicPageLayout settings={settings}>
+      <PublicPageLayout settings={settings} authenticated={authenticated}>
         <section className="public-information-page research-guidelines-public-page">
           <header className="public-information-page__heading">
             <p className="public-section-kicker"><FileText size={17} /> Academic resource</p>
@@ -4980,7 +4975,7 @@ function PublicInformationPage({ path, settings = defaultWebsiteSettings, aboutU
   }
 
   return (
-    <PublicPageLayout settings={settings}>
+    <PublicPageLayout settings={settings} authenticated={authenticated}>
       <section className="public-information-page contact-public-page">
         <header className="public-information-page__heading">
           <p className="public-section-kicker"><Mail size={17} /> Platform contact</p>
@@ -4998,7 +4993,7 @@ function PublicInformationPage({ path, settings = defaultWebsiteSettings, aboutU
             <Inbox size={28} />
             <h2>Platform Support</h2>
             <p>Authenticated users can use the platform Inbox and role-specific communication tools for research workflow questions.</p>
-            <a href="/login">Sign in to the platform <ArrowRight size={16} /></a>
+            {!authenticated && <a href="/login">Sign in to the platform <ArrowRight size={16} /></a>}
           </article>
         </div>
       </section>
@@ -5006,7 +5001,7 @@ function PublicInformationPage({ path, settings = defaultWebsiteSettings, aboutU
   )
 }
 
-function PublicHomepage({ settings = defaultWebsiteSettings }) {
+function PublicHomepage({ settings = defaultWebsiteSettings, authenticated = false }) {
   const heroImage = settingImageUrl(settings.heroImage, '/hero-page.png', settings.assetUpdatedAt)
   const publicHeadline = settings.homepageHeadline && settings.homepageHeadline !== defaultWebsiteSettings.homepageHeadline
     ? settings.homepageHeadline
@@ -5017,7 +5012,7 @@ function PublicHomepage({ settings = defaultWebsiteSettings }) {
 
   return (
     <div className="public-site-shell public-page-shell">
-      <PublicHeader settings={settings} />
+      <PublicHeader settings={settings} authenticated={authenticated} />
       <main>
         <section className="public-hero" id="home">
           <div className="public-hero-backdrop" style={{ '--public-hero-image': cssImageUrl(heroImage) }} aria-hidden="true" />
@@ -5027,9 +5022,9 @@ function PublicHomepage({ settings = defaultWebsiteSettings }) {
               <h1>{publicHeadline}</h1>
               <p>{publicSubtitle}</p>
               <div className="public-hero-actions">
-                <a className="public-primary-action" href="/register">Get Started <ArrowRight size={18} /></a>
-                <a className="public-secondary-action" href="/login">Sign In</a>
-                <a className="public-text-action" href="/features">Learn More</a>
+                {!authenticated && <a className="public-primary-action" href="/register">Get Started <ArrowRight size={18} /></a>}
+                {!authenticated && <a className="public-secondary-action" href="/login">Sign In</a>}
+                <PublicRouteLink className="public-text-action" to="/features">Learn More</PublicRouteLink>
               </div>
               <div className="public-trust-row" aria-label="Platform qualities">
                 <span><FileCheck2 size={16} /> Structured workflow</span>
@@ -5110,12 +5105,21 @@ function PublicHomepage({ settings = defaultWebsiteSettings }) {
             <p>Create an account or sign in to access the secure research management platform.</p>
           </div>
           <div className="public-cta-actions">
-            <a className="public-primary-action" href="/register">Create an Account <ArrowRight size={18} /></a>
-            <a className="public-secondary-action" href="/login">Sign In</a>
+            {authenticated ? (
+              <>
+                <PublicRouteLink className="public-primary-action" to="/features">Explore Features <ArrowRight size={18} /></PublicRouteLink>
+                <PublicRouteLink className="public-secondary-action" to="/about">About Us</PublicRouteLink>
+              </>
+            ) : (
+              <>
+                <a className="public-primary-action" href="/register">Create an Account <ArrowRight size={18} /></a>
+                <a className="public-secondary-action" href="/login">Sign In</a>
+              </>
+            )}
           </div>
         </section>
       </main>
-      <SharedPlatformFooter settings={settings} />
+      <SharedPlatformFooter settings={settings} authenticated={authenticated} />
     </div>
   )
 }
@@ -9732,11 +9736,17 @@ export default function App() {
   }
 
   const requestedPublicPath = normalizePublicPath(typeof window !== 'undefined' ? window.location.pathname : '/')
+  const requestedPublicHomepage = typeof window !== 'undefined' && requestedPublicPath === '/' && new URLSearchParams(window.location.search).get('public') === '1'
+
+  if (!isAdminPortal && requestedPublicHomepage) {
+    return <><PublicHomepage settings={websiteSettings} authenticated={Boolean(currentUser)} /><AppDialog dialog={appDialog} onClose={closeAppDialog} /></>
+  }
+
   if (!isAdminPortal && requestedPublicPath !== '/' && isPublicInformationPath(requestedPublicPath)) {
     if (requestedPublicPath === '/privacy' || requestedPublicPath === '/terms') {
-      return <><PublicLegalPage type={requestedPublicPath === '/privacy' ? 'privacy' : 'terms'} settings={websiteSettings} /><AppDialog dialog={appDialog} onClose={closeAppDialog} /></>
+      return <><PublicLegalPage type={requestedPublicPath === '/privacy' ? 'privacy' : 'terms'} settings={websiteSettings} authenticated={Boolean(currentUser)} /><AppDialog dialog={appDialog} onClose={closeAppDialog} /></>
     }
-    return <><PublicInformationPage path={requestedPublicPath} settings={websiteSettings} aboutUsPage={aboutUsPage} /><AppDialog dialog={appDialog} onClose={closeAppDialog} /></>
+    return <><PublicInformationPage path={requestedPublicPath} settings={websiteSettings} aboutUsPage={aboutUsPage} authenticated={Boolean(currentUser)} /><AppDialog dialog={appDialog} onClose={closeAppDialog} /></>
   }
 
   if (!currentUser) {
@@ -9745,12 +9755,12 @@ export default function App() {
 
     if (!isAdminPortal && !acceptedInvitation && !hasInvitationToken && isPublicInformationPath(publicPath)) {
       if (publicPath === '/privacy' || publicPath === '/terms') {
-        return <><PublicLegalPage type={publicPath === '/privacy' ? 'privacy' : 'terms'} settings={websiteSettings} /><AppDialog dialog={appDialog} onClose={closeAppDialog} /></>
+        return <><PublicLegalPage type={publicPath === '/privacy' ? 'privacy' : 'terms'} settings={websiteSettings} authenticated={false} /><AppDialog dialog={appDialog} onClose={closeAppDialog} /></>
       }
       if (publicPath === '/') {
-        return <><PublicHomepage settings={websiteSettings} /><AppDialog dialog={appDialog} onClose={closeAppDialog} /></>
+        return <><PublicHomepage settings={websiteSettings} authenticated={false} /><AppDialog dialog={appDialog} onClose={closeAppDialog} /></>
       }
-      return <><PublicInformationPage path={publicPath} settings={websiteSettings} aboutUsPage={aboutUsPage} /><AppDialog dialog={appDialog} onClose={closeAppDialog} /></>
+      return <><PublicInformationPage path={publicPath} settings={websiteSettings} aboutUsPage={aboutUsPage} authenticated={false} /><AppDialog dialog={appDialog} onClose={closeAppDialog} /></>
     }
 
     const loginMode = acceptedInvitation || hasInvitationToken || (!isAdminPortal && publicPath === '/register') ? 'register' : 'login'
