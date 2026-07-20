@@ -4807,6 +4807,9 @@ function PublicHeader({ settings = defaultWebsiteSettings, authenticated = false
             <PublicRouteLink to="/about" onNavigate={closeMenu}>About Us</PublicRouteLink>
             <PublicRouteLink to="/research-guidelines" onNavigate={closeMenu}>Research Guidelines</PublicRouteLink>
             <PublicRouteLink to="/contact" onNavigate={closeMenu}>Contact</PublicRouteLink>
+            {authenticated && (
+              <a className="public-nav-dashboard" href="/dashboard" onClick={closeMenu}>Open Dashboard</a>
+            )}
             {!authenticated && (
               <>
                 <a className="public-nav-signin" href="/login" onClick={closeMenu}>Sign In</a>
@@ -9875,6 +9878,7 @@ export default function App() {
     { id: 'audit', label: 'Audit Log', icon: ShieldCheck, show: allowedRole === 'admin' },
   ].filter((item) => item.show)
   const utilityNavItems = [
+    { id: 'public-home', label: 'Homepage', icon: null, type: 'public' },
     { id: 'inbox', label: 'Inbox', icon: Inbox, type: 'action' },
     { id: 'reports', label: 'Print/PDF Reports', icon: Printer, type: 'button' },
     { id: 'about-us', label: 'About Us', icon: null, type: 'button' },
@@ -9954,6 +9958,13 @@ export default function App() {
       >
         <nav className="main-side-nav sidebar-utility-nav" aria-label="Sidebar utilities">
           {utilityNavItems.map((item) => {
+            if (item.type === 'public') {
+              return (
+                <a key={item.id} href="/?public=1" className="sidebar-utility-link sidebar-nav-item" onClick={() => setSidebarOpen(false)}>
+                  <span className="sidebar-item-label">{item.label}</span>
+                </a>
+              )
+            }
             if (item.type === 'download') {
               return (
                 <a key={item.id} href={RESEARCH_GUIDELINES_PDF_URL} download={RESEARCH_GUIDELINES_DOWNLOAD_NAME} className="sidebar-utility-link sidebar-nav-item" onClick={() => setSidebarOpen(false)}>
@@ -10234,6 +10245,24 @@ function AIAssistantWidget({ role, buttonColors = DEFAULT_BUTTON_COLORS }) {
   }, [])
 
   useEffect(() => {
+    if (!isOpen || typeof document === 'undefined') return undefined
+
+    const handleOutsidePointer = (event) => {
+      if (!widgetRef.current?.contains(event.target)) setIsOpen(false)
+    }
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') setIsOpen(false)
+    }
+
+    document.addEventListener('pointerdown', handleOutsidePointer)
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('pointerdown', handleOutsidePointer)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [isOpen])
+
+  useEffect(() => {
     setOpenSection(sections[0]?.title || '')
     setSelectedPrompt(null)
   }, [normalizedRole])
@@ -10349,8 +10378,14 @@ function AIAssistantWidget({ role, buttonColors = DEFAULT_BUTTON_COLORS }) {
               <h3>{roleLabel}</h3>
               <span>{helperText}</span>
             </div>
-            <button type="button" className="ai-assistant-close" onClick={() => setIsOpen(false)} aria-label="Close AI assistant">
-              <XCircle size={18} />
+            <button
+              type="button"
+              className="ai-assistant-close"
+              onClick={() => setIsOpen(false)}
+              aria-label="Close AI assistant"
+              style={{ color: aiColors.accent, borderColor: aiColors.border }}
+            >
+              <XCircle size={18} style={{ color: aiColors.accent, stroke: aiColors.accent }} />
             </button>
           </div>
 
@@ -12098,6 +12133,9 @@ function AdminControlPanel({
           </div>
         </div>
         <nav className="admin-side-nav">
+          <a href="/?public=1" className="admin-sidebar-link sidebar-nav-item admin-sidebar-home-link" onClick={() => setAdminSidebarOpen(false)}>
+            <span className="sidebar-item-label">Homepage</span>
+          </a>
           {navItems.map((item) => {
             return (
               <button key={item.id} type="button" className={`admin-sidebar-link sidebar-nav-item ${adminPanelTab === item.id ? 'active' : ''}`} aria-current={adminPanelTab === item.id ? 'page' : undefined} onClick={() => changeAdminPanelTab(item.id)}>

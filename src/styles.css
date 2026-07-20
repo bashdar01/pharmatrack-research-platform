@@ -29248,3 +29248,127 @@ html body #root .shared-footer-page-shell > .shared-platform-footer {
     flex-basis: 60px !important;
   }
 }
+
+/* =========================================================
+   PUBLIC DASHBOARD RETURN + AUTHENTICATED PAGE REFINEMENTS
+   ========================================================= */
+html body #root .public-navigation > a.public-nav-dashboard {
+  margin-left: 7px !important;
+  padding-inline: 16px !important;
+  border: 1px solid #087f78 !important;
+  background: #087f78 !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 18px rgba(8, 127, 120, 0.22) !important;
+}
+
+html body #root .public-navigation > a.public-nav-dashboard:hover,
+html body #root .public-navigation > a.public-nav-dashboard:focus-visible {
+  background: #066a65 !important;
+  border-color: #066a65 !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Authenticated pages use a neutral gray footer while public pages retain teal. */
+html body #root .shared-platform-footer.shared-platform-footer--authenticated {
+  background: linear-gradient(135deg, #5a5a5b 0%, #474748 58%, #363637 100%) !important;
+  border-top-color: rgba(255, 255, 255, 0.16) !important;
+  box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.16) !important;
+}
+
+/* Wider, shorter role shortcut cards under the authenticated hero navigation. */
+html body #root .role-dashboard-content-panel {
+  width: min(100%, 1040px) !important;
+  max-width: 1040px !important;
+}
+
+html body #root .role-dashboard-feature-grid {
+  grid-template-columns: repeat(3, minmax(0, 292px)) !important;
+  gap: 18px !important;
+}
+
+html body #root .role-dashboard-feature-card {
+  max-width: 292px !important;
+  min-height: 255px !important;
+  padding: 17px 20px 16px !important;
+}
+
+html body #root .role-dashboard-feature-card p {
+  max-width: 255px !important;
+  margin-bottom: 13px !important;
+  line-height: 1.4 !important;
+}
+
+html body #root .role-dashboard-feature-icon {
+  width: 52px !important;
+  height: 52px !important;
+  margin-bottom: 11px !important;
+}
+
+html body #root .role-dashboard-feature-icon svg {
+  width: 29px !important;
+  height: 29px !important;
+}
+
+/* AI Assistant closes from outside click; keep the X in the saved green/blue accent. */
+html body #root .ai-assistant-widget .ai-assistant-close,
+html body #root .ai-assistant-widget button.ai-assistant-close {
+  color: var(--ai-assistant-accent, #087f78) !important;
+  border: 1px solid color-mix(in srgb, var(--ai-assistant-accent, #087f78) 28%, transparent) !important;
+  background: color-mix(in srgb, var(--ai-assistant-accent, #087f78) 8%, white) !important;
+}
+
+html body #root .ai-assistant-widget .ai-assistant-close svg,
+html body #root .ai-assistant-widget button.ai-assistant-close svg {
+  color: var(--ai-assistant-accent, #087f78) !important;
+  stroke: var(--ai-assistant-accent, #087f78) !important;
+}
+
+html body #root .ai-assistant-widget .ai-assistant-close:hover,
+html body #root .ai-assistant-widget button.ai-assistant-close:hover,
+html body #root .ai-assistant-widget .ai-assistant-close:focus-visible,
+html body #root .ai-assistant-widget button.ai-assistant-close:focus-visible {
+  color: #ffffff !important;
+  background: var(--ai-assistant-accent, #087f78) !important;
+  border-color: var(--ai-assistant-accent, #087f78) !important;
+}
+
+html body #root .ai-assistant-widget .ai-assistant-close:hover svg,
+html body #root .ai-assistant-widget button.ai-assistant-close:hover svg,
+html body #root .ai-assistant-widget .ai-assistant-close:focus-visible svg,
+html body #root .ai-assistant-widget button.ai-assistant-close:focus-visible svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+@media (max-width: 900px) {
+  html body #root .role-dashboard-feature-grid {
+    grid-template-columns: repeat(2, minmax(0, 292px)) !important;
+  }
+
+  html body #root .role-dashboard-feature-card:last-child {
+    width: 292px !important;
+    max-width: 292px !important;
+  }
+}
+
+@media (max-width: 760px) {
+  html body #root .public-navigation > a.public-nav-dashboard {
+    width: 100% !important;
+    margin: 4px 0 0 !important;
+    justify-content: center !important;
+  }
+}
+
+@media (max-width: 560px) {
+  html body #root .role-dashboard-feature-grid {
+    grid-template-columns: minmax(0, min(100%, 360px)) !important;
+  }
+
+  html body #root .role-dashboard-feature-card,
+  html body #root .role-dashboard-feature-card:last-child {
+    width: 100% !important;
+    max-width: 360px !important;
+    min-height: 245px !important;
+  }
+}
