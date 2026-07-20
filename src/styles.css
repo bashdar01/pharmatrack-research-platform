@@ -28995,15 +28995,14 @@ html body #root#root#root button.main-notification-button.header-inbox-button.in
 }
 
 /* ========================================================================
-   FINAL SHARED FOOTER — BRAND ONLY, FULL-WIDTH PAGE END
-   Keeps one reusable footer while removing every navigation/account link.
+   FINAL SHARED FOOTER — SELECTED LINKS, FULL-WIDTH PAGE END
    ======================================================================== */
 html body #root .shared-platform-footer {
   width: 100% !important;
   max-width: none !important;
   min-width: 0 !important;
   margin: 28px 0 0 !important;
-  padding: clamp(30px, 4vw, 48px) clamp(18px, 5vw, 64px) clamp(28px, 4vw, 42px) !important;
+  padding: clamp(30px, 4vw, 48px) clamp(18px, 5vw, 64px) 20px !important;
   align-self: stretch !important;
   box-sizing: border-box !important;
   border: 0 !important;
@@ -29016,48 +29015,140 @@ html body #root .shared-platform-footer {
   flex-shrink: 0 !important;
 }
 
-html body #root .shared-platform-footer__brand {
-  width: min(720px, 100%) !important;
+html body #root .shared-platform-footer,
+html body #root .shared-platform-footer h2,
+html body #root .shared-platform-footer h3,
+html body #root .shared-platform-footer p,
+html body #root .shared-platform-footer a,
+html body #root .shared-platform-footer span {
+  color: #ffffff !important;
+}
+
+html body #root .shared-platform-footer__grid {
+  width: min(1320px, 100%) !important;
   margin: 0 auto !important;
+  display: grid !important;
+  grid-template-columns: minmax(280px, 1.55fr) repeat(3, minmax(145px, 0.72fr)) !important;
+  gap: clamp(28px, 4vw, 58px) !important;
+  align-items: start !important;
+}
+
+html body #root .shared-platform-footer--authenticated .shared-platform-footer__grid {
+  grid-template-columns: minmax(300px, 1.65fr) repeat(2, minmax(150px, 0.7fr)) !important;
+}
+
+html body #root .shared-platform-footer__brand {
+  min-width: 0 !important;
+  margin: 0 !important;
   display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 14px !important;
-  text-align: center !important;
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  gap: 16px !important;
+  text-align: left !important;
 }
 
 html body #root .shared-platform-footer__brand img {
-  width: 72px !important;
-  height: 72px !important;
-  min-width: 72px !important;
-  flex: 0 0 72px !important;
+  width: 68px !important;
+  height: 68px !important;
+  min-width: 68px !important;
+  flex: 0 0 68px !important;
   margin: 0 !important;
   padding: 8px !important;
-  border-radius: 18px !important;
+  border-radius: 17px !important;
   background: #ffffff !important;
   object-fit: contain !important;
   box-sizing: border-box !important;
 }
 
 html body #root .shared-platform-footer__brand > div {
-  width: 100% !important;
   min-width: 0 !important;
 }
 
 html body #root .shared-platform-footer__brand h2 {
-  margin: 0 !important;
-  color: #ffffff !important;
+  margin: 1px 0 0 !important;
   font-size: clamp(1.05rem, 2vw, 1.28rem) !important;
   line-height: 1.25 !important;
 }
 
 html body #root .shared-platform-footer__brand p {
-  max-width: 680px !important;
-  margin: 9px auto 0 !important;
+  max-width: 540px !important;
+  margin: 9px 0 0 !important;
+  font-size: 0.88rem !important;
+  line-height: 1.68 !important;
+}
+
+html body #root .shared-platform-footer__links,
+html body #root .shared-platform-footer__resources,
+html body #root .shared-platform-footer__account {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+}
+
+html body #root .shared-platform-footer__grid h3 {
+  margin: 0 0 8px !important;
+  font-size: 0.92rem !important;
+  line-height: 1.25 !important;
+}
+
+html body #root .shared-platform-footer a {
+  display: inline-flex !important;
+  align-items: center !important;
+  min-height: 28px !important;
+  font-size: 0.86rem !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+  text-decoration: none !important;
+  overflow-wrap: anywhere !important;
+  transition: opacity 180ms ease, transform 180ms ease, background-color 180ms ease !important;
+}
+
+html body #root .shared-platform-footer a:hover,
+html body #root .shared-platform-footer a:focus-visible {
   color: #ffffff !important;
-  font-size: 0.9rem !important;
-  line-height: 1.7 !important;
+  opacity: 0.78 !important;
+  transform: translateX(2px) !important;
+}
+
+html body #root .shared-platform-footer__account-link {
+  width: 100% !important;
+  max-width: 132px !important;
+  min-height: 34px !important;
+  padding: 6px 12px !important;
+  justify-content: center !important;
+  border: 1px solid rgba(255, 255, 255, 0.52) !important;
+  border-radius: 10px !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+  box-sizing: border-box !important;
+}
+
+html body #root .shared-platform-footer__account-link:hover,
+html body #root .shared-platform-footer__account-link:focus-visible {
+  background: rgba(255, 255, 255, 0.18) !important;
+  opacity: 1 !important;
+  transform: translateY(-1px) !important;
+}
+
+html body #root .shared-platform-footer__bottom {
+  width: min(1320px, 100%) !important;
+  margin: 28px auto 0 !important;
+  padding-top: 17px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.22) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 18px !important;
+  font-size: 0.78rem !important;
+  line-height: 1.45 !important;
+}
+
+html body #root .shared-platform-footer__bottom a {
+  min-height: 24px !important;
+  font-size: 0.78rem !important;
 }
 
 /* The footer is the actual final edge of each page—no card gaps beneath it. */
@@ -29087,28 +29178,58 @@ html body #root .shared-footer-page-shell > .shared-platform-footer {
   margin: 28px calc(var(--shared-footer-shell-bleed) * -1) 0 !important;
 }
 
+@media (max-width: 980px) {
+  html body #root .shared-platform-footer__grid,
+  html body #root .shared-platform-footer--authenticated .shared-platform-footer__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  html body #root .shared-platform-footer__brand {
+    grid-column: 1 / -1 !important;
+  }
+}
+
 @media (max-width: 700px) {
   html body #root .shared-platform-footer {
     width: 100% !important;
     margin: 22px 0 0 !important;
-    padding: 28px 18px 26px !important;
+    padding: 28px 18px 18px !important;
     border-radius: 0 !important;
   }
 
+  html body #root .shared-platform-footer__grid,
+  html body #root .shared-platform-footer--authenticated .shared-platform-footer__grid {
+    grid-template-columns: 1fr !important;
+    gap: 26px !important;
+  }
+
+  html body #root .shared-platform-footer__brand {
+    grid-column: auto !important;
+  }
+
+  html body #root .shared-platform-footer__bottom {
+    margin-top: 24px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
+  html body #root .shared-footer-page-shell {
+    --shared-footer-shell-bleed: 14px;
+    padding-bottom: 0 !important;
+  }
+}
+
+@media (max-width: 440px) {
   html body #root .shared-platform-footer__brand {
     flex-direction: column !important;
     gap: 12px !important;
   }
 
   html body #root .shared-platform-footer__brand img {
-    width: 62px !important;
-    height: 62px !important;
-    min-width: 62px !important;
-    flex-basis: 62px !important;
-  }
-
-  html body #root .shared-footer-page-shell {
-    --shared-footer-shell-bleed: 14px;
-    padding-bottom: 0 !important;
+    width: 60px !important;
+    height: 60px !important;
+    min-width: 60px !important;
+    flex-basis: 60px !important;
   }
 }

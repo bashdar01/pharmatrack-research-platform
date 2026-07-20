@@ -4822,15 +4822,45 @@ function PublicHeader({ settings = defaultWebsiteSettings, authenticated = false
 
 function SharedPlatformFooter({ settings = defaultWebsiteSettings, authenticated = false }) {
   const siteName = settings.siteName || defaultWebsiteSettings.siteName
+  const currentYear = new Date().getFullYear()
+
   return (
     <footer className={`shared-platform-footer ${authenticated ? 'shared-platform-footer--authenticated' : ''}`}>
-      <section className="shared-platform-footer__brand">
-        <img src={aboutUsHmuLogo} alt="Hawler Medical University logo" />
-        <div>
-          <h2>{siteName}</h2>
-          <p>A secure academic platform supporting the complete research journey at Hawler Medical University, College of Pharmacy.</p>
-        </div>
-      </section>
+      <div className="shared-platform-footer__grid">
+        <section className="shared-platform-footer__brand">
+          <img src={aboutUsHmuLogo} alt="Hawler Medical University logo" />
+          <div>
+            <h2>{siteName}</h2>
+            <p>A secure academic platform supporting the complete research journey at Hawler Medical University, College of Pharmacy.</p>
+          </div>
+        </section>
+
+        <nav className="shared-platform-footer__links" aria-label="Footer quick links">
+          <h3>Quick Links</h3>
+          <PublicRouteLink to={authenticated ? "/?public=1" : "/"}>Home</PublicRouteLink>
+          <PublicRouteLink to="/features">Features</PublicRouteLink>
+          <PublicRouteLink to="/about">About Us</PublicRouteLink>
+        </nav>
+
+        <section className="shared-platform-footer__resources">
+          <h3>Resources</h3>
+          <PublicRouteLink to="/research-guidelines">Research Guidelines</PublicRouteLink>
+          <PublicRouteLink to="/contact">Contact</PublicRouteLink>
+        </section>
+
+        {!authenticated && (
+          <section className="shared-platform-footer__account">
+            <h3>Account</h3>
+            <a className="shared-platform-footer__account-link" href="/login">Sign In</a>
+            <a className="shared-platform-footer__account-link" href="/register">Register</a>
+          </section>
+        )}
+      </div>
+
+      <div className="shared-platform-footer__bottom">
+        <span>© {currentYear} Hawler Medical University – College of Pharmacy. All rights reserved.</span>
+        <PublicRouteLink to="/contact">Platform Support</PublicRouteLink>
+      </div>
     </footer>
   )
 }
