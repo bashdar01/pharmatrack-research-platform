@@ -43,6 +43,9 @@ import {
   Workflow,
   FileCheck2,
   Bell,
+  Home,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react'
 import { supabase, isSupabaseConfigured } from './lib/supabaseClient'
 import aboutUsHmuLogo from './assets/about-us-hmu-logo.svg'
@@ -11527,8 +11530,17 @@ function AdminControlPanel({
   const [interfaceColorStatus, setInterfaceColorStatus] = useState('')
   const [interfaceColorError, setInterfaceColorError] = useState('')
   const [adminSidebarOpen, setAdminSidebarOpen] = useState(false)
+  const [adminSidebarCollapsed, setAdminSidebarCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.localStorage?.getItem('adminSidebarCollapsed') === '1'
+  })
   const adminSidebarRef = useRef(null)
   const adminSidebarToggleRef = useRef(null)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.localStorage?.setItem('adminSidebarCollapsed', adminSidebarCollapsed ? '1' : '0')
+  }, [adminSidebarCollapsed])
 
   useEffect(() => {
     if (!adminSidebarOpen) return undefined
@@ -11581,6 +11593,16 @@ function AdminControlPanel({
     { id: 'reports', label: 'Reports', icon: Printer },
     { id: 'pdf-report', label: 'PDF Report Customization', icon: FileText },
   ]
+
+  const navGroups = [
+    { label: 'Overview', ids: ['overview'] },
+    { label: 'Website & Content', ids: ['branding', 'button-colors', 'login-settings', 'about-us'] },
+    { label: 'People', ids: ['users', 'supervisors', 'dual-roles', 'invitations'] },
+    { label: 'Research Operations', ids: ['deadlines', 'notifications', 'group-requests'] },
+    { label: 'System', ids: ['database', 'audit', 'reports', 'pdf-report'] },
+  ].map((group) => ({ ...group, items: group.ids.map((id) => navItems.find((item) => item.id === id)).filter(Boolean) }))
+
+  const activeNavItem = navItems.find((item) => item.id === adminPanelTab)
 
   function changeAdminPanelTab(nextTab) {
     if (!isAdminPanelTab(nextTab)) return
@@ -12105,7 +12127,7 @@ function AdminControlPanel({
   const adminSidebarDropdownStyle = getSidebarDropdownRuntimeStyle(adminSidebarThemeSource)
 
   return (
-    <div className={`admin-panel-shell header-dropdown-shell ${adminSidebarOpen ? 'admin-sidebar-open' : ''}`}>
+    <div className={`admin-panel-shell header-dropdown-shell ${adminSidebarOpen ? 'admin-sidebar-open' : ''} ${adminSidebarCollapsed ? 'admin-sidebar-collapsed' : ''}`}>
       {adminSidebarOpen && (
         <div
           className="sidebar-outside-layer admin-sidebar-outside-layer no-print"
@@ -12116,7 +12138,7 @@ function AdminControlPanel({
       <aside
         id="admin-subdomain-sidebar"
         ref={adminSidebarRef}
-        className={`admin-sidebar admin-subdomain-sidebar app-sidebar header-dropdown-sidebar admin-standard-overlay-sidebar no-print ${adminSidebarOpen ? 'open is-open' : ''}`}
+        className={`admin-sidebar admin-subdomain-sidebar app-sidebar header-dropdown-sidebar admin-standard-overlay-sidebar no-print ${adminSidebarOpen ? 'open is-open' : ''} ${adminSidebarCollapsed ? 'is-collapsed' : ''}`}
         style={adminSidebarDropdownStyle}
         data-sidebar-opacity={adminSidebarDropdownStyle['--sidebar-runtime-opacity']}
         aria-label="Admin Subdomain navigation"
@@ -12124,26 +12146,55 @@ function AdminControlPanel({
         inert={adminSidebarOpen ? undefined : true}
       >
         <div className="admin-brand-block">
-          <div>
+          <div className="admin-brand-mark" aria-hidden="true">{(settings.adminPanelName || 'A').trim().charAt(0).toUpperCase()}</div>
+          <div className="admin-brand-text">
             <h2>{settings.adminPanelName || 'Pharmacy Research Platform Control Center'}</h2>
             <p>Website management panel</p>
           </div>
         </div>
         <nav className="admin-side-nav">
-          <a href="/?public=1" className="admin-sidebar-link sidebar-nav-item admin-sidebar-home-link" onClick={() => setAdminSidebarOpen(false)}>
+          <a href="/?public=1" className="admin-sidebar-link sidebar-nav-item admin-sidebar-home-link" onClick={() => setAdminSidebarOpen(false)} title="Homepage">
+            <span className="sidebar-item-icon" aria-hidden="true"><Home size={18} /></span>
             <span className="sidebar-item-label">Homepage</span>
           </a>
-          {navItems.map((item) => {
-            return (
-              <button key={item.id} type="button" className={`admin-sidebar-link sidebar-nav-item ${adminPanelTab === item.id ? 'active' : ''}`} aria-current={adminPanelTab === item.id ? 'page' : undefined} onClick={() => changeAdminPanelTab(item.id)}>
-                <span className="sidebar-item-label">{item.label}</span>
-              </button>
-            )
-          })}
+          {navGroups.map((group) => (
+            <div className="admin-side-nav-group" key={group.label}>
+              <div className="admin-side-nav-group-label" aria-hidden="true">{group.label}</div>
+              {group.items.map((item) => {
+                const Icon = item.icon
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`admin-sidebar-link sidebar-nav-item ${adminPanelTab === item.id ? 'active' : ''}`}
+                    aria-current={adminPanelTab === item.id ? 'page' : undefined}
+                    onClick={() => changeAdminPanelTab(item.id)}
+                    title={adminSidebarCollapsed ? item.label : undefined}
+                  >
+                    <span className="sidebar-item-icon" aria-hidden="true">{Icon ? <Icon size={18} /> : null}</span>
+                    <span className="sidebar-item-label">{item.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          ))}
         </nav>
-        <button type="button" className="admin-logout sidebar-nav-item" onClick={() => { setAdminSidebarOpen(false); onLogout() }}>
-          <span className="sidebar-item-label">Logout</span>
-        </button>
+        <div className="admin-sidebar-footer">
+          <button
+            type="button"
+            className="admin-sidebar-collapse-toggle sidebar-nav-item"
+            onClick={() => setAdminSidebarCollapsed((collapsed) => !collapsed)}
+            aria-pressed={adminSidebarCollapsed}
+            title={adminSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            <span className="sidebar-item-icon" aria-hidden="true">{adminSidebarCollapsed ? <ChevronsRight size={18} /> : <ChevronsLeft size={18} />}</span>
+            <span className="sidebar-item-label">Collapse</span>
+          </button>
+          <button type="button" className="admin-logout sidebar-nav-item" onClick={() => { setAdminSidebarOpen(false); onLogout() }} title={adminSidebarCollapsed ? 'Logout' : undefined}>
+            <span className="sidebar-item-icon" aria-hidden="true"><LogOut size={18} /></span>
+            <span className="sidebar-item-label">Logout</span>
+          </button>
+        </div>
       </aside>
 
       <main className="admin-panel-main">
@@ -12159,6 +12210,10 @@ function AdminControlPanel({
           >
             <span></span><span></span><span></span>
           </button>
+          <div className="admin-topbar-heading">
+            <div className="admin-topbar-breadcrumb" aria-hidden="true">Admin{activeNavItem ? ` / ${activeNavItem.label}` : ''}</div>
+            <h1 className="admin-topbar-title">{activeNavItem ? activeNavItem.label : 'Admin'}</h1>
+          </div>
           <div className="admin-topbar-actions">
             <a className="admin-preview-link admin-guidelines-link" href={RESEARCH_GUIDELINES_PDF_URL} download={RESEARCH_GUIDELINES_DOWNLOAD_NAME}><FileText size={16} /> Research Guidelines</a>
             <a className="admin-preview-link" href="/" target="_blank" rel="noreferrer">Open main website</a>

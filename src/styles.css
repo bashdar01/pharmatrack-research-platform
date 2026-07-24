@@ -29376,3 +29376,577 @@ html body #root .ai-assistant-widget button.ai-assistant-close:focus-visible svg
     min-height: 245px !important;
   }
 }
+
+/* =========================================================================
+   ADMIN SUBDOMAIN — PROFESSIONAL REDESIGN
+   Scoped entirely to .admin-panel-shell so the Student, Supervisor,
+   Research Committee, and public site are never affected. Overrides all
+   earlier admin CSS in this file by specificity + source order.
+   ========================================================================= */
+
+html body #root#root#root .admin-panel-shell {
+  --admin-bg: #f4f6f9;
+  --admin-surface: #ffffff;
+  --admin-surface-muted: #f8fafc;
+  --admin-border: #e4e8ef;
+  --admin-border-strong: #d6dbe4;
+  --admin-text: #101828;
+  --admin-text-muted: #667085;
+  --admin-text-faint: #98a2b3;
+  --admin-accent: #2954e6;
+  --admin-accent-strong: #1c3fc4;
+  --admin-accent-soft: #eef2ff;
+  --admin-accent-text: #ffffff;
+  --admin-success: #12805c;
+  --admin-success-soft: #ecfdf5;
+  --admin-warning: #b45309;
+  --admin-warning-soft: #fffaeb;
+  --admin-danger: #c11f3d;
+  --admin-danger-soft: #fef2f4;
+  --admin-radius-sm: 8px;
+  --admin-radius-md: 12px;
+  --admin-radius-lg: 16px;
+  --admin-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --admin-shadow-md: 0 4px 16px rgba(16, 24, 40, 0.08);
+  --admin-shadow-lg: 0 16px 40px rgba(16, 24, 40, 0.12);
+  --admin-sidebar-w: 264px;
+  --admin-sidebar-w-collapsed: 76px;
+  --admin-topbar-h: 64px;
+  display: grid !important;
+  grid-template-columns: var(--admin-sidebar-w) minmax(0, 1fr) !important;
+  align-items: start !important;
+  min-height: 100vh !important;
+  background: var(--admin-bg) !important;
+  color: var(--admin-text) !important;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important;
+  transition: grid-template-columns 180ms ease !important;
+}
+
+html body #root#root#root .admin-panel-shell.admin-sidebar-collapsed {
+  grid-template-columns: var(--admin-sidebar-w-collapsed) minmax(0, 1fr) !important;
+}
+
+/* ---------- Sidebar ---------- */
+html body #root#root#root .admin-panel-shell .admin-sidebar {
+  position: sticky !important;
+  top: 0 !important;
+  height: 100vh !important;
+  width: var(--admin-sidebar-w) !important;
+  max-width: var(--admin-sidebar-w) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: var(--admin-surface) !important;
+  border-right: 1px solid var(--admin-border) !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  z-index: 40 !important;
+  transition: width 180ms ease !important;
+}
+
+html body #root#root#root .admin-panel-shell.admin-sidebar-collapsed .admin-sidebar {
+  width: var(--admin-sidebar-w-collapsed) !important;
+  max-width: var(--admin-sidebar-w-collapsed) !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-brand-block {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 18px 16px !important;
+  border-bottom: 1px solid var(--admin-border) !important;
+  min-height: var(--admin-topbar-h) !important;
+  box-sizing: border-box !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-brand-mark {
+  flex: none !important;
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 9px !important;
+  background: var(--admin-accent) !important;
+  color: var(--admin-accent-text) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 700 !important;
+  font-size: 15px !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-brand-text {
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-brand-block h2 {
+  margin: 0 !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+  color: var(--admin-text) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-brand-block p {
+  margin: 2px 0 0 !important;
+  font-size: 11.5px !important;
+  color: var(--admin-text-muted) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+html body #root#root#root .admin-panel-shell.admin-sidebar-collapsed .admin-brand-text {
+  display: none !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-side-nav {
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 12px 10px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-side-nav-group {
+  margin-top: 14px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1px !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-side-nav-group:first-of-type {
+  margin-top: 8px !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-side-nav-group-label {
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: .06em !important;
+  text-transform: uppercase !important;
+  color: var(--admin-text-faint) !important;
+  padding: 8px 10px 4px !important;
+  white-space: nowrap !important;
+}
+
+html body #root#root#root .admin-panel-shell.admin-sidebar-collapsed .admin-side-nav-group-label {
+  display: none !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-sidebar-link,
+html body #root#root#root .admin-panel-shell .admin-logout,
+html body #root#root#root .admin-panel-shell .admin-sidebar-collapse-toggle {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  width: 100% !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: var(--admin-text-muted) !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  text-align: left !important;
+  padding: 9px 10px !important;
+  border-radius: var(--admin-radius-sm) !important;
+  box-shadow: none !important;
+  white-space: nowrap !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+}
+
+html body #root#root#root .admin-panel-shell .sidebar-item-icon {
+  flex: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 20px !important;
+  height: 20px !important;
+  color: inherit !important;
+}
+
+html body #root#root#root .admin-panel-shell .sidebar-item-label {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+html body #root#root#root .admin-panel-shell.admin-sidebar-collapsed .admin-side-nav,
+html body #root#root#root .admin-panel-shell.admin-sidebar-collapsed .admin-sidebar-footer {
+  align-items: center !important;
+}
+
+html body #root#root#root .admin-panel-shell.admin-sidebar-collapsed .sidebar-item-label {
+  display: none !important;
+}
+
+html body #root#root#root .admin-panel-shell.admin-sidebar-collapsed .admin-sidebar-link,
+html body #root#root#root .admin-panel-shell.admin-sidebar-collapsed .admin-logout,
+html body #root#root#root .admin-panel-shell.admin-sidebar-collapsed .admin-sidebar-collapse-toggle {
+  justify-content: center !important;
+  padding: 9px !important;
+  width: 44px !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-sidebar-link:hover,
+html body #root#root#root .admin-panel-shell .admin-sidebar-collapse-toggle:hover {
+  background: var(--admin-surface-muted) !important;
+  color: var(--admin-text) !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-sidebar-link.active {
+  background: var(--admin-accent-soft) !important;
+  color: var(--admin-accent-strong) !important;
+  font-weight: 700 !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-sidebar-link:focus-visible,
+html body #root#root#root .admin-panel-shell .admin-logout:focus-visible,
+html body #root#root#root .admin-panel-shell .admin-sidebar-collapse-toggle:focus-visible {
+  outline: 2px solid var(--admin-accent) !important;
+  outline-offset: 1px !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-sidebar-footer {
+  border-top: 1px solid var(--admin-border) !important;
+  padding: 10px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  flex: none !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-logout {
+  color: var(--admin-danger) !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-logout:hover {
+  background: var(--admin-danger-soft) !important;
+}
+
+/* ---------- Main column + topbar ---------- */
+html body #root#root#root .admin-panel-shell .admin-panel-main {
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 0 !important;
+  display: block !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-panel-topbar {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 30 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  min-height: var(--admin-topbar-h) !important;
+  height: var(--admin-topbar-h) !important;
+  padding: 0 20px !important;
+  background: var(--admin-surface) !important;
+  border-bottom: 1px solid var(--admin-border) !important;
+  box-shadow: none !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-panel-topbar .admin-sidebar-menu-toggle {
+  display: none !important;
+}
+
+@media (max-width: 960px) {
+  html body #root#root#root .admin-panel-shell .admin-panel-topbar .admin-sidebar-menu-toggle {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: var(--admin-radius-sm) !important;
+    background: var(--admin-surface-muted) !important;
+  }
+}
+
+html body #root#root#root .admin-panel-shell .admin-topbar-heading {
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-topbar-breadcrumb {
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  color: var(--admin-text-faint) !important;
+  letter-spacing: .02em !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-topbar-title {
+  margin: 0 !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: var(--admin-text) !important;
+  line-height: 1.2 !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-topbar-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex: none !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-preview-link {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 7px 12px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: var(--admin-text-muted) !important;
+  background: var(--admin-surface-muted) !important;
+  border: 1px solid var(--admin-border) !important;
+  border-radius: var(--admin-radius-sm) !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-preview-link:hover {
+  background: var(--admin-accent-soft) !important;
+  color: var(--admin-accent-strong) !important;
+  border-color: var(--admin-accent) !important;
+}
+
+@media (max-width: 720px) {
+  html body #root#root#root .admin-panel-shell .admin-guidelines-link span,
+  html body #root#root#root .admin-panel-shell .admin-guidelines-link {
+    font-size: 0 !important;
+    padding: 8px !important;
+    gap: 0 !important;
+  }
+  html body #root#root#root .admin-panel-shell .admin-guidelines-link svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+}
+
+/* ---------- Page content area ---------- */
+html body #root#root#root .admin-panel-shell .admin-panel-stack {
+  max-width: 1280px !important;
+  margin: 0 auto !important;
+  padding: 22px 24px 56px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 18px !important;
+}
+
+/* ---------- Cards ---------- */
+html body #root#root#root .admin-panel-shell :where(.card, .admin-management-card, .stat-card, .mini-card, .soft-box, .filter-card, .review-card) {
+  background: var(--admin-surface) !important;
+  border: 1px solid var(--admin-border) !important;
+  border-radius: var(--admin-radius-md) !important;
+  box-shadow: var(--admin-shadow-sm) !important;
+  padding: 20px !important;
+}
+
+html body #root#root#root .admin-panel-shell :where(.card, .admin-management-card):hover {
+  box-shadow: var(--admin-shadow-sm) !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-dashboard-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+  gap: 14px !important;
+}
+
+/* ---------- Buttons ---------- */
+html body #root#root#root .admin-panel-shell :where(button, .primary, .secondary, .danger, .success, .warning, .ghost-button):not(.admin-sidebar-link):not(.admin-logout):not(.admin-sidebar-collapse-toggle):not(.admin-preview-link) {
+  border-radius: var(--admin-radius-sm) !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+}
+
+html body #root#root#root .admin-panel-shell :where(.primary) {
+  background: var(--admin-accent) !important;
+  color: var(--admin-accent-text) !important;
+  border: 1px solid var(--admin-accent) !important;
+  box-shadow: none !important;
+}
+
+html body #root#root#root .admin-panel-shell :where(.primary):not(:disabled):hover {
+  background: var(--admin-accent-strong) !important;
+  border-color: var(--admin-accent-strong) !important;
+}
+
+html body #root#root#root .admin-panel-shell :where(.secondary) {
+  background: var(--admin-surface) !important;
+  color: var(--admin-text) !important;
+  border: 1px solid var(--admin-border-strong) !important;
+}
+
+html body #root#root#root .admin-panel-shell :where(.secondary):not(:disabled):hover {
+  background: var(--admin-surface-muted) !important;
+}
+
+html body #root#root#root .admin-panel-shell :where(.danger) {
+  background: var(--admin-danger-soft) !important;
+  color: var(--admin-danger) !important;
+  border: 1px solid rgba(193, 31, 61, 0.28) !important;
+}
+
+html body #root#root#root .admin-panel-shell :where(.success) {
+  background: var(--admin-success-soft) !important;
+  color: var(--admin-success) !important;
+  border: 1px solid rgba(18, 128, 92, 0.28) !important;
+}
+
+/* ---------- Tables ---------- */
+html body #root#root#root .admin-panel-shell :where(.table-wrap, .invitation-table-wrap, .compact-table-wrap) {
+  background: var(--admin-surface) !important;
+  border: 1px solid var(--admin-border) !important;
+  border-radius: var(--admin-radius-md) !important;
+  box-shadow: var(--admin-shadow-sm) !important;
+  overflow: auto !important;
+}
+
+html body #root#root#root .admin-panel-shell table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  font-size: 13px !important;
+}
+
+html body #root#root#root .admin-panel-shell thead th {
+  text-align: left !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: .04em !important;
+  color: var(--admin-text-faint) !important;
+  background: var(--admin-surface-muted) !important;
+  border-bottom: 1px solid var(--admin-border) !important;
+  padding: 10px 14px !important;
+  white-space: nowrap !important;
+}
+
+html body #root#root#root .admin-panel-shell tbody td {
+  padding: 11px 14px !important;
+  border-bottom: 1px solid var(--admin-border) !important;
+  color: var(--admin-text) !important;
+  vertical-align: middle !important;
+}
+
+html body #root#root#root .admin-panel-shell tbody tr:last-child td {
+  border-bottom: none !important;
+}
+
+html body #root#root#root .admin-panel-shell tbody tr:hover {
+  background: var(--admin-surface-muted) !important;
+}
+
+/* ---------- Forms ---------- */
+html body #root#root#root .admin-panel-shell .field {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: var(--admin-text-muted) !important;
+}
+
+html body #root#root#root .admin-panel-shell :where(input, select, textarea) {
+  border: 1px solid var(--admin-border-strong) !important;
+  border-radius: var(--admin-radius-sm) !important;
+  background: var(--admin-surface) !important;
+  color: var(--admin-text) !important;
+  font-size: 13.5px !important;
+  padding: 9px 11px !important;
+  min-height: 38px !important;
+  box-shadow: none !important;
+}
+
+html body #root#root#root .admin-panel-shell textarea {
+  min-height: 84px !important;
+}
+
+html body #root#root#root .admin-panel-shell :where(input, select, textarea):focus-visible {
+  outline: none !important;
+  border-color: var(--admin-accent) !important;
+  box-shadow: 0 0 0 3px var(--admin-accent-soft) !important;
+}
+
+/* ---------- Status badges ---------- */
+html body #root#root#root .admin-panel-shell :where(.tab-badge, .project-leader-badge, .meeting-status-badge, .admin-auth-badge) {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 3px 9px !important;
+  border-radius: 999px !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  border: 1px solid transparent !important;
+}
+
+/* ---------- Empty / loading states ---------- */
+html body #root#root#root .admin-panel-shell .empty-state {
+  background: var(--admin-surface-muted) !important;
+  border: 1px dashed var(--admin-border-strong) !important;
+  border-radius: var(--admin-radius-md) !important;
+  color: var(--admin-text-muted) !important;
+  padding: 32px 20px !important;
+  text-align: center !important;
+}
+
+/* ---------- Role hero: keep compact under the new topbar ---------- */
+html body #root#root#root .admin-panel-shell .admin-subdomain-role-hero {
+  margin: 16px 24px 0 !important;
+  border-radius: var(--admin-radius-lg) !important;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 960px) {
+  html body #root#root#root .admin-panel-shell {
+    grid-template-columns: 1fr !important;
+  }
+  html body #root#root#root .admin-panel-shell .admin-sidebar {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    height: 100vh !important;
+    width: min(84vw, 300px) !important;
+    max-width: min(84vw, 300px) !important;
+    transform: translateX(-100%) !important;
+    transition: transform 200ms ease !important;
+    z-index: 200 !important;
+    box-shadow: var(--admin-shadow-lg) !important;
+  }
+  html body #root#root#root .admin-panel-shell .admin-sidebar.open {
+    transform: translateX(0) !important;
+  }
+  html body #root#root#root .admin-panel-shell.admin-sidebar-collapsed .admin-sidebar {
+    width: min(84vw, 300px) !important;
+    max-width: min(84vw, 300px) !important;
+  }
+  html body #root#root#root .admin-panel-shell.admin-sidebar-collapsed .admin-sidebar .sidebar-item-label,
+  html body #root#root#root .admin-panel-shell.admin-sidebar-collapsed .admin-sidebar .admin-brand-text {
+    display: block !important;
+  }
+  html body #root#root#root .admin-panel-shell .admin-sidebar-collapse-toggle {
+    display: none !important;
+  }
+  html body #root#root#root .admin-panel-shell .admin-panel-stack {
+    padding: 16px 14px 40px !important;
+  }
+  html body #root#root#root .admin-panel-shell .admin-subdomain-role-hero {
+    margin: 12px 14px 0 !important;
+  }
+}
+
+@media (max-width: 560px) {
+  html body #root#root#root .admin-panel-shell .admin-panel-topbar {
+    padding: 0 12px !important;
+    gap: 10px !important;
+  }
+  html body #root#root#root .admin-panel-shell .admin-topbar-title {
+    font-size: 14.5px !important;
+  }
+  html body #root#root#root .admin-panel-shell .admin-preview-link {
+    padding: 7px 9px !important;
+  }
+}
