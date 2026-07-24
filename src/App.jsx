@@ -4839,24 +4839,21 @@ function SharedPlatformFooter({ settings = defaultWebsiteSettings, authenticated
         </section>
 
         <nav className="shared-platform-footer__links" aria-label="Footer quick links">
-          <h3>Quick Links</h3>
           <PublicRouteLink to={authenticated ? "/?public=1" : "/"}>Home</PublicRouteLink>
           <PublicRouteLink to="/features">Features</PublicRouteLink>
           <PublicRouteLink to="/about">About Us</PublicRouteLink>
         </nav>
 
-        <section className="shared-platform-footer__resources">
-          <h3>Resources</h3>
+        <nav className="shared-platform-footer__resources" aria-label="Footer resources">
           <PublicRouteLink to="/research-guidelines">Research Guidelines</PublicRouteLink>
           <PublicRouteLink to="/contact">Contact</PublicRouteLink>
-        </section>
+        </nav>
 
         {!authenticated && (
-          <section className="shared-platform-footer__account">
-            <h3>Account</h3>
+          <nav className="shared-platform-footer__account" aria-label="Footer account links">
             <a className="shared-platform-footer__account-link" href="/login">Sign In</a>
             <a className="shared-platform-footer__account-link" href="/register">Register</a>
-          </section>
+          </nav>
         )}
       </div>
 
