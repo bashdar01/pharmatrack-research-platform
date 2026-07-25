@@ -11529,7 +11529,10 @@ function AdminControlPanel({
   const [buttonColorError, setButtonColorError] = useState('')
   const [interfaceColorStatus, setInterfaceColorStatus] = useState('')
   const [interfaceColorError, setInterfaceColorError] = useState('')
-  const [adminSidebarOpen, setAdminSidebarOpen] = useState(false)
+  const [adminSidebarOpen, setAdminSidebarOpen] = useState(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return true
+    return !window.matchMedia('(max-width: 960px)').matches
+  })
   const [adminSidebarMobile, setAdminSidebarMobile] = useState(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
     return window.matchMedia('(max-width: 960px)').matches
@@ -11552,9 +11555,10 @@ function AdminControlPanel({
     const syncSidebarMode = (event) => {
       const isMobile = event.matches
       setAdminSidebarMobile(isMobile)
-      if (!isMobile) setAdminSidebarOpen(false)
+      setAdminSidebarOpen(!isMobile)
     }
     setAdminSidebarMobile(mediaQuery.matches)
+    setAdminSidebarOpen(!mediaQuery.matches)
     mediaQuery.addEventListener?.('change', syncSidebarMode)
     return () => mediaQuery.removeEventListener?.('change', syncSidebarMode)
   }, [])
@@ -11623,7 +11627,7 @@ function AdminControlPanel({
 
   function changeAdminPanelTab(nextTab) {
     if (!isAdminPanelTab(nextTab)) return
-    setAdminSidebarOpen(false)
+    setAdminSidebarOpen(adminSidebarMobile ? false : true)
     setAdminPanelTab(nextTab)
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href)
@@ -12170,7 +12174,7 @@ function AdminControlPanel({
           </div>
         </div>
         <nav className="admin-side-nav">
-          <a href="/?public=1" className="admin-sidebar-link sidebar-nav-item admin-sidebar-home-link" onClick={() => setAdminSidebarOpen(false)} title="Homepage">
+          <a href="/?public=1" className="admin-sidebar-link sidebar-nav-item admin-sidebar-home-link" onClick={() => { if (adminSidebarMobile) setAdminSidebarOpen(false) }} title="Homepage">
             <span className="sidebar-item-icon" aria-hidden="true"><Home size={18} /></span>
             <span className="sidebar-item-label">Homepage</span>
           </a>

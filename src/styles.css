@@ -30371,3 +30371,76 @@ html body #root#root#root .admin-panel-shell.admin-sidebar-collapsed .admin-side
     opacity: 1 !important;
   }
 }
+
+
+/* ADMIN SUBDOMAIN SIDEBAR CLICKABILITY FIX
+   Keep the visible sidebar above the outside-click layer and keep React's
+   desktop open state matched with the persistent sidebar layout. */
+@media (min-width: 961px) {
+  html body #root#root#root .admin-panel-shell {
+    display: grid !important;
+    grid-template-columns: var(--admin-sidebar-width, 300px) minmax(0, 1fr) !important;
+    align-items: start !important;
+  }
+
+  html body #root#root#root .admin-panel-shell .admin-sidebar,
+  html body #root#root#root .admin-panel-shell .admin-sidebar.open {
+    grid-column: 1 !important;
+    position: sticky !important;
+    top: 0 !important;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    z-index: 40 !important;
+  }
+
+  html body #root#root#root .admin-panel-shell .admin-panel-main {
+    grid-column: 2 !important;
+    position: relative !important;
+    z-index: 1 !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+
+  html body #root#root#root .admin-panel-shell .admin-sidebar-outside-layer {
+    display: none !important;
+    pointer-events: none !important;
+  }
+}
+
+@media (max-width: 960px) {
+  html body #root#root#root .admin-panel-shell .admin-sidebar.open,
+  html body #root#root#root .admin-panel-shell.admin-sidebar-open .admin-sidebar {
+    transform: translateX(0) !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    z-index: 2600 !important;
+  }
+
+  html body #root#root#root .admin-panel-shell .admin-sidebar-outside-layer {
+    z-index: 2500 !important;
+  }
+}
+
+html body #root#root#root .admin-panel-shell .admin-sidebar :is(
+  button,
+  a,
+  .admin-sidebar-link,
+  .admin-sidebar-collapse-toggle,
+  .admin-logout,
+  .sidebar-item-icon,
+  .sidebar-item-label
+) {
+  pointer-events: auto !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-sidebar::before,
+html body #root#root#root .admin-panel-shell .admin-sidebar::after,
+html body #root#root#root .admin-panel-shell .admin-side-nav::before,
+html body #root#root#root .admin-panel-shell .admin-side-nav::after {
+  pointer-events: none !important;
+}
