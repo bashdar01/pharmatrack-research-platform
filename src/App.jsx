@@ -11534,17 +11534,17 @@ function AdminControlPanel({
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
     return window.matchMedia('(max-width: 960px)').matches
   })
-  const [adminSidebarCollapsed, setAdminSidebarCollapsed] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return window.localStorage?.getItem('adminSidebarCollapsed') === '1'
-  })
+  // Start the redesigned Admin Subdomain sidebar expanded on every visit.
+  // A collapsed value saved by the older sidebar could combine with legacy
+  // icon-hiding CSS and leave only an empty sidebar strip visible.
+  const [adminSidebarCollapsed, setAdminSidebarCollapsed] = useState(false)
   const adminSidebarRef = useRef(null)
   const adminSidebarToggleRef = useRef(null)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    window.localStorage?.setItem('adminSidebarCollapsed', adminSidebarCollapsed ? '1' : '0')
-  }, [adminSidebarCollapsed])
+    window.localStorage?.removeItem('adminSidebarCollapsed')
+  }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined

@@ -30286,3 +30286,88 @@ html body #root#root#root .admin-panel-shell .admin-subdomain-role-hero {
     padding: 7px 9px !important;
   }
 }
+
+
+/* ADMIN SUBDOMAIN SIDEBAR BUTTON VISIBILITY FIX */
+html body #root#root#root .admin-panel-shell .admin-sidebar :is(
+  .admin-sidebar-link,
+  .admin-sidebar-collapse-toggle,
+  .admin-logout
+) {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  min-height: 40px !important;
+  color: var(--admin-text-muted, #667085) !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-sidebar .admin-sidebar-link.active {
+  color: var(--admin-accent-strong, #1c3fc4) !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-sidebar .admin-logout {
+  color: var(--admin-danger, #c11f3d) !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-sidebar .sidebar-item-label {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: auto !important;
+  height: auto !important;
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+  white-space: nowrap !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-sidebar .sidebar-item-icon {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 20px !important;
+  min-width: 20px !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  flex: 0 0 20px !important;
+  color: inherit !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-sidebar .sidebar-item-icon svg,
+html body #root#root#root .admin-panel-shell .admin-sidebar .sidebar-item-icon svg * {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  color: inherit !important;
+  stroke: currentColor !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-sidebar .admin-side-nav-group-label,
+html body #root#root#root .admin-panel-shell .admin-sidebar .admin-brand-text {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* When manually collapsed, show the icons instead of an empty strip. */
+html body #root#root#root .admin-panel-shell.admin-sidebar-collapsed .admin-sidebar .sidebar-item-label,
+html body #root#root#root .admin-panel-shell.admin-sidebar-collapsed .admin-sidebar .admin-brand-text,
+html body #root#root#root .admin-panel-shell.admin-sidebar-collapsed .admin-sidebar .admin-side-nav-group-label {
+  display: none !important;
+}
+
+html body #root#root#root .admin-panel-shell.admin-sidebar-collapsed .admin-sidebar .sidebar-item-icon,
+html body #root#root#root .admin-panel-shell.admin-sidebar-collapsed .admin-sidebar .sidebar-item-icon svg {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+@media (max-width: 960px) {
+  html body #root#root#root .admin-panel-shell.admin-sidebar-collapsed .admin-sidebar .sidebar-item-label,
+  html body #root#root#root .admin-panel-shell.admin-sidebar-collapsed .admin-sidebar .admin-brand-text,
+  html body #root#root#root .admin-panel-shell.admin-sidebar-collapsed .admin-sidebar .admin-side-nav-group-label {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+}
