@@ -29756,6 +29756,131 @@ html body #root#root#root .admin-panel-shell .admin-dashboard-grid {
   gap: 14px !important;
 }
 
+html body #root#root#root .admin-panel-shell .admin-dashboard-overview {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 18px !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-stat-card {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 4px !important;
+  text-align: left !important;
+  cursor: pointer !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  font: inherit !important;
+  transition: border-color 120ms ease, box-shadow 120ms ease !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-stat-card:hover {
+  border-color: var(--admin-accent) !important;
+  box-shadow: var(--admin-shadow-md) !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-stat-card-value {
+  font-size: 26px !important;
+  font-weight: 800 !important;
+  color: var(--admin-text) !important;
+  line-height: 1.1 !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-stat-card-label {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: var(--admin-text-muted) !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-stat-card--warning .admin-stat-card-value { color: var(--admin-warning) !important; }
+html body #root#root#root .admin-panel-shell .admin-stat-card--success .admin-stat-card-value { color: var(--admin-success) !important; }
+html body #root#root#root .admin-panel-shell .admin-stat-card--danger .admin-stat-card-value { color: var(--admin-danger) !important; }
+
+html body #root#root#root .admin-panel-shell .admin-dashboard-columns {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)) !important;
+  gap: 14px !important;
+  align-items: start !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-dashboard-section-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  margin-bottom: 12px !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-dashboard-section-head h3 {
+  margin: 0 !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: var(--admin-text) !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-dashboard-list {
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-dashboard-list li {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  padding: 9px 4px !important;
+  border-bottom: 1px solid var(--admin-border) !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-dashboard-list li:last-child {
+  border-bottom: none !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-dashboard-list-main {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  min-width: 0 !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-dashboard-list-title {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--admin-text) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 260px !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-dashboard-list-meta {
+  font-size: 11.5px !important;
+  color: var(--admin-text-muted) !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-quick-actions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-quick-actions button {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+@media (max-width: 640px) {
+  html body #root#root#root .admin-panel-shell .admin-dashboard-list-title {
+    max-width: 160px !important;
+  }
+}
+
 /* ---------- Buttons ---------- */
 html body #root#root#root .admin-panel-shell :where(button, .primary, .secondary, .danger, .success, .warning, .ghost-button):not(.admin-sidebar-link):not(.admin-logout):not(.admin-sidebar-collapse-toggle):not(.admin-preview-link) {
   border-radius: var(--admin-radius-sm) !important;
@@ -29871,7 +29996,218 @@ html body #root#root#root .admin-panel-shell :where(input, select, textarea):foc
   box-shadow: 0 0 0 3px var(--admin-accent-soft) !important;
 }
 
-/* ---------- Status badges ---------- */
+/* ---------- Filter bars & segmented tabs (Phase 3) ---------- */
+html body #root#root#root .admin-panel-shell :where(.section-filter-bar, .admin-user-filter-bar) {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin: 2px 0 14px !important;
+}
+
+html body #root#root#root .admin-panel-shell :where(.section-filter-bar, .admin-user-filter-bar) input[type="text"],
+html body #root#root#root .admin-panel-shell :where(.section-filter-bar, .admin-user-filter-bar) input:not([type]) {
+  flex: 1 1 220px !important;
+  min-width: 180px !important;
+}
+
+html body #root#root#root .admin-panel-shell :where(.section-filter-bar, .admin-user-filter-bar) select {
+  flex: 0 1 170px !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-user-tabs {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  padding: 3px !important;
+  background: var(--admin-surface-muted) !important;
+  border: 1px solid var(--admin-border) !important;
+  border-radius: var(--admin-radius-sm) !important;
+  margin-bottom: 14px !important;
+  flex-wrap: wrap !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-user-tabs button {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: var(--admin-text-muted) !important;
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+  padding: 7px 12px !important;
+  border-radius: 7px !important;
+  box-shadow: none !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-user-tabs button:hover {
+  color: var(--admin-text) !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-user-tabs button.active {
+  background: var(--admin-surface) !important;
+  color: var(--admin-accent-strong) !important;
+  box-shadow: var(--admin-shadow-sm) !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-user-tabs button span {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 18px !important;
+  height: 18px !important;
+  padding: 0 5px !important;
+  border-radius: 999px !important;
+  background: var(--admin-border) !important;
+  color: var(--admin-text-muted) !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-user-tabs button.active span {
+  background: var(--admin-accent-soft) !important;
+  color: var(--admin-accent-strong) !important;
+}
+
+html body #root#root#root .admin-panel-shell :where(.soft-box, .admin-tab-note) {
+  background: var(--admin-surface-muted) !important;
+  border: 1px solid var(--admin-border) !important;
+  border-radius: var(--admin-radius-sm) !important;
+  padding: 12px 14px !important;
+  margin-bottom: 14px !important;
+}
+
+html body #root#root#root .admin-panel-shell thead th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 1 !important;
+}
+
+/* ---------- PDF Report Customization: role context tabs (Phase 6) ---------- */
+html body #root#root#root .admin-panel-shell .admin-role-context-tabs {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  padding: 3px !important;
+  background: var(--admin-surface-muted) !important;
+  border: 1px solid var(--admin-border) !important;
+  border-radius: var(--admin-radius-sm) !important;
+  margin-bottom: 4px !important;
+  flex-wrap: wrap !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-role-context-tabs button {
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: var(--admin-text-muted) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  padding: 8px 16px !important;
+  border-radius: 7px !important;
+  box-shadow: none !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-role-context-tabs button:hover {
+  color: var(--admin-text) !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-role-context-tabs button.active {
+  background: var(--admin-surface) !important;
+  color: var(--admin-accent-strong) !important;
+  box-shadow: var(--admin-shadow-sm) !important;
+}
+
+/* ---------- Deadlines page (shared component, admin-scoped only) (Phase 6) ---------- */
+html body #root#root#root .admin-panel-shell .deadline-target-panel {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 320px) !important;
+  gap: 14px !important;
+  align-items: start !important;
+  margin-bottom: 16px !important;
+}
+
+html body #root#root#root .admin-panel-shell .deadline-target-summary {
+  background: var(--admin-surface-muted) !important;
+  border: 1px solid var(--admin-border) !important;
+  border-radius: var(--admin-radius-sm) !important;
+  padding: 12px 14px !important;
+}
+
+html body #root#root#root .admin-panel-shell .deadline-target-summary b {
+  display: block !important;
+  font-size: 11.5px !important;
+  text-transform: uppercase !important;
+  letter-spacing: .04em !important;
+  color: var(--admin-text-faint) !important;
+  margin-bottom: 4px !important;
+}
+
+html body #root#root#root .admin-panel-shell .deadline-form-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+  gap: 12px 14px !important;
+}
+
+html body #root#root#root .admin-panel-shell .deadline-description-field {
+  grid-column: 1 / -1 !important;
+}
+
+html body #root#root#root .admin-panel-shell .deadline-actions {
+  grid-column: 1 / -1 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin-top: 4px !important;
+}
+
+html body #root#root#root .admin-panel-shell .deadline-list {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+  gap: 10px !important;
+  margin-top: 18px !important;
+}
+
+html body #root#root#root .admin-panel-shell .deadline-item {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 8px !important;
+}
+
+@media (max-width: 720px) {
+  html body #root#root#root .admin-panel-shell .deadline-target-panel {
+    grid-template-columns: 1fr !important;
+  }
+}
+html body #root#root#root .admin-panel-shell .admin-pagination-bar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+  margin-top: 14px !important;
+  padding-top: 12px !important;
+  border-top: 1px solid var(--admin-border) !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-pagination-count {
+  font-size: 12px !important;
+  color: var(--admin-text-muted) !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-pagination-controls {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+html body #root#root#root .admin-panel-shell .admin-pagination-page {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: var(--admin-text) !important;
+  white-space: nowrap !important;
+}
 html body #root#root#root .admin-panel-shell :where(.tab-badge, .project-leader-badge, .meeting-status-badge, .admin-auth-badge) {
   display: inline-flex !important;
   align-items: center !important;

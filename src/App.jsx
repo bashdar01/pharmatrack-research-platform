@@ -12220,16 +12220,6 @@ function AdminControlPanel({
           </div>
         </header>
 
-        <RoleHeroBanner
-          role="admin"
-          settings={settings}
-          navigationItems={navItems}
-          activeTab={adminPanelTab}
-          pageKey={adminPanelTab}
-          className="authenticated-role-hero admin-subdomain-role-hero"
-          onNavigate={changeAdminPanelTab}
-        />
-
         {message && adminPanelTab !== 'overview' && <div className="message no-print">{message}</div>}
         {dataLoading && adminPanelTab !== 'overview' && <LoadingBlock text="Loading admin records..." />}
 
@@ -12237,7 +12227,7 @@ function AdminControlPanel({
         {adminPanelTab === 'about-us' && <AboutUsCustomizationPanel page={aboutUsPage} updatePage={updateAboutUsPage} uploadImage={uploadAboutUsImage} currentUser={currentUser} />}
 
         {adminPanelTab === 'overview' && (
-          <div className="empty-dashboard-page" aria-hidden="true" />
+          <AdminDashboard data={data} projects={projects} dataLoading={dataLoading} loadError={loadError} onNavigate={changeAdminPanelTab} />
         )}
 
         {adminPanelTab === 'branding' && (
@@ -13203,8 +13193,195 @@ function ResearchWorkspaceShell({ role = 'student', children }) {
   )
 }
 
-function AdminDashboard() {
-  return null
+function AdminDashboard({ data = emptyData, projects = [], dataLoading = false, loadError = '', onNavigate = () => {} }) {
+  if (dataLoading) return <LoadingBlock text="Loading dashboard overview..." />
+  if (loadError) return <EmptyState icon={Info} title="Could not load dashboard data" text={loadError} />
+
+  const profiles = data.profiles || []
+  const groupJoinRequests = data.groupJoinRequests || []
+  const notifications = data.notifications || []
+  const deadlines = data.deadlines || []
+  const now = new Date()
+
+  const totalStudents = profiles.filter((p) => p.role === 'student').length
+  const totalSupervisors = profiles.filter((p) => p.role === 'supervisor').length
+  const totalCommittee = profiles.filter((p) => p.role === 'committee').length
+
+  const decisionOf = (project) => getProjectDecisionKey(project)
+  const pendingProjects = projects.filter((p) => decisionOf(p) === 'pending')
+  const acceptedProjects = projects.filter((p) => decisionOf(p) === 'accepted')
+  const revisionProjects = projects.filter((p) => decisionOf(p) === 'revision')
+  const rejectedProjects = projects.filter((p) => decisionOf(p) === 'rejected')
+
+  const pendingJoinRequests = groupJoinRequests.filter((r) => String(r.status || 'Pending') === 'Pending')
+  const unreadNotifications = notifications.filter((n) => !n.is_read)
+
+  const activeDeadlines = deadlines.filter((d) => String(d.status || 'Active') === 'Active')
+  const upcomingDeadlines = activeDeadlines
+    .filter((d) => d.due_date && new Date(d.due_date) >= now)
+    .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
+  const overdueDeadlines = activeDeadlines
+    .filter((d) => d.due_date && new Date(d.due_date) < now)
+    .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
+
+  const attentionProjects = [...revisionProjects, ...pendingProjects]
+    .sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0))
+    .slice(0, 5)
+
+  const recentProposals = [...projects]
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+    .slice(0, 5)
+
+  const recentJoinRequests = [...groupJoinRequests]
+    .sort((a, b) => new Date(b.requested_at || 0) - new Date(a.requested_at || 0))
+    .slice(0, 5)
+
+  const statCards = [
+    { label: 'Students', value: totalStudents, tab: 'users' },
+    { label: 'Supervisors', value: totalSupervisors, tab: 'supervisors' },
+    { label: 'Committee Members', value: totalCommittee, tab: 'users' },
+    { label: 'Research Projects', value: projects.length, tab: 'overview' },
+    { label: 'Pending Proposals', value: pendingProjects.length, tone: pendingProjects.length ? 'warning' : '', tab: 'overview' },
+    { label: 'Accepted Projects', value: acceptedProjects.length, tone: 'success', tab: 'overview' },
+    { label: 'Revision Requested', value: revisionProjects.length, tone: revisionProjects.length ? 'warning' : '', tab: 'overview' },
+    { label: 'Rejected Projects', value: rejectedProjects.length, tab: 'overview' },
+    { label: 'Pending Join Requests', value: pendingJoinRequests.length, tone: pendingJoinRequests.length ? 'warning' : '', tab: 'group-requests' },
+    { label: 'Active Research Groups', value: acceptedProjects.length, tab: 'overview' },
+    { label: 'Overdue Deadlines', value: overdueDeadlines.length, tone: overdueDeadlines.length ? 'danger' : '', tab: 'deadlines' },
+    { label: 'Unread Notifications', value: unreadNotifications.length, tone: unreadNotifications.length ? 'warning' : '', tab: 'notifications' },
+  ]
+
+  const decisionLabelOf = (project) => getProjectDecisionLabel(project)
+  const decisionToneOf = (project) => getProjectDecisionTone(project)
+
+  return (
+    <div className="admin-dashboard-overview">
+      <div className="admin-dashboard-grid">
+        {statCards.map((stat) => (
+          <button
+            type="button"
+            key={stat.label}
+            className={`admin-management-card admin-stat-card ${stat.tone ? `admin-stat-card--${stat.tone}` : ''}`}
+            onClick={() => onNavigate(stat.tab)}
+          >
+            <span className="admin-stat-card-value">{stat.value}</span>
+            <span className="admin-stat-card-label">{stat.label}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="admin-dashboard-columns">
+        <section className="admin-management-card admin-dashboard-section">
+          <div className="admin-dashboard-section-head">
+            <h3>Projects Requiring Attention</h3>
+            <button type="button" className="secondary" onClick={() => onNavigate('overview')}>View all</button>
+          </div>
+          {attentionProjects.length ? (
+            <ul className="admin-dashboard-list">
+              {attentionProjects.map((project) => (
+                <li key={project.id}>
+                  <div className="admin-dashboard-list-main">
+                    <span className="admin-dashboard-list-title">{project.title || project.group_name || 'Untitled project'}</span>
+                    <span className="admin-dashboard-list-meta">Supervisor: {project.supervisor_name || project.supervisor || project.assigned_supervisor || 'Pending assignment'}</span>
+                  </div>
+                  <Pill tone={decisionToneOf(project)}>{decisionLabelOf(project)}</Pill>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState icon={CheckCircle2} title="Nothing needs attention" text="No pending or revision-requested proposals right now." />
+          )}
+        </section>
+
+        <section className="admin-management-card admin-dashboard-section">
+          <div className="admin-dashboard-section-head">
+            <h3>Recent Project Proposals</h3>
+          </div>
+          {recentProposals.length ? (
+            <ul className="admin-dashboard-list">
+              {recentProposals.map((project) => (
+                <li key={project.id}>
+                  <div className="admin-dashboard-list-main">
+                    <span className="admin-dashboard-list-title">{project.title || project.group_name || 'Untitled project'}</span>
+                    <span className="admin-dashboard-list-meta">{project.created_at ? new Date(project.created_at).toLocaleDateString() : 'Date unknown'}</span>
+                  </div>
+                  <Pill tone={decisionToneOf(project)}>{decisionLabelOf(project)}</Pill>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState icon={FileText} title="No project proposals yet" text="Submitted proposals will appear here." />
+          )}
+        </section>
+
+        <section className="admin-management-card admin-dashboard-section">
+          <div className="admin-dashboard-section-head">
+            <h3>Recent Join Requests</h3>
+            <button type="button" className="secondary" onClick={() => onNavigate('group-requests')}>Review</button>
+          </div>
+          {recentJoinRequests.length ? (
+            <ul className="admin-dashboard-list">
+              {recentJoinRequests.map((request) => (
+                <li key={request.id}>
+                  <div className="admin-dashboard-list-main">
+                    <span className="admin-dashboard-list-title">{request.student_name || request.student_email || 'Student'}</span>
+                    <span className="admin-dashboard-list-meta">{request.requested_group_name || 'Research group'}</span>
+                  </div>
+                  <Pill tone={String(request.status || 'Pending') === 'Accepted' ? 'green' : String(request.status || 'Pending') === 'Rejected' ? 'red' : 'amber'}>{request.status || 'Pending'}</Pill>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState icon={Users} title="No join requests yet" text="Student join requests will appear here." />
+          )}
+        </section>
+
+        <section className="admin-management-card admin-dashboard-section">
+          <div className="admin-dashboard-section-head">
+            <h3>Upcoming Deadlines</h3>
+            <button type="button" className="secondary" onClick={() => onNavigate('deadlines')}>Manage</button>
+          </div>
+          {upcomingDeadlines.length || overdueDeadlines.length ? (
+            <ul className="admin-dashboard-list">
+              {overdueDeadlines.slice(0, 3).map((deadline) => (
+                <li key={deadline.id}>
+                  <div className="admin-dashboard-list-main">
+                    <span className="admin-dashboard-list-title">{deadline.title}</span>
+                    <span className="admin-dashboard-list-meta">{deadline.deadline_type} • Due {new Date(deadline.due_date).toLocaleDateString()}</span>
+                  </div>
+                  <Pill tone="red">Overdue</Pill>
+                </li>
+              ))}
+              {upcomingDeadlines.slice(0, 5).map((deadline) => (
+                <li key={deadline.id}>
+                  <div className="admin-dashboard-list-main">
+                    <span className="admin-dashboard-list-title">{deadline.title}</span>
+                    <span className="admin-dashboard-list-meta">{deadline.deadline_type} • Due {new Date(deadline.due_date).toLocaleDateString()}</span>
+                  </div>
+                  <Pill tone="amber">Upcoming</Pill>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState icon={CalendarDays} title="No active deadlines" text="Create a deadline to see it here." />
+          )}
+        </section>
+      </div>
+
+      <section className="admin-management-card admin-dashboard-section">
+        <div className="admin-dashboard-section-head">
+          <h3>Quick Actions</h3>
+        </div>
+        <div className="admin-quick-actions">
+          <button type="button" className="secondary" onClick={() => onNavigate('invitations')}><UserPlus size={15} /> Invite a user</button>
+          <button type="button" className="secondary" onClick={() => onNavigate('users')}><Users size={15} /> Manage users &amp; roles</button>
+          <button type="button" className="secondary" onClick={() => onNavigate('group-requests')}><Inbox size={15} /> Review join requests</button>
+          <button type="button" className="secondary" onClick={() => onNavigate('deadlines')}><CalendarDays size={15} /> Manage deadlines</button>
+          <button type="button" className="secondary" onClick={() => onNavigate('notifications')}><Bell size={15} /> View notifications</button>
+        </div>
+      </section>
+    </div>
+  )
 }
 
 function StudentResearchWorkspace({ data, projects, currentUser, createWeeklyReport, dataLoading = false, sendWeeklyReportToMyEmail, emailSendingReports = {}, heroSettings = defaultWebsiteSettings, onNavigate }) {
@@ -14205,8 +14382,27 @@ function AdminGroupJoinRequestsTab({ data, currentUser, dataLoading = false, dec
     return matchesStatus && (!q || haystack.includes(q))
   }).sort((a, b) => new Date(b.requested_at || 0) - new Date(a.requested_at || 0))
 
+  const REQUESTS_PAGE_SIZE = 10
+  const [requestsPage, setRequestsPage] = useState(1)
+  const requestsTotalPages = Math.max(1, Math.ceil(requests.length / REQUESTS_PAGE_SIZE))
+  const requestsPageSafe = Math.min(requestsPage, requestsTotalPages)
+  const pagedRequests = requests.slice((requestsPageSafe - 1) * REQUESTS_PAGE_SIZE, requestsPageSafe * REQUESTS_PAGE_SIZE)
+
+  useEffect(() => {
+    setRequestsPage(1)
+  }, [search, status])
+
   async function handleDecision(requestId, nextStatus) {
     if (loadingKey) return
+    const request = requests.find((item) => String(item.id) === String(requestId))
+    const label = request ? groupJoinRequestLabel(data, request) : null
+    const confirmed = await showAppConfirm(
+      nextStatus === 'Accepted'
+        ? `Accept ${label?.studentName || 'this student'}'s request to join ${label?.groupName || 'this research group'}?`
+        : `Reject ${label?.studentName || 'this student'}'s request to join ${label?.groupName || 'this research group'}?`,
+      { title: nextStatus === 'Accepted' ? 'Accept Join Request' : 'Reject Join Request', type: nextStatus === 'Accepted' ? 'warning' : 'danger', confirmLabel: nextStatus === 'Accepted' ? 'Accept' : 'Reject' }
+    )
+    if (!confirmed) return
     setLoadingKey(`${requestId}-${nextStatus}`)
     try {
       await decideGroupJoinRequest(requestId, nextStatus, decisionMessages[requestId] || '')
@@ -14252,7 +14448,7 @@ function AdminGroupJoinRequestsTab({ data, currentUser, dataLoading = false, dec
       <div className="card">
         {dataLoading ? <LoadingBlock text="Loading group join requests..." /> : requests.length ? (
           <div className="admin-scroll-box group-request-scroll-box">
-            {requests.map((request) => {
+            {pagedRequests.map((request) => {
               const label = groupJoinRequestLabel(data, request)
               const isPending = String(request.status || 'Pending') === 'Pending'
               return <div className="mini-card managed-item group-request-row" key={request.id}>
@@ -14269,6 +14465,19 @@ function AdminGroupJoinRequestsTab({ data, currentUser, dataLoading = false, dec
             })}
           </div>
         ) : <EmptyState title={search ? 'No matching requests found.' : 'No group join requests found.'} text="Student research group join requests will appear here." icon={Users} />}
+        {!dataLoading && requests.length > 0 && (
+          <div className="admin-pagination-bar">
+            <span className="admin-pagination-count">
+              Showing {(requestsPageSafe - 1) * REQUESTS_PAGE_SIZE + 1}
+              –{Math.min(requestsPageSafe * REQUESTS_PAGE_SIZE, requests.length)} of {requests.length}
+            </span>
+            <div className="admin-pagination-controls">
+              <button type="button" className="secondary compact-button" disabled={requestsPageSafe <= 1} onClick={() => setRequestsPage((p) => Math.max(1, p - 1))}>Previous</button>
+              <span className="admin-pagination-page">Page {requestsPageSafe} of {requestsTotalPages}</span>
+              <button type="button" className="secondary compact-button" disabled={requestsPageSafe >= requestsTotalPages} onClick={() => setRequestsPage((p) => Math.min(requestsTotalPages, p + 1))}>Next</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -15024,6 +15233,26 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
     return searchable.includes(q)
   })
 
+  const SUPERVISOR_PAGE_SIZE = 10
+  const [studentAssignPage, setStudentAssignPage] = useState(1)
+  const [projectAssignPage, setProjectAssignPage] = useState(1)
+
+  const studentAssignTotalPages = Math.max(1, Math.ceil(filteredStudents.length / SUPERVISOR_PAGE_SIZE))
+  const studentAssignPageSafe = Math.min(studentAssignPage, studentAssignTotalPages)
+  const pagedFilteredStudents = filteredStudents.slice((studentAssignPageSafe - 1) * SUPERVISOR_PAGE_SIZE, studentAssignPageSafe * SUPERVISOR_PAGE_SIZE)
+
+  const projectAssignTotalPages = Math.max(1, Math.ceil(filteredAssignmentProjects.length / SUPERVISOR_PAGE_SIZE))
+  const projectAssignPageSafe = Math.min(projectAssignPage, projectAssignTotalPages)
+  const pagedFilteredAssignmentProjects = filteredAssignmentProjects.slice((projectAssignPageSafe - 1) * SUPERVISOR_PAGE_SIZE, projectAssignPageSafe * SUPERVISOR_PAGE_SIZE)
+
+  useEffect(() => {
+    setStudentAssignPage(1)
+  }, [studentSearch, supervisorSearch])
+
+  useEffect(() => {
+    setProjectAssignPage(1)
+  }, [projectAssignmentSearch])
+
   async function handleProjectSupervisorAssign(projectId) {
     const supervisor = selectedProjectSupervisor
     const project = projects.find((item) => String(item.id) === String(projectId))
@@ -15078,6 +15307,16 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
   async function handleAssignProjectLeader(projectId) {
     const selectedStudentId = leaderSelections[projectId]
     if (!selectedStudentId || !assignProjectLeader) return
+    const project = projects.find((item) => String(item.id) === String(projectId))
+    const student = students.find((item) => String(item.id) === String(selectedStudentId))
+    const currentLeader = project ? getProjectLeaderProfile(data, project) : null
+    const confirmed = await showAppConfirm(
+      currentLeader
+        ? `Change the Research Project Leader for ${project?.title || project?.group_name || 'this project'} from ${currentLeader.full_name || currentLeader.email || 'the current leader'} to ${student?.full_name || student?.email || 'this student'}?`
+        : `Set ${student?.full_name || student?.email || 'this student'} as the Research Project Leader for ${project?.title || project?.group_name || 'this project'}?`,
+      { title: 'Assign Project Leader', type: 'warning', confirmLabel: 'Assign' }
+    )
+    if (!confirmed) return
     await assignProjectLeader(projectId, selectedStudentId)
   }
 
@@ -15093,7 +15332,7 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
         </div>
         {loadError ? <EmptyState title="Failed to load supervisor management data." text={loadError} icon={Users} /> : usersLoading ? <EmptyState title="Loading users..." text="Please wait while the user list loads." icon={Users} /> : supervisors.length === 0 ? <EmptyState title="No supervisors found." text="Create or approve supervisor accounts first." icon={UserCog} /> : filteredStudents.length ? (
           <div className="managed-list compact-managed-list supervisor-management-list">
-            {filteredStudents.map((student) => {
+            {pagedFilteredStudents.map((student) => {
               const assigned = getAssignedSupervisor(student)
               const project = getStudentProject(student)
               const selectedValue = Object.prototype.hasOwnProperty.call(studentSupervisorSelections, student.id) ? studentSupervisorSelections[student.id] : assigned?.id || ''
@@ -15127,6 +15366,19 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
           </div>
         ) : <EmptyState title="No students found." text="Try another student name, email, supervisor, department, or project keyword." icon={Search} />}
         {supervisors.length > 0 && filteredSupervisorOptions.length === 0 && <EmptyState title="No supervisors found." text="Try another supervisor search keyword." icon={Search} />}
+        {!usersLoading && !loadError && filteredStudents.length > 0 && (
+          <div className="admin-pagination-bar">
+            <span className="admin-pagination-count">
+              Showing {(studentAssignPageSafe - 1) * SUPERVISOR_PAGE_SIZE + 1}
+              –{Math.min(studentAssignPageSafe * SUPERVISOR_PAGE_SIZE, filteredStudents.length)} of {filteredStudents.length}
+            </span>
+            <div className="admin-pagination-controls">
+              <button type="button" className="secondary compact-button" disabled={studentAssignPageSafe <= 1} onClick={() => setStudentAssignPage((p) => Math.max(1, p - 1))}>Previous</button>
+              <span className="admin-pagination-page">Page {studentAssignPageSafe} of {studentAssignTotalPages}</span>
+              <button type="button" className="secondary compact-button" disabled={studentAssignPageSafe >= studentAssignTotalPages} onClick={() => setStudentAssignPage((p) => Math.min(studentAssignTotalPages, p + 1))}>Next</button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="card supervisor-management-card admin-assignment-card">
@@ -15136,7 +15388,7 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
           <label className="field"><span>Choose supervisor</span><select value={projectSupervisorId} onChange={(e) => setProjectSupervisorId(e.target.value)}><option value="">Pending Assignment / remove supervisor</option>{supervisors.map((supervisor) => <option key={supervisor.id} value={supervisor.id}>{supervisor.full_name || supervisor.email}</option>)}</select></label>
         </div>
         <div className="managed-list compact-managed-list admin-project-assignment-list supervisor-management-list">
-          {projects.length ? (filteredAssignmentProjects.length ? filteredAssignmentProjects.map((project) => (
+          {projects.length ? (filteredAssignmentProjects.length ? pagedFilteredAssignmentProjects.map((project) => (
             <div className="mini-card managed-item supervisor-management-row" key={project.id}>
               <div className="supervisor-management-record-main">
                 <b>{project.group_name || 'Research Group'}</b>
@@ -15151,6 +15403,19 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
             </div>
           )) : <EmptyState title="No projects found." text="Try another student, supervisor, project, research group, or department keyword." icon={Search} />) : <EmptyState title="No projects found." text="Project assignments appear after supervisors submit projects." icon={BookOpen} />}
         </div>
+        {filteredAssignmentProjects.length > 0 && (
+          <div className="admin-pagination-bar">
+            <span className="admin-pagination-count">
+              Showing {(projectAssignPageSafe - 1) * SUPERVISOR_PAGE_SIZE + 1}
+              –{Math.min(projectAssignPageSafe * SUPERVISOR_PAGE_SIZE, filteredAssignmentProjects.length)} of {filteredAssignmentProjects.length}
+            </span>
+            <div className="admin-pagination-controls">
+              <button type="button" className="secondary compact-button" disabled={projectAssignPageSafe <= 1} onClick={() => setProjectAssignPage((p) => Math.max(1, p - 1))}>Previous</button>
+              <span className="admin-pagination-page">Page {projectAssignPageSafe} of {projectAssignTotalPages}</span>
+              <button type="button" className="secondary compact-button" disabled={projectAssignPageSafe >= projectAssignTotalPages} onClick={() => setProjectAssignPage((p) => Math.min(projectAssignTotalPages, p + 1))}>Next</button>
+            </div>
+          </div>
+        )}
         {exportCsv && <button className="primary" onClick={exportCsv}><Download size={16} /> Export CSV Report</button>}
       </div>
 
@@ -15239,6 +15504,9 @@ function AdminResearchWorkspace({ data = emptyData, projects = [], currentUser, 
   const [userRoleFilter, setUserRoleFilter] = useState('all')
   const [userStatusFilter, setUserStatusFilter] = useState('all')
   const [userDepartmentFilter, setUserDepartmentFilter] = useState('all')
+  const [userSort, setUserSort] = useState('name-asc')
+  const [userPage, setUserPage] = useState(1)
+  const USERS_PAGE_SIZE = 10
   const [assignmentSearch, setAssignmentSearch] = useState('')
   const [adminActionLoading, setAdminActionLoading] = useState('')
 
@@ -15305,6 +15573,30 @@ function AdminResearchWorkspace({ data = emptyData, projects = [], currentUser, 
     const matchesDepartment = userDepartmentFilter === 'all' || department === userDepartmentFilter
     return matchesSearch && matchesRole && matchesStatus && matchesDepartment
   })
+
+  const sortedUsersToShow = [...usersToShow].sort((a, b) => {
+    switch (userSort) {
+      case 'name-desc':
+        return String(b.full_name || '').localeCompare(String(a.full_name || ''))
+      case 'newest':
+        return new Date(b.created_at || b.submitted_at || b.registered_at || 0) - new Date(a.created_at || a.submitted_at || a.registered_at || 0)
+      case 'oldest':
+        return new Date(a.created_at || a.submitted_at || a.registered_at || 0) - new Date(b.created_at || b.submitted_at || b.registered_at || 0)
+      case 'role':
+        return String(a.role || '').localeCompare(String(b.role || ''))
+      case 'name-asc':
+      default:
+        return String(a.full_name || '').localeCompare(String(b.full_name || ''))
+    }
+  })
+
+  const usersTotalPages = Math.max(1, Math.ceil(sortedUsersToShow.length / USERS_PAGE_SIZE))
+  const usersPageSafe = Math.min(userPage, usersTotalPages)
+  const pagedUsersToShow = sortedUsersToShow.slice((usersPageSafe - 1) * USERS_PAGE_SIZE, usersPageSafe * USERS_PAGE_SIZE)
+
+  useEffect(() => {
+    setUserPage(1)
+  }, [userTab, userSearch, userRoleFilter, userStatusFilter, userDepartmentFilter, userSort])
 
   const tabTitle = userTab === 'pending'
     ? 'Pending User Approval'
@@ -15440,6 +15732,13 @@ function AdminResearchWorkspace({ data = emptyData, projects = [], currentUser, 
             <option value="all">All departments</option>
             {departmentOptions.map((department) => <option key={department} value={department}>{department}</option>)}
           </select>
+          <select value={userSort} onChange={(e) => setUserSort(e.target.value)} aria-label="Sort users">
+            <option value="name-asc">Name (A–Z)</option>
+            <option value="name-desc">Name (Z–A)</option>
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="role">Role</option>
+          </select>
         </div>
 
         <div className="soft-box admin-tab-note">
@@ -15448,7 +15747,7 @@ function AdminResearchWorkspace({ data = emptyData, projects = [], currentUser, 
         </div>
 
         <div className="admin-user-approval-scroll-container admin-users-and-roles-scroll">
-          {loadError ? <EmptyState title="Failed to load users. Please try again." text={loadError} icon={Users} /> : usersLoading ? <EmptyState title="Loading users..." text="Please wait while the user list loads." icon={Users} /> : usersToShow.length ? usersToShow.map((u) => {
+          {loadError ? <EmptyState title="Failed to load users. Please try again." text={loadError} icon={Users} /> : usersLoading ? <EmptyState title="Loading users..." text="Please wait while the user list loads." icon={Users} /> : pagedUsersToShow.length ? pagedUsersToShow.map((u) => {
             const isCurrentAdmin = u.id === currentUser.id
             const statusTone = u.status === 'Active' ? 'green' : u.status === 'Rejected' ? 'red' : 'amber'
             const requestedRoleLabel = roleButtons.find((role) => role.id === u.role)?.label || u.role || 'Student'
@@ -15495,6 +15794,20 @@ function AdminResearchWorkspace({ data = emptyData, projects = [], currentUser, 
             )
           }) : <EmptyState title="No users found." text="Try changing the search/filter settings or wait for users to register." icon={Users} />}
         </div>
+
+        {!usersLoading && !loadError && sortedUsersToShow.length > 0 && (
+          <div className="admin-pagination-bar">
+            <span className="admin-pagination-count">
+              Showing {(usersPageSafe - 1) * USERS_PAGE_SIZE + 1}
+              –{Math.min(usersPageSafe * USERS_PAGE_SIZE, sortedUsersToShow.length)} of {sortedUsersToShow.length}
+            </span>
+            <div className="admin-pagination-controls">
+              <button type="button" className="secondary compact-button" disabled={usersPageSafe <= 1} onClick={() => setUserPage((p) => Math.max(1, p - 1))}>Previous</button>
+              <span className="admin-pagination-page">Page {usersPageSafe} of {usersTotalPages}</span>
+              <button type="button" className="secondary compact-button" disabled={usersPageSafe >= usersTotalPages} onClick={() => setUserPage((p) => Math.min(usersTotalPages, p + 1))}>Next</button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="admin-management-alignment-grid">
@@ -16337,8 +16650,23 @@ function PdfReportCustomizationPanel({ settingsByRole = {}, globalSettings = def
 
   return (
     <div className="admin-panel-stack pdf-customization-page">
+      <div className="admin-role-context-tabs" role="tablist" aria-label="Customize PDF for role">
+        {pdfReportRoleOptions.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            role="tab"
+            aria-selected={selectedRole === option.value}
+            className={selectedRole === option.value ? 'active' : ''}
+            disabled={Boolean(pdfActionLoading)}
+            onClick={() => { setSelectedRole(option.value); setLocalMessage('Loading role PDF settings...') }}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
       <div className="card">
-        <SectionHeader icon={FileText} title="PDF Report Customization" subtitle="Customize the existing Print/PDF Report template separately for each role" />
+        <SectionHeader icon={FileText} title="PDF Report Customization" subtitle={`Customize the existing Print/PDF Report template for ${roleLabel}`} />
         {pdfActionLoading === 'load-role-settings' ? <LoadingBlock text="Loading role PDF settings..." /> : null}
         <div className="form-grid">
           <label className="field wide-field"><span>Report header/title text</span><input value={draft.reportTitle || ''} onChange={(e) => updateDraft('reportTitle', e.target.value)} placeholder="Pharmacy Research Project Management Report" /></label>
@@ -16388,9 +16716,8 @@ function PdfReportCustomizationPanel({ settingsByRole = {}, globalSettings = def
 
       <div className="card pdf-checklist-card">
         <SectionHeader icon={SlidersHorizontal} title="Show / Hide Report Sections" subtitle={`Control which sections appear in ${roleLabel} printed/PDF reports`} />
-        <div className="form-grid pdf-role-selector-grid checklist-role-selector">
-          <label className="field"><span>Customize PDF for Role</span><select value={selectedRole} onChange={(e) => { setSelectedRole(e.target.value); setLocalMessage('Loading role PDF settings...') }} disabled={Boolean(pdfActionLoading)}>{pdfReportRoleOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-          <div className="soft-box settings-note wide-field"><p>These checklist settings apply only to the selected role and will not change other role PDF layouts.</p></div>
+        <div className="soft-box settings-note">
+          <p>These checklist settings apply only to {roleLabel} and will not change other role PDF layouts.</p>
         </div>
         <div className="pdf-toggle-grid">
           {pdfReportSectionLabels.map(([key, label]) => (
