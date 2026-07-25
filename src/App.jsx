@@ -11530,6 +11530,10 @@ function AdminControlPanel({
   const [interfaceColorStatus, setInterfaceColorStatus] = useState('')
   const [interfaceColorError, setInterfaceColorError] = useState('')
   const [adminSidebarOpen, setAdminSidebarOpen] = useState(false)
+  const [adminSidebarMobile, setAdminSidebarMobile] = useState(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
+    return window.matchMedia('(max-width: 960px)').matches
+  })
   const [adminSidebarCollapsed, setAdminSidebarCollapsed] = useState(() => {
     if (typeof window === 'undefined') return false
     return window.localStorage?.getItem('adminSidebarCollapsed') === '1'
@@ -11543,7 +11547,20 @@ function AdminControlPanel({
   }, [adminSidebarCollapsed])
 
   useEffect(() => {
-    if (!adminSidebarOpen) return undefined
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined
+    const mediaQuery = window.matchMedia('(max-width: 960px)')
+    const syncSidebarMode = (event) => {
+      const isMobile = event.matches
+      setAdminSidebarMobile(isMobile)
+      if (!isMobile) setAdminSidebarOpen(false)
+    }
+    setAdminSidebarMobile(mediaQuery.matches)
+    mediaQuery.addEventListener?.('change', syncSidebarMode)
+    return () => mediaQuery.removeEventListener?.('change', syncSidebarMode)
+  }, [])
+
+  useEffect(() => {
+    if (!adminSidebarMobile || !adminSidebarOpen) return undefined
     document.body.classList.add('sidebar-overlay-open')
     const handleEscape = (event) => {
       if (event.key === 'Escape') {
@@ -11556,7 +11573,7 @@ function AdminControlPanel({
       document.body.classList.remove('sidebar-overlay-open')
       document.removeEventListener('keydown', handleEscape)
     }
-  }, [adminSidebarOpen])
+  }, [adminSidebarMobile, adminSidebarOpen])
 
   useEffect(() => {
     setDraft(settings)
@@ -12127,8 +12144,8 @@ function AdminControlPanel({
   const adminSidebarDropdownStyle = getSidebarDropdownRuntimeStyle(adminSidebarThemeSource)
 
   return (
-    <div className={`admin-panel-shell header-dropdown-shell ${adminSidebarOpen ? 'admin-sidebar-open' : ''} ${adminSidebarCollapsed ? 'admin-sidebar-collapsed' : ''}`}>
-      {adminSidebarOpen && (
+    <div className={`admin-panel-shell ${adminSidebarOpen ? 'admin-sidebar-open' : ''} ${adminSidebarCollapsed ? 'admin-sidebar-collapsed' : ''}`}>
+      {adminSidebarMobile && adminSidebarOpen && (
         <div
           className="sidebar-outside-layer admin-sidebar-outside-layer no-print"
           aria-hidden="true"
@@ -12138,12 +12155,12 @@ function AdminControlPanel({
       <aside
         id="admin-subdomain-sidebar"
         ref={adminSidebarRef}
-        className={`admin-sidebar admin-subdomain-sidebar app-sidebar header-dropdown-sidebar admin-standard-overlay-sidebar no-print ${adminSidebarOpen ? 'open is-open' : ''} ${adminSidebarCollapsed ? 'is-collapsed' : ''}`}
+        className={`admin-sidebar admin-subdomain-sidebar no-print ${adminSidebarOpen ? 'open is-open' : ''} ${adminSidebarCollapsed ? 'is-collapsed' : ''}`}
         style={adminSidebarDropdownStyle}
         data-sidebar-opacity={adminSidebarDropdownStyle['--sidebar-runtime-opacity']}
         aria-label="Admin Subdomain navigation"
-        aria-hidden={!adminSidebarOpen}
-        inert={adminSidebarOpen ? undefined : true}
+        aria-hidden={adminSidebarMobile ? !adminSidebarOpen : undefined}
+        inert={adminSidebarMobile && !adminSidebarOpen ? true : undefined}
       >
         <div className="admin-brand-block">
           <div className="admin-brand-mark" aria-hidden="true">{(settings.adminPanelName || 'A').trim().charAt(0).toUpperCase()}</div>
