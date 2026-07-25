@@ -11537,10 +11537,9 @@ function AdminControlPanel({
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
     return window.matchMedia('(max-width: 960px)').matches
   })
-  // Start the redesigned Admin Subdomain sidebar expanded on every visit.
-  // A collapsed value saved by the older sidebar could combine with legacy
-  // icon-hiding CSS and leave only an empty sidebar strip visible.
-  const [adminSidebarCollapsed, setAdminSidebarCollapsed] = useState(false)
+  // The Admin Subdomain sidebar is intentionally text-only now.
+  // Keep it expanded so removing icons never leaves an empty collapsed strip.
+  const adminSidebarCollapsed = false
   const adminSidebarRef = useRef(null)
   const adminSidebarToggleRef = useRef(null)
 
@@ -12175,14 +12174,12 @@ function AdminControlPanel({
         </div>
         <nav className="admin-side-nav">
           <a href="/?public=1" className="admin-sidebar-link sidebar-nav-item admin-sidebar-home-link" onClick={() => { if (adminSidebarMobile) setAdminSidebarOpen(false) }} title="Homepage">
-            <span className="sidebar-item-icon" aria-hidden="true"><Home size={18} /></span>
             <span className="sidebar-item-label">Homepage</span>
           </a>
           {navGroups.map((group) => (
             <div className="admin-side-nav-group" key={group.label}>
               <div className="admin-side-nav-group-label" aria-hidden="true">{group.label}</div>
               {group.items.map((item) => {
-                const Icon = item.icon
                 return (
                   <button
                     key={item.id}
@@ -12190,9 +12187,8 @@ function AdminControlPanel({
                     className={`admin-sidebar-link sidebar-nav-item ${adminPanelTab === item.id ? 'active' : ''}`}
                     aria-current={adminPanelTab === item.id ? 'page' : undefined}
                     onClick={() => changeAdminPanelTab(item.id)}
-                    title={adminSidebarCollapsed ? item.label : undefined}
+                    title={item.label}
                   >
-                    <span className="sidebar-item-icon" aria-hidden="true">{Icon ? <Icon size={18} /> : null}</span>
                     <span className="sidebar-item-label">{item.label}</span>
                   </button>
                 )
@@ -12201,18 +12197,7 @@ function AdminControlPanel({
           ))}
         </nav>
         <div className="admin-sidebar-footer">
-          <button
-            type="button"
-            className="admin-sidebar-collapse-toggle sidebar-nav-item"
-            onClick={() => setAdminSidebarCollapsed((collapsed) => !collapsed)}
-            aria-pressed={adminSidebarCollapsed}
-            title={adminSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            <span className="sidebar-item-icon" aria-hidden="true">{adminSidebarCollapsed ? <ChevronsRight size={18} /> : <ChevronsLeft size={18} />}</span>
-            <span className="sidebar-item-label">Collapse</span>
-          </button>
-          <button type="button" className="admin-logout sidebar-nav-item" onClick={() => { setAdminSidebarOpen(false); onLogout() }} title={adminSidebarCollapsed ? 'Logout' : undefined}>
-            <span className="sidebar-item-icon" aria-hidden="true"><LogOut size={18} /></span>
+          <button type="button" className="admin-logout sidebar-nav-item" onClick={() => { setAdminSidebarOpen(false); onLogout() }} title="Logout">
             <span className="sidebar-item-label">Logout</span>
           </button>
         </div>
