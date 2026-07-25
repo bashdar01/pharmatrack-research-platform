@@ -12569,7 +12569,7 @@ function AdminControlPanel({
         )}
 
         {adminPanelTab === 'invitations' && <InvitationManager invitations={data.invitations} settings={settings} createInvitation={createInvitation} resendInvitation={resendInvitation} cancelInvitation={cancelInvitation} copyInvitationLink={copyInvitationLink} />}
-        {adminPanelTab === 'users' && <AdminDashboard data={data} projects={projects} currentUser={currentUser} loadError={loadError} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} />}
+        {adminPanelTab === 'users' && <AdminResearchWorkspace data={data} projects={projects} currentUser={currentUser} loadError={loadError} dataLoading={dataLoading} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} usersOnly />}
         {adminPanelTab === 'supervisors' && <SupervisorManagementTab data={data} projects={projects} currentUser={currentUser} loadError={loadError} dataLoading={dataLoading} updateProject={updateProject} assignStudentToSupervisor={assignStudentToSupervisor} assignProjectLeader={assignProjectLeader} exportCsv={exportCsv} />}
         {adminPanelTab === 'dual-roles' && <DualRoleManagementTab data={data} currentUser={currentUser} loadError={loadError} dataLoading={dataLoading} updateCommitteeSupervisorAccess={updateCommitteeSupervisorAccess} />}
         {adminPanelTab === 'deadlines' && <DeadlineManager deadlines={data.deadlines} createDeadline={createDeadline} removeDeadline={removeDeadline} students={data.profiles.filter((profile) => profile.role === 'student').map((student) => ({ key: makeStudentOptionKey(student), id: student.id, name: student.full_name, email: student.email, group: student.department || student.area || 'Student' }))} currentUser={currentUser} />}
@@ -13243,18 +13243,10 @@ function AdminDashboard({ data = emptyData, projects = [], dataLoading = false, 
     .slice(0, 5)
 
   const statCards = [
-    { label: 'Students', value: totalStudents, tab: 'users' },
+    { label: 'Users & Roles', value: profiles.length, tab: 'users' },
     { label: 'Supervisors', value: totalSupervisors, tab: 'supervisors' },
-    { label: 'Committee Members', value: totalCommittee, tab: 'users' },
-    { label: 'Research Projects', value: projects.length, tab: 'overview' },
-    { label: 'Pending Proposals', value: pendingProjects.length, tone: pendingProjects.length ? 'warning' : '', tab: 'overview' },
-    { label: 'Accepted Projects', value: acceptedProjects.length, tone: 'success', tab: 'overview' },
-    { label: 'Revision Requested', value: revisionProjects.length, tone: revisionProjects.length ? 'warning' : '', tab: 'overview' },
-    { label: 'Rejected Projects', value: rejectedProjects.length, tab: 'overview' },
     { label: 'Pending Join Requests', value: pendingJoinRequests.length, tone: pendingJoinRequests.length ? 'warning' : '', tab: 'group-requests' },
-    { label: 'Active Research Groups', value: acceptedProjects.length, tab: 'overview' },
     { label: 'Overdue Deadlines', value: overdueDeadlines.length, tone: overdueDeadlines.length ? 'danger' : '', tab: 'deadlines' },
-    { label: 'Unread Notifications', value: unreadNotifications.length, tone: unreadNotifications.length ? 'warning' : '', tab: 'notifications' },
   ]
 
   const decisionLabelOf = (project) => getProjectDecisionLabel(project)
@@ -15484,7 +15476,7 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
   )
 }
 
-function AdminResearchWorkspace({ data = emptyData, projects = [], currentUser, loadError = '', dataLoading = false, updateProject, updateUserRole, updateUserStatus, assignStudentToSupervisor, exportCsv, deleteWeeklyReport, deleteUploadedFile, deleteUserAccount, deleteResearchGroup, deleteResearchProject, heroSettings = defaultWebsiteSettings, onNavigate }) {
+function AdminResearchWorkspace({ data = emptyData, projects = [], currentUser, loadError = '', dataLoading = false, updateProject, updateUserRole, updateUserStatus, assignStudentToSupervisor, exportCsv, deleteWeeklyReport, deleteUploadedFile, deleteUserAccount, deleteResearchGroup, deleteResearchProject, heroSettings = defaultWebsiteSettings, onNavigate, usersOnly = false }) {
   const usersLoading = !data || !Array.isArray(data.profiles)
   data = cleanData({
     ...emptyData,
@@ -15816,6 +15808,8 @@ function AdminResearchWorkspace({ data = emptyData, projects = [], currentUser, 
         )}
       </div>
 
+      {!usersOnly && (
+        <>
       <div className="admin-management-alignment-grid">
         <div className="card admin-delete-management-card admin-research-title-card">
           <SectionHeader icon={BookOpen} title="Research Title Deletion" subtitle="Admins can delete research titles/projects and related report data" />
@@ -15915,6 +15909,8 @@ function AdminResearchWorkspace({ data = emptyData, projects = [], currentUser, 
           )) : <EmptyState title="No research groups" text="Research groups will appear after research titles are submitted." icon={Users} />}
         </div>
       </div>
+        </>
+      )}
     </div>
   )
 }
