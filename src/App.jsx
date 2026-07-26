@@ -2362,7 +2362,7 @@ function optimizeImageFile(file, options = {}) {
   })
 }
 
-const adminPanelTabs = ['overview', 'branding', 'button-colors', 'login-settings', 'about-us', 'users', 'supervisors', 'dual-roles', 'invitations', 'deadlines', 'notifications', 'reports', 'pdf-report', 'group-requests', 'database', 'audit', 'profile-settings']
+const adminPanelTabs = ['overview', 'branding', 'button-colors', 'login-settings', 'about-us', 'users', 'supervisors', 'dual-roles', 'invitations', 'deadlines', 'notifications', 'reports', 'pdf-report', 'group-requests', 'database', 'audit', 'profile-settings', 'learning-resources', 'research-day', 'published-papers', 'pdf-viewer']
 
 const adminPanelPathAliases = {
   '': 'overview',
@@ -2382,6 +2382,13 @@ const adminPanelPathAliases = {
   about: 'about-us',
   'about-us-customization': 'about-us',
   'about-customization': 'about-us',
+  'learning-resources': 'learning-resources',
+  'research-learning-resources': 'learning-resources',
+  'research-resources': 'learning-resources',
+  'research-day': 'research-day',
+  'published-papers': 'published-papers',
+  publications: 'published-papers',
+  'pdf-viewer': 'pdf-viewer',
   'research-guidelines': 'overview',
   guidelines: 'overview',
   'graduation-research-guidelines': 'overview',
@@ -2458,6 +2465,13 @@ function getInitialMainTab() {
     questions: 'questions',
     'meeting-requests': 'meetings',
     meetings: 'meetings',
+    'learning-resources': 'learning-resources',
+    'research-learning-resources': 'learning-resources',
+    'research-resources': 'learning-resources',
+    'research-day': 'research-day',
+    'published-papers': 'published-papers',
+    publications: 'published-papers',
+    'pdf-viewer': 'pdf-viewer',
     'join-research-group': 'join-group',
     'join-group': 'join-group',
     'research-groups': 'groups',
@@ -2504,6 +2518,10 @@ function getAuthenticatedTabPath(tabId = 'dashboard', role = 'student') {
     database: '/admin/database',
     audit: '/admin/audit-log',
     reports: `/${base}/pdf-reports`,
+    'learning-resources': `/${base}/research-learning-resources`,
+    'research-day': `/${base}/research-day`,
+    'published-papers': `/${base}/published-papers`,
+    'pdf-viewer': `/${base}/pdf-viewer`,
     'about-us': '/about',
     'profile-settings': `/${base}/profile`,
   }
@@ -2546,7 +2564,21 @@ const emptyData = {
   groupJoinRequests: [],
   groupMembers: [],
   meetingRequests: [],
+  researchLearningResources: [],
+  researchDays: [],
+  publishedPapers: [],
 }
+
+const RESEARCH_CONTENT_BUCKET = 'research-content'
+const RESEARCH_CONTENT_MAX_FILE_SIZE = 15 * 1024 * 1024
+const RESEARCH_RESOURCE_TYPES = [
+  { value: 'youtube', label: 'YouTube Video' },
+  { value: 'external', label: 'External Link' },
+  { value: 'pdf', label: 'PDF' },
+]
+const RESEARCH_DAY_STATUSES = ['Draft', 'Published', 'Completed', 'Archived']
+const RESEARCH_CATEGORY_OPTIONS = ['Research Methods', 'Academic Writing', 'Ethics', 'Clinical Pharmacy', 'Pharmaceutics', 'Pharmacology', 'Pharmaceutical Chemistry', 'Public Health', 'Other']
+
 
 const sampleNames = ['Aveen Mohammed', 'Hemn Karim', 'Dr. Lara Ahmed', 'Dr. Rebaz Hassan', 'College Admin']
 const sampleEmails = ['aveen@hmu.edu.krd', 'hemn@hmu.edu.krd', 'lara.ahmed@hmu.edu.krd', 'rebaz.hassan@hmu.edu.krd', 'admin.pharmacy@hmu.edu.krd']
@@ -2571,6 +2603,9 @@ function cleanData(data) {
   cleaned.studentQuestions = cleaned.studentQuestions || []
   cleaned.groupJoinRequests = cleaned.groupJoinRequests || []
   cleaned.meetingRequests = cleaned.meetingRequests || []
+  cleaned.researchLearningResources = cleaned.researchLearningResources || []
+  cleaned.researchDays = cleaned.researchDays || []
+  cleaned.publishedPapers = cleaned.publishedPapers || []
   return cleaned
 }
 
@@ -4089,6 +4124,178 @@ function ButtonContent({ loading = false, loadingText = 'Loading...', icon: Icon
 }
 
 
+function normalizeResearchStatus(value, fallback = 'Draft') {
+  const match = RESEARCH_DAY_STATUSES.find((status) => normalizeText(status) === normalizeText(value))
+  return match || fallback
+}
+
+function isResearchContentManager(role) {
+  return ['admin', 'committee'].includes(normalizeText(role))
+}
+
+function isResearchSupervisor(role) {
+  return normalizeText(role) === 'supervisor'
+}
+
+function profileMatchesId(user = {}, id = '') {
+  return Boolean(id) && String(user?.id || '') === String(id)
+}
+
+function normalizePublishedFlag(value) {
+  return value === true || normalizeText(value) === 'true' || normalizeText(value) === 'published'
+}
+
+function normalizeResearchResource(row = {}) {
+  return {
+    ...row,
+    id: row.id || crypto.randomUUID?.() || String(Date.now()),
+    title: row.title || '',
+    description: row.description || row.short_description || '',
+    resource_type: normalizeText(row.resource_type || row.type || 'external') || 'external',
+    category: row.category || 'Other',
+    youtube_url: row.youtube_url || row.youtubeUrl || '',
+    external_url: row.external_url || row.externalUrl || '',
+    pdf_url: row.pdf_url || row.file_url || row.url || '',
+    pdf_path: row.pdf_path || row.file_path || '',
+    thumbnail_url: row.thumbnail_url || row.thumbnailUrl || '',
+    author_or_source: row.author_or_source || row.author || row.source || '',
+    publication_year: row.publication_year || row.year || '',
+    is_published: normalizePublishedFlag(row.is_published ?? row.published),
+    created_by: row.created_by || row.createdBy || null,
+    created_at: row.created_at || new Date().toISOString(),
+    updated_at: row.updated_at || row.created_at || new Date().toISOString(),
+  }
+}
+
+function normalizeResearchDay(row = {}) {
+  return {
+    ...row,
+    id: row.id || crypto.randomUUID?.() || String(Date.now()),
+    title: row.title || row.event_title || '',
+    event_date: row.event_date || row.date || '',
+    start_time: row.start_time || '',
+    end_time: row.end_time || '',
+    location: row.location || '',
+    description: row.description || '',
+    student_instructions: row.student_instructions || '',
+    supervisor_instructions: row.supervisor_instructions || '',
+    contact_information: row.contact_information || row.contact || '',
+    external_url: row.external_url || row.info_url || '',
+    banner_url: row.banner_url || row.image_url || '',
+    banner_path: row.banner_path || '',
+    status: normalizeResearchStatus(row.status || (row.is_published ? 'Published' : 'Draft')),
+    created_by: row.created_by || null,
+    created_at: row.created_at || new Date().toISOString(),
+    updated_at: row.updated_at || row.created_at || new Date().toISOString(),
+  }
+}
+
+function normalizePublishedPaper(row = {}) {
+  return {
+    ...row,
+    id: row.id || crypto.randomUUID?.() || String(Date.now()),
+    title: row.title || row.paper_title || '',
+    authors: row.authors || '',
+    corresponding_author: row.corresponding_author || '',
+    journal_name: row.journal_name || row.journal || '',
+    publication_year: row.publication_year || '',
+    publication_date: row.publication_date || '',
+    volume: row.volume || '',
+    issue: row.issue || '',
+    pages: row.pages || row.page_numbers || '',
+    doi: row.doi || '',
+    abstract: row.abstract || row.description || '',
+    keywords: row.keywords || '',
+    category: row.category || row.research_category || 'Other',
+    external_url: row.external_url || row.publisher_url || row.paper_url || '',
+    pdf_url: row.pdf_url || row.file_url || '',
+    pdf_path: row.pdf_path || row.file_path || '',
+    is_published: normalizePublishedFlag(row.is_published ?? row.published),
+    submitted_by: row.submitted_by || row.created_by || null,
+    created_at: row.created_at || new Date().toISOString(),
+    updated_at: row.updated_at || row.created_at || new Date().toISOString(),
+  }
+}
+
+function getResearchPdfUrl(item = {}) {
+  return item.pdf_url || item.file_url || item.url || ''
+}
+
+function isValidHttpUrl(value = '') {
+  const text = String(value || '').trim()
+  if (!text) return false
+  try {
+    const url = new URL(text)
+    return ['http:', 'https:'].includes(url.protocol)
+  } catch {
+    return false
+  }
+}
+
+function isValidYouTubeUrl(value = '') {
+  if (!isValidHttpUrl(value)) return false
+  try {
+    const host = new URL(value).hostname.toLowerCase().replace(/^www\./, '')
+    return ['youtube.com', 'youtu.be', 'm.youtube.com'].includes(host) || host.endsWith('.youtube.com')
+  } catch {
+    return false
+  }
+}
+
+function isValidDoi(value = '') {
+  const text = String(value || '').trim()
+  return !text || /^10\.\d{4,9}\/[-._;()/:A-Z0-9]+$/i.test(text)
+}
+
+function getYouTubeEmbedUrl(value = '') {
+  if (!isValidYouTubeUrl(value)) return ''
+  try {
+    const url = new URL(value)
+    let id = ''
+    if (url.hostname.toLowerCase().includes('youtu.be')) id = url.pathname.replace('/', '').split('/')[0]
+    else id = url.searchParams.get('v') || url.pathname.split('/').filter(Boolean).pop() || ''
+    id = String(id || '').replace(/[^a-zA-Z0-9_-]/g, '')
+    return id ? `https://www.youtube.com/embed/${id}` : ''
+  } catch {
+    return ''
+  }
+}
+
+function getResearchDayDisplayStatus(event = {}) {
+  const status = normalizeResearchStatus(event.status || 'Draft')
+  if (status === 'Archived') return 'Archived'
+  if (status === 'Completed') return 'Completed'
+  if (status !== 'Published') return status
+  const today = new Date()
+  const dateText = event.event_date || ''
+  if (!dateText) return 'Published'
+  const eventDate = new Date(`${dateText}T00:00:00`)
+  if (Number.isNaN(eventDate.getTime())) return 'Published'
+  const todayKey = today.toISOString().slice(0, 10)
+  if (dateText === todayKey) return 'Today'
+  return eventDate < new Date(`${todayKey}T00:00:00`) ? 'Completed' : 'Upcoming'
+}
+
+function canViewResearchResource(item = {}, role = 'student') {
+  return isResearchContentManager(role) || normalizePublishedFlag(item.is_published)
+}
+
+function canViewResearchDay(item = {}, role = 'student') {
+  return isResearchContentManager(role) || ['Published', 'Completed', 'Archived'].includes(normalizeResearchStatus(item.status))
+}
+
+function canManagePublishedPaper(item = {}, role = 'student', currentUser = {}) {
+  if (isResearchContentManager(role)) return true
+  if (!isResearchSupervisor(role)) return false
+  if (!item?.id) return true
+  return profileMatchesId(currentUser, item.submitted_by || item.created_by)
+}
+
+function canViewPublishedPaper(item = {}, role = 'student', currentUser = {}) {
+  return normalizePublishedFlag(item.is_published) || canManagePublishedPaper(item, role, currentUser)
+}
+
+
 function resolveHeroRouteToTab(target = '') {
   const raw = String(target || '').trim()
   if (!raw) return ''
@@ -4585,6 +4792,328 @@ function getActionLoadingText(key = '') {
   return 'Updating...'
 }
 
+
+
+function ResearchContentFilters({ search, setSearch, category, setCategory, type, setType, categories = [], types = [], typeLabel = 'Type' }) {
+  return (
+    <div className="research-content-toolbar">
+      <label className="field research-search-field"><span>Search</span><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by title, author, category, or keyword" /></label>
+      <label className="field"><span>Category</span><select value={category} onChange={(e) => setCategory(e.target.value)}><option>All</option>{categories.map((item) => <option key={item}>{item}</option>)}</select></label>
+      {types.length > 0 && <label className="field"><span>{typeLabel}</span><select value={type} onChange={(e) => setType(e.target.value)}><option>All</option>{types.map((item) => <option key={item.value || item} value={item.value || item}>{item.label || item}</option>)}</select></label>}
+    </div>
+  )
+}
+
+function ResearchLearningResourcesPage({ data = emptyData, role = 'student', currentUser = {}, dataLoading = false, saveResource, deleteResource, openPdf }) {
+  const canManage = isResearchContentManager(role)
+  const [search, setSearch] = useState('')
+  const [category, setCategory] = useState('All')
+  const [type, setType] = useState('All')
+  const [editing, setEditing] = useState(null)
+  const [pdfFile, setPdfFile] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const emptyForm = { title: '', description: '', resource_type: 'youtube', category: 'Research Methods', youtube_url: '', external_url: '', author_or_source: '', publication_year: '', thumbnail_url: '', is_published: true }
+  const [form, setForm] = useState(emptyForm)
+  const resources = useMemo(() => (data.researchLearningResources || []).map(normalizeResearchResource), [data.researchLearningResources])
+  const categories = useMemo(() => uniqueTextList([...RESEARCH_CATEGORY_OPTIONS, ...resources.map((item) => item.category)]), [resources])
+  const rows = resources
+    .filter((item) => canViewResearchResource(item, role))
+    .filter((item) => category === 'All' || item.category === category)
+    .filter((item) => type === 'All' || item.resource_type === type)
+    .filter((item) => {
+      const q = normalizeText(search)
+      if (!q) return true
+      return [item.title, item.description, item.category, item.author_or_source, item.publication_year, item.resource_type].some((value) => normalizeText(value).includes(q))
+    })
+
+  function startEdit(item) {
+    const normalized = normalizeResearchResource(item)
+    setEditing(normalized)
+    setPdfFile(null)
+    setForm({ ...emptyForm, ...normalized })
+  }
+
+  function resetForm() {
+    setEditing(null)
+    setPdfFile(null)
+    setForm(emptyForm)
+  }
+
+  async function submitResource(event) {
+    event.preventDefault()
+    setSaving(true)
+    const result = await saveResource({ ...form, id: editing?.id, pdf_url: editing?.pdf_url || form.pdf_url || '', pdf_path: editing?.pdf_path || form.pdf_path || '' }, pdfFile)
+    setSaving(false)
+    if (result?.ok) resetForm()
+  }
+
+  return (
+    <section className="research-content-page">
+      <div className="card research-content-hero-card">
+        <SectionHeader icon={BookOpen} title="Research Learning Resources" subtitle="Curated videos, papers, PDFs, and educational links for pharmacy research skills." />
+        <p className="muted">Search published learning materials, open safe external links, watch videos without autoplay, or view uploaded PDFs inside the platform.</p>
+      </div>
+      {canManage && (
+        <form className="card research-management-form" onSubmit={submitResource}>
+          <SectionHeader icon={FileText} title={editing ? 'Edit learning resource' : 'Add learning resource'} subtitle="Research Committee and Admin users can publish or unpublish resources." />
+          <div className="form-grid">
+            <label className="field"><span>Title</span><input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Resource title" /></label>
+            <label className="field"><span>Resource type</span><select value={form.resource_type} onChange={(e) => setForm({ ...form, resource_type: e.target.value })}>{RESEARCH_RESOURCE_TYPES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
+            <label className="field"><span>Category</span><input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Research Methods" /></label>
+            <label className="field"><span>Author or source</span><input value={form.author_or_source} onChange={(e) => setForm({ ...form, author_or_source: e.target.value })} placeholder="Author, channel, journal, or source" /></label>
+            <label className="field"><span>Publication year</span><input inputMode="numeric" value={form.publication_year || ''} onChange={(e) => setForm({ ...form, publication_year: e.target.value })} placeholder="2026" /></label>
+            <label className="field"><span>Optional thumbnail URL</span><input value={form.thumbnail_url || ''} onChange={(e) => setForm({ ...form, thumbnail_url: e.target.value })} placeholder="https://..." /></label>
+          </div>
+          <TextArea label="Short description" value={form.description} onChange={(value) => setForm({ ...form, description: value })} placeholder="Briefly describe why this resource is useful." />
+          {form.resource_type === 'youtube' && <label className="field wide-field"><span>YouTube URL</span><input required value={form.youtube_url || ''} onChange={(e) => setForm({ ...form, youtube_url: e.target.value })} placeholder="https://www.youtube.com/watch?v=..." /></label>}
+          {form.resource_type === 'external' && <label className="field wide-field"><span>External resource URL</span><input required value={form.external_url || ''} onChange={(e) => setForm({ ...form, external_url: e.target.value })} placeholder="https://..." /></label>}
+          {form.resource_type === 'pdf' && <label className="field wide-field"><span>PDF upload</span><input type="file" accept="application/pdf,.pdf" onChange={(e) => setPdfFile(e.target.files?.[0] || null)} />{editing?.pdf_url && <small>Current PDF will be kept unless you upload a replacement.</small>}</label>}
+          <label className="toggle-line"><input type="checkbox" checked={Boolean(form.is_published)} onChange={(e) => setForm({ ...form, is_published: e.target.checked })} /> <span>Published and visible to students/supervisors</span></label>
+          <div className="form-actions"><button className="primary" disabled={saving} type="submit"><ButtonContent loading={saving} loadingText="Saving...">{editing ? 'Save Changes' : 'Add Resource'}</ButtonContent></button>{editing && <button className="secondary" type="button" onClick={resetForm}>Cancel edit</button>}</div>
+        </form>
+      )}
+      <div className="card">
+        <ResearchContentFilters search={search} setSearch={setSearch} category={category} setCategory={setCategory} type={type} setType={setType} categories={categories} types={RESEARCH_RESOURCE_TYPES} typeLabel="Resource type" />
+        {dataLoading ? <LoadingBlock text="Loading learning resources..." /> : rows.length === 0 ? <EmptyState title="No learning resources found" text="Published resources will appear here after they are added." /> : (
+          <div className="research-card-grid">
+            {rows.map((item) => {
+              const pdfUrl = getResearchPdfUrl(item)
+              const embedUrl = getYouTubeEmbedUrl(item.youtube_url)
+              return (
+                <article className="research-library-card" key={item.id}>
+                  {item.thumbnail_url && <img className="research-card-thumb" src={item.thumbnail_url} alt="" />}
+                  <div className="research-card-meta"><span className="status-badge">{RESEARCH_RESOURCE_TYPES.find((typeItem) => typeItem.value === item.resource_type)?.label || item.resource_type}</span><span>{item.category || 'Uncategorized'}</span>{!item.is_published && <span className="status-badge warning">Draft</span>}</div>
+                  <h3>{item.title || 'Untitled resource'}</h3>
+                  <p>{item.description || 'No description provided.'}</p>
+                  <p className="muted small">{[item.author_or_source, item.publication_year].filter(Boolean).join(' · ') || 'Source details unavailable'}</p>
+                  {item.resource_type === 'youtube' && embedUrl && <div className="youtube-preview"><iframe title={item.title || 'YouTube resource'} src={embedUrl} loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /></div>}
+                  <div className="research-card-actions">
+                    {item.resource_type === 'youtube' && item.youtube_url && <a className="secondary" href={item.youtube_url} target="_blank" rel="noopener noreferrer">Watch Video</a>}
+                    {item.resource_type === 'external' && item.external_url && <a className="secondary" href={item.external_url} target="_blank" rel="noopener noreferrer">Open Resource</a>}
+                    {item.resource_type === 'pdf' && pdfUrl && <button className="secondary" type="button" onClick={() => openPdf('learning-resource', item.id)}>View PDF</button>}
+                    {canManage && <button className="ghost" type="button" onClick={() => startEdit(item)}>Edit</button>}
+                    {canManage && <button className="danger" type="button" onClick={() => deleteResource(item)}>Delete</button>}
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+function ResearchDayPage({ data = emptyData, role = 'student', currentUser = {}, dataLoading = false, saveResearchDay, deleteResearchDay }) {
+  const canManage = isResearchContentManager(role)
+  const [editing, setEditing] = useState(null)
+  const [bannerFile, setBannerFile] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const emptyForm = { title: '', event_date: '', start_time: '', end_time: '', location: '', description: '', student_instructions: '', supervisor_instructions: '', contact_information: '', external_url: '', status: 'Draft' }
+  const [form, setForm] = useState(emptyForm)
+  const events = useMemo(() => (data.researchDays || []).map(normalizeResearchDay).filter((item) => canViewResearchDay(item, role)).sort((a, b) => String(b.event_date || '').localeCompare(String(a.event_date || ''))), [data.researchDays, role])
+  const nextEvent = events.find((event) => ['Upcoming', 'Today', 'Published'].includes(getResearchDayDisplayStatus(event))) || events[0]
+
+  function startEdit(item) {
+    const normalized = normalizeResearchDay(item)
+    setEditing(normalized)
+    setBannerFile(null)
+    setForm({ ...emptyForm, ...normalized })
+  }
+
+  function resetForm() {
+    setEditing(null)
+    setBannerFile(null)
+    setForm(emptyForm)
+  }
+
+  async function submitEvent(event) {
+    event.preventDefault()
+    setSaving(true)
+    const result = await saveResearchDay({ ...form, id: editing?.id, banner_url: editing?.banner_url || form.banner_url || '', banner_path: editing?.banner_path || form.banner_path || '' }, bannerFile)
+    setSaving(false)
+    if (result?.ok) resetForm()
+  }
+
+  return (
+    <section className="research-content-page research-day-page">
+      <div className="card research-content-hero-card">
+        <SectionHeader icon={CalendarDays} title="Research Day" subtitle="Official Research Day information for students, supervisors, Research Committee, and Admin users." />
+        <p className="muted">Published event information is loaded from Supabase and shown here with role-appropriate instructions.</p>
+      </div>
+      {canManage && (
+        <form className="card research-management-form" onSubmit={submitEvent}>
+          <SectionHeader icon={CalendarDays} title={editing ? 'Edit Research Day' : 'Create Research Day'} subtitle="Publish, complete, or archive Research Day entries without hardcoding event details." />
+          <div className="form-grid">
+            <label className="field"><span>Event title</span><input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="College of Pharmacy Research Day" /></label>
+            <label className="field"><span>Status</span><select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>{RESEARCH_DAY_STATUSES.map((status) => <option key={status}>{status}</option>)}</select></label>
+            <label className="field"><span>Date</span><input required type="date" value={form.event_date || ''} onChange={(e) => setForm({ ...form, event_date: e.target.value })} /></label>
+            <label className="field"><span>Start time</span><input required type="time" value={form.start_time || ''} onChange={(e) => setForm({ ...form, start_time: e.target.value })} /></label>
+            <label className="field"><span>End time</span><input required type="time" value={form.end_time || ''} onChange={(e) => setForm({ ...form, end_time: e.target.value })} /></label>
+            <label className="field"><span>Location</span><input required value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Hall, campus, or online link" /></label>
+            <label className="field"><span>Optional information link</span><input value={form.external_url || ''} onChange={(e) => setForm({ ...form, external_url: e.target.value })} placeholder="https://..." /></label>
+            <label className="field"><span>Optional banner image</span><input type="file" accept="image/*" onChange={(e) => setBannerFile(e.target.files?.[0] || null)} />{editing?.banner_url && <small>Current banner will be kept unless replaced.</small>}</label>
+          </div>
+          <TextArea label="Full description" value={form.description} onChange={(value) => setForm({ ...form, description: value })} placeholder="Describe the event and expectations." />
+          <TextArea label="Student instructions" value={form.student_instructions} onChange={(value) => setForm({ ...form, student_instructions: value })} placeholder="Instructions for students." />
+          <TextArea label="Supervisor instructions" value={form.supervisor_instructions} onChange={(value) => setForm({ ...form, supervisor_instructions: value })} placeholder="Instructions for supervisors." />
+          <TextArea label="Optional contact details" value={form.contact_information} onChange={(value) => setForm({ ...form, contact_information: value })} placeholder="Contact person, email, phone, or office." />
+          <div className="form-actions"><button className="primary" disabled={saving} type="submit"><ButtonContent loading={saving} loadingText="Saving...">{editing ? 'Save Event' : 'Create Event'}</ButtonContent></button>{editing && <button className="secondary" type="button" onClick={resetForm}>Cancel edit</button>}</div>
+        </form>
+      )}
+      {dataLoading ? <LoadingBlock text="Loading Research Day information..." /> : events.length === 0 ? <EmptyState title="No Research Day information yet" text="Published Research Day details will appear here." icon={CalendarDays} /> : (
+        <div className="research-day-layout">
+          {nextEvent && <article className="card research-day-feature-card">
+            {nextEvent.banner_url && <img className="research-day-banner" src={nextEvent.banner_url} alt="Research Day banner" />}
+            <div className="research-card-meta"><span className="status-badge">{getResearchDayDisplayStatus(nextEvent)}</span><span>{nextEvent.event_date || 'Date unavailable'}</span></div>
+            <h2>{nextEvent.title}</h2>
+            <div className="research-event-facts"><span><b>Date</b>{nextEvent.event_date || 'Not set'}</span><span><b>Time</b>{[nextEvent.start_time, nextEvent.end_time].filter(Boolean).join(' – ') || 'Not set'}</span><span><b>Location</b>{nextEvent.location || 'Not set'}</span></div>
+            <p>{nextEvent.description || 'No description provided.'}</p>
+            {nextEvent.student_instructions && <div className="research-instruction-box"><h3>Student instructions</h3><p>{nextEvent.student_instructions}</p></div>}
+            {nextEvent.supervisor_instructions && <div className="research-instruction-box"><h3>Supervisor instructions</h3><p>{nextEvent.supervisor_instructions}</p></div>}
+            {nextEvent.contact_information && <p className="muted small"><b>Contact:</b> {nextEvent.contact_information}</p>}
+            <div className="research-card-actions">{nextEvent.external_url && <a className="secondary" href={nextEvent.external_url} target="_blank" rel="noopener noreferrer">Open Information Link</a>}{canManage && <button className="ghost" type="button" onClick={() => startEdit(nextEvent)}>Edit</button>}{canManage && <button className="danger" type="button" onClick={() => deleteResearchDay(nextEvent)}>Delete</button>}</div>
+          </article>}
+          <div className="research-day-list">
+            {events.map((event) => <article className="research-day-list-card" key={event.id}><span className="status-badge">{getResearchDayDisplayStatus(event)}</span><h3>{event.title}</h3><p>{[event.event_date, [event.start_time, event.end_time].filter(Boolean).join(' – '), event.location].filter(Boolean).join(' · ')}</p>{canManage && <div className="research-card-actions"><button className="ghost" type="button" onClick={() => startEdit(event)}>Edit</button><button className="danger" type="button" onClick={() => deleteResearchDay(event)}>Delete</button></div>}</article>)}
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}
+
+function PublishedPapersPage({ data = emptyData, role = 'student', currentUser = {}, dataLoading = false, savePaper, deletePaper, openPdf }) {
+  const canAdd = isResearchContentManager(role) || isResearchSupervisor(role)
+  const [search, setSearch] = useState('')
+  const [year, setYear] = useState('All')
+  const [category, setCategory] = useState('All')
+  const [editing, setEditing] = useState(null)
+  const [pdfFile, setPdfFile] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const emptyForm = { title: '', authors: '', corresponding_author: '', journal_name: '', publication_year: '', publication_date: '', volume: '', issue: '', pages: '', doi: '', abstract: '', keywords: '', category: 'Other', external_url: '', is_published: role === 'supervisor' ? false : true }
+  const [form, setForm] = useState(emptyForm)
+  const papers = useMemo(() => (data.publishedPapers || []).map(normalizePublishedPaper), [data.publishedPapers])
+  const categories = useMemo(() => uniqueTextList([...RESEARCH_CATEGORY_OPTIONS, ...papers.map((item) => item.category)]), [papers])
+  const years = useMemo(() => uniqueTextList(papers.map((item) => item.publication_year)).sort((a, b) => String(b).localeCompare(String(a))), [papers])
+  const rows = papers
+    .filter((item) => canViewPublishedPaper(item, role, currentUser))
+    .filter((item) => year === 'All' || String(item.publication_year) === String(year))
+    .filter((item) => category === 'All' || item.category === category)
+    .filter((item) => {
+      const q = normalizeText(search)
+      if (!q) return true
+      return [item.title, item.authors, item.journal_name, item.abstract, item.keywords, item.category, item.doi].some((value) => normalizeText(value).includes(q))
+    })
+
+  function startEdit(item) {
+    const normalized = normalizePublishedPaper(item)
+    setEditing(normalized)
+    setPdfFile(null)
+    setForm({ ...emptyForm, ...normalized })
+  }
+  function resetForm() {
+    setEditing(null)
+    setPdfFile(null)
+    setForm(emptyForm)
+  }
+  async function submitPaper(event) {
+    event.preventDefault()
+    setSaving(true)
+    const result = await savePaper({ ...form, id: editing?.id, pdf_url: editing?.pdf_url || form.pdf_url || '', pdf_path: editing?.pdf_path || form.pdf_path || '', submitted_by: editing?.submitted_by || currentUser?.id || null }, pdfFile)
+    setSaving(false)
+    if (result?.ok) resetForm()
+  }
+
+  return (
+    <section className="research-content-page">
+      <div className="card research-content-hero-card">
+        <SectionHeader icon={FileCheck2} title="Published Papers" subtitle="A professional library of published research papers, PDFs, and external journal links." />
+        <p className="muted">Students can view published papers. Supervisors can submit and manage their own papers. Research Committee and Admin users can manage all entries.</p>
+      </div>
+      {canAdd && (
+        <form className="card research-management-form" onSubmit={submitPaper}>
+          <SectionHeader icon={FileText} title={editing ? 'Edit published paper' : 'Add published paper'} subtitle="Add bibliographic details, a PDF, an external journal link, or both." />
+          <div className="form-grid">
+            <label className="field"><span>Paper title</span><input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Published paper title" /></label>
+            <label className="field"><span>Authors</span><input required value={form.authors} onChange={(e) => setForm({ ...form, authors: e.target.value })} placeholder="Author names" /></label>
+            <label className="field"><span>Corresponding author</span><input value={form.corresponding_author} onChange={(e) => setForm({ ...form, corresponding_author: e.target.value })} /></label>
+            <label className="field"><span>Journal name</span><input value={form.journal_name} onChange={(e) => setForm({ ...form, journal_name: e.target.value })} /></label>
+            <label className="field"><span>Publication year</span><input inputMode="numeric" value={form.publication_year || ''} onChange={(e) => setForm({ ...form, publication_year: e.target.value })} placeholder="2026" /></label>
+            <label className="field"><span>Publication date</span><input type="date" value={form.publication_date || ''} onChange={(e) => setForm({ ...form, publication_date: e.target.value })} /></label>
+            <label className="field"><span>Volume</span><input value={form.volume} onChange={(e) => setForm({ ...form, volume: e.target.value })} /></label>
+            <label className="field"><span>Issue</span><input value={form.issue} onChange={(e) => setForm({ ...form, issue: e.target.value })} /></label>
+            <label className="field"><span>Pages</span><input value={form.pages} onChange={(e) => setForm({ ...form, pages: e.target.value })} /></label>
+            <label className="field"><span>DOI</span><input value={form.doi} onChange={(e) => setForm({ ...form, doi: e.target.value })} placeholder="10.xxxx/..." /></label>
+            <label className="field"><span>Research category</span><input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} /></label>
+            <label className="field"><span>External paper URL</span><input value={form.external_url || ''} onChange={(e) => setForm({ ...form, external_url: e.target.value })} placeholder="https://publisher..." /></label>
+            <label className="field"><span>PDF upload</span><input type="file" accept="application/pdf,.pdf" onChange={(e) => setPdfFile(e.target.files?.[0] || null)} />{editing?.pdf_url && <small>Current PDF will be kept unless replaced.</small>}</label>
+          </div>
+          <TextArea label="Abstract or short description" value={form.abstract} onChange={(value) => setForm({ ...form, abstract: value })} />
+          <label className="field wide-field"><span>Keywords</span><input value={form.keywords} onChange={(e) => setForm({ ...form, keywords: e.target.value })} placeholder="Comma-separated keywords" /></label>
+          {isResearchContentManager(role) && <label className="toggle-line"><input type="checkbox" checked={Boolean(form.is_published)} onChange={(e) => setForm({ ...form, is_published: e.target.checked })} /> <span>Published and visible to students</span></label>}
+          {!isResearchContentManager(role) && <p className="muted small">Supervisor submissions are saved as unpublished until the Research Committee or Admin publishes them.</p>}
+          <div className="form-actions"><button className="primary" disabled={saving} type="submit"><ButtonContent loading={saving} loadingText="Saving...">{editing ? 'Save Paper' : 'Add Paper'}</ButtonContent></button>{editing && <button className="secondary" type="button" onClick={resetForm}>Cancel edit</button>}</div>
+        </form>
+      )}
+      <div className="card">
+        <ResearchContentFilters search={search} setSearch={setSearch} category={category} setCategory={setCategory} type={year} setType={setYear} categories={categories} types={years} typeLabel="Publication year" />
+        {dataLoading ? <LoadingBlock text="Loading published papers..." /> : rows.length === 0 ? <EmptyState title="No published papers found" text="Published papers will appear here after they are added." /> : (
+          <div className="research-paper-list">
+            {rows.map((item) => {
+              const pdfUrl = getResearchPdfUrl(item)
+              const keywords = uniqueTextList(String(item.keywords || '').split(','))
+              const canManage = canManagePublishedPaper(item, role, currentUser)
+              return <article className="research-paper-card" key={item.id}>
+                <div className="research-card-meta"><span className="status-badge">{item.publication_year || 'Year N/A'}</span><span>{item.category || 'Uncategorized'}</span>{!item.is_published && <span className="status-badge warning">Unpublished</span>}</div>
+                <h3>{item.title || 'Untitled paper'}</h3>
+                <p className="research-authors">{item.authors || 'Authors unavailable'}</p>
+                <p className="muted small">{[item.journal_name, item.volume && `Vol. ${item.volume}`, item.issue && `Issue ${item.issue}`, item.pages].filter(Boolean).join(' · ') || 'Journal details unavailable'}</p>
+                <p>{item.abstract || 'No abstract provided.'}</p>
+                {keywords.length > 0 && <div className="keyword-row">{keywords.map((keyword) => <span key={keyword}>{keyword}</span>)}</div>}
+                <div className="research-card-actions">
+                  {item.doi && <a className="ghost" href={`https://doi.org/${item.doi.replace(/^https?:\/\/(dx\.)?doi\.org\//i, '')}`} target="_blank" rel="noopener noreferrer">DOI</a>}
+                  {pdfUrl && <button className="secondary" type="button" onClick={() => openPdf('published-paper', item.id)}>View PDF</button>}
+                  {item.external_url && <a className="secondary" href={item.external_url} target="_blank" rel="noopener noreferrer">Open Published Paper</a>}
+                  {canManage && <button className="ghost" type="button" onClick={() => startEdit(item)}>Edit</button>}
+                  {canManage && <button className="danger" type="button" onClick={() => deletePaper(item)}>Delete</button>}
+                </div>
+              </article>
+            })}
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+function ResearchPdfViewerPage({ data = emptyData, role = 'student', currentUser = {}, onBack }) {
+  const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams()
+  const kind = params.get('content') || params.get('source') || ''
+  const id = params.get('id') || ''
+  let item = null
+  let title = 'PDF Viewer'
+  let details = ''
+  if (kind === 'learning-resource') {
+    item = (data.researchLearningResources || []).map(normalizeResearchResource).find((entry) => String(entry.id) === String(id) && canViewResearchResource(entry, role))
+    title = item?.title || 'Learning Resource PDF'
+    details = [item?.author_or_source, item?.publication_year, item?.category].filter(Boolean).join(' · ')
+  } else if (kind === 'published-paper') {
+    item = (data.publishedPapers || []).map(normalizePublishedPaper).find((entry) => String(entry.id) === String(id) && canViewPublishedPaper(entry, role, currentUser))
+    title = item?.title || 'Published Paper PDF'
+    details = [item?.authors, item?.journal_name, item?.publication_year].filter(Boolean).join(' · ')
+  }
+  const pdfUrl = item ? getResearchPdfUrl(item) : ''
+  return (
+    <section className="research-content-page pdf-viewer-page">
+      <div className="card research-content-hero-card">
+        <SectionHeader icon={FileText} title={title} subtitle={details || 'View uploaded PDF inside the platform.'} />
+        <div className="research-card-actions"><button className="secondary" type="button" onClick={onBack}>Back</button>{pdfUrl && <a className="secondary" href={pdfUrl} target="_blank" rel="noopener noreferrer">Open in New Tab</a>}{pdfUrl && <a className="ghost" href={pdfUrl} download>Download</a>}{item?.external_url && <a className="ghost" href={item.external_url} target="_blank" rel="noopener noreferrer">Publisher Link</a>}</div>
+      </div>
+      {!item ? <EmptyState title="PDF not available" text="The PDF could not be found or you do not have permission to view it." /> : !pdfUrl ? <EmptyState title="No PDF uploaded" text="This item does not currently have a PDF file." /> : <div className="card pdf-viewer-card"><iframe title={title} src={`${pdfUrl}#toolbar=1&navpanes=0`} /></div>}
+    </section>
+  )
+}
 
 const fallbackDialogApi = {
   alert: (message) => { console.warn(message); return Promise.resolve(true) },
@@ -5710,6 +6239,36 @@ export default function App() {
         meetingRequestsData = []
       }
 
+      let researchLearningResourcesData = []
+      try {
+        const researchLearningResources = await supabase.from('research_learning_resources').select('*').order('created_at', { ascending: false })
+        if (!researchLearningResources.error) researchLearningResourcesData = researchLearningResources.data || []
+        else console.warn('Research Learning Resources table unavailable:', researchLearningResources.error.message || researchLearningResources.error)
+      } catch (error) {
+        console.warn('Research Learning Resources could not be loaded:', error.message || error)
+        researchLearningResourcesData = []
+      }
+
+      let researchDaysData = []
+      try {
+        const researchDays = await supabase.from('research_days').select('*').order('event_date', { ascending: false })
+        if (!researchDays.error) researchDaysData = researchDays.data || []
+        else console.warn('Research Day table unavailable:', researchDays.error.message || researchDays.error)
+      } catch (error) {
+        console.warn('Research Day could not be loaded:', error.message || error)
+        researchDaysData = []
+      }
+
+      let publishedPapersData = []
+      try {
+        const publishedPapers = await supabase.from('published_papers').select('*').order('created_at', { ascending: false })
+        if (!publishedPapers.error) publishedPapersData = publishedPapers.data || []
+        else console.warn('Published Papers table unavailable:', publishedPapers.error.message || publishedPapers.error)
+      } catch (error) {
+        console.warn('Published Papers could not be loaded:', error.message || error)
+        publishedPapersData = []
+      }
+
       const freshProfile = (profiles.data || []).find((profile) =>
         (!!userOverride?.id && String(profile.id) === String(userOverride.id)) ||
         (!!userOverride?.email && normalizeText(profile.email) === normalizeText(userOverride.email))
@@ -5746,6 +6305,9 @@ export default function App() {
         groupJoinRequests: groupJoinRequestsData,
         groupMembers: groupMembersData,
         meetingRequests: meetingRequestsData,
+        researchLearningResources: researchLearningResourcesData,
+        researchDays: researchDaysData,
+        publishedPapers: publishedPapersData,
       }))
     } catch (error) {
       setDataLoadError(error.message || 'Unknown database error')
@@ -9701,6 +10263,300 @@ export default function App() {
     window.print()
     addAudit(currentUser.full_name, 'printed', 'PDF report')
   }
+  async function uploadResearchContentFile(file, folder = 'research-content', allowed = 'pdf') {
+    if (!file) return { url: '', path: '' }
+    if (file.size > RESEARCH_CONTENT_MAX_FILE_SIZE) throw new Error('File is too large. Please upload a file smaller than 15 MB.')
+    if (allowed === 'pdf' && file.type !== 'application/pdf' && !String(file.name || '').toLowerCase().endsWith('.pdf')) {
+      throw new Error('Only PDF files are allowed for this upload.')
+    }
+    if (allowed === 'image' && !file.type?.startsWith('image/')) {
+      throw new Error('Please choose a valid image file.')
+    }
+    const safeName = sanitizeFileName(file.name || `${folder}-${Date.now()}`)
+    const owner = currentUser?.id || activeRoleUser?.id || 'user'
+    const filePath = `${folder}/${owner}/${Date.now()}-${safeName}`
+    if (!isSupabaseConfigured) {
+      const dataUrl = await readFileAsDataUrl(file)
+      return { url: dataUrl, path: filePath }
+    }
+    const upload = await supabase.storage.from(RESEARCH_CONTENT_BUCKET).upload(filePath, file, { cacheControl: '3600', upsert: true })
+    if (upload.error) throw new Error(`${upload.error.message}. Run supabase/migrations/202607250001_research_content_sections.sql in Supabase SQL Editor, then try again.`)
+    const { data: publicData } = supabase.storage.from(RESEARCH_CONTENT_BUCKET).getPublicUrl(filePath)
+    return { url: publicData?.publicUrl || '', path: filePath }
+  }
+
+  function buildResearchLearningResourceRecord(payload = {}, upload = {}) {
+    const type = normalizeText(payload.resource_type || 'external')
+    return {
+      title: String(payload.title || '').trim(),
+      description: String(payload.description || '').trim(),
+      resource_type: type,
+      category: String(payload.category || 'Other').trim() || 'Other',
+      youtube_url: type === 'youtube' ? String(payload.youtube_url || '').trim() : '',
+      external_url: type === 'external' ? String(payload.external_url || '').trim() : '',
+      pdf_url: upload.url || payload.pdf_url || '',
+      pdf_path: upload.path || payload.pdf_path || '',
+      thumbnail_url: String(payload.thumbnail_url || '').trim(),
+      author_or_source: String(payload.author_or_source || '').trim(),
+      publication_year: payload.publication_year ? Number(payload.publication_year) : null,
+      is_published: Boolean(payload.is_published),
+      updated_at: new Date().toISOString(),
+    }
+  }
+
+  async function saveResearchLearningResource(payload = {}, pdfFile = null) {
+    if (!isResearchContentManager(allowedRole)) return { ok: false, error: 'Only Research Committee and Admin users can manage learning resources.' }
+    const type = normalizeText(payload.resource_type || 'external')
+    if (!String(payload.title || '').trim()) return setMessage('Please enter a resource title.'), { ok: false, error: 'Missing title' }
+    if (type === 'youtube' && !isValidYouTubeUrl(payload.youtube_url)) return setMessage('Please enter a valid YouTube URL.'), { ok: false, error: 'Invalid YouTube URL' }
+    if (type === 'external' && !isValidHttpUrl(payload.external_url)) return setMessage('Please enter a valid external URL.'), { ok: false, error: 'Invalid URL' }
+    if (type === 'pdf' && !pdfFile && !payload.pdf_url) return setMessage('Please upload a PDF file.'), { ok: false, error: 'Missing PDF' }
+    if (payload.thumbnail_url && !isValidHttpUrl(payload.thumbnail_url)) return setMessage('Please enter a valid thumbnail URL or leave it blank.'), { ok: false, error: 'Invalid thumbnail URL' }
+    try {
+      const upload = pdfFile ? await uploadResearchContentFile(pdfFile, 'learning-resources', 'pdf') : { url: '', path: '' }
+      const record = buildResearchLearningResourceRecord(payload, upload)
+      let saved = { ...payload, ...record }
+      if (isSupabaseConfigured) {
+        if (payload.id) {
+          const { data: updated, error } = await supabase.from('research_learning_resources').update(record).eq('id', payload.id).select().single()
+          if (error) throw error
+          saved = updated
+        } else {
+          const { data: inserted, error } = await supabase.from('research_learning_resources').insert({ ...record, created_by: currentUser?.id || null }).select().single()
+          if (error) throw error
+          saved = inserted
+        }
+        await loadFromSupabase(currentUser)
+      } else {
+        saved = normalizeResearchResource({ ...saved, id: payload.id || crypto.randomUUID(), created_by: payload.created_by || currentUser?.id || null })
+        setLocal((current) => ({ ...current, researchLearningResources: payload.id ? (current.researchLearningResources || []).map((item) => String(item.id) === String(payload.id) ? saved : item) : [saved, ...(current.researchLearningResources || [])] }))
+      }
+      await addAudit(currentUser?.full_name || currentUser?.email || 'User', payload.id ? 'updated' : 'created', `learning resource: ${record.title}`)
+      setMessage(payload.id ? 'Learning resource updated successfully.' : 'Learning resource added successfully.')
+      return { ok: true, resource: saved }
+    } catch (error) {
+      const text = `${error.message || 'Could not save learning resource.'} Run supabase/migrations/202607250001_research_content_sections.sql if the table or storage bucket is missing.`
+      setMessage(text)
+      return { ok: false, error: text }
+    }
+  }
+
+  async function deleteResearchLearningResource(item = {}) {
+    if (!isResearchContentManager(allowedRole)) return { ok: false, error: 'Not authorized.' }
+    const confirmed = await showAppConfirm(`Delete the learning resource “${item.title || 'Untitled'}”?`, { title: 'Delete Learning Resource', type: 'warning', confirmLabel: 'Delete' })
+    if (!confirmed) return { ok: false }
+    try {
+      if (isSupabaseConfigured) {
+        if (item.pdf_path) await supabase.storage.from(RESEARCH_CONTENT_BUCKET).remove([item.pdf_path]).catch(() => null)
+        const { error } = await supabase.from('research_learning_resources').delete().eq('id', item.id)
+        if (error) throw error
+        await loadFromSupabase(currentUser)
+      } else {
+        setLocal((current) => ({ ...current, researchLearningResources: (current.researchLearningResources || []).filter((row) => String(row.id) !== String(item.id)) }))
+      }
+      await addAudit(currentUser?.full_name || currentUser?.email || 'User', 'deleted', `learning resource: ${item.title || item.id}`)
+      setMessage('Learning resource deleted successfully.')
+      return { ok: true }
+    } catch (error) {
+      setMessage(error.message || 'Could not delete learning resource.')
+      return { ok: false, error: error.message }
+    }
+  }
+
+  async function notifyResearchDayPublished(eventRow = {}) {
+    const notificationType = `research_day_published_${eventRow.id}`
+    const alreadyExists = (data.notifications || []).some((note) => note.notification_type === notificationType)
+    if (alreadyExists) return
+    const recipients = (data.profiles || []).filter((profile) => ['student', 'supervisor'].includes(normalizeText(profile.role)) && normalizeText(profile.status || 'active') !== 'rejected')
+    const notices = recipients.map((recipient) => ({
+      profile_id: recipient.id || null,
+      recipient_user_id: recipient.id || null,
+      recipient_email: recipient.email || '',
+      sender_user_id: currentUser?.id || null,
+      notification_type: notificationType,
+      title: 'Research Day Published',
+      message: `${eventRow.title || 'Research Day'} has been published. Please review the event date, location, and instructions.`,
+      type: 'Research Day',
+      target_role: recipient.role || '',
+      is_read: false,
+      created_at: new Date().toISOString(),
+    }))
+    if (!notices.length) return
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.from('notifications').insert(notices)
+      if (error) console.warn('Research Day notification failed:', error)
+    } else {
+      setLocal((current) => ({ ...current, notifications: [...notices, ...(current.notifications || [])] }))
+    }
+  }
+
+  async function saveResearchDay(payload = {}, bannerFile = null) {
+    if (!isResearchContentManager(allowedRole)) return { ok: false, error: 'Only Research Committee and Admin users can manage Research Day.' }
+    if (!String(payload.title || '').trim() || !payload.event_date || !payload.start_time || !payload.end_time || !String(payload.location || '').trim()) {
+      setMessage('Please complete the event title, date, start time, end time, and location.')
+      return { ok: false, error: 'Missing required fields' }
+    }
+    if (payload.end_time < payload.start_time) return setMessage('End time cannot be earlier than start time.'), { ok: false, error: 'Invalid time range' }
+    if (payload.external_url && !isValidHttpUrl(payload.external_url)) return setMessage('Please enter a valid external information link or leave it blank.'), { ok: false, error: 'Invalid URL' }
+    try {
+      const upload = bannerFile ? await uploadResearchContentFile(bannerFile, 'research-day-banners', 'image') : { url: '', path: '' }
+      const existing = (data.researchDays || []).find((item) => String(item.id) === String(payload.id))
+      const record = {
+        title: String(payload.title || '').trim(),
+        event_date: payload.event_date,
+        start_time: payload.start_time,
+        end_time: payload.end_time,
+        location: String(payload.location || '').trim(),
+        description: String(payload.description || '').trim(),
+        student_instructions: String(payload.student_instructions || '').trim(),
+        supervisor_instructions: String(payload.supervisor_instructions || '').trim(),
+        contact_information: String(payload.contact_information || '').trim(),
+        external_url: String(payload.external_url || '').trim(),
+        banner_url: upload.url || payload.banner_url || '',
+        banner_path: upload.path || payload.banner_path || '',
+        status: normalizeResearchStatus(payload.status || 'Draft'),
+        updated_at: new Date().toISOString(),
+      }
+      let saved = { ...payload, ...record }
+      if (isSupabaseConfigured) {
+        if (payload.id) {
+          const { data: updated, error } = await supabase.from('research_days').update(record).eq('id', payload.id).select().single()
+          if (error) throw error
+          saved = updated
+        } else {
+          const { data: inserted, error } = await supabase.from('research_days').insert({ ...record, created_by: currentUser?.id || null }).select().single()
+          if (error) throw error
+          saved = inserted
+        }
+      } else {
+        saved = normalizeResearchDay({ ...saved, id: payload.id || crypto.randomUUID(), created_by: payload.created_by || currentUser?.id || null })
+        setLocal((current) => ({ ...current, researchDays: payload.id ? (current.researchDays || []).map((item) => String(item.id) === String(payload.id) ? saved : item) : [saved, ...(current.researchDays || [])] }))
+      }
+      const becamePublished = normalizeResearchStatus(record.status) === 'Published' && normalizeResearchStatus(existing?.status || '') !== 'Published'
+      if (becamePublished) await notifyResearchDayPublished(saved)
+      if (isSupabaseConfigured) await loadFromSupabase(currentUser)
+      await addAudit(currentUser?.full_name || currentUser?.email || 'User', payload.id ? 'updated' : 'created', `Research Day: ${record.title}`)
+      setMessage(payload.id ? 'Research Day updated successfully.' : 'Research Day created successfully.')
+      return { ok: true, event: saved }
+    } catch (error) {
+      const text = `${error.message || 'Could not save Research Day.'} Run supabase/migrations/202607250001_research_content_sections.sql if the table or storage bucket is missing.`
+      setMessage(text)
+      return { ok: false, error: text }
+    }
+  }
+
+  async function deleteResearchDay(item = {}) {
+    if (!isResearchContentManager(allowedRole)) return { ok: false, error: 'Not authorized.' }
+    const confirmed = await showAppConfirm(`Delete the Research Day entry “${item.title || 'Untitled'}”?`, { title: 'Delete Research Day', type: 'warning', confirmLabel: 'Delete' })
+    if (!confirmed) return { ok: false }
+    try {
+      if (isSupabaseConfigured) {
+        if (item.banner_path) await supabase.storage.from(RESEARCH_CONTENT_BUCKET).remove([item.banner_path]).catch(() => null)
+        const { error } = await supabase.from('research_days').delete().eq('id', item.id)
+        if (error) throw error
+        await loadFromSupabase(currentUser)
+      } else {
+        setLocal((current) => ({ ...current, researchDays: (current.researchDays || []).filter((row) => String(row.id) !== String(item.id)) }))
+      }
+      await addAudit(currentUser?.full_name || currentUser?.email || 'User', 'deleted', `Research Day: ${item.title || item.id}`)
+      setMessage('Research Day entry deleted successfully.')
+      return { ok: true }
+    } catch (error) {
+      setMessage(error.message || 'Could not delete Research Day.')
+      return { ok: false, error: error.message }
+    }
+  }
+
+  async function savePublishedPaper(payload = {}, pdfFile = null) {
+    const existing = (data.publishedPapers || []).find((item) => String(item.id) === String(payload.id))
+    if (!canManagePublishedPaper(existing || payload, allowedRole, activeRoleUser)) return { ok: false, error: 'You are not authorized to manage this paper.' }
+    if (!String(payload.title || '').trim() || !String(payload.authors || '').trim()) return setMessage('Please enter the paper title and authors.'), { ok: false, error: 'Missing required fields' }
+    if (!payload.publication_year && !payload.publication_date) return setMessage('Please enter a publication year or publication date.'), { ok: false, error: 'Missing publication date/year' }
+    if (!pdfFile && !payload.pdf_url && !payload.external_url) return setMessage('Please provide a PDF upload or an external paper link.'), { ok: false, error: 'Missing paper link' }
+    if (payload.external_url && !isValidHttpUrl(payload.external_url)) return setMessage('Please enter a valid external paper URL.'), { ok: false, error: 'Invalid URL' }
+    if (!isValidDoi(payload.doi)) return setMessage('Please enter a valid DOI or leave it blank.'), { ok: false, error: 'Invalid DOI' }
+    try {
+      const upload = pdfFile ? await uploadResearchContentFile(pdfFile, 'published-papers', 'pdf') : { url: '', path: '' }
+      const record = {
+        title: String(payload.title || '').trim(),
+        authors: String(payload.authors || '').trim(),
+        corresponding_author: String(payload.corresponding_author || '').trim(),
+        journal_name: String(payload.journal_name || '').trim(),
+        publication_year: payload.publication_year ? Number(payload.publication_year) : null,
+        publication_date: payload.publication_date || null,
+        volume: String(payload.volume || '').trim(),
+        issue: String(payload.issue || '').trim(),
+        pages: String(payload.pages || '').trim(),
+        doi: String(payload.doi || '').trim(),
+        abstract: String(payload.abstract || '').trim(),
+        keywords: String(payload.keywords || '').trim(),
+        category: String(payload.category || 'Other').trim() || 'Other',
+        external_url: String(payload.external_url || '').trim(),
+        pdf_url: upload.url || payload.pdf_url || '',
+        pdf_path: upload.path || payload.pdf_path || '',
+        is_published: isResearchContentManager(allowedRole) ? Boolean(payload.is_published) : Boolean(existing?.is_published),
+        updated_at: new Date().toISOString(),
+      }
+      let saved = { ...payload, ...record }
+      if (isSupabaseConfigured) {
+        if (payload.id) {
+          const { data: updated, error } = await supabase.from('published_papers').update(record).eq('id', payload.id).select().single()
+          if (error) throw error
+          saved = updated
+        } else {
+          const { data: inserted, error } = await supabase.from('published_papers').insert({ ...record, submitted_by: currentUser?.id || activeRoleUser?.id || null }).select().single()
+          if (error) throw error
+          saved = inserted
+        }
+        await loadFromSupabase(currentUser)
+      } else {
+        saved = normalizePublishedPaper({ ...saved, id: payload.id || crypto.randomUUID(), submitted_by: payload.submitted_by || currentUser?.id || null })
+        setLocal((current) => ({ ...current, publishedPapers: payload.id ? (current.publishedPapers || []).map((item) => String(item.id) === String(payload.id) ? saved : item) : [saved, ...(current.publishedPapers || [])] }))
+      }
+      await addAudit(currentUser?.full_name || currentUser?.email || 'User', payload.id ? 'updated' : 'created', `published paper: ${record.title}`)
+      setMessage(payload.id ? 'Published paper updated successfully.' : 'Published paper added successfully.')
+      return { ok: true, paper: saved }
+    } catch (error) {
+      const text = `${error.message || 'Could not save published paper.'} Run supabase/migrations/202607250001_research_content_sections.sql if the table or storage bucket is missing.`
+      setMessage(text)
+      return { ok: false, error: text }
+    }
+  }
+
+  async function deletePublishedPaper(item = {}) {
+    if (!canManagePublishedPaper(item, allowedRole, activeRoleUser)) return { ok: false, error: 'Not authorized.' }
+    const confirmed = await showAppConfirm(`Delete the published paper “${item.title || 'Untitled'}”?`, { title: 'Delete Published Paper', type: 'warning', confirmLabel: 'Delete' })
+    if (!confirmed) return { ok: false }
+    try {
+      if (isSupabaseConfigured) {
+        if (item.pdf_path) await supabase.storage.from(RESEARCH_CONTENT_BUCKET).remove([item.pdf_path]).catch(() => null)
+        const { error } = await supabase.from('published_papers').delete().eq('id', item.id)
+        if (error) throw error
+        await loadFromSupabase(currentUser)
+      } else {
+        setLocal((current) => ({ ...current, publishedPapers: (current.publishedPapers || []).filter((row) => String(row.id) !== String(item.id)) }))
+      }
+      await addAudit(currentUser?.full_name || currentUser?.email || 'User', 'deleted', `published paper: ${item.title || item.id}`)
+      setMessage('Published paper deleted successfully.')
+      return { ok: true }
+    } catch (error) {
+      setMessage(error.message || 'Could not delete published paper.')
+      return { ok: false, error: error.message }
+    }
+  }
+
+  function openResearchContentPdf(kind, id) {
+    const nextPath = getAuthenticatedTabPath('pdf-viewer', allowedRole)
+    const query = `?content=${encodeURIComponent(kind)}&id=${encodeURIComponent(id)}`
+    if (isAdminPortal) {
+      setAdminPanelTab('pdf-viewer')
+      if (typeof window !== 'undefined') window.history.pushState({}, '', `${nextPath}${query}`)
+      return
+    }
+    setTab('pdf-viewer')
+    if (typeof window !== 'undefined') window.history.pushState({}, '', `${nextPath}${query}`)
+  }
+
 
   const visibleProjects = useMemo(() => {
     return getVisibleProjects(data.projects, allowedRole, activeRoleUser, data)
@@ -9859,6 +10715,13 @@ export default function App() {
         uploadOwnProfilePhoto={uploadOwnProfilePhoto}
         updateOwnPassword={updateOwnPassword}
         updateCommitteeSupervisorAccess={updateCommitteeSupervisorAccess}
+        saveResearchLearningResource={saveResearchLearningResource}
+        deleteResearchLearningResource={deleteResearchLearningResource}
+        saveResearchDay={saveResearchDay}
+        deleteResearchDay={deleteResearchDay}
+        savePublishedPaper={savePublishedPaper}
+        deletePublishedPaper={deletePublishedPaper}
+        openResearchContentPdf={openResearchContentPdf}
       />
       <AppDialog dialog={appDialog} onClose={closeAppDialog} />
       </>
@@ -9879,12 +10742,12 @@ export default function App() {
   ].filter((item) => item.show)
   const utilityNavItems = [
     { id: 'public-home', label: 'Homepage', icon: null, type: 'public' },
-    { id: 'inbox', label: 'Inbox', icon: Inbox, type: 'action' },
+    { id: 'learning-resources', label: 'Research Learning Resources', icon: null, type: 'button' },
+    { id: 'research-day', label: 'Research Day', icon: null, type: 'button' },
+    { id: 'published-papers', label: 'Published Papers', icon: null, type: 'button' },
     { id: 'reports', label: 'Print/PDF Reports', icon: Printer, type: 'button' },
-    { id: 'about-us', label: 'About Us', icon: null, type: 'button' },
     { id: 'guidelines', label: 'Research Guidelines', icon: FileText, type: 'download' },
     { id: 'scholar', label: 'HMU Google Scholar', icon: GraduationCap, type: 'external' },
-    { id: 'profile-settings', label: 'Profile Settings', icon: Settings, type: 'button' },
   ]
   function handleMainNavClick(tabId, sectionId = '') {
     setSidebarOpen(false)
@@ -10046,6 +10909,10 @@ export default function App() {
         {tab === 'join-group' && allowedRole === 'student' && roleContextReady && !studentCurrentResearchGroup && <StudentJoinResearchGroupTab data={data} currentUser={activeRoleUser} dataLoading={dataLoading} submitGroupJoinRequest={submitGroupJoinRequest} />}
         {tab === 'groups' && allowedRole === 'supervisor' && roleContextReady && <SupervisorResearchGroupManagementTab data={data} currentUser={activeRoleUser} dataLoading={dataLoading} supervisorAddStudentsToGroup={supervisorAddStudentsToGroup} decideGroupJoinRequest={decideGroupJoinRequest} />}
         {tab === 'group-requests' && (allowedRole === 'admin' || allowedRole === 'committee') && <AdminGroupJoinRequestsTab data={data} currentUser={currentUser} dataLoading={dataLoading} decideGroupJoinRequest={decideGroupJoinRequest} directAddStudentsToGroup={directAddStudentsToGroup} />}
+        {tab === 'learning-resources' && <ResearchLearningResourcesPage data={data} role={allowedRole} currentUser={activeRoleUser} dataLoading={dataLoading} saveResource={saveResearchLearningResource} deleteResource={deleteResearchLearningResource} openPdf={openResearchContentPdf} />}
+        {tab === 'research-day' && <ResearchDayPage data={data} role={allowedRole} currentUser={activeRoleUser} dataLoading={dataLoading} saveResearchDay={saveResearchDay} deleteResearchDay={deleteResearchDay} />}
+        {tab === 'published-papers' && <PublishedPapersPage data={data} role={allowedRole} currentUser={activeRoleUser} dataLoading={dataLoading} savePaper={savePublishedPaper} deletePaper={deletePublishedPaper} openPdf={openResearchContentPdf} />}
+        {tab === 'pdf-viewer' && <ResearchPdfViewerPage data={data} role={allowedRole} currentUser={activeRoleUser} onBack={() => handleMainNavClick('published-papers')} />}
         {tab === 'reports' && <ReportsTab data={data} projects={filteredProjects} currentUser={activeRoleUser} role={allowedRole} printPdfReport={printPdfReport} exportCsv={exportCsv} pdfReportSettings={getPdfReportSettingsForRole(allowedRole, pdfReportSettingsByRole, pdfReportSettings)} dataLoading={dataLoading} />}
         {tab === 'database' && allowedRole === 'admin' && <DatabaseTab databaseMode={databaseMode} />}
         {tab === 'database' && allowedRole !== 'admin' && <div className="card"><SectionHeader icon={Lock} title="Database Access Locked" subtitle="Only Admin accounts can view database status" /><p className="muted">Please use your role dashboard, inbox, or reports page.</p></div>}
@@ -11517,6 +12384,13 @@ function AdminControlPanel({
   uploadOwnProfilePhoto,
   updateOwnPassword,
   updateCommitteeSupervisorAccess,
+  saveResearchLearningResource,
+  deleteResearchLearningResource,
+  saveResearchDay,
+  deleteResearchDay,
+  savePublishedPaper,
+  deletePublishedPaper,
+  openResearchContentPdf,
   loadError = '',
   dataLoading = false,
 }) {
@@ -11601,6 +12475,9 @@ function AdminControlPanel({
     { id: 'button-colors', label: 'Color Customization', icon: Palette },
     { id: 'login-settings', label: 'Login Page Settings', icon: Lock },
     { id: 'about-us', label: 'About Us Customization', icon: BookOpen },
+    { id: 'learning-resources', label: 'Research Learning Resources', icon: null },
+    { id: 'research-day', label: 'Research Day', icon: null },
+    { id: 'published-papers', label: 'Published Papers', icon: null },
     { id: 'users', label: 'Users & Roles', icon: Users },
     { id: 'supervisors', label: 'Supervisor Management', icon: UserCog },
     { id: 'dual-roles', label: 'Dual Role Management', icon: ShieldCheck },
@@ -11616,7 +12493,7 @@ function AdminControlPanel({
 
   const navGroups = [
     { label: 'Overview', ids: ['overview'] },
-    { label: 'Website & Content', ids: ['branding', 'button-colors', 'login-settings', 'about-us'] },
+    { label: 'Website & Content', ids: ['branding', 'button-colors', 'login-settings', 'about-us', 'learning-resources', 'research-day', 'published-papers'] },
     { label: 'People', ids: ['users', 'supervisors', 'dual-roles', 'invitations'] },
     { label: 'Research Operations', ids: ['deadlines', 'notifications', 'group-requests'] },
     { label: 'System', ids: ['database', 'audit', 'reports', 'pdf-report'] },
@@ -12231,6 +13108,10 @@ function AdminControlPanel({
 
         {adminPanelTab === 'profile-settings' && <ProfileSettingsPage currentUser={currentUser} onBack={() => changeAdminPanelTab('overview')} updateOwnProfile={updateOwnProfile} uploadOwnProfilePhoto={uploadOwnProfilePhoto} updateOwnPassword={updateOwnPassword} />}
         {adminPanelTab === 'about-us' && <AboutUsCustomizationPanel page={aboutUsPage} updatePage={updateAboutUsPage} uploadImage={uploadAboutUsImage} currentUser={currentUser} />}
+        {adminPanelTab === 'learning-resources' && <ResearchLearningResourcesPage data={data} role="admin" currentUser={currentUser} dataLoading={dataLoading} saveResource={saveResearchLearningResource} deleteResource={deleteResearchLearningResource} openPdf={openResearchContentPdf} />}
+        {adminPanelTab === 'research-day' && <ResearchDayPage data={data} role="admin" currentUser={currentUser} dataLoading={dataLoading} saveResearchDay={saveResearchDay} deleteResearchDay={deleteResearchDay} />}
+        {adminPanelTab === 'published-papers' && <PublishedPapersPage data={data} role="admin" currentUser={currentUser} dataLoading={dataLoading} savePaper={savePublishedPaper} deletePaper={deletePublishedPaper} openPdf={openResearchContentPdf} />}
+        {adminPanelTab === 'pdf-viewer' && <ResearchPdfViewerPage data={data} role="admin" currentUser={currentUser} onBack={() => changeAdminPanelTab('published-papers')} />}
 
         {adminPanelTab === 'overview' && (
           <AdminDashboard data={data} projects={projects} dataLoading={dataLoading} loadError={loadError} onNavigate={changeAdminPanelTab} />
