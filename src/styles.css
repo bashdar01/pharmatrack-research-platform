@@ -30916,3 +30916,38 @@ html body #root#root#root .admin-panel-shell .research-day-results {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Align research content action buttons to the same height and baseline */
+.research-card-actions :where(a, button, .secondary, .danger, .ghost, .research-edit-button) {
+  margin: 0 !important;
+  min-height: 40px !important;
+  height: 40px !important;
+  padding: 0 .95rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  align-self: center !important;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
+  vertical-align: middle !important;
+  text-decoration: none !important;
+}
+
+.research-card-actions .research-edit-button {
+  min-height: 40px !important;
+  height: 40px !important;
+  padding: 0 .95rem !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+}
+
+.research-card-actions {
+  align-items: center !important;
+}
+
+@media (max-width: 900px) {
+  .research-card-actions :where(a, button, .secondary, .danger, .ghost, .research-edit-button) {
+    min-height: 42px !important;
+    height: 42px !important;
+  }
+}
