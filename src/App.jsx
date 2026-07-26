@@ -4812,7 +4812,7 @@ function ResearchLearningResourcesPage({ data = emptyData, role = 'student', cur
   const [editing, setEditing] = useState(null)
   const [pdfFile, setPdfFile] = useState(null)
   const [saving, setSaving] = useState(false)
-  const emptyForm = { title: '', description: '', resource_type: 'youtube', category: 'Research Methods', youtube_url: '', external_url: '', author_or_source: '', publication_year: '', thumbnail_url: '', is_published: true }
+  const emptyForm = { title: '', description: '', resource_type: 'youtube', category: 'Research Methods', youtube_url: '', external_url: '', author_or_source: '', is_published: true }
   const [form, setForm] = useState(emptyForm)
   const resources = useMemo(() => (data.researchLearningResources || []).map(normalizeResearchResource), [data.researchLearningResources])
   const categories = useMemo(() => uniqueTextList([...RESEARCH_CATEGORY_OPTIONS, ...resources.map((item) => item.category)]), [resources])
@@ -4861,14 +4861,12 @@ function ResearchLearningResourcesPage({ data = emptyData, role = 'student', cur
             <label className="field"><span>Resource type</span><select value={form.resource_type} onChange={(e) => setForm({ ...form, resource_type: e.target.value })}>{RESEARCH_RESOURCE_TYPES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
             <label className="field"><span>Category</span><input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Research Methods" /></label>
             <label className="field"><span>Author or source</span><input value={form.author_or_source} onChange={(e) => setForm({ ...form, author_or_source: e.target.value })} placeholder="Author, channel, journal, or source" /></label>
-            <label className="field"><span>Publication year</span><input inputMode="numeric" value={form.publication_year || ''} onChange={(e) => setForm({ ...form, publication_year: e.target.value })} placeholder="2026" /></label>
-            <label className="field"><span>Optional thumbnail URL</span><input value={form.thumbnail_url || ''} onChange={(e) => setForm({ ...form, thumbnail_url: e.target.value })} placeholder="https://..." /></label>
           </div>
           <TextArea label="Short description" value={form.description} onChange={(value) => setForm({ ...form, description: value })} placeholder="Briefly describe why this resource is useful." />
           {form.resource_type === 'youtube' && <label className="field wide-field"><span>YouTube URL</span><input required value={form.youtube_url || ''} onChange={(e) => setForm({ ...form, youtube_url: e.target.value })} placeholder="https://www.youtube.com/watch?v=..." /></label>}
           {form.resource_type === 'external' && <label className="field wide-field"><span>External resource URL</span><input required value={form.external_url || ''} onChange={(e) => setForm({ ...form, external_url: e.target.value })} placeholder="https://..." /></label>}
           {form.resource_type === 'pdf' && <label className="field wide-field"><span>PDF upload</span><input type="file" accept="application/pdf,.pdf" onChange={(e) => setPdfFile(e.target.files?.[0] || null)} />{editing?.pdf_url && <small>Current PDF will be kept unless you upload a replacement.</small>}</label>}
-          <label className="toggle-line"><input type="checkbox" checked={Boolean(form.is_published)} onChange={(e) => setForm({ ...form, is_published: e.target.checked })} /> <span>Published and visible to students/supervisors</span></label>
+          <label className="field publish-field"><span>Visibility</span><select value={form.is_published ? 'published' : 'draft'} onChange={(e) => setForm({ ...form, is_published: e.target.value === 'published' })}><option value="published">Published and visible to students/supervisors</option><option value="draft">Draft / hidden</option></select></label>
           <div className="form-actions"><button className="primary" disabled={saving} type="submit"><ButtonContent loading={saving} loadingText="Saving...">{editing ? 'Save Changes' : 'Add Resource'}</ButtonContent></button>{editing && <button className="secondary" type="button" onClick={resetForm}>Cancel edit</button>}</div>
         </form>
       )}
@@ -4939,7 +4937,6 @@ function ResearchDayPage({ data = emptyData, role = 'student', currentUser = {},
     <section className="research-content-page research-day-page">
       <div className="card research-content-hero-card">
         <SectionHeader icon={CalendarDays} title="Research Day" subtitle="Official Research Day information for students, supervisors, Research Committee, and Admin users." />
-        <p className="muted">Published event information is loaded from Supabase and shown here with role-appropriate instructions.</p>
       </div>
       {canManage && (
         <form className="card research-management-form" onSubmit={submitEvent}>
@@ -10296,9 +10293,9 @@ export default function App() {
       external_url: type === 'external' ? String(payload.external_url || '').trim() : '',
       pdf_url: upload.url || payload.pdf_url || '',
       pdf_path: upload.path || payload.pdf_path || '',
-      thumbnail_url: String(payload.thumbnail_url || '').trim(),
+      thumbnail_url: '',
       author_or_source: String(payload.author_or_source || '').trim(),
-      publication_year: payload.publication_year ? Number(payload.publication_year) : null,
+      publication_year: null,
       is_published: Boolean(payload.is_published),
       updated_at: new Date().toISOString(),
     }
@@ -10311,7 +10308,6 @@ export default function App() {
     if (type === 'youtube' && !isValidYouTubeUrl(payload.youtube_url)) return setMessage('Please enter a valid YouTube URL.'), { ok: false, error: 'Invalid YouTube URL' }
     if (type === 'external' && !isValidHttpUrl(payload.external_url)) return setMessage('Please enter a valid external URL.'), { ok: false, error: 'Invalid URL' }
     if (type === 'pdf' && !pdfFile && !payload.pdf_url) return setMessage('Please upload a PDF file.'), { ok: false, error: 'Missing PDF' }
-    if (payload.thumbnail_url && !isValidHttpUrl(payload.thumbnail_url)) return setMessage('Please enter a valid thumbnail URL or leave it blank.'), { ok: false, error: 'Invalid thumbnail URL' }
     try {
       const upload = pdfFile ? await uploadResearchContentFile(pdfFile, 'learning-resources', 'pdf') : { url: '', path: '' }
       const record = buildResearchLearningResourceRecord(payload, upload)
