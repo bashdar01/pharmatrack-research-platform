@@ -30626,6 +30626,41 @@ html body #root#root#root .admin-panel-shell.admin-sidebar-collapsed .admin-side
   margin-top: .15rem;
 }
 
+.research-edit-button {
+  appearance: none;
+  border: 1px solid #bfdbfe;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  border-radius: 12px;
+  padding: .58rem .95rem;
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: .9rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(37, 99, 235, .18);
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
+}
+
+.research-edit-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: #93c5fd;
+  box-shadow: 0 14px 28px rgba(37, 99, 235, .24);
+}
+
+.research-edit-button:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, .28);
+  outline-offset: 2px;
+}
+
+.research-edit-button:disabled {
+  opacity: .65;
+  cursor: not-allowed;
+}
+
 .research-day-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(260px, .65fr);
@@ -30683,6 +30718,49 @@ html body #root#root#root .admin-panel-shell.admin-sidebar-collapsed .admin-side
 .research-day-list {
   display: grid;
   gap: .75rem;
+}
+
+.research-day-browser-card {
+  display: grid;
+  gap: 1rem;
+}
+
+.research-day-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.research-day-event-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  background: #fff;
+  padding: 1rem;
+  display: grid;
+  gap: .75rem;
+  align-content: start;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, .06);
+}
+
+.research-day-event-card h3 {
+  margin: 0;
+  color: #111827;
+  line-height: 1.25;
+}
+
+.research-day-event-card p {
+  margin: 0;
+}
+
+.research-instruction-box h4 {
+  margin: 0 0 .35rem;
+  font-size: .98rem;
+  color: #111827;
+}
+
+.research-instruction-box p {
+  white-space: pre-line;
 }
 
 .research-paper-list {
@@ -30746,7 +30824,8 @@ html body #root#root#root .admin-panel-shell.admin-sidebar-collapsed .admin-side
 @media (max-width: 560px) {
   .research-library-card,
   .research-paper-card,
-  .research-day-list-card {
+  .research-day-list-card,
+  .research-day-event-card {
     border-radius: 14px;
     padding: .85rem;
   }
@@ -30810,9 +30889,14 @@ html body #root#root#root .admin-panel-shell .research-card-grid {
   align-items: stretch !important;
 }
 
-html body #root#root#root .admin-panel-shell :where(.research-library-card, .research-paper-card, .research-day-list-card) {
+html body #root#root#root .admin-panel-shell :where(.research-library-card, .research-paper-card, .research-day-list-card, .research-day-event-card) {
   height: 100% !important;
   align-content: start !important;
+}
+
+html body #root#root#root .admin-panel-shell .research-day-results {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
+  align-items: stretch !important;
 }
 
 @media (max-width: 1100px) {

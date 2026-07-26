@@ -4276,6 +4276,13 @@ function getResearchDayDisplayStatus(event = {}) {
   return eventDate < new Date(`${todayKey}T00:00:00`) ? 'Completed' : 'Upcoming'
 }
 
+function getResearchDayInstructionText(event = {}) {
+  const parts = [event.description, event.student_instructions, event.supervisor_instructions]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)
+  return [...new Set(parts)].join('\n\n')
+}
+
 function canViewResearchResource(item = {}, role = 'student') {
   return isResearchContentManager(role) || normalizePublishedFlag(item.is_published)
 }
@@ -4889,7 +4896,7 @@ function ResearchLearningResourcesPage({ data = emptyData, role = 'student', cur
                     {item.resource_type === 'youtube' && item.youtube_url && <a className="secondary" href={item.youtube_url} target="_blank" rel="noopener noreferrer">Watch Video</a>}
                     {item.resource_type === 'external' && item.external_url && <a className="secondary" href={item.external_url} target="_blank" rel="noopener noreferrer">Open Resource</a>}
                     {item.resource_type === 'pdf' && pdfUrl && <button className="secondary" type="button" onClick={() => openPdf('learning-resource', item.id)}>View PDF</button>}
-                    {canManage && <button className="ghost" type="button" onClick={() => startEdit(item)}>Edit</button>}
+                    {canManage && <button className="research-edit-button" type="button" onClick={() => startEdit(item)}>Edit</button>}
                     {canManage && <button className="danger" type="button" onClick={() => deleteResource(item)}>Delete</button>}
                   </div>
                 </article>
@@ -4907,16 +4914,37 @@ function ResearchDayPage({ data = emptyData, role = 'student', currentUser = {},
   const [editing, setEditing] = useState(null)
   const [bannerFile, setBannerFile] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('All')
+  const [timeFilter, setTimeFilter] = useState('All')
   const emptyForm = { title: '', event_date: '', start_time: '', end_time: '', location: '', description: '', student_instructions: '', supervisor_instructions: '', contact_information: '', external_url: '', status: 'Draft' }
   const [form, setForm] = useState(emptyForm)
   const events = useMemo(() => (data.researchDays || []).map(normalizeResearchDay).filter((item) => canViewResearchDay(item, role)).sort((a, b) => String(b.event_date || '').localeCompare(String(a.event_date || ''))), [data.researchDays, role])
-  const nextEvent = events.find((event) => ['Upcoming', 'Today', 'Published'].includes(getResearchDayDisplayStatus(event))) || events[0]
+  const statusOptions = useMemo(() => uniqueTextList(events.map((event) => getResearchDayDisplayStatus(event))), [events])
+  const filteredEvents = useMemo(() => {
+    const q = normalizeText(search)
+    return events
+      .filter((event) => statusFilter === 'All' || getResearchDayDisplayStatus(event) === statusFilter)
+      .filter((event) => {
+        const displayStatus = getResearchDayDisplayStatus(event)
+        if (timeFilter === 'All') return true
+        if (timeFilter === 'Upcoming') return ['Upcoming', 'Today', 'Published'].includes(displayStatus)
+        if (timeFilter === 'Completed') return ['Completed', 'Archived'].includes(displayStatus)
+        if (timeFilter === 'Draft') return ['Draft'].includes(displayStatus)
+        return true
+      })
+      .filter((event) => {
+        if (!q) return true
+        return [event.title, event.location, event.description, event.contact_information, event.external_url, getResearchDayInstructionText(event), getResearchDayDisplayStatus(event)].some((value) => normalizeText(value).includes(q))
+      })
+  }, [events, search, statusFilter, timeFilter])
 
   function startEdit(item) {
     const normalized = normalizeResearchDay(item)
+    const combinedDescription = getResearchDayInstructionText(normalized)
     setEditing(normalized)
     setBannerFile(null)
-    setForm({ ...emptyForm, ...normalized })
+    setForm({ ...emptyForm, ...normalized, description: combinedDescription, student_instructions: '', supervisor_instructions: '' })
   }
 
   function resetForm() {
@@ -4928,7 +4956,15 @@ function ResearchDayPage({ data = emptyData, role = 'student', currentUser = {},
   async function submitEvent(event) {
     event.preventDefault()
     setSaving(true)
-    const result = await saveResearchDay({ ...form, id: editing?.id, banner_url: editing?.banner_url || form.banner_url || '', banner_path: editing?.banner_path || form.banner_path || '' }, bannerFile)
+    const result = await saveResearchDay({
+      ...form,
+      id: editing?.id,
+      description: String(form.description || '').trim(),
+      student_instructions: '',
+      supervisor_instructions: '',
+      banner_url: editing?.banner_url || form.banner_url || '',
+      banner_path: editing?.banner_path || form.banner_path || '',
+    }, bannerFile)
     setSaving(false)
     if (result?.ok) resetForm()
   }
@@ -4951,31 +4987,40 @@ function ResearchDayPage({ data = emptyData, role = 'student', currentUser = {},
             <label className="field"><span>Optional information link</span><input value={form.external_url || ''} onChange={(e) => setForm({ ...form, external_url: e.target.value })} placeholder="https://..." /></label>
             <label className="field"><span>Optional banner image</span><input type="file" accept="image/*" onChange={(e) => setBannerFile(e.target.files?.[0] || null)} />{editing?.banner_url && <small>Current banner will be kept unless replaced.</small>}</label>
           </div>
-          <TextArea label="Full description" value={form.description} onChange={(value) => setForm({ ...form, description: value })} placeholder="Describe the event and expectations." />
-          <TextArea label="Student instructions" value={form.student_instructions} onChange={(value) => setForm({ ...form, student_instructions: value })} placeholder="Instructions for students." />
-          <TextArea label="Supervisor instructions" value={form.supervisor_instructions} onChange={(value) => setForm({ ...form, supervisor_instructions: value })} placeholder="Instructions for supervisors." />
+          <TextArea label="Description / instruction" value={form.description} onChange={(value) => setForm({ ...form, description: value })} placeholder="Describe the event and include any instructions for participants." />
           <TextArea label="Optional contact details" value={form.contact_information} onChange={(value) => setForm({ ...form, contact_information: value })} placeholder="Contact person, email, phone, or office." />
           <div className="form-actions"><button className="primary" disabled={saving} type="submit"><ButtonContent loading={saving} loadingText="Saving...">{editing ? 'Save Event' : 'Create Event'}</ButtonContent></button>{editing && <button className="secondary" type="button" onClick={resetForm}>Cancel edit</button>}</div>
         </form>
       )}
-      {dataLoading ? <LoadingBlock text="Loading Research Day information..." /> : events.length === 0 ? <EmptyState title="No Research Day information yet" text="Published Research Day details will appear here." icon={CalendarDays} /> : (
-        <div className="research-day-layout">
-          {nextEvent && <article className="card research-day-feature-card">
-            {nextEvent.banner_url && <img className="research-day-banner" src={nextEvent.banner_url} alt="Research Day banner" />}
-            <div className="research-card-meta"><span className="status-badge">{getResearchDayDisplayStatus(nextEvent)}</span><span>{nextEvent.event_date || 'Date unavailable'}</span></div>
-            <h2>{nextEvent.title}</h2>
-            <div className="research-event-facts"><span><b>Date</b>{nextEvent.event_date || 'Not set'}</span><span><b>Time</b>{[nextEvent.start_time, nextEvent.end_time].filter(Boolean).join(' – ') || 'Not set'}</span><span><b>Location</b>{nextEvent.location || 'Not set'}</span></div>
-            <p>{nextEvent.description || 'No description provided.'}</p>
-            {nextEvent.student_instructions && <div className="research-instruction-box"><h3>Student instructions</h3><p>{nextEvent.student_instructions}</p></div>}
-            {nextEvent.supervisor_instructions && <div className="research-instruction-box"><h3>Supervisor instructions</h3><p>{nextEvent.supervisor_instructions}</p></div>}
-            {nextEvent.contact_information && <p className="muted small"><b>Contact:</b> {nextEvent.contact_information}</p>}
-            <div className="research-card-actions">{nextEvent.external_url && <a className="secondary" href={nextEvent.external_url} target="_blank" rel="noopener noreferrer">Open Information Link</a>}{canManage && <button className="ghost" type="button" onClick={() => startEdit(nextEvent)}>Edit</button>}{canManage && <button className="danger" type="button" onClick={() => deleteResearchDay(nextEvent)}>Delete</button>}</div>
-          </article>}
-          <div className="research-day-list">
-            {events.map((event) => <article className="research-day-list-card" key={event.id}><span className="status-badge">{getResearchDayDisplayStatus(event)}</span><h3>{event.title}</h3><p>{[event.event_date, [event.start_time, event.end_time].filter(Boolean).join(' – '), event.location].filter(Boolean).join(' · ')}</p>{canManage && <div className="research-card-actions"><button className="ghost" type="button" onClick={() => startEdit(event)}>Edit</button><button className="danger" type="button" onClick={() => deleteResearchDay(event)}>Delete</button></div>}</article>)}
-          </div>
+      <div className="card research-day-browser-card">
+        <div className="research-content-toolbar research-day-toolbar">
+          <label className="field research-search-field"><span>Search</span><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by title, date, location, status, or instruction" /></label>
+          <label className="field"><span>Status</span><select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}><option>All</option>{statusOptions.map((status) => <option key={status}>{status}</option>)}</select></label>
+          <label className="field"><span>Time</span><select value={timeFilter} onChange={(e) => setTimeFilter(e.target.value)}><option value="All">All dates</option><option value="Upcoming">Upcoming / today</option><option value="Completed">Completed / archived</option>{canManage && <option value="Draft">Draft only</option>}</select></label>
         </div>
-      )}
+        {dataLoading ? <LoadingBlock text="Loading Research Day information..." /> : events.length === 0 ? <EmptyState title="No Research Day information yet" text="Published Research Day details will appear here." icon={CalendarDays} /> : filteredEvents.length === 0 ? <EmptyState title="No Research Day results" text="Try changing your search or filters." icon={CalendarDays} /> : (
+          <div className="research-day-results">
+            {filteredEvents.map((event) => {
+              const instructionText = getResearchDayInstructionText(event)
+              return (
+                <article className="research-day-event-card" key={event.id}>
+                  {event.banner_url && <img className="research-day-banner" src={event.banner_url} alt="Research Day banner" />}
+                  <div className="research-card-meta"><span className="status-badge">{getResearchDayDisplayStatus(event)}</span><span>{event.event_date || 'Date unavailable'}</span></div>
+                  <h3>{event.title || 'Research Day'}</h3>
+                  <div className="research-event-facts"><span><b>Date</b>{event.event_date || 'Not set'}</span><span><b>Time</b>{[event.start_time, event.end_time].filter(Boolean).join(' – ') || 'Not set'}</span><span><b>Location</b>{event.location || 'Not set'}</span></div>
+                  {instructionText && <div className="research-instruction-box"><h4>Description / instruction</h4><p>{instructionText}</p></div>}
+                  {event.contact_information && <p className="muted small"><b>Contact:</b> {event.contact_information}</p>}
+                  <div className="research-card-actions">
+                    {event.external_url && <a className="secondary" href={event.external_url} target="_blank" rel="noopener noreferrer">Open Information Link</a>}
+                    {canManage && <button className="research-edit-button" type="button" onClick={() => startEdit(event)}>Edit</button>}
+                    {canManage && <button className="danger" type="button" onClick={() => deleteResearchDay(event)}>Delete</button>}
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        )}
+      </div>
     </section>
   )
 }
@@ -5072,7 +5117,7 @@ function PublishedPapersPage({ data = emptyData, role = 'student', currentUser =
                   {item.doi && <a className="ghost" href={`https://doi.org/${item.doi.replace(/^https?:\/\/(dx\.)?doi\.org\//i, '')}`} target="_blank" rel="noopener noreferrer">DOI</a>}
                   {pdfUrl && <button className="secondary" type="button" onClick={() => openPdf('published-paper', item.id)}>View PDF</button>}
                   {item.external_url && <a className="secondary" href={item.external_url} target="_blank" rel="noopener noreferrer">Open Published Paper</a>}
-                  {canManage && <button className="ghost" type="button" onClick={() => startEdit(item)}>Edit</button>}
+                  {canManage && <button className="research-edit-button" type="button" onClick={() => startEdit(item)}>Edit</button>}
                   {canManage && <button className="danger" type="button" onClick={() => deletePaper(item)}>Delete</button>}
                 </div>
               </article>
