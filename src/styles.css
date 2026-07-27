@@ -30951,3 +30951,112 @@ html body #root#root#root .admin-panel-shell .research-day-results {
     height: 42px !important;
   }
 }
+
+/* Targeted UI polish: Research Day helper text removal, compact 2x2 footer,
+   larger existing top-nav avatar, tighter role switcher, and removed homepage Roles link. */
+html body #root .shared-platform-footer__brand p {
+  display: none !important;
+  margin: 0 !important;
+}
+
+html body #root .shared-platform-footer__grid,
+html body #root .shared-platform-footer--authenticated .shared-platform-footer__grid {
+  width: min(980px, 100%) !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  column-gap: clamp(18px, 4vw, 48px) !important;
+  row-gap: 12px !important;
+  align-items: center !important;
+}
+
+html body #root .shared-platform-footer__brand {
+  grid-column: auto !important;
+  align-self: center !important;
+}
+
+html body #root .shared-platform-footer__links,
+html body #root .shared-platform-footer__resources,
+html body #root .shared-platform-footer__account {
+  align-self: center !important;
+  justify-self: start !important;
+}
+
+html body #root .shared-platform-footer__resources a[href='/contact'],
+html body #root .shared-platform-footer__bottom a[href='/contact'] {
+  display: none !important;
+}
+
+html body #root .shared-platform-footer__bottom {
+  width: min(980px, 100%) !important;
+}
+
+:root {
+  --auth-header-height: 38px;
+  --top-header-height: var(--auth-header-height);
+  --auth-profile-hit-width: 50px;
+  --auth-profile-circle-size: 36px;
+}
+
+html body #root#root#root .main-compact-header .student-profile-trigger > img,
+html body #root#root#root .main-compact-header .student-profile-trigger > span:not(.profile-online-dot),
+html body #root#root#root .main-header-actions .student-profile-trigger > img,
+html body #root#root#root .main-header-actions .student-profile-trigger > span:not(.profile-online-dot) {
+  font-size: 0.95rem !important;
+}
+
+html body #root .main-compact-header .role-switch-dropdown,
+html body #root .main-header-actions .role-switch-dropdown,
+html body #root .role-switch-dropdown.role-switch-label-hidden {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  padding: 0 8px !important;
+  justify-content: flex-start !important;
+  gap: 0 !important;
+}
+
+html body #root .main-compact-header .role-switch-dropdown select,
+html body #root .main-header-actions .role-switch-dropdown select,
+html body #root .role-switch-dropdown.role-switch-label-hidden select {
+  width: var(--role-select-width, auto) !important;
+  min-width: var(--role-select-width, 0) !important;
+  max-width: var(--role-select-width, none) !important;
+  padding: 0 1.05rem 0 0 !important;
+  margin: 0 !important;
+  text-align: left !important;
+  text-align-last: left !important;
+  background-position: right 0.05rem center !important;
+  background-size: 0.86rem 0.86rem !important;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --auth-header-height: 36px;
+    --top-header-height: var(--auth-header-height);
+    --auth-profile-hit-width: 46px;
+    --auth-profile-circle-size: 34px;
+  }
+
+  html body #root .main-compact-header .role-switch-dropdown select,
+  html body #root .main-header-actions .role-switch-dropdown select,
+  html body #root .role-switch-dropdown.role-switch-label-hidden select {
+    width: min(var(--role-select-width, auto), 11.5rem) !important;
+    min-width: min(var(--role-select-width, 0), 11.5rem) !important;
+    max-width: 11.5rem !important;
+    padding-right: 0.95rem !important;
+  }
+}
+
+@media (max-width: 520px) {
+  html body #root .shared-platform-footer__grid,
+  html body #root .shared-platform-footer--authenticated .shared-platform-footer__grid {
+    grid-template-columns: 1fr !important;
+    row-gap: 10px !important;
+  }
+
+  html body #root .shared-platform-footer__brand,
+  html body #root .shared-platform-footer__links,
+  html body #root .shared-platform-footer__resources,
+  html body #root .shared-platform-footer__account {
+    justify-self: stretch !important;
+  }
+}

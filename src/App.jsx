@@ -4976,7 +4976,7 @@ function ResearchDayPage({ data = emptyData, role = 'student', currentUser = {},
       </div>
       {canManage && (
         <form className="card research-management-form" onSubmit={submitEvent}>
-          <SectionHeader icon={CalendarDays} title={editing ? 'Edit Research Day' : 'Create Research Day'} subtitle="Publish, complete, or archive Research Day entries without hardcoding event details." />
+          <SectionHeader icon={CalendarDays} title={editing ? 'Edit Research Day' : 'Create Research Day'} />
           <div className="form-grid">
             <label className="field"><span>Event title</span><input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="College of Pharmacy Research Day" /></label>
             <label className="field"><span>Status</span><select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>{RESEARCH_DAY_STATUSES.map((status) => <option key={status}>{status}</option>)}</select></label>
@@ -5377,7 +5377,6 @@ function PublicHeader({ settings = defaultWebsiteSettings, authenticated = false
             <PublicRouteLink to={authenticated ? "/?public=1" : "/"} onNavigate={closeMenu}>Home</PublicRouteLink>
             <PublicRouteLink to="/features" onNavigate={closeMenu}>Features</PublicRouteLink>
             <PublicRouteLink to="/how-it-works" onNavigate={closeMenu}>How It Works</PublicRouteLink>
-            <PublicRouteLink to="/roles" onNavigate={closeMenu}>Roles</PublicRouteLink>
             <PublicRouteLink to="/about" onNavigate={closeMenu}>About Us</PublicRouteLink>
             <PublicRouteLink to="/research-guidelines" onNavigate={closeMenu}>Research Guidelines</PublicRouteLink>
             <PublicRouteLink to="/contact" onNavigate={closeMenu}>Contact</PublicRouteLink>
@@ -5408,19 +5407,17 @@ function SharedPlatformFooter({ settings = defaultWebsiteSettings, authenticated
           <img src={aboutUsHmuLogo} alt="Hawler Medical University logo" />
           <div>
             <h2>{siteName}</h2>
-            <p>A secure academic platform supporting the complete research journey at Hawler Medical University, College of Pharmacy.</p>
           </div>
         </section>
 
         <nav className="shared-platform-footer__links" aria-label="Footer quick links">
           <PublicRouteLink to={authenticated ? "/?public=1" : "/"}>Home</PublicRouteLink>
           <PublicRouteLink to="/features">Features</PublicRouteLink>
-          <PublicRouteLink to="/about">About Us</PublicRouteLink>
         </nav>
 
         <nav className="shared-platform-footer__resources" aria-label="Footer resources">
+          <PublicRouteLink to="/about">About Us</PublicRouteLink>
           <PublicRouteLink to="/research-guidelines">Research Guidelines</PublicRouteLink>
-          <PublicRouteLink to="/contact">Contact</PublicRouteLink>
         </nav>
 
         {!authenticated && (
@@ -5433,7 +5430,6 @@ function SharedPlatformFooter({ settings = defaultWebsiteSettings, authenticated
 
       <div className="shared-platform-footer__bottom">
         <span>© {currentYear} Hawler Medical University – College of Pharmacy. All rights reserved.</span>
-        <PublicRouteLink to="/contact">Platform Support</PublicRouteLink>
       </div>
     </footer>
   )
@@ -11577,8 +11573,10 @@ function RoleSwitchDropdown({ activeRole, mode = 'committee', onChange }) {
         { value: 'supervisor', label: 'Supervisor' },
       ]
   const value = mode === 'admin' ? activeRole || 'admin' : activeRole === 'supervisor' ? 'supervisor' : 'committee'
+  const selectedLabel = options.find((option) => option.value === value)?.label || getRoleLabel(value)
+  const roleSelectWidth = `${Math.max(7, selectedLabel.length + 2)}ch`
   return (
-    <label className="role-switch-dropdown role-switch-label-hidden no-print" aria-label="Role">
+    <label className="role-switch-dropdown role-switch-label-hidden no-print" aria-label="Role" style={{ '--role-select-width': roleSelectWidth }}>
       <select value={value} onChange={(e) => onChange?.(e.target.value)} aria-label="Role">
         {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
