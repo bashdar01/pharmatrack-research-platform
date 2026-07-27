@@ -31285,3 +31285,47 @@ html body #root .role-switch-dropdown.role-switch-label-hidden select {
     width: 100%;
   }
 }
+
+/* Footer alignment refinement: keep the compact footer balanced after Contact Us removal. */
+html body #root .shared-platform-footer__grid,
+html body #root .shared-platform-footer--authenticated .shared-platform-footer__grid {
+  width: min(880px, 100%) !important;
+  grid-template-columns: repeat(2, minmax(220px, 1fr)) !important;
+  column-gap: clamp(24px, 5vw, 64px) !important;
+  row-gap: 14px !important;
+  align-items: start !important;
+  justify-content: center !important;
+}
+
+html body #root .shared-platform-footer__brand,
+html body #root .shared-platform-footer__links,
+html body #root .shared-platform-footer__resources,
+html body #root .shared-platform-footer__account {
+  width: 100% !important;
+  min-height: 0 !important;
+  align-self: start !important;
+  justify-self: stretch !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  text-align: left !important;
+}
+
+html body #root .shared-platform-footer__links,
+html body #root .shared-platform-footer__resources,
+html body #root .shared-platform-footer__account {
+  gap: 4px !important;
+}
+
+html body #root .shared-platform-footer__bottom {
+  width: min(880px, 100%) !important;
+}
+
+@media (max-width: 620px) {
+  html body #root .shared-platform-footer__grid,
+  html body #root .shared-platform-footer--authenticated .shared-platform-footer__grid {
+    grid-template-columns: 1fr !important;
+    row-gap: 10px !important;
+  }
+}

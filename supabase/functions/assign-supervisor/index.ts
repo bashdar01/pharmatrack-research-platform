@@ -1,6 +1,6 @@
 // Supabase Edge Function: assign-supervisor
 // Deploy with: npx supabase functions deploy assign-supervisor --no-verify-jwt
-// This function verifies the logged-in admin, saves/removes the supervisor assignment,
+// This function verifies the logged-in Admin or Research Committee user, saves/removes the supervisor assignment,
 // then sends supervisor/student emails through Resend without exposing email API keys.
 
 type AnyRecord = Record<string, any>
@@ -37,7 +37,7 @@ function isApprovedActiveStatus(value: unknown) {
 }
 
 function isAdminRole(value: unknown) {
-  return ['admin', 'admin/editor', 'administrator'].includes(normalize(value))
+  return ['admin', 'admin/editor', 'administrator', 'committee', 'research committee'].includes(normalize(value))
 }
 
 function getFromEmail() {
@@ -409,7 +409,7 @@ Deno.serve(async (req) => {
     const authedUser = await getAuthedUser(req, supabaseUrl, serviceRoleKey)
     const actor = await getActorProfile(supabaseUrl, serviceRoleKey, authedUser)
     if (!actor || !isAdminRole(actor.role) || !isApprovedActiveStatus(actor.status)) {
-      return jsonResponse({ error: 'You do not have permission to access this admin feature.' }, 403)
+      return jsonResponse({ error: 'Only Admin or Research Committee users can assign supervisors.' }, 403)
     }
 
     const studentId = String(payload.studentId || payload.target_student_id || '')

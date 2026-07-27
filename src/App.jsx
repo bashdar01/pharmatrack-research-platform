@@ -9366,7 +9366,7 @@ export default function App() {
   }
 
   async function assignStudentToSupervisor(studentId, supervisorId, options = {}) {
-    if (!isAdminUser(currentUser)) return setMessage('You do not have permission to access this admin feature.')
+    if (!isAdminUser(currentUser) && !isResearchCommitteeUser(currentUser)) return setMessage('You do not have permission to assign supervisors.')
     const student = data.profiles.find((user) => String(user.id) === String(studentId))
     if (!student || student.role !== 'student') return setMessage('Student account not found.')
     const supervisor = supervisorId ? data.profiles.find((user) => String(user.id) === String(supervisorId) && user.role === 'supervisor') : null
@@ -9457,7 +9457,7 @@ export default function App() {
               sender_user_id: currentUser?.id || null,
               notification_type: `student_assigned_to_supervisor_${student.id}_${supervisor.id}`,
               title: 'New Student Assigned',
-              message: `${student.full_name || student.email || 'A student'} has been assigned to you by admin.`,
+              message: `${student.full_name || student.email || 'A student'} has been assigned to you by Research Committee/Admin.`,
               type: 'Supervisor Assignment',
               target_role: 'supervisor',
               is_read: false,
@@ -9471,7 +9471,7 @@ export default function App() {
               sender_user_id: currentUser?.id || null,
               notification_type: `student_supervisor_removed_${student.id}_${assignedAt}`,
               title: 'Supervisor Removed',
-              message: 'Your supervisor assignment was removed by admin.',
+              message: 'Your supervisor assignment was removed by Research Committee/Admin.',
               type: 'Supervisor Assignment',
               target_role: 'student',
               is_read: false,
@@ -9485,7 +9485,7 @@ export default function App() {
                 sender_user_id: currentUser?.id || null,
                 notification_type: `student_supervisor_removed_notice_${student.id}_${previousSupervisor.id || normalizeText(previousSupervisor.email)}_${assignedAt}`,
                 title: 'Student Supervisor Assignment Removed',
-                message: `${student.full_name || student.email || 'A student'} is no longer assigned to you by admin.`,
+                message: `${student.full_name || student.email || 'A student'} is no longer assigned to you by Research Committee/Admin.`,
                 type: 'Supervisor Assignment',
                 target_role: 'supervisor',
                 is_read: false,
@@ -9513,9 +9513,9 @@ export default function App() {
           const localNotices = []
           if (supervisor) {
             localNotices.push({ id: crypto.randomUUID(), profile_id: student.id || null, recipient_user_id: student.id || null, recipient_email: student.email || '', sender_user_id: currentUser?.id || null, notification_type: `student_supervisor_assigned_${student.id}_${supervisor.id}`, title: 'Supervisor Assigned', message: `${supervisor.full_name || supervisor.email || 'A supervisor'} has been assigned as your supervisor.`, type: 'Supervisor Assignment', target_role: 'student', is_read: false, created_at: assignedAt })
-            localNotices.push({ id: crypto.randomUUID(), profile_id: supervisor.id || null, recipient_user_id: supervisor.id || null, recipient_email: supervisor.email || '', sender_user_id: currentUser?.id || null, notification_type: `student_assigned_to_supervisor_${student.id}_${supervisor.id}`, title: 'New Student Assigned', message: `${student.full_name || student.email || 'A student'} has been assigned to you by admin.`, type: 'Supervisor Assignment', target_role: 'supervisor', is_read: false, created_at: assignedAt })
+            localNotices.push({ id: crypto.randomUUID(), profile_id: supervisor.id || null, recipient_user_id: supervisor.id || null, recipient_email: supervisor.email || '', sender_user_id: currentUser?.id || null, notification_type: `student_assigned_to_supervisor_${student.id}_${supervisor.id}`, title: 'New Student Assigned', message: `${student.full_name || student.email || 'A student'} has been assigned to you by Research Committee/Admin.`, type: 'Supervisor Assignment', target_role: 'supervisor', is_read: false, created_at: assignedAt })
           } else {
-            localNotices.push({ id: crypto.randomUUID(), profile_id: student.id || null, recipient_user_id: student.id || null, recipient_email: student.email || '', sender_user_id: currentUser?.id || null, notification_type: `student_supervisor_removed_${student.id}_${assignedAt}`, title: 'Supervisor Removed', message: 'Your supervisor assignment was removed by admin.', type: 'Supervisor Assignment', target_role: 'student', is_read: false, created_at: assignedAt })
+            localNotices.push({ id: crypto.randomUUID(), profile_id: student.id || null, recipient_user_id: student.id || null, recipient_email: student.email || '', sender_user_id: currentUser?.id || null, notification_type: `student_supervisor_removed_${student.id}_${assignedAt}`, title: 'Supervisor Removed', message: 'Your supervisor assignment was removed by Research Committee/Admin.', type: 'Supervisor Assignment', target_role: 'student', is_read: false, created_at: assignedAt })
           }
           const log = makeAudit(currentUser.full_name, supervisor ? 'assigned student supervisor' : 'removed student supervisor', `${student.full_name || student.email}${supervisor ? ` → ${supervisor.full_name || supervisor.email}` : ''}`)
           setLocal((current) => ({
@@ -9625,7 +9625,7 @@ export default function App() {
         setMessage('Supervisor assigned successfully and email notifications sent.')
       }
     } catch (error) {
-      setMessage(error.message?.toLowerCase?.().includes('permission') || error.message?.toLowerCase?.().includes('row-level security') ? 'You do not have permission to access this admin feature.' : (error.message || 'Could not update supervisor assignment.'))
+      setMessage(error.message?.toLowerCase?.().includes('permission') || error.message?.toLowerCase?.().includes('row-level security') ? 'You do not have permission to assign supervisors.' : (error.message || 'Could not update supervisor assignment.'))
     }
   }
 
@@ -11312,7 +11312,7 @@ export default function App() {
           <ResearchWorkspaceShell role={allowedRole}>
             {allowedRole === 'student' && roleContextReady && <StudentResearchWorkspace data={visibleData} projects={visibleProjects} currentUser={activeRoleUser} createWeeklyReport={createWeeklyReport} dataLoading={dataLoading} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} heroSettings={websiteSettings} onNavigate={handleMainNavClick} />}
             {allowedRole === 'supervisor' && roleContextReady && <SupervisorResearchWorkspace data={visibleData} projects={filteredProjects} currentUser={activeRoleUser} dataLoading={dataLoading} reviewReport={reviewReport} createDeadline={createDeadline} removeDeadline={removeDeadline} sendWeeklyReportToMyEmail={sendWeeklyReportToMyEmail} emailSendingReports={emailSendingReports} heroSettings={websiteSettings} onNavigate={handleMainNavClick} />}
-            {allowedRole === 'committee' && <CommitteeResearchWorkspace data={visibleData} projects={visibleProjects} dataLoading={dataLoading} updateProject={updateProject} saveEvaluation={saveEvaluation} heroSettings={websiteSettings} onNavigate={handleMainNavClick} />}
+            {allowedRole === 'committee' && <CommitteeResearchWorkspace data={visibleData} projects={visibleProjects} currentUser={currentUser} dataLoading={dataLoading} updateProject={updateProject} assignStudentToSupervisor={assignStudentToSupervisor} saveEvaluation={saveEvaluation} heroSettings={websiteSettings} onNavigate={handleMainNavClick} />}
             {allowedRole === 'admin' && <AdminResearchWorkspace data={visibleData} projects={visibleProjects} currentUser={currentUser} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} assignStudentToSupervisor={assignStudentToSupervisor} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} loadError={dataLoadError} dataLoading={dataLoading} heroSettings={websiteSettings} onNavigate={handleMainNavClick} />}
           </ResearchWorkspaceShell>
         )}
@@ -16101,7 +16101,7 @@ function ProjectProgressSection({ projects = [], reports = [], data = emptyData 
   )
 }
 
-function CommitteeResearchWorkspace({ data = emptyData, projects = [], dataLoading = false, updateProject, saveEvaluation, heroSettings = defaultWebsiteSettings, onNavigate }) {
+function CommitteeResearchWorkspace({ data = emptyData, projects = [], currentUser = null, dataLoading = false, updateProject, assignStudentToSupervisor, saveEvaluation, heroSettings = defaultWebsiteSettings, onNavigate }) {
   const reports = Array.isArray(data?.reports) ? data.reports : []
   const evaluations = Array.isArray(data?.evaluations) ? data.evaluations : []
   const sourceProjects = Array.isArray(projects) ? projects : []
@@ -16226,6 +16226,19 @@ function CommitteeResearchWorkspace({ data = emptyData, projects = [], dataLoadi
         </div>
         {reviewProjects.length ? <ProjectDecisionTable projects={reviewProjects} updateProject={updateProject} data={data} reports={reports} /> : <EmptyState title="No matching projects" text="Try changing the filters or wait for supervisors to submit research projects." icon={Search} />}
       </div>
+
+
+      <SupervisorManagementTab
+        data={data}
+        projects={sourceProjects}
+        currentUser={currentUser}
+        dataLoading={false}
+        updateProject={updateProject}
+        assignStudentToSupervisor={assignStudentToSupervisor}
+        showProjectLeader={false}
+        exportCsv={null}
+        contextRole="committee"
+      />
 
       <div className="card final-evaluation-card">
         <SectionHeader icon={CheckCircle2} title="Final Evaluation Rubric" subtitle="Completed group projects only • Total: /50" />
@@ -16375,7 +16388,7 @@ function DualRoleManagementTab({ data = emptyData, currentUser, loadError = '', 
   )
 }
 
-function SupervisorManagementTab({ data = emptyData, projects = [], currentUser, loadError = '', dataLoading = false, updateProject, assignStudentToSupervisor, assignProjectLeader, exportCsv }) {
+function SupervisorManagementTab({ data = emptyData, projects = [], currentUser, loadError = '', dataLoading = false, updateProject, assignStudentToSupervisor, assignProjectLeader, exportCsv, showProjectLeader = true, contextRole = 'admin' }) {
   const usersLoading = !data || !Array.isArray(data.profiles)
   data = cleanData({
     ...emptyData,
@@ -16397,6 +16410,7 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
   const students = data.profiles.filter((u) => u.role === 'student')
   const [studentSearch, setStudentSearch] = useState('')
   const [supervisorSearch, setSupervisorSearch] = useState('')
+  const [assignmentStatusFilter, setAssignmentStatusFilter] = useState('all')
   const [studentSupervisorSelections, setStudentSupervisorSelections] = useState({})
   const [projectSupervisorId, setProjectSupervisorId] = useState(supervisors[0]?.id || '')
   const [projectAssignmentSearch, setProjectAssignmentSearch] = useState('')
@@ -16470,9 +16484,10 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
 
   const filteredStudents = students.filter((student) => {
     const q = studentSearch.trim().toLowerCase()
-    if (!q) return true
     const assigned = getAssignedSupervisor(student)
     const project = getStudentProject(student)
+    const isAssigned = Boolean(assigned?.id || assigned?.email || assigned?.full_name)
+    const hasProject = Boolean(project?.id || project?.title || project?.group_name)
     const searchable = [
       student.full_name,
       student.email,
@@ -16485,7 +16500,9 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
       project?.area,
       project?.department,
     ].join(' ').toLowerCase()
-    return searchable.includes(q)
+    const matchesSearch = !q || searchable.includes(q)
+    const matchesStatus = assignmentStatusFilter === 'all' || (assignmentStatusFilter === 'assigned' && isAssigned) || (assignmentStatusFilter === 'unassigned' && !isAssigned) || (assignmentStatusFilter === 'missing-project' && !hasProject)
+    return matchesSearch && matchesStatus
   })
 
   async function handleStudentSupervisorAssign(studentId) {
@@ -16495,11 +16512,31 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
       ? studentSupervisorSelections[studentId]
       : currentSupervisor?.id || ''
     if (!selectedSupervisorId || !assignStudentToSupervisor) return
+    const selectedSupervisor = supervisors.find((item) => String(item.id) === String(selectedSupervisorId))
+    if (!selectedSupervisor) return
+    if (currentSupervisor && String(currentSupervisor.id || '') === String(selectedSupervisor.id || '')) {
+      await showAppAlert(`${student.full_name || student.email || 'This student'} is already assigned to ${selectedSupervisor.full_name || selectedSupervisor.email || 'this supervisor'}.`, { title: 'Already Assigned', type: 'info' })
+      return
+    }
+    const confirmed = await showAppConfirm(
+      currentSupervisor
+        ? `Change the assigned supervisor for ${student.full_name || student.email || 'this student'} from ${currentSupervisor.full_name || currentSupervisor.email || 'the current supervisor'} to ${selectedSupervisor.full_name || selectedSupervisor.email || 'the selected supervisor'}?`
+        : `Assign ${selectedSupervisor.full_name || selectedSupervisor.email || 'the selected supervisor'} to ${student.full_name || student.email || 'this student'}?`,
+      { title: currentSupervisor ? 'Change Supervisor' : 'Assign Supervisor', type: 'warning', confirmLabel: currentSupervisor ? 'Change Supervisor' : 'Assign Supervisor' }
+    )
+    if (!confirmed) return
     await assignStudentToSupervisor(studentId, selectedSupervisorId, { assignmentScope: 'student' })
   }
 
   async function handleStudentSupervisorRemove(studentId) {
     if (!assignStudentToSupervisor) return
+    const student = students.find((item) => String(item.id) === String(studentId))
+    const currentSupervisor = student ? getAssignedSupervisor(student) : null
+    const confirmed = await showAppConfirm(
+      `Remove the assigned supervisor${currentSupervisor ? ` ${currentSupervisor.full_name || currentSupervisor.email}` : ''} from ${student?.full_name || student?.email || 'this student'}?`,
+      { title: 'Remove Supervisor Assignment', type: 'warning', confirmLabel: 'Remove Supervisor' }
+    )
+    if (!confirmed) return
     await assignStudentToSupervisor(studentId, '', { assignmentScope: 'student' })
     setStudentSupervisorSelections((current) => ({ ...current, [studentId]: '' }))
   }
@@ -16547,7 +16584,7 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
 
   useEffect(() => {
     setStudentAssignPage(1)
-  }, [studentSearch, supervisorSearch])
+  }, [studentSearch, supervisorSearch, assignmentStatusFilter])
 
   useEffect(() => {
     setProjectAssignPage(1)
@@ -16557,6 +16594,21 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
     const supervisor = selectedProjectSupervisor
     const project = projects.find((item) => String(item.id) === String(projectId))
     const student = project ? getProjectAssignedStudent(project) : null
+    if (!project || !supervisor) return
+    const currentSupervisor = project.supervisor_id
+      ? supervisors.find((item) => String(item.id) === String(project.supervisor_id))
+      : supervisors.find((item) => normalizeText(item.email) === normalizeText(project.supervisor_email) || normalizeText(item.full_name) === normalizeText(project.supervisor_name))
+    if (currentSupervisor && String(currentSupervisor.id || '') === String(supervisor.id || '')) {
+      await showAppAlert(`${project.group_name || project.title || 'This project'} is already assigned to ${supervisor.full_name || supervisor.email}.`, { title: 'Already Assigned', type: 'info' })
+      return
+    }
+    const confirmed = await showAppConfirm(
+      currentSupervisor
+        ? `Change the assigned supervisor from ${currentSupervisor.full_name || currentSupervisor.email || 'the current supervisor'} to ${supervisor.full_name || supervisor.email || 'the selected supervisor'}? This change will update the supervisor for all students in this research project.`
+        : `Assign ${supervisor.full_name || supervisor.email || 'the selected supervisor'} to ${project.group_name || project.title || 'this research project'}? This change will update the supervisor for all students in this research project.`,
+      { title: currentSupervisor ? 'Change Project Supervisor' : 'Assign Project Supervisor', type: 'warning', confirmLabel: currentSupervisor ? 'Change Supervisor' : 'Assign Supervisor' }
+    )
+    if (!confirmed) return
 
     if (student?.id && assignStudentToSupervisor) {
       await assignStudentToSupervisor(student.id, supervisor?.id || '', { projectId })
@@ -16573,6 +16625,12 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
   async function handleProjectSupervisorRemove(projectId) {
     const project = projects.find((item) => String(item.id) === String(projectId))
     const student = project ? getProjectAssignedStudent(project) : null
+    if (!project) return
+    const confirmed = await showAppConfirm(
+      `Remove the assigned supervisor from ${project.group_name || project.title || 'this research project'}? This change will update the supervisor display for all students in this research project.`,
+      { title: 'Remove Project Supervisor', type: 'warning', confirmLabel: 'Remove Supervisor' }
+    )
+    if (!confirmed) return
 
     if (student?.id && assignStudentToSupervisor) {
       await assignStudentToSupervisor(student.id, '', { projectId })
@@ -16625,10 +16683,11 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
   return (
     <div className="admin-panel-stack supervisor-management-page">
       <div className="card supervisor-management-card student-supervisor-management-card">
-        <SectionHeader icon={UserCog} title="Student Supervisor Assignment" subtitle="Assign, change, or remove direct supervisors for student accounts" />
+        <SectionHeader icon={UserCog} title="Student Supervisor Assignment" subtitle="Research Committee/Admin can assign, change, or remove supervisors for student accounts" />
         <div className="supervisor-management-controls">
           <label className="field"><span>Search students</span><input value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} placeholder="Search student name, email, supervisor, department, project..." /></label>
           <label className="field"><span>Search supervisors</span><input value={supervisorSearch} onChange={(e) => setSupervisorSearch(e.target.value)} placeholder="Search supervisor name, email, department..." /></label>
+          <label className="field"><span>Assignment status</span><select value={assignmentStatusFilter} onChange={(e) => setAssignmentStatusFilter(e.target.value)}><option value="all">All students</option><option value="assigned">Assigned</option><option value="unassigned">Unassigned</option><option value="missing-project">Project not assigned</option></select></label>
         </div>
         {loadError ? <EmptyState title="Failed to load supervisor management data." text={loadError} icon={Users} /> : usersLoading ? <EmptyState title="Loading users..." text="Please wait while the user list loads." icon={Users} /> : supervisors.length === 0 ? <EmptyState title="No supervisors found." text="Create or approve supervisor accounts first." icon={UserCog} /> : filteredStudents.length ? (
           <div className="managed-list compact-managed-list supervisor-management-list">
@@ -16719,7 +16778,7 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
         {exportCsv && <button className="primary" onClick={exportCsv}><Download size={16} /> Export CSV Report</button>}
       </div>
 
-      <div className="card supervisor-management-card project-leader-management-card">
+      {showProjectLeader && <div className="card supervisor-management-card project-leader-management-card">
         <SectionHeader icon={UserPlus} title="Project Leader Assignment" subtitle="Choose one student member as Research Project Leader for each group/project" />
         <div className="supervisor-management-controls">
           <label className="field wide-field"><span>Search research group/project</span><input value={leaderSearch} onChange={(e) => setLeaderSearch(e.target.value)} placeholder="Search project title, group, supervisor, leader, or member..." /></label>
@@ -16773,7 +16832,7 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
             })}
           </div>
         ) : <EmptyState title="No projects found." text="Try another project, group, supervisor, leader, or member keyword." icon={Search} />) : <EmptyState title="No projects found." text="Research groups/projects appear here after submission." icon={BookOpen} />}
-      </div>
+      </div>}
     </div>
   )
 }
