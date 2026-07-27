@@ -466,6 +466,7 @@ const ROLE_HERO_PAGE_OPTIONS = {
     { id: 'login-settings', label: 'Login Page Settings' },
     { id: 'about-us', label: 'About Us Customization' },
     { id: 'users', label: 'Users & Roles' },
+    { id: 'name-randomizer', label: 'Name Randomizer' },
     { id: 'supervisors', label: 'Supervisor Management' },
     { id: 'dual-roles', label: 'Dual Role Management' },
     { id: 'invitations', label: 'Invite Users' },
@@ -2362,7 +2363,7 @@ function optimizeImageFile(file, options = {}) {
   })
 }
 
-const adminPanelTabs = ['overview', 'branding', 'button-colors', 'login-settings', 'about-us', 'users', 'supervisors', 'dual-roles', 'invitations', 'deadlines', 'notifications', 'reports', 'pdf-report', 'group-requests', 'database', 'audit', 'profile-settings', 'learning-resources', 'research-day', 'published-papers', 'pdf-viewer']
+const adminPanelTabs = ['overview', 'branding', 'button-colors', 'login-settings', 'about-us', 'users', 'name-randomizer', 'supervisors', 'dual-roles', 'invitations', 'deadlines', 'notifications', 'reports', 'pdf-report', 'group-requests', 'database', 'audit', 'profile-settings', 'learning-resources', 'research-day', 'published-papers', 'pdf-viewer']
 
 const adminPanelPathAliases = {
   '': 'overview',
@@ -2396,6 +2397,10 @@ const adminPanelPathAliases = {
   roles: 'users',
   'users-roles': 'users',
   'users-and-roles': 'users',
+  'name-randomizer': 'name-randomizer',
+  randomizer: 'name-randomizer',
+  'random-name-picker': 'name-randomizer',
+  'name-picker': 'name-randomizer',
   supervisors: 'supervisors',
   'supervisor-management': 'supervisors',
   'student-supervisor-assignment': 'supervisors',
@@ -5153,6 +5158,381 @@ function ResearchPdfViewerPage({ data = emptyData, role = 'student', currentUser
         <div className="research-card-actions"><button className="secondary" type="button" onClick={onBack}>Back</button>{pdfUrl && <a className="secondary" href={pdfUrl} target="_blank" rel="noopener noreferrer">Open in New Tab</a>}{pdfUrl && <a className="ghost" href={pdfUrl} download>Download</a>}{item?.external_url && <a className="ghost" href={item.external_url} target="_blank" rel="noopener noreferrer">Publisher Link</a>}</div>
       </div>
       {!item ? <EmptyState title="PDF not available" text="The PDF could not be found or you do not have permission to view it." /> : !pdfUrl ? <EmptyState title="No PDF uploaded" text="This item does not currently have a PDF file." /> : <div className="card pdf-viewer-card"><iframe title={title} src={`${pdfUrl}#toolbar=1&navpanes=0`} /></div>}
+    </section>
+  )
+}
+
+
+function buildRandomizerPerson(profile = {}) {
+  const name = profile.full_name || profile.name || profile.email || 'Unnamed person'
+  const role = normalizeMeetingRole(profile.role || profile.account_role || '') || 'user'
+  const email = profile.email || ''
+  const studentId = profile.student_id || profile.student_number || profile.registration_number || profile.university_id || ''
+  const rawKey = profile.id || email || `${role}:${name}`
+  return {
+    key: String(rawKey),
+    id: profile.id || '',
+    name,
+    email,
+    role,
+    roleLabel: getRoleLabel(role),
+    studentId,
+    searchable: [name, email, role, getRoleLabel(role), studentId].join(' ').toLowerCase(),
+  }
+}
+
+function uniqueRandomizerPeople(people = []) {
+  const map = new Map()
+  ;(people || []).forEach((person) => {
+    const normalized = person.searchable ? person : buildRandomizerPerson(person)
+    const key = normalized.key || normalized.email || normalized.name
+    if (!key || map.has(key)) return
+    map.set(key, normalized)
+  })
+  return Array.from(map.values()).sort((a, b) => String(a.name || a.email || '').localeCompare(String(b.name || b.email || '')))
+}
+
+function randomizePeopleList(list = []) {
+  const items = [...list]
+  const cryptoObject = typeof window !== 'undefined' ? window.crypto : null
+  for (let index = items.length - 1; index > 0; index -= 1) {
+    let randomValue = Math.random()
+    if (cryptoObject?.getRandomValues) {
+      const buffer = new Uint32Array(1)
+      cryptoObject.getRandomValues(buffer)
+      randomValue = buffer[0] / 4294967296
+    }
+    const swapIndex = Math.floor(randomValue * (index + 1))
+    ;[items[index], items[swapIndex]] = [items[swapIndex], items[index]]
+  }
+  return items
+}
+
+function getRandomizerStorageKey(currentUser = {}) {
+  const identity = currentUser?.id || currentUser?.email || 'admin'
+  return `pharmatrack-admin-name-randomizer-${identity}`
+}
+
+function getRandomizerDefaultState() {
+  return {
+    source: 'students',
+    groupId: '',
+    customIds: [],
+    pickCount: 1,
+    latestSelection: [],
+    selectedHistory: [],
+    drawNumber: 0,
+  }
+}
+
+function loadRandomizerState(currentUser = {}) {
+  if (typeof window === 'undefined') return getRandomizerDefaultState()
+  try {
+    const raw = window.sessionStorage?.getItem(getRandomizerStorageKey(currentUser))
+    if (!raw) return getRandomizerDefaultState()
+    const parsed = JSON.parse(raw)
+    return {
+      ...getRandomizerDefaultState(),
+      ...parsed,
+      customIds: Array.isArray(parsed.customIds) ? parsed.customIds : [],
+      latestSelection: Array.isArray(parsed.latestSelection) ? parsed.latestSelection : [],
+      selectedHistory: Array.isArray(parsed.selectedHistory) ? parsed.selectedHistory : [],
+      pickCount: Number.isInteger(Number(parsed.pickCount)) ? Number(parsed.pickCount) : 1,
+      drawNumber: Number.isInteger(Number(parsed.drawNumber)) ? Number(parsed.drawNumber) : 0,
+    }
+  } catch (error) {
+    console.warn('Could not load Name Randomizer session state.', error)
+    return getRandomizerDefaultState()
+  }
+}
+
+function AdminNameRandomizer({ data = {}, projects = [], currentUser = {}, dataLoading = false, loadError = '' }) {
+  const isAuthorized = normalizeMeetingRole(currentUser?.role) === 'admin'
+  const [randomizerState, setRandomizerState] = useState(() => loadRandomizerState(currentUser))
+  const [customSearch, setCustomSearch] = useState('')
+  const [validationMessage, setValidationMessage] = useState('')
+
+  const people = useMemo(() => uniqueRandomizerPeople(data.profiles || []), [data.profiles])
+  const groupOptions = useMemo(() => (projects || [])
+    .filter((project) => project?.id || project?.group_name || project?.title)
+    .map((project) => ({
+      id: String(project.id || project.group_id || project.group_name || project.title),
+      label: [project.group_name, project.title].filter(Boolean).join(' — ') || 'Research Group',
+      project,
+    }))
+    .filter((group, index, list) => list.findIndex((item) => item.id === group.id) === index)
+    .sort((a, b) => a.label.localeCompare(b.label)), [projects])
+
+  const sourceOptions = useMemo(() => [
+    { id: 'students', label: 'All Students' },
+    { id: 'supervisors', label: 'All Supervisors' },
+    { id: 'committee', label: 'Research Committee' },
+    { id: 'admins', label: 'Admin Users' },
+    { id: 'all', label: 'All People' },
+    ...(groupOptions.length ? [{ id: 'group', label: 'Specific Research Group' }] : []),
+    { id: 'custom', label: 'Custom Selection' },
+  ], [groupOptions.length])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.sessionStorage?.setItem(getRandomizerStorageKey(currentUser), JSON.stringify(randomizerState))
+  }, [currentUser, randomizerState])
+
+  useEffect(() => {
+    if (randomizerState.source === 'group' && !randomizerState.groupId && groupOptions[0]?.id) {
+      setRandomizerState((current) => ({ ...current, groupId: groupOptions[0].id, latestSelection: [], selectedHistory: [], drawNumber: 0 }))
+    }
+  }, [groupOptions, randomizerState.source, randomizerState.groupId])
+
+  const activePool = useMemo(() => {
+    if (randomizerState.source === 'students') return people.filter((person) => person.role === 'student')
+    if (randomizerState.source === 'supervisors') return people.filter((person) => person.role === 'supervisor')
+    if (randomizerState.source === 'committee') return people.filter((person) => person.role === 'committee')
+    if (randomizerState.source === 'admins') return people.filter((person) => person.role === 'admin')
+    if (randomizerState.source === 'all') return people
+    if (randomizerState.source === 'custom') {
+      const customIds = new Set(randomizerState.customIds || [])
+      return people.filter((person) => customIds.has(person.key))
+    }
+    if (randomizerState.source === 'group') {
+      const group = groupOptions.find((item) => item.id === randomizerState.groupId)
+      if (!group) return []
+      return uniqueRandomizerPeople(getProjectMembersWithoutSupervisor(data, group.project, data.reports || []).map(buildRandomizerPerson))
+    }
+    return []
+  }, [data, groupOptions, people, randomizerState.customIds, randomizerState.groupId, randomizerState.source])
+
+  const selectedKeys = useMemo(() => new Set((randomizerState.selectedHistory || []).map((entry) => entry.key)), [randomizerState.selectedHistory])
+  const availablePeople = useMemo(() => activePool.filter((person) => !selectedKeys.has(person.key)), [activePool, selectedKeys])
+  const customVisiblePeople = useMemo(() => {
+    const query = customSearch.trim().toLowerCase()
+    if (!query) return people
+    return people.filter((person) => person.searchable.includes(query))
+  }, [customSearch, people])
+  const sourceLabel = sourceOptions.find((option) => option.id === randomizerState.source)?.label || 'Name pool'
+  const requestedCount = Number(randomizerState.pickCount || 1)
+  const hasHistory = (randomizerState.selectedHistory || []).length > 0 || (randomizerState.latestSelection || []).length > 0
+
+  async function applyPoolChange(updates) {
+    setValidationMessage('')
+    if (hasHistory) {
+      const confirmed = await showAppConfirm('Changing the name pool will clear the current randomizer results. Continue?', {
+        title: 'Change Name Pool',
+        type: 'warning',
+        confirmLabel: 'Continue',
+        cancelLabel: 'Cancel',
+      })
+      if (!confirmed) return
+    }
+    setRandomizerState((current) => ({
+      ...current,
+      ...updates,
+      latestSelection: [],
+      selectedHistory: [],
+      drawNumber: 0,
+    }))
+  }
+
+  async function handleSourceChange(nextSource) {
+    const nextUpdates = { source: nextSource }
+    if (nextSource === 'group' && !randomizerState.groupId && groupOptions[0]?.id) nextUpdates.groupId = groupOptions[0].id
+    await applyPoolChange(nextUpdates)
+  }
+
+  async function handleGroupChange(groupId) {
+    await applyPoolChange({ source: 'group', groupId })
+  }
+
+  async function handleCustomToggle(personKey) {
+    const customIds = new Set(randomizerState.customIds || [])
+    if (customIds.has(personKey)) customIds.delete(personKey)
+    else customIds.add(personKey)
+    await applyPoolChange({ source: 'custom', customIds: Array.from(customIds) })
+  }
+
+  async function selectAllCustomVisible() {
+    const customIds = new Set(randomizerState.customIds || [])
+    customVisiblePeople.forEach((person) => customIds.add(person.key))
+    await applyPoolChange({ source: 'custom', customIds: Array.from(customIds) })
+  }
+
+  async function clearCustomSelection() {
+    await applyPoolChange({ source: 'custom', customIds: [] })
+  }
+
+  function handlePickRandomNames() {
+    setValidationMessage('')
+    if (!activePool.length) {
+      setValidationMessage('No names are available in the current source.')
+      return
+    }
+    if (!availablePeople.length) {
+      setValidationMessage('All names have been selected. Press Reset to begin again.')
+      return
+    }
+    if (!Number.isInteger(requestedCount) || requestedCount < 1) {
+      setValidationMessage('Enter a whole number of at least 1.')
+      return
+    }
+    if (requestedCount > availablePeople.length) {
+      setValidationMessage(`Only ${availablePeople.length} ${availablePeople.length === 1 ? 'name remains' : 'names remain'} available.`)
+      return
+    }
+
+    const drawNumber = (randomizerState.drawNumber || 0) + 1
+    const selectedAt = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    const selected = randomizePeopleList(availablePeople).slice(0, requestedCount).map((person, index) => ({
+      ...person,
+      drawNumber,
+      selectedAt,
+      selectionOrder: (randomizerState.selectedHistory || []).length + index + 1,
+    }))
+
+    setRandomizerState((current) => ({
+      ...current,
+      latestSelection: selected,
+      selectedHistory: [...(current.selectedHistory || []), ...selected],
+      drawNumber,
+    }))
+  }
+
+  async function handleReset() {
+    const confirmed = await showAppConfirm('Reset this randomizer? All previously selected names will become available again.', {
+      title: 'Reset Name Randomizer',
+      type: 'warning',
+      confirmLabel: 'Confirm Reset',
+      cancelLabel: 'Cancel',
+    })
+    if (!confirmed) return
+    setValidationMessage('')
+    setRandomizerState((current) => ({ ...current, latestSelection: [], selectedHistory: [], drawNumber: 0 }))
+  }
+
+  if (!isAuthorized) {
+    return <EmptyState title="Permission denied" text="Only authorized Admin Subdomain users can access the Name Randomizer." icon={ShieldCheck} />
+  }
+
+  return (
+    <section className="admin-panel-page name-randomizer-page">
+      <div className="card name-randomizer-header-card">
+        <SectionHeader icon={Users} title="Name Randomizer" subtitle="Randomly select people without repeating a name until the selection pool is reset." />
+      </div>
+
+      {loadError && <p className="message error">{loadError}</p>}
+      {dataLoading ? <p className="message">Loading people from Supabase...</p> : null}
+
+      <div className="name-randomizer-grid">
+        <div className="card name-randomizer-control-card">
+          <h3>Name source</h3>
+          <div className="form-grid compact-form-grid">
+            <label className="field">
+              <span>Choose people to include</span>
+              <select value={randomizerState.source} onChange={(event) => handleSourceChange(event.target.value)}>
+                {sourceOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+              </select>
+            </label>
+            {randomizerState.source === 'group' && (
+              <label className="field">
+                <span>Research group</span>
+                <select value={randomizerState.groupId || ''} onChange={(event) => handleGroupChange(event.target.value)}>
+                  {groupOptions.map((group) => <option key={group.id} value={group.id}>{group.label}</option>)}
+                </select>
+              </label>
+            )}
+            <label className="field">
+              <span>Number of names to pick</span>
+              <input type="number" min="1" step="1" value={randomizerState.pickCount} onChange={(event) => {
+                const value = event.target.value
+                setValidationMessage('')
+                setRandomizerState((current) => ({ ...current, pickCount: value === '' ? '' : Number(value) }))
+              }} />
+            </label>
+          </div>
+
+          {randomizerState.source === 'custom' && (
+            <div className="name-randomizer-custom-box">
+              <div className="research-filter-row randomizer-custom-tools">
+                <label className="field">
+                  <span>Search people</span>
+                  <input value={customSearch} onChange={(event) => setCustomSearch(event.target.value)} placeholder="Search by name, role, email, or student ID" />
+                </label>
+                <div className="research-card-actions randomizer-custom-actions">
+                  <button className="secondary" type="button" onClick={selectAllCustomVisible}>Select All</button>
+                  <button className="ghost" type="button" onClick={clearCustomSelection}>Clear Selection</button>
+                </div>
+              </div>
+              <div className="name-randomizer-person-list" role="list" aria-label="Custom people selection">
+                {customVisiblePeople.length ? customVisiblePeople.map((person) => (
+                  <label className="name-randomizer-person-option" key={person.key}>
+                    <input type="checkbox" checked={(randomizerState.customIds || []).includes(person.key)} onChange={() => handleCustomToggle(person.key)} />
+                    <span><b>{person.name}</b><small>{person.roleLabel}{person.studentId ? ` · ${person.studentId}` : person.email ? ` · ${person.email}` : ''}</small></span>
+                  </label>
+                )) : <p className="muted small">No people match this search.</p>}
+              </div>
+            </div>
+          )}
+
+          <div className="name-randomizer-counts" aria-label="Randomizer counts">
+            <div><strong>{activePool.length}</strong><span>Total names</span></div>
+            <div><strong>{availablePeople.length}</strong><span>Available</span></div>
+            <div><strong>{randomizerState.selectedHistory.length}</strong><span>Already selected</span></div>
+          </div>
+
+          {validationMessage ? <p className="message warning">{validationMessage}</p> : null}
+          {!dataLoading && !people.length ? <p className="message warning">No people were found in the existing profiles data.</p> : null}
+          {!dataLoading && activePool.length === 0 && people.length > 0 ? <p className="message warning">No names are available for {sourceLabel}.</p> : null}
+          {availablePeople.length === 0 && activePool.length > 0 ? <p className="message warning">All names have been selected. Press Reset to begin again.</p> : null}
+
+          <div className="research-card-actions name-randomizer-actions">
+            <button className="primary" type="button" disabled={dataLoading || !activePool.length || !availablePeople.length || requestedCount < 1 || !Number.isInteger(requestedCount) || requestedCount > availablePeople.length} onClick={handlePickRandomNames}>Pick Random Names</button>
+            <button className="secondary" type="button" disabled={!availablePeople.length || dataLoading} onClick={handlePickRandomNames}>Pick Again</button>
+            <button className="ghost" type="button" disabled={!hasHistory} onClick={handleReset}>Reset</button>
+          </div>
+          {requestedCount > availablePeople.length && availablePeople.length > 0 ? <p className="muted small">Only {availablePeople.length} {availablePeople.length === 1 ? 'name remains' : 'names remain'} available.</p> : null}
+        </div>
+
+        <div className="card name-randomizer-results-card">
+          <h3>Latest Selection</h3>
+          {randomizerState.latestSelection.length ? (
+            <div className="name-randomizer-latest-grid">
+              {randomizerState.latestSelection.map((person, index) => (
+                <div className="name-randomizer-result" key={`${person.key}-${person.drawNumber}-${index}`}>
+                  <span className="name-randomizer-number">{index + 1}</span>
+                  <div><strong>{person.name}</strong><small>{person.roleLabel}{person.studentId ? ` · ${person.studentId}` : person.email ? ` · ${person.email}` : ''}</small></div>
+                </div>
+              ))}
+            </div>
+          ) : <EmptyState title="No latest selection" text="Choose a source and press Pick Random Names." icon={Users} />}
+        </div>
+      </div>
+
+      <div className="card name-randomizer-history-card">
+        <div className="name-randomizer-section-title">
+          <div>
+            <h3>Previously Selected</h3>
+            <p className="muted small">Names selected in this current randomizer cycle.</p>
+          </div>
+          <span className="status-pill">{randomizerState.selectedHistory.length} selected</span>
+        </div>
+        {randomizerState.selectedHistory.length ? (
+          <div className="table-wrap name-randomizer-table-wrap">
+            <table className="report-table name-randomizer-table">
+              <thead><tr><th>Order</th><th>Name</th><th>Role</th><th>Draw</th><th>Selected</th></tr></thead>
+              <tbody>
+                {randomizerState.selectedHistory.map((person, index) => (
+                  <tr key={`${person.key}-${person.drawNumber}-${index}`}>
+                    <td>{person.selectionOrder || index + 1}</td>
+                    <td><b>{person.name}</b>{person.email ? <small>{person.email}</small> : null}{person.studentId ? <small>{person.studentId}</small> : null}</td>
+                    <td>{person.roleLabel}</td>
+                    <td>Draw {person.drawNumber || '-'}</td>
+                    <td>{person.selectedAt || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : <EmptyState title="No names have been selected yet." text="The selected names will appear here during the current cycle." icon={Users} />}
+      </div>
     </section>
   )
 }
@@ -12518,6 +12898,7 @@ function AdminControlPanel({
     { id: 'research-day', label: 'Research Day', icon: null },
     { id: 'published-papers', label: 'Published Papers', icon: null },
     { id: 'users', label: 'Users & Roles', icon: Users },
+    { id: 'name-randomizer', label: 'Name Randomizer', icon: null },
     { id: 'supervisors', label: 'Supervisor Management', icon: UserCog },
     { id: 'dual-roles', label: 'Dual Role Management', icon: ShieldCheck },
     { id: 'invitations', label: 'Invite Users', icon: Mail },
@@ -12533,7 +12914,7 @@ function AdminControlPanel({
   const navGroups = [
     { label: 'Overview', ids: ['overview'] },
     { label: 'Website & Content', ids: ['branding', 'button-colors', 'login-settings', 'about-us', 'learning-resources', 'research-day', 'published-papers'] },
-    { label: 'People', ids: ['users', 'supervisors', 'dual-roles', 'invitations'] },
+    { label: 'People', ids: ['users', 'name-randomizer', 'supervisors', 'dual-roles', 'invitations'] },
     { label: 'Research Operations', ids: ['deadlines', 'notifications', 'group-requests'] },
     { label: 'System', ids: ['database', 'audit', 'reports', 'pdf-report'] },
   ].map((group) => ({ ...group, items: group.ids.map((id) => navItems.find((item) => item.id === id)).filter(Boolean) }))
@@ -13490,6 +13871,7 @@ function AdminControlPanel({
 
         {adminPanelTab === 'invitations' && <InvitationManager invitations={data.invitations} settings={settings} createInvitation={createInvitation} resendInvitation={resendInvitation} cancelInvitation={cancelInvitation} copyInvitationLink={copyInvitationLink} />}
         {adminPanelTab === 'users' && <AdminResearchWorkspace data={data} projects={projects} currentUser={currentUser} loadError={loadError} dataLoading={dataLoading} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} usersOnly />}
+        {adminPanelTab === 'name-randomizer' && <AdminNameRandomizer data={data} projects={projects} currentUser={currentUser} dataLoading={dataLoading} loadError={loadError} />}
         {adminPanelTab === 'supervisors' && <SupervisorManagementTab data={data} projects={projects} currentUser={currentUser} loadError={loadError} dataLoading={dataLoading} updateProject={updateProject} assignStudentToSupervisor={assignStudentToSupervisor} assignProjectLeader={assignProjectLeader} exportCsv={exportCsv} />}
         {adminPanelTab === 'dual-roles' && <DualRoleManagementTab data={data} currentUser={currentUser} loadError={loadError} dataLoading={dataLoading} updateCommitteeSupervisorAccess={updateCommitteeSupervisorAccess} />}
         {adminPanelTab === 'deadlines' && <DeadlineManager deadlines={data.deadlines} createDeadline={createDeadline} removeDeadline={removeDeadline} students={data.profiles.filter((profile) => profile.role === 'student').map((student) => ({ key: makeStudentOptionKey(student), id: student.id, name: student.full_name, email: student.email, group: student.department || student.area || 'Student' }))} currentUser={currentUser} />}
