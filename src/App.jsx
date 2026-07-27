@@ -5251,6 +5251,7 @@ function AdminNameRandomizer({ data = {}, projects = [], currentUser = {}, dataL
   const [randomizerState, setRandomizerState] = useState(() => loadRandomizerState(currentUser))
   const [customSearch, setCustomSearch] = useState('')
   const [validationMessage, setValidationMessage] = useState('')
+  const [latestSelectionPage, setLatestSelectionPage] = useState(1)
 
   const people = useMemo(() => uniqueRandomizerPeople(data.profiles || []), [data.profiles])
   const groupOptions = useMemo(() => (projects || [])
@@ -5312,6 +5313,15 @@ function AdminNameRandomizer({ data = {}, projects = [], currentUser = {}, dataL
   const sourceLabel = sourceOptions.find((option) => option.id === randomizerState.source)?.label || 'Name pool'
   const requestedCount = Number(randomizerState.pickCount || 1)
   const hasHistory = (randomizerState.selectedHistory || []).length > 0 || (randomizerState.latestSelection || []).length > 0
+  const latestSelectionPageSize = 5
+  const latestSelectionTotalPages = Math.max(1, Math.ceil((randomizerState.latestSelection || []).length / latestSelectionPageSize))
+  const latestSelectionPageSafe = Math.min(Math.max(1, latestSelectionPage), latestSelectionTotalPages)
+  const latestSelectionStartIndex = (latestSelectionPageSafe - 1) * latestSelectionPageSize
+  const visibleLatestSelection = (randomizerState.latestSelection || []).slice(latestSelectionStartIndex, latestSelectionStartIndex + latestSelectionPageSize)
+
+  useEffect(() => {
+    if (latestSelectionPage > latestSelectionTotalPages) setLatestSelectionPage(latestSelectionTotalPages)
+  }, [latestSelectionPage, latestSelectionTotalPages])
 
   async function applyPoolChange(updates) {
     setValidationMessage('')
@@ -5324,6 +5334,7 @@ function AdminNameRandomizer({ data = {}, projects = [], currentUser = {}, dataL
       })
       if (!confirmed) return
     }
+    setLatestSelectionPage(1)
     setRandomizerState((current) => ({
       ...current,
       ...updates,
@@ -5388,6 +5399,7 @@ function AdminNameRandomizer({ data = {}, projects = [], currentUser = {}, dataL
       selectionOrder: (randomizerState.selectedHistory || []).length + index + 1,
     }))
 
+    setLatestSelectionPage(1)
     setRandomizerState((current) => ({
       ...current,
       latestSelection: selected,
@@ -5405,6 +5417,7 @@ function AdminNameRandomizer({ data = {}, projects = [], currentUser = {}, dataL
     })
     if (!confirmed) return
     setValidationMessage('')
+    setLatestSelectionPage(1)
     setRandomizerState((current) => ({ ...current, latestSelection: [], selectedHistory: [], drawNumber: 0 }))
   }
 
@@ -5494,14 +5507,26 @@ function AdminNameRandomizer({ data = {}, projects = [], currentUser = {}, dataL
         <div className="card name-randomizer-results-card">
           <h3>Latest Selection</h3>
           {randomizerState.latestSelection.length ? (
-            <div className="name-randomizer-latest-grid">
-              {randomizerState.latestSelection.map((person, index) => (
-                <div className="name-randomizer-result" key={`${person.key}-${person.drawNumber}-${index}`}>
-                  <span className="name-randomizer-number">{index + 1}</span>
-                  <div><strong>{person.name}</strong><small>{person.roleLabel}{person.studentId ? ` · ${person.studentId}` : person.email ? ` · ${person.email}` : ''}</small></div>
+            <>
+              <div className="name-randomizer-latest-grid">
+                {visibleLatestSelection.map((person, index) => (
+                  <div className="name-randomizer-result" key={`${person.key}-${person.drawNumber}-${latestSelectionStartIndex + index}`}>
+                    <span className="name-randomizer-number">{latestSelectionStartIndex + index + 1}</span>
+                    <div><strong>{person.name}</strong><small>{person.roleLabel}{person.studentId ? ` · ${person.studentId}` : person.email ? ` · ${person.email}` : ''}</small></div>
+                  </div>
+                ))}
+              </div>
+              {randomizerState.latestSelection.length > latestSelectionPageSize && (
+                <div className="admin-pagination-bar randomizer-latest-pagination" aria-label="Latest selection pagination">
+                  <span className="admin-pagination-count">Showing {latestSelectionStartIndex + 1}–{Math.min(latestSelectionStartIndex + latestSelectionPageSize, randomizerState.latestSelection.length)} of {randomizerState.latestSelection.length}</span>
+                  <div className="admin-pagination-controls">
+                    <button type="button" className="secondary compact-button" disabled={latestSelectionPageSafe <= 1} onClick={() => setLatestSelectionPage((page) => Math.max(1, page - 1))}>Previous</button>
+                    <span className="admin-pagination-page">Page {latestSelectionPageSafe} of {latestSelectionTotalPages}</span>
+                    <button type="button" className="secondary compact-button" disabled={latestSelectionPageSafe >= latestSelectionTotalPages} onClick={() => setLatestSelectionPage((page) => Math.min(latestSelectionTotalPages, page + 1))}>Next</button>
+                  </div>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           ) : <EmptyState title="No latest selection" text="Choose a source and press Pick Random Names." icon={Users} />}
         </div>
       </div>
@@ -5790,14 +5815,11 @@ function SharedPlatformFooter({ settings = defaultWebsiteSettings, authenticated
           </div>
         </section>
 
-        <nav className="shared-platform-footer__links" aria-label="Footer quick links">
-          <PublicRouteLink to={authenticated ? "/?public=1" : "/"}>Home</PublicRouteLink>
-          <PublicRouteLink to="/features">Features</PublicRouteLink>
-        </nav>
-
-        <nav className="shared-platform-footer__resources" aria-label="Footer resources">
-          <PublicRouteLink to="/about">About Us</PublicRouteLink>
-          <PublicRouteLink to="/research-guidelines">Research Guidelines</PublicRouteLink>
+        <nav className="shared-platform-footer__nav-grid" aria-label="Footer navigation">
+          <PublicRouteLink className="shared-platform-footer__nav-item" to={authenticated ? "/?public=1" : "/"}>Home</PublicRouteLink>
+          <PublicRouteLink className="shared-platform-footer__nav-item" to="/features">Features</PublicRouteLink>
+          <PublicRouteLink className="shared-platform-footer__nav-item" to="/about">About Us</PublicRouteLink>
+          <PublicRouteLink className="shared-platform-footer__nav-item" to="/research-guidelines">Research Guidelines</PublicRouteLink>
         </nav>
 
         {!authenticated && (
@@ -11954,7 +11976,7 @@ function RoleSwitchDropdown({ activeRole, mode = 'committee', onChange }) {
       ]
   const value = mode === 'admin' ? activeRole || 'admin' : activeRole === 'supervisor' ? 'supervisor' : 'committee'
   const selectedLabel = options.find((option) => option.value === value)?.label || getRoleLabel(value)
-  const roleSelectWidth = `${Math.max(7, selectedLabel.length + 2)}ch`
+  const roleSelectWidth = `calc(${Math.max(6, selectedLabel.length)}ch + 1.15rem)`
   return (
     <label className="role-switch-dropdown role-switch-label-hidden no-print" aria-label="Role" style={{ '--role-select-width': roleSelectWidth }}>
       <select value={value} onChange={(e) => onChange?.(e.target.value)} aria-label="Role">
@@ -16726,7 +16748,7 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
         ) : <EmptyState title="No students found." text="Try another student name, email, supervisor, department, or project keyword." icon={Search} />}
         {supervisors.length > 0 && filteredSupervisorOptions.length === 0 && <EmptyState title="No supervisors found." text="Try another supervisor search keyword." icon={Search} />}
         {!usersLoading && !loadError && filteredStudents.length > 0 && (
-          <div className="admin-pagination-bar">
+          <div className="admin-pagination-bar assignment-pagination-bar">
             <span className="admin-pagination-count">
               Showing {(studentAssignPageSafe - 1) * SUPERVISOR_PAGE_SIZE + 1}
               –{Math.min(studentAssignPageSafe * SUPERVISOR_PAGE_SIZE, filteredStudents.length)} of {filteredStudents.length}
@@ -16763,7 +16785,7 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
           )) : <EmptyState title="No projects found." text="Try another student, supervisor, project, research group, or department keyword." icon={Search} />) : <EmptyState title="No projects found." text="Project assignments appear after supervisors submit projects." icon={BookOpen} />}
         </div>
         {filteredAssignmentProjects.length > 0 && (
-          <div className="admin-pagination-bar">
+          <div className="admin-pagination-bar assignment-pagination-bar">
             <span className="admin-pagination-count">
               Showing {(projectAssignPageSafe - 1) * SUPERVISOR_PAGE_SIZE + 1}
               –{Math.min(projectAssignPageSafe * SUPERVISOR_PAGE_SIZE, filteredAssignmentProjects.length)} of {filteredAssignmentProjects.length}
