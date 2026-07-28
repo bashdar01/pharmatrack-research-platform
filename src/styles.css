@@ -31506,3 +31506,163 @@ html body #root .admin-panel-shell .admin-pagination-bar.randomizer-latest-pagin
     justify-content: space-between !important;
   }
 }
+
+/* Final shared footer organization: align Home, Features, About Us, and Research Guidelines together. */
+html body #root .shared-platform-footer {
+  padding: clamp(13px, 1.8vw, 18px) clamp(16px, 4vw, 52px) 10px !important;
+  margin-top: 16px !important;
+  min-height: 0 !important;
+}
+
+html body #root .shared-platform-footer__grid,
+html body #root .shared-platform-footer--authenticated .shared-platform-footer__grid {
+  width: min(1160px, 100%) !important;
+  margin: 0 auto !important;
+  display: grid !important;
+  grid-template-columns: minmax(210px, 0.78fr) minmax(560px, 1.22fr) !important;
+  column-gap: clamp(22px, 4vw, 52px) !important;
+  row-gap: 8px !important;
+  align-items: start !important;
+  justify-content: center !important;
+}
+
+html body #root .shared-platform-footer__brand {
+  grid-column: 1 !important;
+  grid-row: 1 / span 2 !important;
+  width: 100% !important;
+  align-self: start !important;
+  justify-self: stretch !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: left !important;
+}
+
+html body #root .shared-platform-footer__brand img {
+  width: 46px !important;
+  height: 46px !important;
+  min-width: 46px !important;
+  flex: 0 0 46px !important;
+}
+
+html body #root .shared-platform-footer__brand h2 {
+  margin: 0 !important;
+  line-height: 1.15 !important;
+}
+
+html body #root .shared-platform-footer__brand p,
+html body #root .shared-platform-footer__contact,
+html body #root .shared-platform-footer a[href='/contact'] {
+  display: none !important;
+}
+
+html body #root .shared-platform-footer__nav-grid {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  column-gap: clamp(14px, 2vw, 28px) !important;
+  row-gap: 0 !important;
+  align-items: start !important;
+  justify-items: start !important;
+  align-self: start !important;
+  justify-self: stretch !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+html body #root .shared-platform-footer__nav-item {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 24px !important;
+  display: inline-flex !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  text-align: left !important;
+  line-height: 1.25 !important;
+  white-space: normal !important;
+}
+
+html body #root .shared-platform-footer__account {
+  grid-column: 2 !important;
+  grid-row: 2 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 7px !important;
+  width: 100% !important;
+  margin: 4px 0 0 !important;
+  padding: 0 !important;
+}
+
+html body #root .shared-platform-footer__account-link {
+  width: auto !important;
+  max-width: none !important;
+  min-height: 26px !important;
+  padding: 3px 10px !important;
+}
+
+html body #root .shared-platform-footer__bottom {
+  width: min(1160px, 100%) !important;
+  margin: 9px auto 0 !important;
+  padding-top: 8px !important;
+  min-height: 0 !important;
+}
+
+@media (max-width: 960px) {
+  html body #root .shared-platform-footer__grid,
+  html body #root .shared-platform-footer--authenticated .shared-platform-footer__grid {
+    grid-template-columns: 1fr !important;
+    row-gap: 10px !important;
+  }
+
+  html body #root .shared-platform-footer__brand,
+  html body #root .shared-platform-footer__nav-grid,
+  html body #root .shared-platform-footer__account {
+    grid-column: 1 !important;
+    grid-row: auto !important;
+  }
+
+  html body #root .shared-platform-footer__nav-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    column-gap: 22px !important;
+    row-gap: 6px !important;
+  }
+}
+
+@media (max-width: 520px) {
+  html body #root .shared-platform-footer {
+    padding: 13px 14px 9px !important;
+  }
+
+  html body #root .shared-platform-footer__grid,
+  html body #root .shared-platform-footer--authenticated .shared-platform-footer__grid {
+    row-gap: 9px !important;
+  }
+
+  html body #root .shared-platform-footer__brand {
+    align-items: center !important;
+  }
+
+  html body #root .shared-platform-footer__nav-grid {
+    grid-template-columns: 1fr !important;
+    row-gap: 4px !important;
+  }
+
+  html body #root .shared-platform-footer__nav-item {
+    min-height: 22px !important;
+  }
+
+  html body #root .shared-platform-footer__bottom {
+    margin-top: 8px !important;
+    padding-top: 7px !important;
+  }
+}
