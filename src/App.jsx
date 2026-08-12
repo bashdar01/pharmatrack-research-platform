@@ -57,6 +57,37 @@ const roleButtons = [
   { id: 'admin', label: 'Admin', icon: UserCog },
 ]
 
+// Central source of truth for the four colleges. Falls back to this
+// hardcoded list only until `public.colleges` has loaded from Supabase
+// (see loadFromSupabase / data.colleges), so the signup form always has
+// options even on first paint. Do not add new hardcoded college checks
+// elsewhere in the app — read from `data.colleges` (or this fallback)
+// and filter/branch on `college_id` / `slug` instead.
+const FALLBACK_COLLEGES = [
+  { slug: 'pharmacy', name: 'College of Pharmacy', short_name: 'Pharmacy' },
+  { slug: 'nursing', name: 'College of Nursing', short_name: 'Nursing' },
+  { slug: 'dentistry', name: 'College of Dentistry', short_name: 'Dentistry' },
+  { slug: 'medicine', name: 'College of Medicine', short_name: 'Medicine' },
+]
+
+function getCollegeOptions(data) {
+  const loaded = Array.isArray(data?.colleges) ? data.colleges.filter((c) => c && c.status !== 'Inactive') : []
+  return loaded.length ? loaded : FALLBACK_COLLEGES
+}
+
+function getCollegeById(data, collegeId) {
+  if (!collegeId) return null
+  return getCollegeOptions(data).find((c) => c.id === collegeId || c.slug === collegeId) || null
+}
+
+function getCollegeLabel(data, collegeId) {
+  return getCollegeById(data, collegeId)?.name || ''
+}
+
+function isUuidLike(value) {
+  return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+}
+
 const invitationRoles = [
   { id: 'student', label: 'Student' },
   { id: 'supervisor', label: 'Supervisor' },
@@ -91,19 +122,19 @@ const loginFontOptions = [
 
 const invitationTemplates = {
   student: {
-    subject: 'Invitation to join Pharmacy Research Platform as a Student',
+    subject: 'Invitation to join Research Platform as a Student',
     body: 'Dear [Name], you are invited to join our platform as a Student. Please click the link below to create your account and access your dashboard.',
   },
   supervisor: {
-    subject: 'Invitation to join Pharmacy Research Platform as a Supervisor',
+    subject: 'Invitation to join Research Platform as a Supervisor',
     body: 'Dear [Name], you are invited to join our platform as a Supervisor. Please click the link below to create your account and manage assigned students or projects.',
   },
   committee: {
-    subject: 'Invitation to join Pharmacy Research Platform as a Research Committee Member',
+    subject: 'Invitation to join Research Platform as a Research Committee Member',
     body: 'Dear [Name], you are invited to join our platform as a Research Committee Member. Please click the link below to create your account and review submitted research projects.',
   },
   admin: {
-    subject: 'Invitation to join Pharmacy Research Platform as an Admin / Editor',
+    subject: 'Invitation to join Research Platform as an Admin / Editor',
     body: 'Dear [Name], you are invited to join our platform as an Admin/Editor. Please click the link below to create your account and manage website settings, users, and system content.',
   },
 }
@@ -352,8 +383,8 @@ function buildInvitationEmail(invitation, settings = defaultWebsiteSettings) {
     .replaceAll('[Role]', getRoleLabel(invitation.role))
     .replaceAll('[Link]', link)
     .replaceAll('[Expiration Date]', expiry)
-    .replaceAll('[Website Name]', settings.siteName || 'Pharmacy Research Platform')
-  return `${bodyText}\n\nAssigned role: ${getRoleLabel(invitation.role)}\nSecure invitation link: ${link}\nExpiration date: ${expiry}\n\n${settings.siteName || 'Pharmacy Research Platform'}\nContact: College of Pharmacy, Hawler Medical University`
+    .replaceAll('[Website Name]', settings.siteName || 'Research Platform')
+  return `${bodyText}\n\nAssigned role: ${getRoleLabel(invitation.role)}\nSecure invitation link: ${link}\nExpiration date: ${expiry}\n\n${settings.siteName || 'Research Platform'}\nContact: Hawler Medical University`
 }
 
 
@@ -1939,10 +1970,10 @@ function getButtonColorContrastWarnings(colors = {}) {
 }
 
 const defaultWebsiteSettings = {
-  siteName: 'Pharmacy Research Platform',
-  adminPanelName: 'Pharmacy Research Platform Control Center',
-  homepageHeadline: 'A web-based Pharmacy Research Project Management System',
-  homepageSubtitle: 'For 5th-year students at Hawler Medical University, College of Pharmacy.',
+  siteName: 'Research Platform',
+  adminPanelName: 'Research Platform Control Center',
+  homepageHeadline: 'A web-based Research Project Management System',
+  homepageSubtitle: 'For students at Hawler Medical University — College of Pharmacy, College of Nursing, College of Dentistry, and College of Medicine.',
   heroImage: '/hero-page.png',
   loginHeroImage: '/hero-page.png',
   loginBackgroundImage: '/hero-page.png',
@@ -1986,8 +2017,8 @@ const ABOUT_US_PAGE_KEY = 'about_us'
 const defaultAboutUsPage = {
   page_key: ABOUT_US_PAGE_KEY,
   title: 'About Us',
-  subtitle: 'College of Pharmacy Research Platform',
-  content_html: '<h2>About the Platform</h2><p>The College of Pharmacy Research Platform supports students, supervisors, research committee members, and administrators in managing research projects, weekly reports, deadlines, questions, and academic progress in one secure system.</p><p>Use the admin subdomain to customize this page for your college or department.</p>',
+  subtitle: 'Research Platform — Hawler Medical University',
+  content_html: '<h2>About the Platform</h2><p>The Research Platform supports students, supervisors, research committee members, and administrators across the College of Pharmacy, College of Nursing, College of Dentistry, and College of Medicine in managing research projects, weekly reports, deadlines, questions, and academic progress in one secure system.</p><p>Use the admin subdomain to customize this page for your college or department.</p>',
   content_json: {},
   image_url: '',
   is_published: true,
@@ -2149,11 +2180,11 @@ const defaultPdfReportSettings = {
   logoUrl: '',
   logoPath: '',
   showLogo: true,
-  reportTitle: 'Pharmacy Research Project Management Report',
-  headerText: 'Hawler Medical University – College of Pharmacy',
+  reportTitle: 'Research Project Management Report',
+  headerText: 'Hawler Medical University',
   universityName: 'Hawler Medical University',
-  collegeName: 'College of Pharmacy',
-  departmentName: 'Department of Pharmacy',
+  collegeName: '',
+  departmentName: '',
   footerText: '',
   showPageNumbers: true,
   showGeneratedDateTime: true,
@@ -2551,6 +2582,7 @@ function isAdminPortalRequest() {
 }
 
 const emptyData = {
+  colleges: [],
   profiles: [],
   projects: [],
   reports: [],
@@ -4862,7 +4894,7 @@ function ResearchLearningResourcesPage({ data = emptyData, role = 'student', cur
   return (
     <section className="research-content-page">
       <div className="card research-content-hero-card">
-        <SectionHeader icon={BookOpen} title="Research Learning Resources" subtitle="Curated videos, papers, PDFs, and educational links for pharmacy research skills." />
+        <SectionHeader icon={BookOpen} title="Research Learning Resources" subtitle="Curated videos, papers, PDFs, and educational links for research skills." />
         <p className="muted">Search published learning materials, open safe external links, watch videos without autoplay, or view uploaded PDFs inside the platform.</p>
       </div>
       {canManage && (
@@ -4983,7 +5015,7 @@ function ResearchDayPage({ data = emptyData, role = 'student', currentUser = {},
         <form className="card research-management-form" onSubmit={submitEvent}>
           <SectionHeader icon={CalendarDays} title={editing ? 'Edit Research Day' : 'Create Research Day'} />
           <div className="form-grid">
-            <label className="field"><span>Event title</span><input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="College of Pharmacy Research Day" /></label>
+            <label className="field"><span>Event title</span><input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Research Day" /></label>
             <label className="field"><span>Status</span><select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>{RESEARCH_DAY_STATUSES.map((status) => <option key={status}>{status}</option>)}</select></label>
             <label className="field"><span>Date</span><input required type="date" value={form.event_date || ''} onChange={(e) => setForm({ ...form, event_date: e.target.value })} /></label>
             <label className="field"><span>Start time</span><input required type="time" value={form.start_time || ''} onChange={(e) => setForm({ ...form, start_time: e.target.value })} /></label>
@@ -5695,6 +5727,13 @@ const PUBLIC_ROLES = [
   { id: 'committee-role', icon: ShieldCheck, title: 'Research Committee', text: 'Review submitted projects, make documented decisions, oversee group requests, and monitor the academic progress of approved research.' },
 ]
 
+const PUBLIC_COLLEGES = [
+  { slug: 'pharmacy', title: 'College of Pharmacy', text: 'Research projects, groups, and academic progress for Pharmacy students, supervisors, and the Pharmacy Research Committee.' },
+  { slug: 'nursing', title: 'College of Nursing', text: 'Research projects, groups, and academic progress for Nursing students, supervisors, and the Nursing Research Committee.' },
+  { slug: 'dentistry', title: 'College of Dentistry', text: 'Research projects, groups, and academic progress for Dentistry students, supervisors, and the Dentistry Research Committee.' },
+  { slug: 'medicine', title: 'College of Medicine', text: 'Research projects, groups, and academic progress for Medicine students, supervisors, and the Medicine Research Committee.' },
+]
+
 const PUBLIC_BENEFITS = [
   ['Centralized management', 'Research information, communication, documents, and decisions remain connected.'],
   ['Clear communication', 'Students, supervisors, committees, and administrators work through defined channels.'],
@@ -5831,7 +5870,7 @@ function SharedPlatformFooter({ settings = defaultWebsiteSettings, authenticated
       </div>
 
       <div className="shared-platform-footer__bottom">
-        <span>© {currentYear} Hawler Medical University – College of Pharmacy. All rights reserved.</span>
+        <span>© {currentYear} Hawler Medical University Research Platform. All rights reserved.</span>
       </div>
     </footer>
   )
@@ -5862,7 +5901,7 @@ function PublicLegalPage({ type, settings, authenticated = false }) {
           </>
         ) : (
           <>
-            <p>This platform is provided for authorized academic research management at Hawler Medical University, College of Pharmacy.</p>
+            <p>This platform is provided for authorized academic research management at Hawler Medical University, supporting the College of Pharmacy, College of Nursing, College of Dentistry, and College of Medicine.</p>
             <h2>Responsible use</h2>
             <p>Users must protect their account credentials, use the platform only for authorized academic purposes, and ensure submitted information and documents are accurate and appropriate.</p>
             <h2>Access and availability</h2>
@@ -5963,7 +6002,7 @@ function PublicInformationPage({ path, settings = defaultWebsiteSettings, aboutU
           <header className="public-information-page__heading">
             <p className="public-section-kicker"><FileText size={17} /> Academic resource</p>
             <h1>Research Guidelines</h1>
-            <p>Read or download the official research guidelines used by the College of Pharmacy.</p>
+            <p>Read or download the official research guidelines used across the participating colleges.</p>
           </header>
           <div className="public-guidelines-actions">
             <a className="public-primary-action" href={RESEARCH_GUIDELINES_PDF_URL} download={RESEARCH_GUIDELINES_DOWNLOAD_NAME}><Download size={18} /> Download Guidelines</a>
@@ -5982,14 +6021,14 @@ function PublicInformationPage({ path, settings = defaultWebsiteSettings, aboutU
         <header className="public-information-page__heading">
           <p className="public-section-kicker"><Mail size={17} /> Platform contact</p>
           <h1>Contact</h1>
-          <p>Public institutional information and platform access are provided through Hawler Medical University, College of Pharmacy.</p>
+          <p>Public institutional information and platform access are provided through Hawler Medical University Research Platform.</p>
         </header>
         <div className="public-contact-grid">
           <article className="public-contact-card">
             <Building2 size={28} />
             <h2>Institution</h2>
             <p>Hawler Medical University</p>
-            <p>College of Pharmacy</p>
+            <p>Colleges of Pharmacy, Nursing, Dentistry &amp; Medicine</p>
           </article>
           <article className="public-contact-card">
             <Inbox size={28} />
@@ -6020,7 +6059,7 @@ function PublicHomepage({ settings = defaultWebsiteSettings, authenticated = fal
           <div className="public-hero-backdrop" style={{ '--public-hero-image': cssImageUrl(heroImage) }} aria-hidden="true" />
           <div className="public-hero-inner">
             <div className="public-hero-copy">
-              <p className="public-hero-kicker"><Building2 size={18} /> Hawler Medical University · College of Pharmacy</p>
+              <p className="public-hero-kicker"><Building2 size={18} /> Hawler Medical University · Research Platform</p>
               <h1>{publicHeadline}</h1>
               <p>{publicSubtitle}</p>
               <div className="public-hero-actions">
@@ -6087,6 +6126,23 @@ function PublicHomepage({ settings = defaultWebsiteSettings, authenticated = fal
           </div>
         </section>
 
+        <section className="public-section public-colleges-section" id="colleges">
+          <div className="public-section-heading">
+            <p className="public-section-kicker"><Building2 size={17} /> Participating colleges</p>
+            <h2>One Research Platform, Four Colleges</h2>
+            <p>Hawler Medical University's Research Platform supports research activities across the College of Pharmacy, College of Nursing, College of Dentistry, and College of Medicine, each with its own students, supervisors, research committee, and projects.</p>
+          </div>
+          <div className="public-feature-grid public-college-grid">
+            {PUBLIC_COLLEGES.map(({ slug, title, text }) => (
+              <article className="public-feature-card" key={slug}>
+                <span className="public-feature-icon"><Building2 size={23} /></span>
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
         <section className="public-section public-benefits-section">
           <div className="public-benefits-intro">
             <p className="public-section-kicker"><CheckCircle2 size={17} /> Institutional benefits</p>
@@ -6126,7 +6182,7 @@ function PublicHomepage({ settings = defaultWebsiteSettings, authenticated = fal
   )
 }
 
-function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = false, settings = defaultWebsiteSettings, invitation = null, initialMode = 'login' }) {
+function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = false, settings = defaultWebsiteSettings, invitation = null, initialMode = 'login', collegeOptions = FALLBACK_COLLEGES }) {
   const normalizedInitialMode = initialMode === 'register' ? 'register' : 'login'
   const [mode, setMode] = useState(normalizedInitialMode)
   const [form, setForm] = useState({
@@ -6135,6 +6191,7 @@ function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = fa
     password: '',
     confirm_password: '',
     role: 'student',
+    college_id: '',
     remember_me: false,
   })
 
@@ -6149,6 +6206,7 @@ function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = fa
       full_name: invitation.full_name || current.full_name,
       email: invitation.email || current.email,
       role: invitation.role || current.role,
+      college_id: invitation.college_id || current.college_id,
     }))
   }, [invitation, normalizedInitialMode])
 
@@ -6272,6 +6330,19 @@ function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = fa
                   <label className="field wide-field">
                     <span>Confirm password</span>
                     <input type="password" value={form.confirm_password} onChange={(e) => setForm({ ...form, confirm_password: e.target.value })} placeholder="Confirm your password" />
+                  </label>
+                  <label className="field wide-field">
+                    <span>College</span>
+                    <select
+                      value={form.college_id}
+                      disabled={Boolean(invitation?.college_id)}
+                      onChange={(e) => setForm({ ...form, college_id: e.target.value })}
+                    >
+                      <option value="" disabled>Select your college</option>
+                      {collegeOptions.map((college) => (
+                        <option key={college.id || college.slug} value={college.id || college.slug}>{college.name}</option>
+                      ))}
+                    </select>
                   </label>
                   <label className="field wide-field">
                     <span>Role</span>
@@ -6639,6 +6710,15 @@ export default function App() {
       const error = [profiles, projects, reports, uploadedFiles, deadlines, notifications, evaluations, auditLogs].find((x) => x.error)?.error
       if (error) throw error
 
+      let collegesData = FALLBACK_COLLEGES
+      try {
+        const colleges = await supabase.from('colleges').select('*').order('name', { ascending: true })
+        if (!colleges.error && colleges.data?.length) collegesData = colleges.data
+        else if (colleges.error) console.warn('Colleges table unavailable, using fallback list:', colleges.error.message || colleges.error)
+      } catch {
+        collegesData = FALLBACK_COLLEGES
+      }
+
       let invitationsData = []
       try {
         const invitations = await supabase.from('invitations').select('*').order('created_at', { ascending: false })
@@ -6732,6 +6812,7 @@ export default function App() {
 
       setDataLoadError('')
       setData(cleanData({
+        colleges: collegesData,
         profiles: profiles.data || [],
         projects: projectsData,
         reports: reportsData,
@@ -7338,6 +7419,12 @@ export default function App() {
     const password = form.password || ''
     const confirmPassword = form.confirm_password || ''
     const invitationRole = acceptedInvitation?.role || form.role
+    const invitationCollegeId = acceptedInvitation?.college_id || form.college_id
+
+    if (isRegister && !invitationCollegeId) {
+      setMessage('Please select your college to create an account.')
+      return
+    }
 
     if (acceptedInvitation && isRegister) {
       if (email !== String(acceptedInvitation.email || '').toLowerCase()) {
@@ -7386,6 +7473,15 @@ export default function App() {
           const isFirstProfile = Number(countResult.count || 0) === 0
           const registrationStatus = acceptedInvitation ? 'Active' : isFirstProfile && invitationRole === 'admin' ? 'Active' : 'Pending'
 
+          // A college is a real DB row once `colleges` has loaded from Supabase, but the
+          // signup form may still be holding the hardcoded fallback slug on first paint.
+          // Resolve to a real college_id (uuid) either way before writing the profile.
+          const resolvedCollege = getCollegeById(data, invitationCollegeId)
+          const resolvedCollegeId = resolvedCollege?.id || (isUuidLike(invitationCollegeId) ? invitationCollegeId : null)
+          if (!resolvedCollegeId) {
+            throw new Error('Could not resolve the selected college. Please refresh the page and try registering again.')
+          }
+
           const signUpResult = await supabase.auth.signUp({
             email,
             password,
@@ -7414,7 +7510,7 @@ export default function App() {
           } else {
             const insertResult = await supabase
               .from('profiles')
-              .insert({ full_name: fullName, email, role: invitationRole, status: registrationStatus })
+              .insert({ full_name: fullName, email, role: invitationRole, status: registrationStatus, college_id: resolvedCollegeId })
               .select()
               .single()
 
@@ -7469,12 +7565,14 @@ export default function App() {
           if (existingLocal) throw new Error('This email already has an account. Please use Login with your password.')
           const isFirstLocalProfile = data.profiles.length === 0
           const registrationStatus = acceptedInvitation ? 'Active' : isFirstLocalProfile && invitationRole === 'admin' ? 'Active' : 'Pending'
+          const localResolvedCollege = getCollegeById(data, invitationCollegeId)
           loginUser = {
             id: crypto.randomUUID(),
             full_name: fullName,
             email,
             role: invitationRole,
             status: registrationStatus,
+            college_id: localResolvedCollege?.id || localResolvedCollege?.slug || invitationCollegeId,
             password_hash: localPasswordKey(password),
             created_at: new Date().toISOString(),
           }
@@ -9780,7 +9878,7 @@ export default function App() {
         invitationLink: invitation.invitation_link || makeInvitationLink(invitation.token),
         expiresAt: invitation.expires_at,
         websiteName: websiteSettings.siteName || defaultWebsiteSettings.siteName,
-        contactInfo: 'College of Pharmacy, Hawler Medical University',
+        contactInfo: 'Hawler Medical University',
       },
     })
 
@@ -9811,7 +9909,7 @@ export default function App() {
       full_name: fullName,
       email,
       role: roleValue,
-      subject: form.subject || invitationTemplates[roleValue]?.subject || 'Invitation to join Pharmacy Research Platform',
+      subject: form.subject || invitationTemplates[roleValue]?.subject || 'Invitation to join Research Platform',
       body: form.body || invitationTemplates[roleValue]?.body || 'Dear [Name], you are invited to join our platform.',
       token,
       invitation_link: makeInvitationLink(token),
@@ -10693,7 +10791,7 @@ export default function App() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'pharmacy_research_platform_project_summary.csv'
+    a.download = 'research_platform_project_summary.csv'
     a.click()
     URL.revokeObjectURL(url)
     addAudit(currentUser.full_name, 'exported', 'project summary CSV')
@@ -11092,7 +11190,7 @@ export default function App() {
     }
 
     const loginMode = acceptedInvitation || hasInvitationToken || (!isAdminPortal && publicPath === '/register') ? 'register' : 'login'
-    return <><LoginPage key={`${isAdminPortal ? 'admin' : 'public'}-${loginMode}`} onLogin={handleLogin} onForgotPassword={handleForgotPassword} message={message} loading={loginLoading} adminOnly={isAdminPortal} settings={websiteSettings} invitation={acceptedInvitation} initialMode={loginMode} /><AppDialog dialog={appDialog} onClose={closeAppDialog} /></>
+    return <><LoginPage key={`${isAdminPortal ? 'admin' : 'public'}-${loginMode}`} onLogin={handleLogin} onForgotPassword={handleForgotPassword} message={message} loading={loginLoading} adminOnly={isAdminPortal} settings={websiteSettings} invitation={acceptedInvitation} initialMode={loginMode} collegeOptions={getCollegeOptions(data)} /><AppDialog dialog={appDialog} onClose={closeAppDialog} /></>
   }
 
   if (isAdminPortal && allowedRole !== 'admin' && !isAdminBaseRole) {
@@ -11317,7 +11415,7 @@ export default function App() {
                 onChange={handleRoleSwitch}
               />
             )}
-            <UserProfileMenu currentUser={currentUser} onLogout={logout} onOpenProfile={() => handleMainNavClick('profile-settings')} />
+            <UserProfileMenu currentUser={currentUser} collegeLabel={getCollegeLabel(data, currentUser?.college_id)} onLogout={logout} onOpenProfile={() => handleMainNavClick('profile-settings')} />
           </div>
         </header>
 
@@ -11340,7 +11438,7 @@ export default function App() {
         )}
 
         {tab === 'about-us' && <AboutUsPage page={aboutUsPage} />}
-        {tab === 'profile-settings' && <ProfileSettingsPage currentUser={currentUser} onBack={() => handleMainNavClick('dashboard')} updateOwnProfile={updateOwnProfile} uploadOwnProfilePhoto={uploadOwnProfilePhoto} updateOwnPassword={updateOwnPassword} />}
+        {tab === 'profile-settings' && <ProfileSettingsPage currentUser={currentUser} collegeLabel={getCollegeLabel(data, currentUser?.college_id)} onBack={() => handleMainNavClick('dashboard')} updateOwnProfile={updateOwnProfile} uploadOwnProfilePhoto={uploadOwnProfilePhoto} updateOwnPassword={updateOwnPassword} />}
         {tab === 'questions' && allowedRole === 'student' && roleContextReady && <StudentQuestionsTab data={data} currentUser={activeRoleUser} dataLoading={dataLoading} submitStudentQuestion={submitStudentQuestion} openQuestionAttachment={openQuestionAttachment} />}
         {tab === 'questions' && allowedRole === 'supervisor' && roleContextReady && <SupervisorQuestionsTab data={data} currentUser={activeRoleUser} dataLoading={dataLoading} answerStudentQuestion={answerStudentQuestion} openQuestionAttachment={openQuestionAttachment} />}
         {tab === 'meetings' && (allowedRole === 'student' || allowedRole === 'supervisor') && roleContextReady && <MeetingRequestsPage data={data} role={allowedRole} currentUser={activeRoleUser} dataLoading={dataLoading} createMeetingRequest={createMeetingRequest} respondMeetingRequest={respondMeetingRequest} />}
@@ -11886,7 +11984,7 @@ function AboutUsCustomizationPanel({ page, updatePage, uploadImage }) {
           </label>
           <label className="field">
             <span>Subtitle</span>
-            <input value={draft.subtitle} onChange={(e) => updateDraft('subtitle', e.target.value)} placeholder="College of Pharmacy Research Platform" />
+            <input value={draft.subtitle} onChange={(e) => updateDraft('subtitle', e.target.value)} placeholder="Research Platform" />
           </label>
           <label className="field">
             <span>Header image URL</span>
@@ -12148,7 +12246,7 @@ function NotificationBellMenu({ data, role, currentUser, dataLoading = false, un
   )
 }
 
-function ProfileSettingsPage({ currentUser, onBack, updateOwnProfile, uploadOwnProfilePhoto, updateOwnPassword }) {
+function ProfileSettingsPage({ currentUser, collegeLabel = '', onBack, updateOwnProfile, uploadOwnProfilePhoto, updateOwnPassword }) {
   const [form, setForm] = useState(() => ({
     full_name: currentUser?.full_name || '',
     display_name: currentUser?.display_name || '',
@@ -12307,6 +12405,10 @@ function ProfileSettingsPage({ currentUser, onBack, updateOwnProfile, uploadOwnP
               <span>Role</span>
               <input value={roleLabel} readOnly />
             </label>
+            <label>
+              <span>College</span>
+              <input value={collegeLabel || 'Not set'} readOnly title="College affiliation can only be changed by an authorized Admin." />
+            </label>
           </div>
           <button type="submit" className="primary" disabled={loadingKey === 'profile'}>
             <ButtonContent loading={loadingKey === 'profile'} loadingText="Saving profile..."><Save size={16} /> Save Profile</ButtonContent>
@@ -12338,7 +12440,7 @@ function ProfileSettingsPage({ currentUser, onBack, updateOwnProfile, uploadOwnP
   )
 }
 
-function UserProfileMenu({ currentUser, onLogout, onOpenProfile }) {
+function UserProfileMenu({ currentUser, collegeLabel = '', onLogout, onOpenProfile }) {
   const [open, setOpen] = useState(false)
   const [menuVisible, setMenuVisible] = useState(false)
   const closeTimerRef = useRef(null)
@@ -12405,6 +12507,7 @@ function UserProfileMenu({ currentUser, onLogout, onOpenProfile }) {
             <div className="profile-identity simplified-profile-identity">
               <h3>{displayName}</h3>
               <p>{displayEmail}</p>
+              {collegeLabel && <p className="profile-college-label"><Building2 size={13} /> {collegeLabel}</p>}
             </div>
 
             <button className="profile-upload-button redesigned" type="button" onClick={openProfileSettings}>
@@ -13487,7 +13590,7 @@ function AdminControlPanel({
         <div className="admin-brand-block">
           <div className="admin-brand-mark" aria-hidden="true">{(settings.adminPanelName || 'A').trim().charAt(0).toUpperCase()}</div>
           <div className="admin-brand-text">
-            <h2>{settings.adminPanelName || 'Pharmacy Research Platform Control Center'}</h2>
+            <h2>{settings.adminPanelName || 'Research Platform Control Center'}</h2>
             <p>Website management panel</p>
           </div>
         </div>
@@ -13548,7 +13651,7 @@ function AdminControlPanel({
         {message && adminPanelTab !== 'overview' && <div className="message no-print">{message}</div>}
         {dataLoading && adminPanelTab !== 'overview' && <LoadingBlock text="Loading admin records..." />}
 
-        {adminPanelTab === 'profile-settings' && <ProfileSettingsPage currentUser={currentUser} onBack={() => changeAdminPanelTab('overview')} updateOwnProfile={updateOwnProfile} uploadOwnProfilePhoto={uploadOwnProfilePhoto} updateOwnPassword={updateOwnPassword} />}
+        {adminPanelTab === 'profile-settings' && <ProfileSettingsPage currentUser={currentUser} collegeLabel={getCollegeLabel(data, currentUser?.college_id)} onBack={() => changeAdminPanelTab('overview')} updateOwnProfile={updateOwnProfile} uploadOwnProfilePhoto={uploadOwnProfilePhoto} updateOwnPassword={updateOwnPassword} />}
         {adminPanelTab === 'about-us' && <AboutUsCustomizationPanel page={aboutUsPage} updatePage={updateAboutUsPage} uploadImage={uploadAboutUsImage} currentUser={currentUser} />}
         {adminPanelTab === 'learning-resources' && <ResearchLearningResourcesPage data={data} role="admin" currentUser={currentUser} dataLoading={dataLoading} saveResource={saveResearchLearningResource} deleteResource={deleteResearchLearningResource} openPdf={openResearchContentPdf} />}
         {adminPanelTab === 'research-day' && <ResearchDayPage data={data} role="admin" currentUser={currentUser} dataLoading={dataLoading} saveResearchDay={saveResearchDay} deleteResearchDay={deleteResearchDay} />}
@@ -13564,9 +13667,9 @@ function AdminControlPanel({
             <div className="card">
               <SectionHeader icon={SlidersHorizontal} title="Website Content Settings" subtitle="Change homepage text, hero image, and admin panel labels" />
               <div className="form-grid">
-                <label className="field"><span>Main website name</span><input value={draft.siteName || ''} onChange={(e) => updateDraft('siteName', e.target.value)} placeholder="Pharmacy Research Platform" /></label>
-                <label className="field"><span>Admin panel name</span><input value={draft.adminPanelName || ''} onChange={(e) => updateDraft('adminPanelName', e.target.value)} placeholder="Pharmacy Research Platform Control Center" /></label>
-                <label className="field wide-field"><span>Homepage headline</span><input value={draft.homepageHeadline || ''} onChange={(e) => updateDraft('homepageHeadline', e.target.value)} placeholder="A web-based Pharmacy Research Project Management System" /></label>
+                <label className="field"><span>Main website name</span><input value={draft.siteName || ''} onChange={(e) => updateDraft('siteName', e.target.value)} placeholder="Research Platform" /></label>
+                <label className="field"><span>Admin panel name</span><input value={draft.adminPanelName || ''} onChange={(e) => updateDraft('adminPanelName', e.target.value)} placeholder="Research Platform Control Center" /></label>
+                <label className="field wide-field"><span>Homepage headline</span><input value={draft.homepageHeadline || ''} onChange={(e) => updateDraft('homepageHeadline', e.target.value)} placeholder="A web-based Research Project Management System" /></label>
                 <label className="field wide-field"><span>Homepage subtitle</span><textarea value={draft.homepageSubtitle || ''} onChange={(e) => updateDraft('homepageSubtitle', e.target.value)} placeholder="Write the subtitle shown on the public website" /></label>
                 <label className="field wide-field"><span>Admin welcome message</span><textarea value={draft.adminWelcome || ''} onChange={(e) => updateDraft('adminWelcome', e.target.value)} placeholder="Write the admin panel welcome text" /></label>
                 <label className="field wide-field"><span>Maintenance notice / announcement</span><input value={draft.maintenanceNotice || ''} onChange={(e) => updateDraft('maintenanceNotice', e.target.value)} placeholder="Optional notice shown to admins" /></label>
@@ -17766,7 +17869,11 @@ function ReportsTab({ data, projects, currentUser, role, printPdfReport, exportC
   const hasProjects = studentFilteredProjects.length > 0
   const showGeneratedAt = settings.showGeneratedDateTime !== false && reportSectionVisible(settings, 'generatedDateTime')
   const footerText = String(settings.footerText || '').trim()
-  const departmentLine = [settings.universityName, settings.collegeName, settings.departmentName].filter(Boolean).join(' • ')
+  // If the admin hasn't explicitly customized the College name for this role's PDF
+  // settings, fall back to the current user's actual college so the report reflects
+  // the right college dynamically instead of a fixed value from one college's rollout.
+  const effectiveCollegeName = settings.collegeName || getCollegeLabel(data, currentUser?.college_id) || ''
+  const departmentLine = [settings.universityName, effectiveCollegeName, settings.departmentName].filter(Boolean).join(' • ')
   const feedbackReports = scopedReports.filter((report) => report.feedback || report.supervisor_feedback)
   const selectedSupervisor = supervisorOptions.find((supervisor) => supervisor.key === selectedSupervisorKey) || null
   const noAssignedStudentsForSupervisor = isAdminLike && selectedSupervisorKey && selectedSupervisorKey !== 'all' && selectableStudentOptions.length === 0
@@ -18054,11 +18161,11 @@ function PdfReportCustomizationPanel({ settingsByRole = {}, globalSettings = def
         <SectionHeader icon={FileText} title="PDF Report Customization" subtitle={`Customize the existing Print/PDF Report template for ${roleLabel}`} />
         {pdfActionLoading === 'load-role-settings' ? <LoadingBlock text="Loading role PDF settings..." /> : null}
         <div className="form-grid">
-          <label className="field wide-field"><span>Report header/title text</span><input value={draft.reportTitle || ''} onChange={(e) => updateDraft('reportTitle', e.target.value)} placeholder="Pharmacy Research Project Management Report" /></label>
-          <label className="field"><span>Header line</span><input value={draft.headerText || ''} onChange={(e) => updateDraft('headerText', e.target.value)} placeholder="Hawler Medical University – College of Pharmacy" /></label>
+          <label className="field wide-field"><span>Report header/title text</span><input value={draft.reportTitle || ''} onChange={(e) => updateDraft('reportTitle', e.target.value)} placeholder="Research Project Management Report" /></label>
+          <label className="field"><span>Header line</span><input value={draft.headerText || ''} onChange={(e) => updateDraft('headerText', e.target.value)} placeholder="Hawler Medical University" /></label>
           <label className="field"><span>University name</span><input value={draft.universityName || ''} onChange={(e) => updateDraft('universityName', e.target.value)} placeholder="Hawler Medical University" /></label>
-          <label className="field"><span>College name</span><input value={draft.collegeName || ''} onChange={(e) => updateDraft('collegeName', e.target.value)} placeholder="College of Pharmacy" /></label>
-          <label className="field"><span>Department name</span><input value={draft.departmentName || ''} onChange={(e) => updateDraft('departmentName', e.target.value)} placeholder="Department of Pharmacy" /></label>
+          <label className="field"><span>College name</span><input value={draft.collegeName || ''} onChange={(e) => updateDraft('collegeName', e.target.value)} placeholder="e.g. College of Pharmacy" /></label>
+          <label className="field"><span>Department name</span><input value={draft.departmentName || ''} onChange={(e) => updateDraft('departmentName', e.target.value)} placeholder="Optional department name" /></label>
           <label className="field wide-field"><span>Footer text</span><textarea value={draft.footerText || ''} onChange={(e) => updateDraft('footerText', e.target.value)} placeholder="Optional footer text shown at the bottom of printed/PDF reports" /></label>
         </div>
         <div className="settings-actions">
@@ -18163,7 +18270,7 @@ function DatabaseTab({ databaseMode }) {
         </div>
       </div>
       <div className="card">
-        <SectionHeader icon={Database} title="Core Database Tables" subtitle="Tables used by the Pharmacy Research Project Management System" />
+        <SectionHeader icon={Database} title="Core Database Tables" subtitle="Tables used by the Research Project Management System" />
         <div className="table-wrap"><table><thead><tr><th>Core Table</th><th>Purpose</th></tr></thead><tbody>{tables.map((t) => <tr key={t}><td><code>{t}</code></td><td>Stores and manages {t.replaceAll('_', ' ')} data.</td></tr>)}</tbody></table></div>
         <div className="soft-box"><p><Lock size={16} /> Database information is visible only to Admin accounts.</p></div>
       </div>

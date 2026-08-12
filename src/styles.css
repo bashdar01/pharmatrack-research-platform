@@ -1071,6 +1071,16 @@ button:disabled {
   font-size: 13px;
   overflow-wrap: anywhere;
 }
+.profile-college-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  justify-content: center;
+  font-size: 12px !important;
+  font-weight: 600;
+  color: var(--primary, #2563eb) !important;
+  opacity: .85;
+}
 .profile-badges {
   display: flex;
   flex-wrap: wrap;
