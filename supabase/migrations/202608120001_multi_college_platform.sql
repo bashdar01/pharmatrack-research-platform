@@ -208,6 +208,9 @@ $$;
 drop policy if exists "profiles_select_authenticated" on public.profiles;
 drop policy if exists "profiles_insert_authenticated" on public.profiles;
 drop policy if exists "profiles_update_authenticated" on public.profiles;
+drop policy if exists "profiles_select_own_college_or_admin" on public.profiles;
+drop policy if exists "profiles_insert_self_registration" on public.profiles;
+drop policy if exists "profiles_update_self_or_admin" on public.profiles;
 
 -- Anyone signed in can see people within their own college, and platform
 -- admins can see everyone. (Committee/supervisor cross-college visibility
@@ -253,6 +256,10 @@ drop policy if exists "projects_select_authenticated" on public.research_project
 drop policy if exists "projects_insert_authenticated" on public.research_projects;
 drop policy if exists "projects_update_authenticated" on public.research_projects;
 drop policy if exists "projects_delete_authenticated" on public.research_projects;
+drop policy if exists "projects_select_own_college_or_admin" on public.research_projects;
+drop policy if exists "projects_insert_own_college" on public.research_projects;
+drop policy if exists "projects_update_own_college_or_admin" on public.research_projects;
+drop policy if exists "projects_delete_own_college_or_admin" on public.research_projects;
 
 create policy "projects_select_own_college_or_admin" on public.research_projects
   for select to authenticated
@@ -274,6 +281,8 @@ create policy "projects_delete_own_college_or_admin" on public.research_projects
 -- deadlines ------------------------------------------------------------------
 alter table public.deadlines enable row level security;
 drop policy if exists "deadlines_all_authenticated" on public.deadlines;
+drop policy if exists "deadlines_select_own_college_or_admin" on public.deadlines;
+drop policy if exists "deadlines_write_committee_or_admin" on public.deadlines;
 
 create policy "deadlines_select_own_college_or_admin" on public.deadlines
   for select to authenticated
@@ -293,6 +302,8 @@ create policy "deadlines_write_committee_or_admin" on public.deadlines
 -- notifications ----------------------------------------------------------
 alter table public.notifications enable row level security;
 drop policy if exists "notifications_all_authenticated" on public.notifications;
+drop policy if exists "notifications_select_own_college_or_recipient" on public.notifications;
+drop policy if exists "notifications_write_committee_or_admin" on public.notifications;
 
 create policy "notifications_select_own_college_or_recipient" on public.notifications
   for select to authenticated
@@ -314,6 +325,7 @@ drop policy if exists "weekly_reports_select_authenticated" on public.weekly_rep
 drop policy if exists "weekly_reports_insert_authenticated" on public.weekly_reports;
 drop policy if exists "weekly_reports_update_authenticated" on public.weekly_reports;
 drop policy if exists "weekly_reports_delete_admin_only" on public.weekly_reports;
+drop policy if exists "weekly_reports_same_college" on public.weekly_reports;
 
 create policy "weekly_reports_same_college" on public.weekly_reports
   for all to authenticated
@@ -336,6 +348,7 @@ create policy "weekly_reports_same_college" on public.weekly_reports
 
 alter table public.uploaded_files enable row level security;
 drop policy if exists "uploaded_files_select_authenticated" on public.uploaded_files;
+drop policy if exists "uploaded_files_same_college" on public.uploaded_files;
 
 create policy "uploaded_files_same_college" on public.uploaded_files
   for all to authenticated
@@ -364,6 +377,10 @@ begin
   if to_regclass('public.research_learning_resources') is not null then
     execute 'alter table public.research_learning_resources enable row level security';
     execute 'drop policy if exists "learning_resources_all_authenticated" on public.research_learning_resources';
+execute 'drop policy if exists "learning_resources_select_scoped" on public.research_learning_resources';
+execute 'drop policy if exists "learning_resources_write_committee_or_admin" on public.research_learning_resources';
+execute 'drop policy if exists "learning_resources_update_committee_or_admin" on public.research_learning_resources';
+execute 'drop policy if exists "learning_resources_delete_committee_or_admin" on public.research_learning_resources';
     execute $q$
       create policy "learning_resources_select_scoped" on public.research_learning_resources
       for select to authenticated
@@ -390,6 +407,8 @@ begin
   if to_regclass('public.research_days') is not null then
     execute 'alter table public.research_days enable row level security';
     execute 'drop policy if exists "research_days_all_authenticated" on public.research_days';
+execute 'drop policy if exists "research_days_select_own_college_or_admin" on public.research_days';
+execute 'drop policy if exists "research_days_write_committee_or_admin" on public.research_days';
     execute $q$
       create policy "research_days_select_own_college_or_admin" on public.research_days
       for select to authenticated
@@ -406,6 +425,10 @@ begin
   if to_regclass('public.published_papers') is not null then
     execute 'alter table public.published_papers enable row level security';
     execute 'drop policy if exists "published_papers_all_authenticated" on public.published_papers';
+execute 'drop policy if exists "published_papers_select_all" on public.published_papers';
+execute 'drop policy if exists "published_papers_write_own_college_or_admin" on public.published_papers';
+execute 'drop policy if exists "published_papers_update_own_college_or_admin" on public.published_papers';
+execute 'drop policy if exists "published_papers_delete_own_college_or_admin" on public.published_papers';
     -- Published papers are readable platform-wide (public research output),
     -- but only editable by the submitting college's own supervisor/committee/admin.
     execute $q$
@@ -433,6 +456,9 @@ begin
   if to_regclass('public.invitations') is not null then
     execute 'alter table public.invitations enable row level security';
     execute 'drop policy if exists "invitations_all_authenticated" on public.invitations';
+execute 'drop policy if exists "invitations_select_scoped" on public.invitations';
+execute 'drop policy if exists "invitations_write_committee_or_admin" on public.invitations';
+execute 'drop policy if exists "invitations_update_committee_or_admin" on public.invitations';
     execute $q$
       create policy "invitations_select_scoped" on public.invitations
       for select to anon, authenticated
@@ -459,16 +485,17 @@ begin
   if to_regclass('public.research_group_members') is not null then
     execute 'alter table public.research_group_members enable row level security';
     execute 'drop policy if exists "research_group_members_all_authenticated" on public.research_group_members';
+execute 'drop policy if exists "research_group_members_same_college" on public.research_group_members';
     execute $q$
       create policy "research_group_members_same_college" on public.research_group_members
       for all to authenticated
       using (
         public.is_platform_admin()
-        or exists (select 1 from public.research_projects rp where rp.id = research_group_members.project_id and rp.college_id = public.current_college_id())
+        or exists (select 1 from public.research_projects rp where rp.id = coalesce(research_group_members.project_id, research_group_members.group_id) and rp.college_id = public.current_college_id())
       )
       with check (
         public.is_platform_admin()
-        or exists (select 1 from public.research_projects rp where rp.id = research_group_members.project_id and rp.college_id = public.current_college_id())
+        or exists (select 1 from public.research_projects rp where rp.id = coalesce(research_group_members.project_id, research_group_members.group_id) and rp.college_id = public.current_college_id())
       )
     $q$;
   end if;
@@ -476,16 +503,17 @@ begin
   if to_regclass('public.group_join_requests') is not null then
     execute 'alter table public.group_join_requests enable row level security';
     execute 'drop policy if exists "group_join_requests_all_authenticated" on public.group_join_requests';
+execute 'drop policy if exists "group_join_requests_same_college" on public.group_join_requests';
     execute $q$
       create policy "group_join_requests_same_college" on public.group_join_requests
       for all to authenticated
       using (
         public.is_platform_admin()
-        or exists (select 1 from public.research_projects rp where rp.id = group_join_requests.project_id and rp.college_id = public.current_college_id())
+        or exists (select 1 from public.research_projects rp where rp.id = group_join_requests.requested_group_id and rp.college_id = public.current_college_id())
       )
       with check (
         public.is_platform_admin()
-        or exists (select 1 from public.research_projects rp where rp.id = group_join_requests.project_id and rp.college_id = public.current_college_id())
+        or exists (select 1 from public.research_projects rp where rp.id = group_join_requests.requested_group_id and rp.college_id = public.current_college_id())
       )
     $q$;
   end if;
