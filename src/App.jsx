@@ -7521,18 +7521,19 @@ export default function App() {
     const invitationRole = acceptedInvitation?.role || form.role
     let selectedCollegeId = acceptedInvitation?.college_id || form.college_id || ''
 
+    let resolvedCollegeRows = Array.isArray(data?.colleges) && data.colleges.length ? data.colleges : COLLEGE_OPTIONS
     if (isRegister && isSupabaseConfigured) {
-      const selectedCollegeInput = selectedCollegeId
-      let collegeRows = Array.isArray(data?.colleges) && data.colleges.length ? data.colleges : []
-      if (!collegeRows.length || !resolveCollegeId(selectedCollegeInput, collegeRows)) {
-        const collegesResult = await supabase.from('colleges').select('id, name, slug, short_name, status').order('name', { ascending: true })
-        if (collegesResult.error) {
-          setMessage(`Could not load colleges: ${collegesResult.error.message}`)
-          return
-        }
-        collegeRows = collegesResult.data || []
+      const selectedCollegeInput = selectedCollegeId || 'pharmacy'
+      const collegesResult = await supabase
+        .from('colleges')
+        .select('id, name, slug, short_name, status')
+        .order('name', { ascending: true })
+      if (collegesResult.error) {
+        setMessage(`Could not load colleges: ${collegesResult.error.message}`)
+        return
       }
-      selectedCollegeId = resolveCollegeId(selectedCollegeInput, collegeRows)
+      resolvedCollegeRows = collegesResult.data || []
+      selectedCollegeId = resolveCollegeId(selectedCollegeInput, resolvedCollegeRows)
       if (!selectedCollegeId) {
         setMessage('Could not resolve the selected college. Please refresh the page and try registering again.')
         return
@@ -7601,7 +7602,7 @@ export default function App() {
                 role: invitationRole,
                 status: registrationStatus,
                 college_id: selectedCollegeId,
-                college_name: getCollegeLabel(selectedCollegeId, data.colleges),
+                college_name: getCollegeLabel(selectedCollegeId, resolvedCollegeRows),
               },
             },
           })
