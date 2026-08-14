@@ -57,37 +57,6 @@ const roleButtons = [
   { id: 'admin', label: 'Admin', icon: UserCog },
 ]
 
-// Central source of truth for the four colleges. Falls back to this
-// hardcoded list only until `public.colleges` has loaded from Supabase
-// (see loadFromSupabase / data.colleges), so the signup form always has
-// options even on first paint. Do not add new hardcoded college checks
-// elsewhere in the app — read from `data.colleges` (or this fallback)
-// and filter/branch on `college_id` / `slug` instead.
-const FALLBACK_COLLEGES = [
-  { slug: 'pharmacy', name: 'College of Pharmacy', short_name: 'Pharmacy' },
-  { slug: 'nursing', name: 'College of Nursing', short_name: 'Nursing' },
-  { slug: 'dentistry', name: 'College of Dentistry', short_name: 'Dentistry' },
-  { slug: 'medicine', name: 'College of Medicine', short_name: 'Medicine' },
-]
-
-function getCollegeOptions(data) {
-  const loaded = Array.isArray(data?.colleges) ? data.colleges.filter((c) => c && c.status !== 'Inactive') : []
-  return loaded.length ? loaded : FALLBACK_COLLEGES
-}
-
-function getCollegeById(data, collegeId) {
-  if (!collegeId) return null
-  return getCollegeOptions(data).find((c) => c.id === collegeId || c.slug === collegeId) || null
-}
-
-function getCollegeLabel(data, collegeId) {
-  return getCollegeById(data, collegeId)?.name || ''
-}
-
-function isUuidLike(value) {
-  return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
-}
-
 const invitationRoles = [
   { id: 'student', label: 'Student' },
   { id: 'supervisor', label: 'Supervisor' },
@@ -106,6 +75,84 @@ const DEPARTMENT_OPTIONS = [
 
 const DEFAULT_DEPARTMENT = DEPARTMENT_OPTIONS[0]
 
+const COLLEGE_OPTIONS = [
+  { id: '00000000-0000-4000-8000-000000000001', slug: 'pharmacy', short_name: 'Pharmacy', name: 'College of Pharmacy' },
+  { id: '00000000-0000-4000-8000-000000000002', slug: 'nursing', short_name: 'Nursing', name: 'College of Nursing' },
+  { id: '00000000-0000-4000-8000-000000000003', slug: 'dentistry', short_name: 'Dentistry', name: 'College of Dentistry' },
+  { id: '00000000-0000-4000-8000-000000000004', slug: 'medicine', short_name: 'Medicine', name: 'College of Medicine' },
+]
+const DEFAULT_COLLEGE_ID = COLLEGE_OPTIONS[0].id
+const SUPPORTED_COLLEGE_IDS = new Set(COLLEGE_OPTIONS.map((college) => college.id))
+const COLLEGE_BY_ID = Object.fromEntries(COLLEGE_OPTIONS.map((college) => [college.id, college]))
+const COLLEGE_BY_SLUG = Object.fromEntries(COLLEGE_OPTIONS.map((college) => [college.slug, college]))
+
+function normalizeCollegeId(value, fallback = DEFAULT_COLLEGE_ID) {
+  const raw = String(value || '').trim()
+  if (SUPPORTED_COLLEGE_IDS.has(raw)) return raw
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)) return raw
+  const lowered = raw.toLowerCase()
+  const bySlug = COLLEGE_BY_SLUG[lowered]
+  if (bySlug) return bySlug.id
+  const byName = COLLEGE_OPTIONS.find((college) => String(college.name || '').toLowerCase() === lowered || String(college.short_name || '').toLowerCase() === lowered)
+  if (byName) return byName.id
+  return fallback
+}
+
+function getCollegeInfo(value, colleges = COLLEGE_OPTIONS) {
+  const list = Array.isArray(colleges) && colleges.length ? colleges : COLLEGE_OPTIONS
+  const raw = String(value || '').trim()
+  return list.find((college) => String(college.id) === raw || String(college.slug || '').toLowerCase() === raw.toLowerCase() || String(college.name || '').toLowerCase() === raw.toLowerCase() || String(college.short_name || '').toLowerCase() === raw.toLowerCase()) || COLLEGE_BY_ID[normalizeCollegeId(raw)] || COLLEGE_OPTIONS[0]
+}
+
+function getCollegeSlugFromAnyValue(value) {
+  const raw = String(value || '').trim()
+  const lowered = raw.toLowerCase()
+  const match = COLLEGE_OPTIONS.find((college) =>
+    String(college.id) === raw ||
+    String(college.slug || '').toLowerCase() === lowered ||
+    String(college.name || '').toLowerCase() === lowered ||
+    String(college.short_name || '').toLowerCase() === lowered
+  )
+  return match?.slug || lowered
+}
+
+function resolveCollegeRecord(value, colleges = COLLEGE_OPTIONS) {
+  const list = Array.isArray(colleges) && colleges.length ? colleges : COLLEGE_OPTIONS
+  const raw = String(value || '').trim()
+  if (!raw) return null
+  const lowered = raw.toLowerCase()
+  const slug = getCollegeSlugFromAnyValue(raw)
+  return list.find((college) =>
+    String(college.id) === raw ||
+    String(college.slug || '').toLowerCase() === lowered ||
+    String(college.slug || '').toLowerCase() === slug ||
+    String(college.name || '').toLowerCase() === lowered ||
+    String(college.short_name || '').toLowerCase() === lowered
+  ) || null
+}
+
+function resolveCollegeId(value, colleges = COLLEGE_OPTIONS) {
+  return resolveCollegeRecord(value, colleges)?.id || ''
+}
+
+function getCollegeLabel(value, colleges = COLLEGE_OPTIONS) {
+  return getCollegeInfo(value, colleges).name || 'College of Pharmacy'
+}
+
+function getUserCollegeId(user = {}) {
+  return normalizeCollegeId(user.college_id || user.college || user.college_slug || DEFAULT_COLLEGE_ID)
+}
+
+function isPlatformWideAdmin(user = {}) {
+  if (normalizeText(user?.role) !== 'admin') return false
+  const scope = normalizeText(user?.college_scope || user?.admin_scope || user?.platform_scope || '')
+  return !user?.college_id || scope === 'all' || scope === 'platform' || scope === 'global' || user?.is_platform_admin === true
+}
+
+function recordsShareCollege(a = {}, b = {}) {
+  return getUserCollegeId(a) === getUserCollegeId(b)
+}
+
 function normalizeDepartment(value, fallback = DEFAULT_DEPARTMENT) {
   return DEPARTMENT_OPTIONS.includes(value) ? value : fallback
 }
@@ -122,19 +169,19 @@ const loginFontOptions = [
 
 const invitationTemplates = {
   student: {
-    subject: 'Invitation to join Research Platform as a Student',
+    subject: 'Invitation to join HMU Research Platform as a Student',
     body: 'Dear [Name], you are invited to join our platform as a Student. Please click the link below to create your account and access your dashboard.',
   },
   supervisor: {
-    subject: 'Invitation to join Research Platform as a Supervisor',
+    subject: 'Invitation to join HMU Research Platform as a Supervisor',
     body: 'Dear [Name], you are invited to join our platform as a Supervisor. Please click the link below to create your account and manage assigned students or projects.',
   },
   committee: {
-    subject: 'Invitation to join Research Platform as a Research Committee Member',
+    subject: 'Invitation to join HMU Research Platform as a Research Committee Member',
     body: 'Dear [Name], you are invited to join our platform as a Research Committee Member. Please click the link below to create your account and review submitted research projects.',
   },
   admin: {
-    subject: 'Invitation to join Research Platform as an Admin / Editor',
+    subject: 'Invitation to join HMU Research Platform as an Admin / Editor',
     body: 'Dear [Name], you are invited to join our platform as an Admin/Editor. Please click the link below to create your account and manage website settings, users, and system content.',
   },
 }
@@ -383,8 +430,8 @@ function buildInvitationEmail(invitation, settings = defaultWebsiteSettings) {
     .replaceAll('[Role]', getRoleLabel(invitation.role))
     .replaceAll('[Link]', link)
     .replaceAll('[Expiration Date]', expiry)
-    .replaceAll('[Website Name]', settings.siteName || 'Research Platform')
-  return `${bodyText}\n\nAssigned role: ${getRoleLabel(invitation.role)}\nSecure invitation link: ${link}\nExpiration date: ${expiry}\n\n${settings.siteName || 'Research Platform'}\nContact: Hawler Medical University`
+    .replaceAll('[Website Name]', settings.siteName || 'Hawler Medical University Research Platform')
+  return `${bodyText}\n\nAssigned role: ${getRoleLabel(invitation.role)}\nSecure invitation link: ${link}\nExpiration date: ${expiry}\n\n${settings.siteName || 'Hawler Medical University Research Platform'}\nHawler Medical University`
 }
 
 
@@ -1970,10 +2017,10 @@ function getButtonColorContrastWarnings(colors = {}) {
 }
 
 const defaultWebsiteSettings = {
-  siteName: 'Research Platform',
-  adminPanelName: 'Research Platform Control Center',
-  homepageHeadline: 'A web-based Research Project Management System',
-  homepageSubtitle: 'For students at Hawler Medical University — College of Pharmacy, College of Nursing, College of Dentistry, and College of Medicine.',
+  siteName: 'Hawler Medical University Research Platform',
+  adminPanelName: 'HMU Research Platform Control Center',
+  homepageHeadline: 'A unified Research Management Platform',
+  homepageSubtitle: 'For students, supervisors, research committees, and administrators across Hawler Medical University colleges.',
   heroImage: '/hero-page.png',
   loginHeroImage: '/hero-page.png',
   loginBackgroundImage: '/hero-page.png',
@@ -2017,8 +2064,8 @@ const ABOUT_US_PAGE_KEY = 'about_us'
 const defaultAboutUsPage = {
   page_key: ABOUT_US_PAGE_KEY,
   title: 'About Us',
-  subtitle: 'Research Platform — Hawler Medical University',
-  content_html: '<h2>About the Platform</h2><p>The Research Platform supports students, supervisors, research committee members, and administrators across the College of Pharmacy, College of Nursing, College of Dentistry, and College of Medicine in managing research projects, weekly reports, deadlines, questions, and academic progress in one secure system.</p><p>Use the admin subdomain to customize this page for your college or department.</p>',
+  subtitle: 'Hawler Medical University Research Platform',
+  content_html: '<h2>About the Platform</h2><p>The Hawler Medical University Research Platform supports students, supervisors, research committee members, and administrators in managing research projects, weekly reports, deadlines, questions, and academic progress in one secure system.</p><p>Use the admin subdomain to customize this page for your college or academic unit.</p>',
   content_json: {},
   image_url: '',
   is_published: true,
@@ -2180,11 +2227,11 @@ const defaultPdfReportSettings = {
   logoUrl: '',
   logoPath: '',
   showLogo: true,
-  reportTitle: 'Research Project Management Report',
-  headerText: 'Hawler Medical University',
+  reportTitle: 'Pharmacy Research Project Management Report',
+  headerText: 'Hawler Medical University Research Platform',
   universityName: 'Hawler Medical University',
-  collegeName: '',
-  departmentName: '',
+  collegeName: 'College',
+  departmentName: 'Department of Pharmacy',
   footerText: '',
   showPageNumbers: true,
   showGeneratedDateTime: true,
@@ -2582,7 +2629,6 @@ function isAdminPortalRequest() {
 }
 
 const emptyData = {
-  colleges: [],
   profiles: [],
   projects: [],
   reports: [],
@@ -2604,6 +2650,7 @@ const emptyData = {
   researchLearningResources: [],
   researchDays: [],
   publishedPapers: [],
+  colleges: COLLEGE_OPTIONS,
 }
 
 const RESEARCH_CONTENT_BUCKET = 'research-content'
@@ -2643,7 +2690,61 @@ function cleanData(data) {
   cleaned.researchLearningResources = cleaned.researchLearningResources || []
   cleaned.researchDays = cleaned.researchDays || []
   cleaned.publishedPapers = cleaned.publishedPapers || []
+  cleaned.colleges = Array.isArray(cleaned.colleges) && cleaned.colleges.length ? cleaned.colleges : COLLEGE_OPTIONS
   return cleaned
+}
+
+function getRecordCollegeId(record = {}, data = emptyData, fallback = DEFAULT_COLLEGE_ID) {
+  if (!record) return fallback
+  if (record.college_id || record.college || record.college_slug) return normalizeCollegeId(record.college_id || record.college || record.college_slug, fallback)
+  const profileIds = [record.profile_id, record.recipient_user_id, record.sender_user_id, record.student_id, record.supervisor_id, record.created_by, record.submitted_by, record.added_by, record.user_id, record.uploaded_by]
+    .map((value) => String(value || ''))
+    .filter(Boolean)
+  const matchedProfile = (data.profiles || []).find((profile) => profileIds.includes(String(profile.id || '')))
+  if (matchedProfile) return getUserCollegeId(matchedProfile)
+  const projectId = record.project_id || record.research_project_id || record.group_id || record.research_group_id || record.current_research_group_id
+  if (projectId) {
+    const matchedProject = (data.projects || []).find((project) => String(project.id || '') === String(projectId))
+    if (matchedProject) return getRecordCollegeId(matchedProject, data, fallback)
+  }
+  return fallback
+}
+
+function recordBelongsToCollege(record = {}, collegeId = DEFAULT_COLLEGE_ID, data = emptyData) {
+  return getRecordCollegeId(record, data) === normalizeCollegeId(collegeId)
+}
+
+function collegeScopedArray(rows = [], collegeId = DEFAULT_COLLEGE_ID, data = emptyData) {
+  return (rows || []).filter((row) => recordBelongsToCollege(row, collegeId, data))
+}
+
+function applyCollegeScope(data = emptyData, user = {}) {
+  const cleaned = cleanData(data)
+  if (!user || isPlatformWideAdmin(user)) return cleaned
+  const collegeId = getUserCollegeId(user)
+  const scoped = { ...cleaned }
+  scoped.profiles = (cleaned.profiles || []).filter((profile) => getUserCollegeId(profile) === collegeId || String(profile.id || '') === String(user.id || ''))
+  scoped.projects = collegeScopedArray(cleaned.projects, collegeId, cleaned)
+  const projectScopedData = { ...cleaned, projects: scoped.projects, profiles: scoped.profiles }
+  scoped.groupMembers = collegeScopedArray(cleaned.groupMembers, collegeId, projectScopedData)
+  scoped.groupJoinRequests = collegeScopedArray(cleaned.groupJoinRequests, collegeId, projectScopedData)
+  scoped.reports = collegeScopedArray(cleaned.reports, collegeId, projectScopedData)
+  scoped.uploadedFiles = collegeScopedArray(cleaned.uploadedFiles, collegeId, projectScopedData)
+  scoped.deadlines = collegeScopedArray(cleaned.deadlines, collegeId, projectScopedData)
+  scoped.evaluations = collegeScopedArray(cleaned.evaluations, collegeId, projectScopedData)
+  scoped.studentQuestions = collegeScopedArray(cleaned.studentQuestions, collegeId, projectScopedData)
+  scoped.meetingRequests = collegeScopedArray(cleaned.meetingRequests, collegeId, projectScopedData)
+  scoped.researchLearningResources = (cleaned.researchLearningResources || []).filter((item) => item.available_to_all_colleges === true || recordBelongsToCollege(item, collegeId, cleaned))
+  scoped.researchDays = collegeScopedArray(cleaned.researchDays, collegeId, cleaned)
+  scoped.publishedPapers = (cleaned.publishedPapers || []).filter((item) => item.available_to_all_colleges === true || recordBelongsToCollege(item, collegeId, cleaned))
+  scoped.notifications = (cleaned.notifications || []).filter((note) => {
+    if (String(note.profile_id || note.recipient_user_id || '') === String(user.id || '')) return true
+    if (note.recipient_email && normalizeText(note.recipient_email) === normalizeText(user.email)) return true
+    return recordBelongsToCollege(note, collegeId, cleaned)
+  })
+  scoped.auditLogs = normalizeText(user.role) === 'admin' ? collegeScopedArray(cleaned.auditLogs, collegeId, cleaned) : []
+  scoped.invitations = normalizeText(user.role) === 'admin' ? collegeScopedArray(cleaned.invitations, collegeId, cleaned) : []
+  return cleanData(scoped)
 }
 
 function loadLocalData() {
@@ -4894,7 +4995,7 @@ function ResearchLearningResourcesPage({ data = emptyData, role = 'student', cur
   return (
     <section className="research-content-page">
       <div className="card research-content-hero-card">
-        <SectionHeader icon={BookOpen} title="Research Learning Resources" subtitle="Curated videos, papers, PDFs, and educational links for research skills." />
+        <SectionHeader icon={BookOpen} title="Research Learning Resources" subtitle="Curated videos, papers, PDFs, and educational links for pharmacy research skills." />
         <p className="muted">Search published learning materials, open safe external links, watch videos without autoplay, or view uploaded PDFs inside the platform.</p>
       </div>
       {canManage && (
@@ -5015,7 +5116,7 @@ function ResearchDayPage({ data = emptyData, role = 'student', currentUser = {},
         <form className="card research-management-form" onSubmit={submitEvent}>
           <SectionHeader icon={CalendarDays} title={editing ? 'Edit Research Day' : 'Create Research Day'} />
           <div className="form-grid">
-            <label className="field"><span>Event title</span><input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Research Day" /></label>
+            <label className="field"><span>Event title</span><input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="College Research Day" /></label>
             <label className="field"><span>Status</span><select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>{RESEARCH_DAY_STATUSES.map((status) => <option key={status}>{status}</option>)}</select></label>
             <label className="field"><span>Date</span><input required type="date" value={form.event_date || ''} onChange={(e) => setForm({ ...form, event_date: e.target.value })} /></label>
             <label className="field"><span>Start time</span><input required type="time" value={form.start_time || ''} onChange={(e) => setForm({ ...form, start_time: e.target.value })} /></label>
@@ -5209,7 +5310,9 @@ function buildRandomizerPerson(profile = {}) {
     role,
     roleLabel: getRoleLabel(role),
     studentId,
-    searchable: [name, email, role, getRoleLabel(role), studentId].join(' ').toLowerCase(),
+    collegeId: getUserCollegeId(profile),
+    collegeLabel: getCollegeLabel(getUserCollegeId(profile)),
+    searchable: [name, email, role, getRoleLabel(role), studentId, getCollegeLabel(getUserCollegeId(profile))].join(' ').toLowerCase(),
   }
 }
 
@@ -5247,6 +5350,7 @@ function getRandomizerStorageKey(currentUser = {}) {
 
 function getRandomizerDefaultState() {
   return {
+    collegeId: 'all',
     source: 'students',
     groupId: '',
     customIds: [],
@@ -5280,13 +5384,15 @@ function loadRandomizerState(currentUser = {}) {
 
 function AdminNameRandomizer({ data = {}, projects = [], currentUser = {}, dataLoading = false, loadError = '' }) {
   const isAuthorized = normalizeMeetingRole(currentUser?.role) === 'admin'
-  const [randomizerState, setRandomizerState] = useState(() => loadRandomizerState(currentUser))
+  const [randomizerState, setRandomizerState] = useState(() => ({ collegeId: 'all', ...loadRandomizerState(currentUser) }))
   const [customSearch, setCustomSearch] = useState('')
   const [validationMessage, setValidationMessage] = useState('')
   const [latestSelectionPage, setLatestSelectionPage] = useState(1)
 
   const people = useMemo(() => uniqueRandomizerPeople(data.profiles || []), [data.profiles])
+  const collegeFilteredPeople = useMemo(() => randomizerState.collegeId === 'all' ? people : people.filter((person) => person.collegeId === randomizerState.collegeId), [people, randomizerState.collegeId])
   const groupOptions = useMemo(() => (projects || [])
+    .filter((project) => randomizerState.collegeId === 'all' || recordBelongsToCollege(project, randomizerState.collegeId, data))
     .filter((project) => project?.id || project?.group_name || project?.title)
     .map((project) => ({
       id: String(project.id || project.group_id || project.group_name || project.title),
@@ -5294,7 +5400,7 @@ function AdminNameRandomizer({ data = {}, projects = [], currentUser = {}, dataL
       project,
     }))
     .filter((group, index, list) => list.findIndex((item) => item.id === group.id) === index)
-    .sort((a, b) => a.label.localeCompare(b.label)), [projects])
+    .sort((a, b) => a.label.localeCompare(b.label)), [projects, randomizerState.collegeId, data])
 
   const sourceOptions = useMemo(() => [
     { id: 'students', label: 'All Students' },
@@ -5318,14 +5424,14 @@ function AdminNameRandomizer({ data = {}, projects = [], currentUser = {}, dataL
   }, [groupOptions, randomizerState.source, randomizerState.groupId])
 
   const activePool = useMemo(() => {
-    if (randomizerState.source === 'students') return people.filter((person) => person.role === 'student')
-    if (randomizerState.source === 'supervisors') return people.filter((person) => person.role === 'supervisor')
-    if (randomizerState.source === 'committee') return people.filter((person) => person.role === 'committee')
-    if (randomizerState.source === 'admins') return people.filter((person) => person.role === 'admin')
-    if (randomizerState.source === 'all') return people
+    if (randomizerState.source === 'students') return collegeFilteredPeople.filter((person) => person.role === 'student')
+    if (randomizerState.source === 'supervisors') return collegeFilteredPeople.filter((person) => person.role === 'supervisor')
+    if (randomizerState.source === 'committee') return collegeFilteredPeople.filter((person) => person.role === 'committee')
+    if (randomizerState.source === 'admins') return collegeFilteredPeople.filter((person) => person.role === 'admin')
+    if (randomizerState.source === 'all') return collegeFilteredPeople
     if (randomizerState.source === 'custom') {
       const customIds = new Set(randomizerState.customIds || [])
-      return people.filter((person) => customIds.has(person.key))
+      return collegeFilteredPeople.filter((person) => customIds.has(person.key))
     }
     if (randomizerState.source === 'group') {
       const group = groupOptions.find((item) => item.id === randomizerState.groupId)
@@ -5333,15 +5439,15 @@ function AdminNameRandomizer({ data = {}, projects = [], currentUser = {}, dataL
       return uniqueRandomizerPeople(getProjectMembersWithoutSupervisor(data, group.project, data.reports || []).map(buildRandomizerPerson))
     }
     return []
-  }, [data, groupOptions, people, randomizerState.customIds, randomizerState.groupId, randomizerState.source])
+  }, [data, groupOptions, collegeFilteredPeople, randomizerState.customIds, randomizerState.groupId, randomizerState.source])
 
   const selectedKeys = useMemo(() => new Set((randomizerState.selectedHistory || []).map((entry) => entry.key)), [randomizerState.selectedHistory])
   const availablePeople = useMemo(() => activePool.filter((person) => !selectedKeys.has(person.key)), [activePool, selectedKeys])
   const customVisiblePeople = useMemo(() => {
     const query = customSearch.trim().toLowerCase()
-    if (!query) return people
-    return people.filter((person) => person.searchable.includes(query))
-  }, [customSearch, people])
+    if (!query) return collegeFilteredPeople
+    return collegeFilteredPeople.filter((person) => person.searchable.includes(query))
+  }, [customSearch, collegeFilteredPeople])
   const sourceLabel = sourceOptions.find((option) => option.id === randomizerState.source)?.label || 'Name pool'
   const requestedCount = Number(randomizerState.pickCount || 1)
   const hasHistory = (randomizerState.selectedHistory || []).length > 0 || (randomizerState.latestSelection || []).length > 0
@@ -5374,6 +5480,11 @@ function AdminNameRandomizer({ data = {}, projects = [], currentUser = {}, dataL
       selectedHistory: [],
       drawNumber: 0,
     }))
+  }
+
+  async function handleCollegeChange(nextCollegeId) {
+    const nextValue = nextCollegeId === 'all' ? 'all' : normalizeCollegeId(nextCollegeId)
+    await applyPoolChange({ collegeId: nextValue })
   }
 
   async function handleSourceChange(nextSource) {
@@ -5470,6 +5581,13 @@ function AdminNameRandomizer({ data = {}, projects = [], currentUser = {}, dataL
         <div className="card name-randomizer-control-card">
           <h3>Name source</h3>
           <div className="form-grid compact-form-grid">
+            <label className="field">
+              <span>College</span>
+              <select value={randomizerState.collegeId || 'all'} onChange={(event) => handleCollegeChange(event.target.value)}>
+                <option value="all">All Colleges</option>
+                {collegeChoices.map((college) => <option key={college.id || college.slug} value={college.id || college.slug}>{college.name}</option>)}
+              </select>
+            </label>
             <label className="field">
               <span>Choose people to include</span>
               <select value={randomizerState.source} onChange={(event) => handleSourceChange(event.target.value)}>
@@ -5574,13 +5692,14 @@ function AdminNameRandomizer({ data = {}, projects = [], currentUser = {}, dataL
         {randomizerState.selectedHistory.length ? (
           <div className="table-wrap name-randomizer-table-wrap">
             <table className="report-table name-randomizer-table">
-              <thead><tr><th>Order</th><th>Name</th><th>Role</th><th>Draw</th><th>Selected</th></tr></thead>
+              <thead><tr><th>Order</th><th>Name</th><th>Role</th><th>College</th><th>Draw</th><th>Selected</th></tr></thead>
               <tbody>
                 {randomizerState.selectedHistory.map((person, index) => (
                   <tr key={`${person.key}-${person.drawNumber}-${index}`}>
                     <td>{person.selectionOrder || index + 1}</td>
                     <td><b>{person.name}</b>{person.email ? <small>{person.email}</small> : null}{person.studentId ? <small>{person.studentId}</small> : null}</td>
                     <td>{person.roleLabel}</td>
+                    <td>{person.collegeLabel || 'College of Pharmacy'}</td>
                     <td>Draw {person.drawNumber || '-'}</td>
                     <td>{person.selectedAt || '-'}</td>
                   </tr>
@@ -5725,13 +5844,6 @@ const PUBLIC_ROLES = [
   { id: 'student-role', icon: GraduationCap, title: 'Student', text: 'Join an approved research group, monitor project progress, submit weekly reports, ask questions, request meetings, and follow deadlines and supervisor feedback.' },
   { id: 'supervisor-role', icon: ClipboardCheck, title: 'Supervisor', text: 'Submit and manage research projects, supervise group membership, review weekly reports, provide feedback, organize deadlines, and support student progress.' },
   { id: 'committee-role', icon: ShieldCheck, title: 'Research Committee', text: 'Review submitted projects, make documented decisions, oversee group requests, and monitor the academic progress of approved research.' },
-]
-
-const PUBLIC_COLLEGES = [
-  { slug: 'pharmacy', title: 'College of Pharmacy', text: 'Research projects, groups, and academic progress for Pharmacy students, supervisors, and the Pharmacy Research Committee.' },
-  { slug: 'nursing', title: 'College of Nursing', text: 'Research projects, groups, and academic progress for Nursing students, supervisors, and the Nursing Research Committee.' },
-  { slug: 'dentistry', title: 'College of Dentistry', text: 'Research projects, groups, and academic progress for Dentistry students, supervisors, and the Dentistry Research Committee.' },
-  { slug: 'medicine', title: 'College of Medicine', text: 'Research projects, groups, and academic progress for Medicine students, supervisors, and the Medicine Research Committee.' },
 ]
 
 const PUBLIC_BENEFITS = [
@@ -5901,7 +6013,7 @@ function PublicLegalPage({ type, settings, authenticated = false }) {
           </>
         ) : (
           <>
-            <p>This platform is provided for authorized academic research management at Hawler Medical University, supporting the College of Pharmacy, College of Nursing, College of Dentistry, and College of Medicine.</p>
+            <p>This platform is provided for authorized academic research management at Hawler Medical University.</p>
             <h2>Responsible use</h2>
             <p>Users must protect their account credentials, use the platform only for authorized academic purposes, and ensure submitted information and documents are accurate and appropriate.</p>
             <h2>Access and availability</h2>
@@ -6002,7 +6114,7 @@ function PublicInformationPage({ path, settings = defaultWebsiteSettings, aboutU
           <header className="public-information-page__heading">
             <p className="public-section-kicker"><FileText size={17} /> Academic resource</p>
             <h1>Research Guidelines</h1>
-            <p>Read or download the official research guidelines used across the participating colleges.</p>
+            <p>Read or download the official research guidelines used by participating colleges.</p>
           </header>
           <div className="public-guidelines-actions">
             <a className="public-primary-action" href={RESEARCH_GUIDELINES_PDF_URL} download={RESEARCH_GUIDELINES_DOWNLOAD_NAME}><Download size={18} /> Download Guidelines</a>
@@ -6021,14 +6133,14 @@ function PublicInformationPage({ path, settings = defaultWebsiteSettings, aboutU
         <header className="public-information-page__heading">
           <p className="public-section-kicker"><Mail size={17} /> Platform contact</p>
           <h1>Contact</h1>
-          <p>Public institutional information and platform access are provided through Hawler Medical University Research Platform.</p>
+          <p>Public institutional information and platform access are provided through Hawler Medical University.</p>
         </header>
         <div className="public-contact-grid">
           <article className="public-contact-card">
             <Building2 size={28} />
             <h2>Institution</h2>
             <p>Hawler Medical University</p>
-            <p>Colleges of Pharmacy, Nursing, Dentistry &amp; Medicine</p>
+            <p>Research Platform for Pharmacy, Nursing, Dentistry, and Medicine</p>
           </article>
           <article className="public-contact-card">
             <Inbox size={28} />
@@ -6059,7 +6171,7 @@ function PublicHomepage({ settings = defaultWebsiteSettings, authenticated = fal
           <div className="public-hero-backdrop" style={{ '--public-hero-image': cssImageUrl(heroImage) }} aria-hidden="true" />
           <div className="public-hero-inner">
             <div className="public-hero-copy">
-              <p className="public-hero-kicker"><Building2 size={18} /> Hawler Medical University · Research Platform</p>
+              <p className="public-hero-kicker"><Building2 size={18} /> Hawler Medical University · Four-College Research Platform</p>
               <h1>{publicHeadline}</h1>
               <p>{publicSubtitle}</p>
               <div className="public-hero-actions">
@@ -6108,6 +6220,22 @@ function PublicHomepage({ settings = defaultWebsiteSettings, authenticated = fal
           </div>
         </section>
 
+        <section className="public-section public-colleges-section" id="colleges">
+          <div className="public-section-heading">
+            <p className="public-section-kicker"><Building2 size={17} /> Participating colleges</p>
+            <h2>One Platform for Four Colleges</h2>
+            <p>The platform supports college-specific research activities for Pharmacy, Nursing, Dentistry, and Medicine while keeping one shared institutional system.</p>
+          </div>
+          <div className="public-college-grid">
+            {COLLEGE_OPTIONS.map((college) => (
+              <article className="public-college-card" key={college.id}>
+                <b>{college.name}</b>
+                <p>{college.short_name} research workspace</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
         <section className="public-section" id="roles">
           <div className="public-section-heading">
             <p className="public-section-kicker"><Users size={17} /> Platform roles</p>
@@ -6121,23 +6249,6 @@ function PublicHomepage({ settings = defaultWebsiteSettings, authenticated = fal
                 <h3>{title}</h3>
                 <p>{text}</p>
                 <a href="/roles">Learn About This Role <ArrowRight size={15} /></a>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="public-section public-colleges-section" id="colleges">
-          <div className="public-section-heading">
-            <p className="public-section-kicker"><Building2 size={17} /> Participating colleges</p>
-            <h2>One Research Platform, Four Colleges</h2>
-            <p>Hawler Medical University's Research Platform supports research activities across the College of Pharmacy, College of Nursing, College of Dentistry, and College of Medicine, each with its own students, supervisors, research committee, and projects.</p>
-          </div>
-          <div className="public-feature-grid public-college-grid">
-            {PUBLIC_COLLEGES.map(({ slug, title, text }) => (
-              <article className="public-feature-card" key={slug}>
-                <span className="public-feature-icon"><Building2 size={23} /></span>
-                <h3>{title}</h3>
-                <p>{text}</p>
               </article>
             ))}
           </div>
@@ -6182,7 +6293,7 @@ function PublicHomepage({ settings = defaultWebsiteSettings, authenticated = fal
   )
 }
 
-function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = false, settings = defaultWebsiteSettings, invitation = null, initialMode = 'login', collegeOptions = FALLBACK_COLLEGES }) {
+function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = false, settings = defaultWebsiteSettings, invitation = null, initialMode = 'login', colleges = COLLEGE_OPTIONS }) {
   const normalizedInitialMode = initialMode === 'register' ? 'register' : 'login'
   const [mode, setMode] = useState(normalizedInitialMode)
   const [form, setForm] = useState({
@@ -6191,7 +6302,7 @@ function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = fa
     password: '',
     confirm_password: '',
     role: 'student',
-    college_id: '',
+    college_id: 'pharmacy',
     remember_me: false,
   })
 
@@ -6206,7 +6317,7 @@ function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = fa
       full_name: invitation.full_name || current.full_name,
       email: invitation.email || current.email,
       role: invitation.role || current.role,
-      college_id: invitation.college_id || current.college_id,
+      college_id: resolveCollegeId(invitation.college_id || current.college_id, collegeChoices) || invitation.college_id || current.college_id,
     }))
   }, [invitation, normalizedInitialMode])
 
@@ -6221,6 +6332,7 @@ function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = fa
     settings.loginFeatureTwo || 'Peer Review Excellence',
     settings.loginFeatureThree || 'Global Research Community',
   ].filter(Boolean)
+  const collegeChoices = Array.isArray(colleges) && colleges.length ? colleges : COLLEGE_OPTIONS
 
   const panelTitle = isForgotPassword
     ? 'Forgot your password?'
@@ -6333,15 +6445,8 @@ function LoginPage({ onLogin, onForgotPassword, message, loading, adminOnly = fa
                   </label>
                   <label className="field wide-field">
                     <span>College</span>
-                    <select
-                      value={form.college_id}
-                      disabled={Boolean(invitation?.college_id)}
-                      onChange={(e) => setForm({ ...form, college_id: e.target.value })}
-                    >
-                      <option value="" disabled>Select your college</option>
-                      {collegeOptions.map((college) => (
-                        <option key={college.id || college.slug} value={college.id || college.slug}>{college.name}</option>
-                      ))}
+                    <select value={form.college_id} disabled={Boolean(invitation?.college_id)} onChange={(e) => setForm({ ...form, college_id: e.target.value })} required>
+                      {collegeChoices.map((college) => <option key={college.id || college.slug} value={college.id || college.slug}>{college.name}</option>)}
                     </select>
                   </label>
                   <label className="field wide-field">
@@ -6697,7 +6802,7 @@ export default function App() {
     if (!isSupabaseConfigured) return
     setDataLoading(true)
     try {
-      const [profiles, projects, reports, uploadedFiles, deadlines, notifications, evaluations, auditLogs] = await Promise.all([
+      const [profiles, projects, reports, uploadedFiles, deadlines, notifications, evaluations, auditLogs, collegesResult] = await Promise.all([
         supabase.from('profiles').select('*').order('created_at', { ascending: true }),
         supabase.from('research_projects').select('*').order('created_at', { ascending: false }),
         supabase.from('weekly_reports').select('*').order('submitted_at', { ascending: false }),
@@ -6706,18 +6811,10 @@ export default function App() {
         supabase.from('notifications').select('*').order('created_at', { ascending: false }),
         supabase.from('evaluations').select('*').order('created_at', { ascending: false }),
         supabase.from('audit_logs').select('*').order('created_at', { ascending: false }),
+        supabase.from('colleges').select('*').order('name', { ascending: true }),
       ])
       const error = [profiles, projects, reports, uploadedFiles, deadlines, notifications, evaluations, auditLogs].find((x) => x.error)?.error
       if (error) throw error
-
-      let collegesData = FALLBACK_COLLEGES
-      try {
-        const colleges = await supabase.from('colleges').select('*').order('name', { ascending: true })
-        if (!colleges.error && colleges.data?.length) collegesData = colleges.data
-        else if (colleges.error) console.warn('Colleges table unavailable, using fallback list:', colleges.error.message || colleges.error)
-      } catch {
-        collegesData = FALLBACK_COLLEGES
-      }
 
       let invitationsData = []
       try {
@@ -6789,6 +6886,8 @@ export default function App() {
         publishedPapersData = []
       }
 
+      const collegeRecords = Array.isArray(collegesResult?.data) && collegesResult.data.length ? collegesResult.data : COLLEGE_OPTIONS
+
       const freshProfile = (profiles.data || []).find((profile) =>
         (!!userOverride?.id && String(profile.id) === String(userOverride.id)) ||
         (!!userOverride?.email && normalizeText(profile.email) === normalizeText(userOverride.email))
@@ -6811,8 +6910,7 @@ export default function App() {
       }
 
       setDataLoadError('')
-      setData(cleanData({
-        colleges: collegesData,
+      const loadedData = cleanData({
         profiles: profiles.data || [],
         projects: projectsData,
         reports: reportsData,
@@ -6829,7 +6927,9 @@ export default function App() {
         researchLearningResources: researchLearningResourcesData,
         researchDays: researchDaysData,
         publishedPapers: publishedPapersData,
-      }))
+        colleges: collegeRecords,
+      })
+      setData(applyCollegeScope(loadedData, freshProfile || userOverride))
     } catch (error) {
       setDataLoadError(error.message || 'Unknown database error')
       setMessage(`Database error: ${error.message}`)
@@ -7419,11 +7519,26 @@ export default function App() {
     const password = form.password || ''
     const confirmPassword = form.confirm_password || ''
     const invitationRole = acceptedInvitation?.role || form.role
-    const invitationCollegeId = acceptedInvitation?.college_id || form.college_id
+    let selectedCollegeId = acceptedInvitation?.college_id || form.college_id || ''
 
-    if (isRegister && !invitationCollegeId) {
-      setMessage('Please select your college to create an account.')
-      return
+    if (isRegister && isSupabaseConfigured) {
+      const selectedCollegeInput = selectedCollegeId
+      let collegeRows = Array.isArray(data?.colleges) && data.colleges.length ? data.colleges : []
+      if (!collegeRows.length || !resolveCollegeId(selectedCollegeInput, collegeRows)) {
+        const collegesResult = await supabase.from('colleges').select('id, name, slug, short_name, status').order('name', { ascending: true })
+        if (collegesResult.error) {
+          setMessage(`Could not load colleges: ${collegesResult.error.message}`)
+          return
+        }
+        collegeRows = collegesResult.data || []
+      }
+      selectedCollegeId = resolveCollegeId(selectedCollegeInput, collegeRows)
+      if (!selectedCollegeId) {
+        setMessage('Could not resolve the selected college. Please refresh the page and try registering again.')
+        return
+      }
+    } else {
+      selectedCollegeId = normalizeCollegeId(selectedCollegeId || DEFAULT_COLLEGE_ID)
     }
 
     if (acceptedInvitation && isRegister) {
@@ -7461,6 +7576,10 @@ export default function App() {
       setMessage('Password and confirm password do not match.')
       return
     }
+    if (isRegister && !selectedCollegeId) {
+      setMessage('Please choose your college.')
+      return
+    }
 
     setLoginLoading(true)
     try {
@@ -7473,15 +7592,6 @@ export default function App() {
           const isFirstProfile = Number(countResult.count || 0) === 0
           const registrationStatus = acceptedInvitation ? 'Active' : isFirstProfile && invitationRole === 'admin' ? 'Active' : 'Pending'
 
-          // A college is a real DB row once `colleges` has loaded from Supabase, but the
-          // signup form may still be holding the hardcoded fallback slug on first paint.
-          // Resolve to a real college_id (uuid) either way before writing the profile.
-          const resolvedCollege = getCollegeById(data, invitationCollegeId)
-          const resolvedCollegeId = resolvedCollege?.id || (isUuidLike(invitationCollegeId) ? invitationCollegeId : null)
-          if (!resolvedCollegeId) {
-            throw new Error('Could not resolve the selected college. Please refresh the page and try registering again.')
-          }
-
           const signUpResult = await supabase.auth.signUp({
             email,
             password,
@@ -7490,6 +7600,8 @@ export default function App() {
                 full_name: fullName,
                 role: invitationRole,
                 status: registrationStatus,
+                college_id: selectedCollegeId,
+                college_name: getCollegeLabel(selectedCollegeId, data.colleges),
               },
             },
           })
@@ -7510,7 +7622,7 @@ export default function App() {
           } else {
             const insertResult = await supabase
               .from('profiles')
-              .insert({ full_name: fullName, email, role: invitationRole, status: registrationStatus, college_id: resolvedCollegeId })
+              .insert({ full_name: fullName, email, role: invitationRole, status: registrationStatus, college_id: selectedCollegeId })
               .select()
               .single()
 
@@ -7565,14 +7677,13 @@ export default function App() {
           if (existingLocal) throw new Error('This email already has an account. Please use Login with your password.')
           const isFirstLocalProfile = data.profiles.length === 0
           const registrationStatus = acceptedInvitation ? 'Active' : isFirstLocalProfile && invitationRole === 'admin' ? 'Active' : 'Pending'
-          const localResolvedCollege = getCollegeById(data, invitationCollegeId)
           loginUser = {
             id: crypto.randomUUID(),
             full_name: fullName,
             email,
             role: invitationRole,
             status: registrationStatus,
-            college_id: localResolvedCollege?.id || localResolvedCollege?.slug || invitationCollegeId,
+            college_id: selectedCollegeId,
             password_hash: localPasswordKey(password),
             created_at: new Date().toISOString(),
           }
@@ -7674,6 +7785,7 @@ export default function App() {
       created_by: actionUser?.id || null,
       created_by_email: actionUser?.email || '',
       created_by_role: actionUser?.role || 'supervisor',
+      college_id: getUserCollegeId(actionUser),
       submitted_by_role: actionUser?.role || 'supervisor',
       submitted_by_name: actionUser?.full_name || actionUser?.email || 'Supervisor',
       submitted_at: now,
@@ -7695,13 +7807,14 @@ export default function App() {
         return { ok: false, error: error.message }
       }
       savedProject = inserted || project
-      const committeeUsers = (data.profiles || []).filter((profile) => profile.role === 'committee')
+      const committeeUsers = (data.profiles || []).filter((profile) => profile.role === 'committee' && getUserCollegeId(profile) === getUserCollegeId(actionUser))
       const notices = committeeUsers.map((committee) => ({
         profile_id: committee.id || null,
         recipient_user_id: committee.id || null,
         recipient_email: committee.email || '',
         sender_user_id: actionUser?.id || null,
         project_id: savedProject.id || null,
+        college_id: getUserCollegeId(actionUser),
         notification_type: `supervisor_project_${savedProject.id}_submitted_${committee.id || committee.email}`,
         title: 'New Supervisor Project Submission',
         message: `${actionUser?.full_name || actionUser?.email || 'A supervisor'} submitted ${savedProject.title || 'a research project'} for Research Committee review.`,
@@ -7723,7 +7836,7 @@ export default function App() {
       await addAudit(actionUser.full_name, 'submitted', 'supervisor research project')
       await loadFromSupabase(currentUser)
     } else {
-      const committeeUsers = (data.profiles || []).filter((profile) => profile.role === 'committee')
+      const committeeUsers = (data.profiles || []).filter((profile) => profile.role === 'committee' && getUserCollegeId(profile) === getUserCollegeId(actionUser))
       const notices = committeeUsers.map((committee) => ({
         id: crypto.randomUUID(),
         profile_id: committee.id || null,
@@ -7731,6 +7844,7 @@ export default function App() {
         recipient_email: committee.email || '',
         sender_user_id: actionUser?.id || null,
         project_id: project.id,
+        college_id: getUserCollegeId(actionUser),
         notification_type: `supervisor_project_${project.id}_submitted_${committee.id || committee.email}`,
         title: 'New Supervisor Project Submission',
         message: `${actionUser?.full_name || actionUser?.email || 'A supervisor'} submitted ${project.title || 'a research project'} for Research Committee review.`,
@@ -7807,6 +7921,7 @@ export default function App() {
         recipient_email: student.email || '',
         sender_user_id: currentUser?.id || null,
         project_id: project.id,
+        college_id: getUserCollegeId(actionUser),
         notification_type: `project_leader_assigned_${project.id}_${student.id}`,
         title: 'Research Project Leader Assigned',
         message: `You have been assigned as Research Project Leader for ${project.title || project.group_name || 'your project'}. Only the project leader can submit weekly reports for this project.`,
@@ -9909,7 +10024,8 @@ export default function App() {
       full_name: fullName,
       email,
       role: roleValue,
-      subject: form.subject || invitationTemplates[roleValue]?.subject || 'Invitation to join Research Platform',
+      college_id: normalizeCollegeId(form.college_id || getUserCollegeId(currentUser)),
+      subject: form.subject || invitationTemplates[roleValue]?.subject || 'Invitation to join HMU Research Platform',
       body: form.body || invitationTemplates[roleValue]?.body || 'Dear [Name], you are invited to join our platform.',
       token,
       invitation_link: makeInvitationLink(token),
@@ -10791,7 +10907,7 @@ export default function App() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'research_platform_project_summary.csv'
+    a.download = 'pharmacy_research_platform_project_summary.csv'
     a.click()
     URL.revokeObjectURL(url)
     addAudit(currentUser.full_name, 'exported', 'project summary CSV')
@@ -10838,6 +10954,7 @@ export default function App() {
       author_or_source: String(payload.author_or_source || '').trim(),
       publication_year: null,
       is_published: Boolean(payload.is_published),
+      college_id: normalizeCollegeId(payload.college_id || getUserCollegeId(currentUser || activeRoleUser)),
       updated_at: new Date().toISOString(),
     }
   }
@@ -10904,12 +11021,14 @@ export default function App() {
     const notificationType = `research_day_published_${eventRow.id}`
     const alreadyExists = (data.notifications || []).some((note) => note.notification_type === notificationType)
     if (alreadyExists) return
-    const recipients = (data.profiles || []).filter((profile) => ['student', 'supervisor'].includes(normalizeText(profile.role)) && normalizeText(profile.status || 'active') !== 'rejected')
+    const eventCollegeId = normalizeCollegeId(eventRow.college_id || getUserCollegeId(currentUser || activeRoleUser))
+    const recipients = (data.profiles || []).filter((profile) => ['student', 'supervisor'].includes(normalizeText(profile.role)) && normalizeText(profile.status || 'active') !== 'rejected' && getUserCollegeId(profile) === eventCollegeId)
     const notices = recipients.map((recipient) => ({
       profile_id: recipient.id || null,
       recipient_user_id: recipient.id || null,
       recipient_email: recipient.email || '',
       sender_user_id: currentUser?.id || null,
+      college_id: eventCollegeId,
       notification_type: notificationType,
       title: 'Research Day Published',
       message: `${eventRow.title || 'Research Day'} has been published. Please review the event date, location, and instructions.`,
@@ -10951,6 +11070,7 @@ export default function App() {
         external_url: String(payload.external_url || '').trim(),
         banner_url: upload.url || payload.banner_url || '',
         banner_path: upload.path || payload.banner_path || '',
+        college_id: normalizeCollegeId(payload.college_id || getUserCollegeId(currentUser || activeRoleUser)),
         status: normalizeResearchStatus(payload.status || 'Draft'),
         updated_at: new Date().toISOString(),
       }
@@ -11032,6 +11152,7 @@ export default function App() {
         pdf_url: upload.url || payload.pdf_url || '',
         pdf_path: upload.path || payload.pdf_path || '',
         is_published: isResearchContentManager(allowedRole) ? Boolean(payload.is_published) : Boolean(existing?.is_published),
+        college_id: normalizeCollegeId(payload.college_id || existing?.college_id || getUserCollegeId(currentUser || activeRoleUser)),
         updated_at: new Date().toISOString(),
       }
       let saved = { ...payload, ...record }
@@ -11190,7 +11311,7 @@ export default function App() {
     }
 
     const loginMode = acceptedInvitation || hasInvitationToken || (!isAdminPortal && publicPath === '/register') ? 'register' : 'login'
-    return <><LoginPage key={`${isAdminPortal ? 'admin' : 'public'}-${loginMode}`} onLogin={handleLogin} onForgotPassword={handleForgotPassword} message={message} loading={loginLoading} adminOnly={isAdminPortal} settings={websiteSettings} invitation={acceptedInvitation} initialMode={loginMode} collegeOptions={getCollegeOptions(data)} /><AppDialog dialog={appDialog} onClose={closeAppDialog} /></>
+    return <><LoginPage key={`${isAdminPortal ? 'admin' : 'public'}-${loginMode}`} onLogin={handleLogin} onForgotPassword={handleForgotPassword} message={message} loading={loginLoading} adminOnly={isAdminPortal} settings={websiteSettings} invitation={acceptedInvitation} initialMode={loginMode} colleges={data.colleges} /><AppDialog dialog={appDialog} onClose={closeAppDialog} /></>
   }
 
   if (isAdminPortal && allowedRole !== 'admin' && !isAdminBaseRole) {
@@ -11398,6 +11519,7 @@ export default function App() {
               <span></span>
             </button>
           </div>
+          <div className="main-college-context-badge" title="Current college workspace">{getCollegeLabel(getUserCollegeId(activeRoleUser || currentUser), data.colleges)}</div>
           <div className="main-header-actions">
             <NotificationBellMenu
               data={data}
@@ -11415,7 +11537,7 @@ export default function App() {
                 onChange={handleRoleSwitch}
               />
             )}
-            <UserProfileMenu currentUser={currentUser} collegeLabel={getCollegeLabel(data, currentUser?.college_id)} onLogout={logout} onOpenProfile={() => handleMainNavClick('profile-settings')} />
+            <UserProfileMenu currentUser={currentUser} onLogout={logout} onOpenProfile={() => handleMainNavClick('profile-settings')} />
           </div>
         </header>
 
@@ -11438,7 +11560,7 @@ export default function App() {
         )}
 
         {tab === 'about-us' && <AboutUsPage page={aboutUsPage} />}
-        {tab === 'profile-settings' && <ProfileSettingsPage currentUser={currentUser} collegeLabel={getCollegeLabel(data, currentUser?.college_id)} onBack={() => handleMainNavClick('dashboard')} updateOwnProfile={updateOwnProfile} uploadOwnProfilePhoto={uploadOwnProfilePhoto} updateOwnPassword={updateOwnPassword} />}
+        {tab === 'profile-settings' && <ProfileSettingsPage currentUser={currentUser} onBack={() => handleMainNavClick('dashboard')} updateOwnProfile={updateOwnProfile} uploadOwnProfilePhoto={uploadOwnProfilePhoto} updateOwnPassword={updateOwnPassword} />}
         {tab === 'questions' && allowedRole === 'student' && roleContextReady && <StudentQuestionsTab data={data} currentUser={activeRoleUser} dataLoading={dataLoading} submitStudentQuestion={submitStudentQuestion} openQuestionAttachment={openQuestionAttachment} />}
         {tab === 'questions' && allowedRole === 'supervisor' && roleContextReady && <SupervisorQuestionsTab data={data} currentUser={activeRoleUser} dataLoading={dataLoading} answerStudentQuestion={answerStudentQuestion} openQuestionAttachment={openQuestionAttachment} />}
         {tab === 'meetings' && (allowedRole === 'student' || allowedRole === 'supervisor') && roleContextReady && <MeetingRequestsPage data={data} role={allowedRole} currentUser={activeRoleUser} dataLoading={dataLoading} createMeetingRequest={createMeetingRequest} respondMeetingRequest={respondMeetingRequest} />}
@@ -11446,10 +11568,10 @@ export default function App() {
         {tab === 'join-group' && allowedRole === 'student' && roleContextReady && !studentCurrentResearchGroup && <StudentJoinResearchGroupTab data={data} currentUser={activeRoleUser} dataLoading={dataLoading} submitGroupJoinRequest={submitGroupJoinRequest} />}
         {tab === 'groups' && allowedRole === 'supervisor' && roleContextReady && <SupervisorResearchGroupManagementTab data={data} currentUser={activeRoleUser} dataLoading={dataLoading} supervisorAddStudentsToGroup={supervisorAddStudentsToGroup} decideGroupJoinRequest={decideGroupJoinRequest} />}
         {tab === 'group-requests' && (allowedRole === 'admin' || allowedRole === 'committee') && <AdminGroupJoinRequestsTab data={data} currentUser={currentUser} dataLoading={dataLoading} decideGroupJoinRequest={decideGroupJoinRequest} directAddStudentsToGroup={directAddStudentsToGroup} />}
-        {tab === 'learning-resources' && <ResearchLearningResourcesPage data={data} role={allowedRole} currentUser={activeRoleUser} dataLoading={dataLoading} saveResource={saveResearchLearningResource} deleteResource={deleteResearchLearningResource} openPdf={openResearchContentPdf} />}
-        {tab === 'research-day' && <ResearchDayPage data={data} role={allowedRole} currentUser={activeRoleUser} dataLoading={dataLoading} saveResearchDay={saveResearchDay} deleteResearchDay={deleteResearchDay} />}
-        {tab === 'published-papers' && <PublishedPapersPage data={data} role={allowedRole} currentUser={activeRoleUser} dataLoading={dataLoading} savePaper={savePublishedPaper} deletePaper={deletePublishedPaper} openPdf={openResearchContentPdf} />}
-        {tab === 'pdf-viewer' && <ResearchPdfViewerPage data={data} role={allowedRole} currentUser={activeRoleUser} onBack={() => handleMainNavClick('published-papers')} />}
+        {tab === 'learning-resources' && <ResearchLearningResourcesPage data={visibleData} role={allowedRole} currentUser={activeRoleUser} dataLoading={dataLoading} saveResource={saveResearchLearningResource} deleteResource={deleteResearchLearningResource} openPdf={openResearchContentPdf} />}
+        {tab === 'research-day' && <ResearchDayPage data={visibleData} role={allowedRole} currentUser={activeRoleUser} dataLoading={dataLoading} saveResearchDay={saveResearchDay} deleteResearchDay={deleteResearchDay} />}
+        {tab === 'published-papers' && <PublishedPapersPage data={visibleData} role={allowedRole} currentUser={activeRoleUser} dataLoading={dataLoading} savePaper={savePublishedPaper} deletePaper={deletePublishedPaper} openPdf={openResearchContentPdf} />}
+        {tab === 'pdf-viewer' && <ResearchPdfViewerPage data={visibleData} role={allowedRole} currentUser={activeRoleUser} onBack={() => handleMainNavClick('published-papers')} />}
         {tab === 'reports' && <ReportsTab data={data} projects={filteredProjects} currentUser={activeRoleUser} role={allowedRole} printPdfReport={printPdfReport} exportCsv={exportCsv} pdfReportSettings={getPdfReportSettingsForRole(allowedRole, pdfReportSettingsByRole, pdfReportSettings)} dataLoading={dataLoading} />}
         {tab === 'database' && allowedRole === 'admin' && <DatabaseTab databaseMode={databaseMode} />}
         {tab === 'database' && allowedRole !== 'admin' && <div className="card"><SectionHeader icon={Lock} title="Database Access Locked" subtitle="Only Admin accounts can view database status" /><p className="muted">Please use your role dashboard, inbox, or reports page.</p></div>}
@@ -11984,7 +12106,7 @@ function AboutUsCustomizationPanel({ page, updatePage, uploadImage }) {
           </label>
           <label className="field">
             <span>Subtitle</span>
-            <input value={draft.subtitle} onChange={(e) => updateDraft('subtitle', e.target.value)} placeholder="Research Platform" />
+            <input value={draft.subtitle} onChange={(e) => updateDraft('subtitle', e.target.value)} placeholder="Hawler Medical University Research Platform" />
           </label>
           <label className="field">
             <span>Header image URL</span>
@@ -12246,7 +12368,7 @@ function NotificationBellMenu({ data, role, currentUser, dataLoading = false, un
   )
 }
 
-function ProfileSettingsPage({ currentUser, collegeLabel = '', onBack, updateOwnProfile, uploadOwnProfilePhoto, updateOwnPassword }) {
+function ProfileSettingsPage({ currentUser, onBack, updateOwnProfile, uploadOwnProfilePhoto, updateOwnPassword }) {
   const [form, setForm] = useState(() => ({
     full_name: currentUser?.full_name || '',
     display_name: currentUser?.display_name || '',
@@ -12405,10 +12527,6 @@ function ProfileSettingsPage({ currentUser, collegeLabel = '', onBack, updateOwn
               <span>Role</span>
               <input value={roleLabel} readOnly />
             </label>
-            <label>
-              <span>College</span>
-              <input value={collegeLabel || 'Not set'} readOnly title="College affiliation can only be changed by an authorized Admin." />
-            </label>
           </div>
           <button type="submit" className="primary" disabled={loadingKey === 'profile'}>
             <ButtonContent loading={loadingKey === 'profile'} loadingText="Saving profile..."><Save size={16} /> Save Profile</ButtonContent>
@@ -12440,7 +12558,7 @@ function ProfileSettingsPage({ currentUser, collegeLabel = '', onBack, updateOwn
   )
 }
 
-function UserProfileMenu({ currentUser, collegeLabel = '', onLogout, onOpenProfile }) {
+function UserProfileMenu({ currentUser, onLogout, onOpenProfile }) {
   const [open, setOpen] = useState(false)
   const [menuVisible, setMenuVisible] = useState(false)
   const closeTimerRef = useRef(null)
@@ -12507,7 +12625,7 @@ function UserProfileMenu({ currentUser, collegeLabel = '', onLogout, onOpenProfi
             <div className="profile-identity simplified-profile-identity">
               <h3>{displayName}</h3>
               <p>{displayEmail}</p>
-              {collegeLabel && <p className="profile-college-label"><Building2 size={13} /> {collegeLabel}</p>}
+              <p className="profile-college-label">{getCollegeLabel(getUserCollegeId(currentUser))}</p>
             </div>
 
             <button className="profile-upload-button redesigned" type="button" onClick={openProfileSettings}>
@@ -13590,7 +13708,7 @@ function AdminControlPanel({
         <div className="admin-brand-block">
           <div className="admin-brand-mark" aria-hidden="true">{(settings.adminPanelName || 'A').trim().charAt(0).toUpperCase()}</div>
           <div className="admin-brand-text">
-            <h2>{settings.adminPanelName || 'Research Platform Control Center'}</h2>
+            <h2>{settings.adminPanelName || 'HMU Research Platform Control Center'}</h2>
             <p>Website management panel</p>
           </div>
         </div>
@@ -13651,7 +13769,7 @@ function AdminControlPanel({
         {message && adminPanelTab !== 'overview' && <div className="message no-print">{message}</div>}
         {dataLoading && adminPanelTab !== 'overview' && <LoadingBlock text="Loading admin records..." />}
 
-        {adminPanelTab === 'profile-settings' && <ProfileSettingsPage currentUser={currentUser} collegeLabel={getCollegeLabel(data, currentUser?.college_id)} onBack={() => changeAdminPanelTab('overview')} updateOwnProfile={updateOwnProfile} uploadOwnProfilePhoto={uploadOwnProfilePhoto} updateOwnPassword={updateOwnPassword} />}
+        {adminPanelTab === 'profile-settings' && <ProfileSettingsPage currentUser={currentUser} onBack={() => changeAdminPanelTab('overview')} updateOwnProfile={updateOwnProfile} uploadOwnProfilePhoto={uploadOwnProfilePhoto} updateOwnPassword={updateOwnPassword} />}
         {adminPanelTab === 'about-us' && <AboutUsCustomizationPanel page={aboutUsPage} updatePage={updateAboutUsPage} uploadImage={uploadAboutUsImage} currentUser={currentUser} />}
         {adminPanelTab === 'learning-resources' && <ResearchLearningResourcesPage data={data} role="admin" currentUser={currentUser} dataLoading={dataLoading} saveResource={saveResearchLearningResource} deleteResource={deleteResearchLearningResource} openPdf={openResearchContentPdf} />}
         {adminPanelTab === 'research-day' && <ResearchDayPage data={data} role="admin" currentUser={currentUser} dataLoading={dataLoading} saveResearchDay={saveResearchDay} deleteResearchDay={deleteResearchDay} />}
@@ -13667,9 +13785,9 @@ function AdminControlPanel({
             <div className="card">
               <SectionHeader icon={SlidersHorizontal} title="Website Content Settings" subtitle="Change homepage text, hero image, and admin panel labels" />
               <div className="form-grid">
-                <label className="field"><span>Main website name</span><input value={draft.siteName || ''} onChange={(e) => updateDraft('siteName', e.target.value)} placeholder="Research Platform" /></label>
-                <label className="field"><span>Admin panel name</span><input value={draft.adminPanelName || ''} onChange={(e) => updateDraft('adminPanelName', e.target.value)} placeholder="Research Platform Control Center" /></label>
-                <label className="field wide-field"><span>Homepage headline</span><input value={draft.homepageHeadline || ''} onChange={(e) => updateDraft('homepageHeadline', e.target.value)} placeholder="A web-based Research Project Management System" /></label>
+                <label className="field"><span>Main website name</span><input value={draft.siteName || ''} onChange={(e) => updateDraft('siteName', e.target.value)} placeholder="Hawler Medical University Research Platform" /></label>
+                <label className="field"><span>Admin panel name</span><input value={draft.adminPanelName || ''} onChange={(e) => updateDraft('adminPanelName', e.target.value)} placeholder="HMU Research Platform Control Center" /></label>
+                <label className="field wide-field"><span>Homepage headline</span><input value={draft.homepageHeadline || ''} onChange={(e) => updateDraft('homepageHeadline', e.target.value)} placeholder="A web-based Pharmacy Research Project Management System" /></label>
                 <label className="field wide-field"><span>Homepage subtitle</span><textarea value={draft.homepageSubtitle || ''} onChange={(e) => updateDraft('homepageSubtitle', e.target.value)} placeholder="Write the subtitle shown on the public website" /></label>
                 <label className="field wide-field"><span>Admin welcome message</span><textarea value={draft.adminWelcome || ''} onChange={(e) => updateDraft('adminWelcome', e.target.value)} placeholder="Write the admin panel welcome text" /></label>
                 <label className="field wide-field"><span>Maintenance notice / announcement</span><input value={draft.maintenanceNotice || ''} onChange={(e) => updateDraft('maintenanceNotice', e.target.value)} placeholder="Optional notice shown to admins" /></label>
@@ -13994,7 +14112,7 @@ function AdminControlPanel({
           </div>
         )}
 
-        {adminPanelTab === 'invitations' && <InvitationManager invitations={data.invitations} settings={settings} createInvitation={createInvitation} resendInvitation={resendInvitation} cancelInvitation={cancelInvitation} copyInvitationLink={copyInvitationLink} />}
+        {adminPanelTab === 'invitations' && <InvitationManager invitations={data.invitations} settings={settings} createInvitation={createInvitation} resendInvitation={resendInvitation} cancelInvitation={cancelInvitation} copyInvitationLink={copyInvitationLink} currentUser={currentUser} colleges={data.colleges} />}
         {adminPanelTab === 'users' && <AdminResearchWorkspace data={data} projects={projects} currentUser={currentUser} loadError={loadError} dataLoading={dataLoading} updateProject={updateProject} updateUserRole={updateUserRole} updateUserStatus={updateUserStatus} exportCsv={exportCsv} deleteWeeklyReport={deleteWeeklyReport} deleteUploadedFile={deleteUploadedFile} deleteUserAccount={deleteUserAccount} deleteResearchGroup={deleteResearchGroup} deleteResearchProject={deleteResearchProject} usersOnly />}
         {adminPanelTab === 'name-randomizer' && <AdminNameRandomizer data={data} projects={projects} currentUser={currentUser} dataLoading={dataLoading} loadError={loadError} />}
         {adminPanelTab === 'supervisors' && <SupervisorManagementTab data={data} projects={projects} currentUser={currentUser} loadError={loadError} dataLoading={dataLoading} updateProject={updateProject} assignStudentToSupervisor={assignStudentToSupervisor} assignProjectLeader={assignProjectLeader} exportCsv={exportCsv} />}
@@ -14013,12 +14131,13 @@ function AdminControlPanel({
 }
 
 
-function InvitationManager({ invitations, settings, createInvitation, resendInvitation, cancelInvitation, copyInvitationLink }) {
+function InvitationManager({ invitations, settings, createInvitation, resendInvitation, cancelInvitation, copyInvitationLink, currentUser = {}, colleges = COLLEGE_OPTIONS }) {
   const defaultRole = 'student'
   const [form, setForm] = useState({
     full_name: '',
     email: '',
     role: defaultRole,
+    college_id: getUserCollegeId(currentUser),
     subject: invitationTemplates[defaultRole].subject,
     body: invitationTemplates[defaultRole].body,
     expires_in_days: 7,
@@ -14041,6 +14160,7 @@ function InvitationManager({ invitations, settings, createInvitation, resendInvi
       full_name: '',
       email: '',
       role: defaultRole,
+      college_id: getUserCollegeId(currentUser),
       subject: invitationTemplates[defaultRole].subject,
       body: invitationTemplates[defaultRole].body,
       expires_in_days: 7,
@@ -14100,6 +14220,7 @@ function InvitationManager({ invitations, settings, createInvitation, resendInvi
             <label className="field"><span>Full name</span><input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} placeholder="Recipient full name" /></label>
             <label className="field"><span>Email address</span><input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="recipient@hmu.edu.krd" /></label>
             <label className="field"><span>Assigned role</span><select value={form.role} onChange={(e) => updateRole(e.target.value)}>{invitationRoles.map((role) => <option key={role.id} value={role.id}>{role.label}</option>)}</select></label>
+            <label className="field"><span>College</span><select value={form.college_id || getUserCollegeId(currentUser)} onChange={(e) => setForm({ ...form, college_id: e.target.value })}>{(Array.isArray(colleges) && colleges.length ? colleges : COLLEGE_OPTIONS).map((college) => <option key={college.id} value={college.id}>{college.name}</option>)}</select></label>
             <label className="field"><span>Expires after</span><select value={form.expires_in_days} onChange={(e) => setForm({ ...form, expires_in_days: e.target.value })}><option value="3">3 days</option><option value="7">7 days</option><option value="14">14 days</option><option value="30">30 days</option></select></label>
             <label className="field wide-field"><span>Email subject</span><input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="Invitation email subject" /></label>
             <label className="field wide-field"><span>Email body</span><textarea value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} placeholder="Write the invitation email body" /></label>
@@ -16988,6 +17109,7 @@ function AdminResearchWorkspace({ data = emptyData, projects = [], currentUser, 
   const [userRoleFilter, setUserRoleFilter] = useState('all')
   const [userStatusFilter, setUserStatusFilter] = useState('all')
   const [userDepartmentFilter, setUserDepartmentFilter] = useState('all')
+  const [userCollegeFilter, setUserCollegeFilter] = useState('all')
   const [userSort, setUserSort] = useState('name-asc')
   const [userPage, setUserPage] = useState(1)
   const USERS_PAGE_SIZE = 10
@@ -17055,7 +17177,8 @@ function AdminResearchWorkspace({ data = emptyData, projects = [], currentUser, 
     const matchesRole = userRoleFilter === 'all' || user.role === userRoleFilter
     const matchesStatus = userStatusFilter === 'all' || (user.status || 'Pending') === userStatusFilter
     const matchesDepartment = userDepartmentFilter === 'all' || department === userDepartmentFilter
-    return matchesSearch && matchesRole && matchesStatus && matchesDepartment
+    const matchesCollege = userCollegeFilter === 'all' || getUserCollegeId(user) === userCollegeFilter
+    return matchesSearch && matchesRole && matchesStatus && matchesDepartment && matchesCollege
   })
 
   const sortedUsersToShow = [...usersToShow].sort((a, b) => {
@@ -17080,7 +17203,7 @@ function AdminResearchWorkspace({ data = emptyData, projects = [], currentUser, 
 
   useEffect(() => {
     setUserPage(1)
-  }, [userTab, userSearch, userRoleFilter, userStatusFilter, userDepartmentFilter, userSort])
+  }, [userTab, userSearch, userRoleFilter, userStatusFilter, userDepartmentFilter, userCollegeFilter, userSort])
 
   const tabTitle = userTab === 'pending'
     ? 'Pending User Approval'
@@ -17216,6 +17339,10 @@ function AdminResearchWorkspace({ data = emptyData, projects = [], currentUser, 
             <option value="all">All departments</option>
             {departmentOptions.map((department) => <option key={department} value={department}>{department}</option>)}
           </select>
+          <select value={userCollegeFilter} onChange={(e) => setUserCollegeFilter(e.target.value)}>
+            <option value="all">All colleges</option>
+            {collegeChoices.map((college) => <option key={college.id || college.slug} value={college.id || college.slug}>{college.name}</option>)}
+          </select>
           <select value={userSort} onChange={(e) => setUserSort(e.target.value)} aria-label="Sort users">
             <option value="name-asc">Name (A–Z)</option>
             <option value="name-desc">Name (Z–A)</option>
@@ -17244,6 +17371,7 @@ function AdminResearchWorkspace({ data = emptyData, projects = [], currentUser, 
                   <p>{u.email || 'No email available'}</p>
                   <p className="small muted">Role: <b>{requestedRoleLabel}</b> • Status: <b>{u.status || 'Pending'}</b></p>
                   <p className="small muted">Department: <b>{department}</b></p>
+                  <p className="small muted">College: <b>{getCollegeLabel(getUserCollegeId(u), data.colleges)}</b></p>
                   <p className="small muted">Submitted: <b>{submittedAt}</b></p>
                   {isCurrentAdmin && <p className="small muted">Current admin account</p>}
                 </div>
@@ -17869,11 +17997,7 @@ function ReportsTab({ data, projects, currentUser, role, printPdfReport, exportC
   const hasProjects = studentFilteredProjects.length > 0
   const showGeneratedAt = settings.showGeneratedDateTime !== false && reportSectionVisible(settings, 'generatedDateTime')
   const footerText = String(settings.footerText || '').trim()
-  // If the admin hasn't explicitly customized the College name for this role's PDF
-  // settings, fall back to the current user's actual college so the report reflects
-  // the right college dynamically instead of a fixed value from one college's rollout.
-  const effectiveCollegeName = settings.collegeName || getCollegeLabel(data, currentUser?.college_id) || ''
-  const departmentLine = [settings.universityName, effectiveCollegeName, settings.departmentName].filter(Boolean).join(' • ')
+  const departmentLine = [settings.universityName, settings.collegeName, settings.departmentName].filter(Boolean).join(' • ')
   const feedbackReports = scopedReports.filter((report) => report.feedback || report.supervisor_feedback)
   const selectedSupervisor = supervisorOptions.find((supervisor) => supervisor.key === selectedSupervisorKey) || null
   const noAssignedStudentsForSupervisor = isAdminLike && selectedSupervisorKey && selectedSupervisorKey !== 'all' && selectableStudentOptions.length === 0
@@ -18161,11 +18285,11 @@ function PdfReportCustomizationPanel({ settingsByRole = {}, globalSettings = def
         <SectionHeader icon={FileText} title="PDF Report Customization" subtitle={`Customize the existing Print/PDF Report template for ${roleLabel}`} />
         {pdfActionLoading === 'load-role-settings' ? <LoadingBlock text="Loading role PDF settings..." /> : null}
         <div className="form-grid">
-          <label className="field wide-field"><span>Report header/title text</span><input value={draft.reportTitle || ''} onChange={(e) => updateDraft('reportTitle', e.target.value)} placeholder="Research Project Management Report" /></label>
-          <label className="field"><span>Header line</span><input value={draft.headerText || ''} onChange={(e) => updateDraft('headerText', e.target.value)} placeholder="Hawler Medical University" /></label>
+          <label className="field wide-field"><span>Report header/title text</span><input value={draft.reportTitle || ''} onChange={(e) => updateDraft('reportTitle', e.target.value)} placeholder="Pharmacy Research Project Management Report" /></label>
+          <label className="field"><span>Header line</span><input value={draft.headerText || ''} onChange={(e) => updateDraft('headerText', e.target.value)} placeholder="Hawler Medical University – College of Pharmacy" /></label>
           <label className="field"><span>University name</span><input value={draft.universityName || ''} onChange={(e) => updateDraft('universityName', e.target.value)} placeholder="Hawler Medical University" /></label>
-          <label className="field"><span>College name</span><input value={draft.collegeName || ''} onChange={(e) => updateDraft('collegeName', e.target.value)} placeholder="e.g. College of Pharmacy" /></label>
-          <label className="field"><span>Department name</span><input value={draft.departmentName || ''} onChange={(e) => updateDraft('departmentName', e.target.value)} placeholder="Optional department name" /></label>
+          <label className="field"><span>College name</span><input value={draft.collegeName || ''} onChange={(e) => updateDraft('collegeName', e.target.value)} placeholder="College of Pharmacy" /></label>
+          <label className="field"><span>Department name</span><input value={draft.departmentName || ''} onChange={(e) => updateDraft('departmentName', e.target.value)} placeholder="Department of Pharmacy" /></label>
           <label className="field wide-field"><span>Footer text</span><textarea value={draft.footerText || ''} onChange={(e) => updateDraft('footerText', e.target.value)} placeholder="Optional footer text shown at the bottom of printed/PDF reports" /></label>
         </div>
         <div className="settings-actions">
@@ -18270,7 +18394,7 @@ function DatabaseTab({ databaseMode }) {
         </div>
       </div>
       <div className="card">
-        <SectionHeader icon={Database} title="Core Database Tables" subtitle="Tables used by the Research Project Management System" />
+        <SectionHeader icon={Database} title="Core Database Tables" subtitle="Tables used by the Pharmacy Research Project Management System" />
         <div className="table-wrap"><table><thead><tr><th>Core Table</th><th>Purpose</th></tr></thead><tbody>{tables.map((t) => <tr key={t}><td><code>{t}</code></td><td>Stores and manages {t.replaceAll('_', ' ')} data.</td></tr>)}</tbody></table></div>
         <div className="soft-box"><p><Lock size={16} /> Database information is visible only to Admin accounts.</p></div>
       </div>
