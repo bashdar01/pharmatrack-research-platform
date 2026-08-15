@@ -153,6 +153,36 @@ function recordsShareCollege(a = {}, b = {}) {
   return getUserCollegeId(a) === getUserCollegeId(b)
 }
 
+function getCollegeScopedOptions(rows = [], collegeId = 'all', data = emptyData) {
+  if (!collegeId || collegeId === 'all') return rows || []
+  const normalizedCollegeId = normalizeCollegeId(collegeId)
+  return (rows || []).filter((row) => getRecordCollegeId(row, data) === normalizedCollegeId || getUserCollegeId(row) === normalizedCollegeId)
+}
+
+function isSingleCollegeStaffRole(role) {
+  return ['supervisor', 'committee'].includes(normalizeMeetingRole(role) || normalizeText(role))
+}
+
+function findCrossCollegeStaffConflict(profiles = [], targetUser = {}, nextRole = targetUser?.role) {
+  if (!targetUser || !isSingleCollegeStaffRole(nextRole)) return null
+  const email = normalizeText(targetUser.email)
+  if (!email) return null
+  const targetCollegeId = getUserCollegeId(targetUser)
+  return (profiles || []).find((profile) => (
+    String(profile.id || '') !== String(targetUser.id || '') &&
+    normalizeText(profile.email) === email &&
+    isSingleCollegeStaffRole(profile.role) &&
+    getUserCollegeId(profile) !== targetCollegeId &&
+    normalizeText(profile.status || 'Active') !== 'rejected'
+  )) || null
+}
+
+function formatCollegeConflictMessage(targetUser = {}, conflict = {}, colleges = COLLEGE_OPTIONS) {
+  const targetCollege = getCollegeLabel(getUserCollegeId(targetUser), colleges)
+  const conflictCollege = getCollegeLabel(getUserCollegeId(conflict), colleges)
+  return `${targetUser.full_name || targetUser.email || 'This user'} is already connected to ${conflictCollege}. Supervisor and Research Committee accounts must belong to one college only, so this account cannot also be approved or managed under ${targetCollege}.`
+}
+
 function normalizeDepartment(value, fallback = DEFAULT_DEPARTMENT) {
   return DEPARTMENT_OPTIONS.includes(value) ? value : fallback
 }
@@ -9477,6 +9507,8 @@ export default function App() {
     if (!targetUser) return setMessage('User not found.')
     if (String(targetUser.id) === String(currentUser.id)) return setMessage('For safety, the active admin cannot change their own role while logged in.')
     if (!roleButtons.some((role) => role.id === newRole)) return setMessage('Please choose a valid role.')
+    const roleCollegeConflict = findCrossCollegeStaffConflict(data.profiles, targetUser, newRole)
+    if (roleCollegeConflict) return setMessage(formatCollegeConflictMessage(targetUser, roleCollegeConflict, data.colleges))
 
     try {
       if (isSupabaseConfigured) {
@@ -9503,6 +9535,10 @@ export default function App() {
     if (!targetUser) return setMessage('User not found.')
     if (String(targetUser.id) === String(currentUser.id)) return setMessage('For safety, the active admin cannot change their own approval status while logged in.')
     if (!['Pending', 'Active', 'Rejected'].includes(newStatus)) return setMessage('Please choose a valid account status.')
+    if (newStatus === 'Active') {
+      const statusCollegeConflict = findCrossCollegeStaffConflict(data.profiles, targetUser, targetUser.role)
+      if (statusCollegeConflict) return setMessage(formatCollegeConflictMessage(targetUser, statusCollegeConflict, data.colleges))
+    }
 
     try {
       if (isSupabaseConfigured) {
@@ -9608,6 +9644,15 @@ export default function App() {
     if (!student || student.role !== 'student') return setMessage('Student account not found.')
     const supervisor = supervisorId ? data.profiles.find((user) => String(user.id) === String(supervisorId) && user.role === 'supervisor') : null
     if (supervisorId && !supervisor) return setMessage('Supervisor account not found.')
+    if (supervisor && getUserCollegeId(student) !== getUserCollegeId(supervisor)) {
+      return setMessage('The selected supervisor belongs to a different college. Supervisors can only be assigned within their own college.')
+    }
+    if (!isPlatformWideAdmin(currentUser) && getUserCollegeId(currentUser) !== getUserCollegeId(student)) {
+      return setMessage('You can assign supervisors only inside your own college.')
+    }
+    if (supervisor && !isPlatformWideAdmin(currentUser) && getUserCollegeId(currentUser) !== getUserCollegeId(supervisor)) {
+      return setMessage('You can assign only supervisors from your own college.')
+    }
 
     const studentName = normalizeText(student.full_name)
     const studentEmail = normalizeText(student.email)
@@ -9623,6 +9668,11 @@ export default function App() {
         projectStudents.includes(studentEmail)
       )
     })
+
+    const crossCollegeProject = linkedProjects.find((project) => getRecordCollegeId(project, data) !== getUserCollegeId(student) || (supervisor && getRecordCollegeId(project, data) !== getUserCollegeId(supervisor)))
+    if (crossCollegeProject) {
+      return setMessage('This assignment would connect a student, supervisor, or project from different colleges. Please choose users from the same college.')
+    }
 
     const projectAlreadyAssignedToSupervisor = supervisor ? linkedProjects.some((project) => (
       String(project.supervisor_id || '') === String(supervisor.id) ||
@@ -16044,7 +16094,7 @@ function StudentMultiSelectDropdown({ students = [], targetScope, selectedKeys =
     return () => document.removeEventListener('mousedown', handlePointerDown)
   }, [])
 
-  const filteredStudents = students.filter((student) => {
+  const filteredStudents = visibleStudents.filter((student) => {
     const haystack = `${student.name || ''} ${student.email || ''} ${student.group || ''}`.toLowerCase()
     return haystack.includes(searchTerm.trim().toLowerCase())
   })
@@ -16654,8 +16704,11 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
     groupMembers: Array.isArray(data?.groupMembers) ? data.groupMembers : [],
   })
   projects = Array.isArray(projects) ? projects : data.projects
+  const collegeChoices = Array.isArray(data?.colleges) && data.colleges.length ? data.colleges : COLLEGE_OPTIONS
   const supervisors = data.profiles.filter((u) => u.role === 'supervisor')
   const students = data.profiles.filter((u) => u.role === 'student')
+  const defaultAssignmentCollegeFilter = isPlatformWideAdmin(currentUser) ? 'all' : getUserCollegeId(currentUser)
+  const [assignmentCollegeFilter, setAssignmentCollegeFilter] = useState(defaultAssignmentCollegeFilter)
   const [studentSearch, setStudentSearch] = useState('')
   const [supervisorSearch, setSupervisorSearch] = useState('')
   const [assignmentStatusFilter, setAssignmentStatusFilter] = useState('all')
@@ -16669,6 +16722,15 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
   useEffect(() => {
     if (!projectSupervisorId && supervisors[0]?.id) setProjectSupervisorId(supervisors[0].id)
   }, [projectSupervisorId, supervisors])
+
+  const visibleStudents = getCollegeScopedOptions(students, assignmentCollegeFilter, data)
+  const visibleSupervisors = getCollegeScopedOptions(supervisors, assignmentCollegeFilter, data)
+  const visibleProjects = getCollegeScopedOptions(projects, assignmentCollegeFilter, data)
+
+  function getSameCollegeSupervisors(target = {}, supervisorList = visibleSupervisors) {
+    const targetCollegeId = getRecordCollegeId(target, data)
+    return (supervisorList || []).filter((supervisor) => getUserCollegeId(supervisor) === targetCollegeId)
+  }
 
   function getUserDepartment(user = {}) {
     const direct = user.department || user.area || user.research_area
@@ -16724,7 +16786,7 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
     }
   }
 
-  const filteredSupervisorOptions = supervisors.filter((supervisor) => {
+  const filteredSupervisorOptions = visibleSupervisors.filter((supervisor) => {
     const q = supervisorSearch.trim().toLowerCase()
     if (!q) return true
     return [supervisor.full_name, supervisor.email, supervisor.department, supervisor.area, supervisor.research_area].some((value) => String(value || '').toLowerCase().includes(q))
@@ -16762,6 +16824,10 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
     if (!selectedSupervisorId || !assignStudentToSupervisor) return
     const selectedSupervisor = supervisors.find((item) => String(item.id) === String(selectedSupervisorId))
     if (!selectedSupervisor) return
+    if (getUserCollegeId(student) !== getUserCollegeId(selectedSupervisor)) {
+      await showAppAlert('This supervisor belongs to a different college. Please choose a supervisor from the same college as the student.', { title: 'Different College', type: 'warning' })
+      return
+    }
     if (currentSupervisor && String(currentSupervisor.id || '') === String(selectedSupervisor.id || '')) {
       await showAppAlert(`${student.full_name || student.email || 'This student'} is already assigned to ${selectedSupervisor.full_name || selectedSupervisor.email || 'this supervisor'}.`, { title: 'Already Assigned', type: 'info' })
       return
@@ -16790,7 +16856,7 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
   }
 
   const selectedProjectSupervisor = supervisors.find((supervisor) => String(supervisor.id) === String(projectSupervisorId))
-  const filteredAssignmentProjects = projects.filter((project) => {
+  const filteredAssignmentProjects = visibleProjects.filter((project) => {
     const q = projectAssignmentSearch.trim().toLowerCase()
     if (!q) return true
     const student = getProjectAssignedStudent(project)
@@ -16832,17 +16898,21 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
 
   useEffect(() => {
     setStudentAssignPage(1)
-  }, [studentSearch, supervisorSearch, assignmentStatusFilter])
+  }, [studentSearch, supervisorSearch, assignmentStatusFilter, assignmentCollegeFilter])
 
   useEffect(() => {
     setProjectAssignPage(1)
-  }, [projectAssignmentSearch])
+  }, [projectAssignmentSearch, assignmentCollegeFilter])
 
   async function handleProjectSupervisorAssign(projectId) {
     const supervisor = selectedProjectSupervisor
     const project = projects.find((item) => String(item.id) === String(projectId))
     const student = project ? getProjectAssignedStudent(project) : null
     if (!project || !supervisor) return
+    if (getRecordCollegeId(project, data) !== getUserCollegeId(supervisor)) {
+      await showAppAlert('This supervisor belongs to a different college than the selected project. Please choose a supervisor from the same college.', { title: 'Different College', type: 'warning' })
+      return
+    }
     const currentSupervisor = project.supervisor_id
       ? supervisors.find((item) => String(item.id) === String(project.supervisor_id))
       : supervisors.find((item) => normalizeText(item.email) === normalizeText(project.supervisor_email) || normalizeText(item.full_name) === normalizeText(project.supervisor_name))
@@ -16935,6 +17005,7 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
         <div className="supervisor-management-controls">
           <label className="field"><span>Search students</span><input value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} placeholder="Search student name, email, supervisor, department, project..." /></label>
           <label className="field"><span>Search supervisors</span><input value={supervisorSearch} onChange={(e) => setSupervisorSearch(e.target.value)} placeholder="Search supervisor name, email, department..." /></label>
+          {isPlatformWideAdmin(currentUser) && <label className="field"><span>College</span><select value={assignmentCollegeFilter} onChange={(e) => setAssignmentCollegeFilter(e.target.value)}><option value="all">All colleges</option>{collegeChoices.map((college) => <option key={college.id || college.slug} value={college.id || college.slug}>{college.name}</option>)}</select></label>}
           <label className="field"><span>Assignment status</span><select value={assignmentStatusFilter} onChange={(e) => setAssignmentStatusFilter(e.target.value)}><option value="all">All students</option><option value="assigned">Assigned</option><option value="unassigned">Unassigned</option><option value="missing-project">Project not assigned</option></select></label>
         </div>
         {loadError ? <EmptyState title="Failed to load supervisor management data." text={loadError} icon={Users} /> : usersLoading ? <EmptyState title="Loading users..." text="Please wait while the user list loads." icon={Users} /> : supervisors.length === 0 ? <EmptyState title="No supervisors found." text="Create or approve supervisor accounts first." icon={UserCog} /> : filteredStudents.length ? (
@@ -16946,11 +17017,15 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
               const assignKey = `student-supervisor-assign-${student.id}`
               const removeKey = `student-supervisor-remove-${student.id}`
               const isAssigned = Boolean(assigned?.id || assigned?.email || assigned?.full_name)
+              const studentCollegeName = getCollegeLabel(getUserCollegeId(student), collegeChoices)
+              const studentSupervisorOptions = getSameCollegeSupervisors(student, filteredSupervisorOptions)
+              const selectedSupervisorIsSameCollege = !selectedValue || studentSupervisorOptions.some((supervisor) => String(supervisor.id) === String(selectedValue))
               return (
                 <div className="mini-card managed-item supervisor-management-row" key={student.id}>
                   <div className="supervisor-management-record-main">
                     <b>{student.full_name || 'Unnamed student'}</b>
                     <p>{student.email || 'No email available'}</p>
+                    <p className="small muted">College: <b>{studentCollegeName}</b></p>
                     <p className="small muted">Department/program: <b>{getUserDepartment(student)}</b></p>
                     <p className="small muted">Research group/project: <b>{project?.group_name || project?.title || 'Not assigned'}</b>{project?.title && project?.group_name ? ` • ${project.title}` : ''}</p>
                     <p className="small muted">Current supervisor: <b>{assigned?.full_name || 'Not assigned'}</b>{assigned?.email ? ` • ${assigned.email}` : ''}</p>
@@ -16961,10 +17036,11 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
                       <span>Supervisor</span>
                       <select value={selectedValue} disabled={Boolean(actionLoading)} onChange={(e) => setStudentSupervisorSelections((current) => ({ ...current, [student.id]: e.target.value }))}>
                         <option value="">Choose supervisor</option>
-                        {filteredSupervisorOptions.map((supervisor) => <option key={supervisor.id} value={supervisor.id}>{supervisor.full_name || supervisor.email}{supervisor.email ? ` — ${supervisor.email}` : ''}</option>)}
+                        {studentSupervisorOptions.map((supervisor) => <option key={supervisor.id} value={supervisor.id}>{supervisor.full_name || supervisor.email}{supervisor.email ? ` — ${supervisor.email}` : ''}</option>)}
                       </select>
                     </label>
-                    <button className="secondary compact-button min-button-width" disabled={Boolean(actionLoading) || !selectedValue} onClick={() => runSupervisorAction(assignKey, () => handleStudentSupervisorAssign(student.id))}><ButtonContent loading={actionLoading === assignKey} loadingText="Assigning..." icon={UserPlus} iconSize={14}>Assign Supervisor</ButtonContent></button>
+                    {!studentSupervisorOptions.length && <p className="small muted college-assignment-warning">No eligible supervisors in this student's college.</p>}
+                    <button className="secondary compact-button min-button-width" disabled={Boolean(actionLoading) || !selectedValue || !selectedSupervisorIsSameCollege} onClick={() => runSupervisorAction(assignKey, () => handleStudentSupervisorAssign(student.id))}><ButtonContent loading={actionLoading === assignKey} loadingText="Assigning..." icon={UserPlus} iconSize={14}>Assign Supervisor</ButtonContent></button>
                     <button className="warning compact-button min-button-width" disabled={Boolean(actionLoading) || !isAssigned} onClick={() => runSupervisorAction(removeKey, () => handleStudentSupervisorRemove(student.id))}><ButtonContent loading={actionLoading === removeKey} loadingText="Removing..." icon={XCircle} iconSize={14}>Remove Supervisor</ButtonContent></button>
                   </div>
                 </div>
@@ -16992,7 +17068,7 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
         <SectionHeader icon={UserCog} title="Project Supervisor Assignment" subtitle="Assign, change, or remove supervisors for submitted research titles" />
         <div className="supervisor-management-controls">
           <label className="field"><span>Search projects</span><input value={projectAssignmentSearch} onChange={(e) => setProjectAssignmentSearch(e.target.value)} placeholder="Search students, supervisors, projects, or research groups..." /></label>
-          <label className="field"><span>Choose supervisor</span><select value={projectSupervisorId} onChange={(e) => setProjectSupervisorId(e.target.value)}><option value="">Pending Assignment / remove supervisor</option>{supervisors.map((supervisor) => <option key={supervisor.id} value={supervisor.id}>{supervisor.full_name || supervisor.email}</option>)}</select></label>
+          <label className="field"><span>Choose supervisor</span><select value={projectSupervisorId} onChange={(e) => setProjectSupervisorId(e.target.value)}><option value="">Pending Assignment / remove supervisor</option>{visibleSupervisors.map((supervisor) => <option key={supervisor.id} value={supervisor.id}>{supervisor.full_name || supervisor.email} — {getCollegeLabel(getUserCollegeId(supervisor), collegeChoices)}</option>)}</select></label>
         </div>
         <div className="managed-list compact-managed-list admin-project-assignment-list supervisor-management-list">
           {projects.length ? (filteredAssignmentProjects.length ? pagedFilteredAssignmentProjects.map((project) => (
@@ -17000,6 +17076,7 @@ function SupervisorManagementTab({ data = emptyData, projects = [], currentUser,
               <div className="supervisor-management-record-main">
                 <b>{project.group_name || 'Research Group'}</b>
                 <p>{project.title || 'Untitled project'}</p>
+                <p className="small muted">College: <b>{getCollegeLabel(getRecordCollegeId(project, data), collegeChoices)}</b></p>
                 <p className="small muted">Student/member: {project.student_email || project.created_by_email || getProjectStudents(project).join(', ') || 'Not linked'}</p>
                 <p className="small muted">Current supervisor: <b>{project.supervisor_name || 'Pending Assignment'}</b>{project.supervisor_email ? ` • ${project.supervisor_email}` : ''}</p>
               </div>
@@ -17279,6 +17356,10 @@ function AdminResearchWorkspace({ data = emptyData, projects = [], currentUser, 
     const supervisor = selectedProjectSupervisor
     const project = projects.find((item) => String(item.id) === String(projectId))
     const student = project ? getProjectAssignedStudent(project) : null
+    if (project && supervisor && getRecordCollegeId(project, data) !== getUserCollegeId(supervisor)) {
+      await showAppAlert('This supervisor belongs to a different college than the selected project. Please choose a supervisor from the same college.', { title: 'Different College', type: 'warning' })
+      return
+    }
 
     if (student?.id && assignStudentToSupervisor) {
       await assignStudentToSupervisor(student.id, supervisor?.id || '', { projectId })
@@ -17369,6 +17450,8 @@ function AdminResearchWorkspace({ data = emptyData, projects = [], currentUser, 
             const submittedAt = String(u.created_at || u.submitted_at || u.registered_at || '').slice(0, 16).replace('T', ' ') || 'Date unavailable'
             const department = getUserDepartment(u)
             const collegeName = getCollegeLabel(getUserCollegeId(u), data.colleges)
+            const staffCollegeConflict = findCrossCollegeStaffConflict(data.profiles, u, u.role)
+            const staffConflictCollege = staffCollegeConflict ? getCollegeLabel(getUserCollegeId(staffCollegeConflict), data.colleges) : ''
             return (
               <div className="mini-card user-role-row admin-pending-user-request admin-user-role-management-row" key={u.id}>
                 <div className="admin-pending-user-info">
@@ -17377,6 +17460,7 @@ function AdminResearchWorkspace({ data = emptyData, projects = [], currentUser, 
                   <p className="small muted">College: <b>{collegeName}</b></p>
                   <p className="small muted">Role: <b>{requestedRoleLabel}</b> • Status: <b>{u.status || 'Pending'}</b></p>
                   <p className="small muted">Department / area: <b>{department}</b></p>
+                  {staffCollegeConflict && <p className="small muted college-assignment-warning"><b>College conflict:</b> this staff email is already connected to {staffConflictCollege}. Supervisors and Research Committee users can belong to one college only.</p>}
                   <p className="small muted">Submitted: <b>{submittedAt}</b></p>
                   {isCurrentAdmin && <p className="small muted">Current admin account</p>}
                 </div>
@@ -17392,7 +17476,7 @@ function AdminResearchWorkspace({ data = emptyData, projects = [], currentUser, 
                   )}
 
                   {(userTab === 'roles' || userTab === 'pending' || userTab === 'rejected') && (
-                    <select value={u.status || 'Pending'} disabled={isCurrentAdmin || Boolean(adminActionLoading)} onChange={(e) => runAdminAction(`status-${u.id}`, () => updateUserStatus(u.id, e.target.value))}>
+                    <select value={u.status || 'Pending'} disabled={isCurrentAdmin || Boolean(adminActionLoading) || Boolean(staffCollegeConflict)} onChange={(e) => runAdminAction(`status-${u.id}`, () => updateUserStatus(u.id, e.target.value))}>
                       <option value="Pending">Pending</option>
                       <option value="Active">Active / Approved</option>
                       <option value="Rejected">Rejected</option>
@@ -17400,10 +17484,10 @@ function AdminResearchWorkspace({ data = emptyData, projects = [], currentUser, 
                   )}
 
 
-                  {userTab === 'pending' && !isCurrentAdmin && <button className="success compact-button min-button-width" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`accept-${u.id}`, () => updateUserStatus(u.id, 'Active'))}><ButtonContent loading={adminActionLoading === `accept-${u.id}`} loadingText="Accepting..." icon={CheckCircle2} iconSize={14}>Accept</ButtonContent></button>}
+                  {userTab === 'pending' && !isCurrentAdmin && <button className="success compact-button min-button-width" disabled={Boolean(adminActionLoading) || Boolean(staffCollegeConflict)} onClick={() => runAdminAction(`accept-${u.id}`, () => updateUserStatus(u.id, 'Active'))}><ButtonContent loading={adminActionLoading === `accept-${u.id}`} loadingText="Accepting..." icon={CheckCircle2} iconSize={14}>Accept</ButtonContent></button>}
                   {userTab === 'pending' && !isCurrentAdmin && <button className="danger compact-button min-button-width" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`reject-${u.id}`, () => updateUserStatus(u.id, 'Rejected'))}><ButtonContent loading={adminActionLoading === `reject-${u.id}`} loadingText="Rejecting..." icon={XCircle} iconSize={14}>Reject</ButtonContent></button>}
                   {userTab === 'rejected' && !isCurrentAdmin && <button className="warning compact-button min-button-width" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`pending-${u.id}`, () => updateUserStatus(u.id, 'Pending'))}><ButtonContent loading={adminActionLoading === `pending-${u.id}`} loadingText="Updating..." icon={RefreshCw} iconSize={14}>Move to Pending</ButtonContent></button>}
-                  {userTab === 'rejected' && !isCurrentAdmin && <button className="success compact-button min-button-width" disabled={Boolean(adminActionLoading)} onClick={() => runAdminAction(`accept-${u.id}`, () => updateUserStatus(u.id, 'Active'))}><ButtonContent loading={adminActionLoading === `accept-${u.id}`} loadingText="Accepting..." icon={CheckCircle2} iconSize={14}>Accept</ButtonContent></button>}
+                  {userTab === 'rejected' && !isCurrentAdmin && <button className="success compact-button min-button-width" disabled={Boolean(adminActionLoading) || Boolean(staffCollegeConflict)} onClick={() => runAdminAction(`accept-${u.id}`, () => updateUserStatus(u.id, 'Active'))}><ButtonContent loading={adminActionLoading === `accept-${u.id}`} loadingText="Accepting..." icon={CheckCircle2} iconSize={14}>Accept</ButtonContent></button>}
                   {canDeleteUserAccount(u, currentUser) && deleteUserAccount && (
                     <AdminPanelDeleteButton itemKey={`user-${u.id}`} label="Delete Account" onDelete={() => deleteUserAccount(u.id)} />
                   )}
