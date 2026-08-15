@@ -5384,6 +5384,7 @@ function loadRandomizerState(currentUser = {}) {
 
 function AdminNameRandomizer({ data = {}, projects = [], currentUser = {}, dataLoading = false, loadError = '' }) {
   const isAuthorized = normalizeMeetingRole(currentUser?.role) === 'admin'
+  const collegeChoices = Array.isArray(data?.colleges) && data.colleges.length ? data.colleges : COLLEGE_OPTIONS
   const [randomizerState, setRandomizerState] = useState(() => ({ collegeId: 'all', ...loadRandomizerState(currentUser) }))
   const [customSearch, setCustomSearch] = useState('')
   const [validationMessage, setValidationMessage] = useState('')
@@ -16468,7 +16469,7 @@ function CommitteeResearchWorkspace({ data = emptyData, projects = [], currentUs
         <div className="section-filter-bar committee-filter-bar">
           <label className="field"><span>Search</span><input value={reviewSearch} onChange={(e) => setReviewSearch(e.target.value)} placeholder="Search title, group, student, supervisor..." /></label>
           <label className="field"><span>Status</span><select value={reviewStatus} onChange={(e) => setReviewStatus(e.target.value)}><option value="all">All statuses</option>{reviewStatusOptions.filter((item) => item !== 'all').map((status) => <option key={status} value={status}>{status}</option>)}</select></label>
-          <label className="field"><span>Department</span><select value={reviewDepartment} onChange={(e) => setReviewDepartment(e.target.value)}><option value="all">All departments</option>{DEPARTMENT_OPTIONS.map((department) => <option key={department} value={department}>{department}</option>)}</select></label>
+          <label className="field"><span>Department</span><select value={reviewDepartment} onChange={(e) => setReviewDepartment(e.target.value)}><option value="all">All departments / areas</option>{DEPARTMENT_OPTIONS.map((department) => <option key={department} value={department}>{department}</option>)}</select></label>
           <label className="field"><span>Research group</span><select value={reviewGroup} onChange={(e) => setReviewGroup(e.target.value)}><option value="all">All groups</option>{reviewGroupOptions.filter((item) => item !== 'all').map((group) => <option key={group} value={group}>{group}</option>)}</select></label>
         </div>
         {reviewProjects.length ? <ProjectDecisionTable projects={reviewProjects} updateProject={updateProject} data={data} reports={reports} /> : <EmptyState title="No matching projects" text="Try changing the filters or wait for supervisors to submit research projects." icon={Search} />}
@@ -17102,6 +17103,7 @@ function AdminResearchWorkspace({ data = emptyData, projects = [], currentUser, 
     groupMembers: Array.isArray(data?.groupMembers) ? data.groupMembers : [],
   })
   projects = Array.isArray(projects) ? projects : []
+  const collegeChoices = Array.isArray(data?.colleges) && data.colleges.length ? data.colleges : COLLEGE_OPTIONS
   const supervisors = data.profiles.filter((u) => u.role === 'supervisor')
   const students = data.profiles.filter((u) => u.role === 'student')
   const [projectSupervisorId, setProjectSupervisorId] = useState(supervisors[0]?.id || '')
@@ -17174,7 +17176,8 @@ function AdminResearchWorkspace({ data = emptyData, projects = [], currentUser, 
     const q = userSearch.trim().toLowerCase()
     const department = getUserDepartment(user)
     const assigned = getAssignedSupervisor(user)
-    const matchesSearch = !q || [user.full_name, user.email, user.role, user.status, department, assigned?.full_name, assigned?.email].some((value) => String(value || '').toLowerCase().includes(q))
+    const collegeName = getCollegeLabel(getUserCollegeId(user), data.colleges)
+    const matchesSearch = !q || [user.full_name, user.email, user.role, user.status, collegeName, department, assigned?.full_name, assigned?.email].some((value) => String(value || '').toLowerCase().includes(q))
     const matchesRole = userRoleFilter === 'all' || user.role === userRoleFilter
     const matchesStatus = userStatusFilter === 'all' || (user.status || 'Pending') === userStatusFilter
     const matchesDepartment = userDepartmentFilter === 'all' || department === userDepartmentFilter
@@ -17325,7 +17328,7 @@ function AdminResearchWorkspace({ data = emptyData, projects = [], currentUser, 
         </div>
 
         <div className="admin-user-filter-bar">
-          <input value={userSearch} onChange={(e) => setUserSearch(e.target.value)} placeholder="Search name, email, role, department, status..." />
+          <input value={userSearch} onChange={(e) => setUserSearch(e.target.value)} placeholder="Search name, email, role, college, status..." />
           <select value={userRoleFilter} onChange={(e) => setUserRoleFilter(e.target.value)}>
             <option value="all">All roles</option>
             {roleButtons.map((role) => <option key={role.id} value={role.id}>{role.label}</option>)}
@@ -17337,7 +17340,7 @@ function AdminResearchWorkspace({ data = emptyData, projects = [], currentUser, 
             <option value="Rejected">Rejected</option>
           </select>
           <select value={userDepartmentFilter} onChange={(e) => setUserDepartmentFilter(e.target.value)}>
-            <option value="all">All departments</option>
+            <option value="all">All departments / areas</option>
             {departmentOptions.map((department) => <option key={department} value={department}>{department}</option>)}
           </select>
           <select value={userCollegeFilter} onChange={(e) => setUserCollegeFilter(e.target.value)}>
@@ -17365,18 +17368,20 @@ function AdminResearchWorkspace({ data = emptyData, projects = [], currentUser, 
             const requestedRoleLabel = roleButtons.find((role) => role.id === u.role)?.label || u.role || 'Student'
             const submittedAt = String(u.created_at || u.submitted_at || u.registered_at || '').slice(0, 16).replace('T', ' ') || 'Date unavailable'
             const department = getUserDepartment(u)
+            const collegeName = getCollegeLabel(getUserCollegeId(u), data.colleges)
             return (
               <div className="mini-card user-role-row admin-pending-user-request admin-user-role-management-row" key={u.id}>
                 <div className="admin-pending-user-info">
                   <b>{u.full_name || 'Unnamed user'}</b>
                   <p>{u.email || 'No email available'}</p>
+                  <p className="small muted">College: <b>{collegeName}</b></p>
                   <p className="small muted">Role: <b>{requestedRoleLabel}</b> • Status: <b>{u.status || 'Pending'}</b></p>
-                  <p className="small muted">Department: <b>{department}</b></p>
-                  <p className="small muted">College: <b>{getCollegeLabel(getUserCollegeId(u), data.colleges)}</b></p>
+                  <p className="small muted">Department / area: <b>{department}</b></p>
                   <p className="small muted">Submitted: <b>{submittedAt}</b></p>
                   {isCurrentAdmin && <p className="small muted">Current admin account</p>}
                 </div>
                 <div className="role-management admin-pending-user-actions admin-role-actions-expanded">
+                  <Pill tone="blue">{collegeName}</Pill>
                   <Pill tone={u.role === 'admin' ? 'blue' : u.role === 'supervisor' ? 'green' : u.role === 'committee' ? 'amber' : 'slate'}>{requestedRoleLabel}</Pill>
                   <Pill tone={statusTone}>{u.status || 'Pending'}</Pill>
 
